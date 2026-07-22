@@ -1,8 +1,16 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image/image.dart' as img;
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zxing_lib/common.dart' as zxing_common;
+import 'package:zxing_lib/qrcode.dart' as zxing_qr;
+import 'package:zxing_lib/zxing.dart' as zxing;
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/obsidian_barcode_modal.dart';
@@ -52,7 +60,8 @@ class QrScannerScreen extends StatefulWidget {
 }
 
 class _QrScannerScreenState extends State<QrScannerScreen> {
-  final MobileScannerController _scannerController = MobileScannerController(
+  late final MobileScannerController _scannerController = MobileScannerController(
+    autoStart: !_isDesktopWindows,
     detectionSpeed: DetectionSpeed.noDuplicates,
     formats: const [BarcodeFormat.all],
   );
@@ -63,16 +72,265 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   bool _isUploading = false;
   bool _showManualInput = false;
 
+  bool get _isDesktopWindows => !kIsWeb && defaultTargetPlatform == TargetPlatform.windows;
+  List<CameraDescription> _availableCameras = [];
+  CameraController? _desktopCameraController;
+  int _selectedCameraIndex = 0;
+  Timer? _desktopScanTimer;
+  bool _isInitializingCamera = false;
+  String? _cameraErrorMessage;
+
   static const String _storageKey = 'obsidianscout:scanned_qr_entries';
 
   @override
   void initState() {
     super.initState();
     _loadQueue();
+    if (_isDesktopWindows) {
+      _initDesktopCamera();
+    }
+  }
+
+  String _formatCameraName(String rawName) {
+    if (rawName.isEmpty) return 'Camera';
+    if (rawName.contains('<')) {
+      final idx = rawName.indexOf('<');
+      final prefix = rawName.substring(0, idx).trim();
+      if (prefix.isNotEmpty) return prefix;
+    }
+    if (rawName.contains('#')) {
+      final parts = rawName.split('#');
+      if (parts.isNotEmpty && parts[0].trim().isNotEmpty) {
+        return parts[0].trim();
+      }
+    }
+    return rawName;
+  }
+
+  Future<void> _initDesktopCamera() async {
+    if (!_isDesktopWindows) return;
+
+    setState(() {
+      _isInitializingCamera = true;
+      _cameraErrorMessage = null;
+    });
+
+    try {
+      _availableCameras = await availableCameras();
+      if (_availableCameras.isNotEmpty) {
+        bool foundWorking = false;
+        for (int i = 0; i < _availableCameras.length; i++) {
+          final success = await _tryInitCameraIndex(i);
+          if (success) {
+            foundWorking = true;
+            break;
+          }
+        }
+        if (!foundWorking && mounted) {
+          setState(() {
+            _cameraErrorMessage = 'Could not start any connected webcams (try selecting a camera from the dropdown)';
+            _isInitializingCamera = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _cameraErrorMessage = 'No camera devices detected on this computer';
+            _isInitializingCamera = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        String msg = 'Failed to access camera hardware: $e';
+        if (e is MissingPluginException || e.toString().contains('MissingPluginException')) {
+          msg = 'Native Windows camera plugin registered!\nPlease perform a full app restart ("flutter run -d windows") to link camera DLL.';
+        }
+        setState(() {
+          _cameraErrorMessage = msg;
+          _isInitializingCamera = false;
+        });
+      }
+    }
+  }
+
+  Future<bool> _tryInitCameraIndex(int index) async {
+    if (index < 0 || index >= _availableCameras.length) return false;
+
+    _desktopScanTimer?.cancel();
+    if (_desktopCameraController != null) {
+      final old = _desktopCameraController!;
+      _desktopCameraController = null;
+      try {
+        await old.dispose();
+      } catch (_) {}
+    }
+
+    final camera = _availableCameras[index];
+    _selectedCameraIndex = index;
+
+    final presetsToTry = [
+      ResolutionPreset.low,
+      ResolutionPreset.medium,
+      ResolutionPreset.high,
+      ResolutionPreset.veryHigh,
+    ];
+
+    CameraController? controller;
+    Object? lastError;
+
+    for (final preset in presetsToTry) {
+      final tempController = CameraController(
+        camera,
+        preset,
+        enableAudio: false,
+      );
+      try {
+        await tempController.initialize();
+        controller = tempController;
+        break;
+      } catch (err) {
+        lastError = err;
+        try {
+          await tempController.dispose();
+        } catch (_) {}
+      }
+    }
+
+    if (controller != null && controller.value.isInitialized) {
+      if (!mounted) {
+        try {
+          await controller.dispose();
+        } catch (_) {}
+        return false;
+      }
+      setState(() {
+        _desktopCameraController = controller;
+        _isInitializingCamera = false;
+        _cameraErrorMessage = null;
+      });
+      _startDesktopScanningLoop();
+      return true;
+    } else {
+      if (mounted) {
+        final errText = lastError is CameraException ? (lastError.description ?? lastError.code) : (lastError?.toString() ?? 'Failed to initialize preview');
+        setState(() {
+          _cameraErrorMessage = 'Camera (${_formatCameraName(camera.name)}) error: $errText';
+          _isInitializingCamera = false;
+        });
+      }
+      return false;
+    }
+  }
+
+  Future<void> _selectCameraIndex(int index) async {
+    setState(() {
+      _isInitializingCamera = true;
+      _cameraErrorMessage = null;
+    });
+    await _tryInitCameraIndex(index);
+  }
+
+  Future<String?> _decodeQrFromImageFile(String filePath) async {
+    try {
+      final bytes = await File(filePath).readAsBytes();
+      final decodedImage = img.decodeImage(bytes);
+      if (decodedImage == null) return null;
+
+      final width = decodedImage.width;
+      final height = decodedImage.height;
+
+      final Uint8List luminancePixels = Uint8List(width * height);
+      int index = 0;
+      for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+          final pixel = decodedImage.getPixel(x, y);
+          final r = pixel.r.toInt();
+          final g = pixel.g.toInt();
+          final b = pixel.b.toInt();
+          luminancePixels[index++] = (r * 299 + g * 587 + b * 114) ~/ 1000;
+        }
+      }
+
+      final source = zxing.RGBLuminanceSource.orig(width, height, luminancePixels);
+      final binarizer = zxing_common.HybridBinarizer(source);
+      final bitmap = zxing.BinaryBitmap(binarizer);
+
+      final reader = zxing_qr.QRCodeReader();
+      final result = reader.decode(bitmap);
+      return result.text;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void _startDesktopScanningLoop() {
+    _desktopScanTimer?.cancel();
+    _desktopScanTimer = Timer.periodic(const Duration(milliseconds: 600), (_) async {
+      if (!_isScanning || _isProcessingScan || _desktopCameraController == null || !_desktopCameraController!.value.isInitialized) {
+        return;
+      }
+      try {
+        final xfile = await _desktopCameraController!.takePicture();
+        final decodedText = await _decodeQrFromImageFile(xfile.path);
+        try {
+          final file = File(xfile.path);
+          if (await file.exists()) {
+            await file.delete();
+          }
+        } catch (_) {}
+
+        if (decodedText != null && decodedText.isNotEmpty) {
+          _handleRawScan(decodedText);
+        }
+      } catch (_) {}
+    });
+  }
+
+  Future<void> _safeToggleTorch() async {
+    try {
+      await _scannerController.toggleTorch();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Flashlight control unavailable on this device'),
+            backgroundColor: ObsidianUITheme.warningOrange,
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _safeSwitchCamera() async {
+    if (_isDesktopWindows) {
+      if (_availableCameras.length > 1) {
+        final nextIdx = (_selectedCameraIndex + 1) % _availableCameras.length;
+        _selectCameraIndex(nextIdx);
+      }
+      return;
+    }
+
+    try {
+      await _scannerController.switchCamera();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Camera switching unavailable on this device'),
+            backgroundColor: ObsidianUITheme.warningOrange,
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+    }
   }
 
   @override
   void dispose() {
+    _desktopScanTimer?.cancel();
+    _desktopCameraController?.dispose();
     _scannerController.dispose();
     _manualInputController.dispose();
     super.dispose();
@@ -465,6 +723,79 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     );
   }
 
+  Widget _buildCameraDeviceSelector() {
+    if (_isDesktopWindows && _availableCameras.isNotEmpty) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 12.0),
+        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(12.0),
+          border: Border.all(color: Colors.white12),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.videocam_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<int>(
+                  value: _selectedCameraIndex,
+                  isExpanded: true,
+                  dropdownColor: ObsidianUITheme.surface,
+                  style: const TextStyle(color: Colors.white, fontSize: 13.0),
+                  items: List.generate(_availableCameras.length, (idx) {
+                    final cam = _availableCameras[idx];
+                    final name = _formatCameraName(cam.name);
+                    return DropdownMenuItem<int>(
+                      value: idx,
+                      child: Text(name, overflow: TextOverflow.ellipsis),
+                    );
+                  }),
+                  onChanged: (newIdx) {
+                    if (newIdx != null) {
+                      _selectCameraIndex(newIdx);
+                    }
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return const SizedBox.shrink();
+  }
+
+  Future<void> _pasteFromClipboard() async {
+    try {
+      final data = await Clipboard.getData(Clipboard.kTextPlain);
+      if (data != null && data.text != null && data.text!.trim().isNotEmpty) {
+        _handleRawScan(data.text!.trim());
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Clipboard is empty or contains no text data'),
+              backgroundColor: ObsidianUITheme.warningOrange,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to read clipboard: $e'),
+            backgroundColor: ObsidianUITheme.errorRed,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final pendingCount = _queue.where((i) => i.status == 'pending' || i.status == 'error').length;
@@ -476,14 +807,23 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         elevation: 0,
         actions: [
           IconButton(
+            icon: const Icon(Icons.assignment_returned_rounded, color: ObsidianUITheme.primaryAccent),
+            tooltip: 'Paste from Clipboard (PC)',
+            onPressed: _pasteFromClipboard,
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh_rounded, color: Colors.white70),
             tooltip: 'Restart Camera Preview',
             onPressed: () async {
               final messenger = ScaffoldMessenger.of(context);
-              try {
-                await _scannerController.stop();
-                await _scannerController.start();
-              } catch (_) {}
+              if (_isDesktopWindows) {
+                await _selectCameraIndex(_selectedCameraIndex);
+              } else {
+                try {
+                  await _scannerController.stop();
+                  await _scannerController.start();
+                } catch (_) {}
+              }
               setState(() {
                 _isProcessingScan = false;
                 _lastScannedText = null;
@@ -499,7 +839,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
           ),
           IconButton(
             icon: Icon(_showManualInput ? Icons.camera_alt_rounded : Icons.keyboard_rounded, color: Colors.white70),
-            tooltip: _showManualInput ? 'Use Camera' : 'Manual Code Input',
+            tooltip: _showManualInput ? 'Use Camera' : 'Manual Code / Clipboard Input',
             onPressed: () => setState(() => _showManualInput = !_showManualInput),
           ),
         ],
@@ -515,17 +855,89 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
             ObsidianGlassCard(
               child: Column(
                 children: [
+                  _buildCameraDeviceSelector(),
                   if (!_showManualInput) ...[
                     ClipRRect(
                       borderRadius: BorderRadius.circular(16.0),
                       child: SizedBox(
-                        height: 280,
+                        height: 340,
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
-                            if (_isScanning)
+                            if (_isDesktopWindows) ...[
+                              if (_isInitializingCamera)
+                                const Center(child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent))
+                              else if (_desktopCameraController != null && _desktopCameraController!.value.isInitialized)
+                                Center(
+                                  child: AspectRatio(
+                                    aspectRatio: _desktopCameraController!.value.aspectRatio,
+                                    child: CameraPreview(_desktopCameraController!),
+                                  ),
+                                )
+                              else
+                                Container(
+                                  color: Colors.black87,
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(Icons.videocam_off_rounded, color: ObsidianUITheme.warningOrange, size: 36),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        _cameraErrorMessage ?? 'Camera preview unavailable',
+                                        style: const TextStyle(color: Colors.white70, fontSize: 12),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      const SizedBox(height: 10),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          ElevatedButton.icon(
+                                            style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.primaryAccent),
+                                            onPressed: _initDesktopCamera,
+                                            icon: const Icon(Icons.refresh_rounded, size: 14),
+                                            label: const Text('Retry Camera', style: TextStyle(fontSize: 11)),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          ElevatedButton.icon(
+                                            style: ElevatedButton.styleFrom(backgroundColor: Colors.white12),
+                                            onPressed: _pasteFromClipboard,
+                                            icon: const Icon(Icons.assignment_turned_in_rounded, size: 14),
+                                            label: const Text('Paste Clipboard', style: TextStyle(fontSize: 11)),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ] else if (_isScanning)
                               MobileScanner(
                                 controller: _scannerController,
+                                errorBuilder: (context, error, child) {
+                                  return Container(
+                                    color: Colors.black87,
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(Icons.videocam_off_rounded, color: ObsidianUITheme.warningOrange, size: 36),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Camera Error: ${error.errorCode.name}',
+                                          style: const TextStyle(color: Colors.white70, fontSize: 12),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        const SizedBox(height: 12),
+                                        ElevatedButton.icon(
+                                          style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.primaryAccent),
+                                          onPressed: _pasteFromClipboard,
+                                          icon: const Icon(Icons.assignment_turned_in_rounded, size: 16),
+                                          label: const Text('Paste Code from Clipboard', style: TextStyle(fontSize: 12)),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
                                 onDetect: (capture) {
                                   final List<Barcode> barcodes = capture.barcodes;
                                   for (final barcode in barcodes) {
@@ -572,15 +984,23 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                       children: [
                         IconButton(
                           icon: const Icon(Icons.flash_on_rounded, color: Colors.white70),
-                          onPressed: () => _scannerController.toggleTorch(),
+                          tooltip: 'Toggle Flashlight',
+                          onPressed: _safeToggleTorch,
                         ),
                         IconButton(
                           icon: Icon(_isScanning ? Icons.pause_circle_filled_rounded : Icons.play_circle_fill_rounded, color: ObsidianUITheme.primaryAccent, size: 36),
+                          tooltip: _isScanning ? 'Pause Scanner' : 'Resume Scanner',
                           onPressed: () => setState(() => _isScanning = !_isScanning),
                         ),
                         IconButton(
                           icon: const Icon(Icons.cameraswitch_rounded, color: Colors.white70),
-                          onPressed: () => _scannerController.switchCamera(),
+                          tooltip: 'Switch Camera (PC Webcam)',
+                          onPressed: _safeSwitchCamera,
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.assignment_turned_in_rounded, color: ObsidianUITheme.primaryAccent),
+                          tooltip: 'Paste Clipboard Code',
+                          onPressed: _pasteFromClipboard,
                         ),
                       ],
                     ),
@@ -600,19 +1020,35 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                       ),
                     ),
                     const SizedBox(height: 12.0),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: ObsidianUITheme.primaryAccent,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      onPressed: () {
-                        if (_manualInputController.text.trim().isNotEmpty) {
-                          _handleRawScan(_manualInputController.text.trim());
-                          _manualInputController.clear();
-                        }
-                      },
-                      icon: const Icon(Icons.qr_code_scanner_rounded, color: Colors.white),
-                      label: const Text('PROCESS CODE DATA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: ObsidianUITheme.primaryAccent,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            onPressed: () {
+                              if (_manualInputController.text.trim().isNotEmpty) {
+                                _handleRawScan(_manualInputController.text.trim());
+                                _manualInputController.clear();
+                              }
+                            },
+                            icon: const Icon(Icons.qr_code_scanner_rounded, color: Colors.white),
+                            label: const Text('PROCESS DATA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white12,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          onPressed: _pasteFromClipboard,
+                          icon: const Icon(Icons.assignment_turned_in_rounded, color: Colors.white),
+                          label: const Text('PASTE CLIPBOARD', style: TextStyle(color: Colors.white, fontSize: 12)),
+                        ),
+                      ],
                     ),
                   ],
                 ],
