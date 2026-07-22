@@ -54,6 +54,8 @@ class ApiService {
     _startBackgroundSync();
   }
 
+  bool _isSyncing = false;
+
   void _initConnectivityMonitor() {
     _connectivitySub?.cancel();
     _connectivitySub = Connectivity().onConnectivityChanged.listen((results) {
@@ -65,7 +67,7 @@ class ApiService {
     });
 
     _healthCheckTimer?.cancel();
-    _healthCheckTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+    _healthCheckTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       checkServerHealth();
     });
     checkServerHealth();
@@ -75,7 +77,7 @@ class ApiService {
     try {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/auth/status'), headers: _headers)
-          .timeout(const Duration(milliseconds: 1500));
+          .timeout(const Duration(milliseconds: 1200));
       final online = response.statusCode == 200;
       _updateOnlineState(online);
       return online;
@@ -98,9 +100,34 @@ class ApiService {
   void _startBackgroundSync() {
     _syncTimer?.cancel();
     syncAllServerDataInBackground();
-    _syncTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+    _syncTimer = Timer.periodic(const Duration(seconds: 90), (_) {
       syncAllServerDataInBackground();
     });
+  }
+
+  Future<void> syncAllServerDataInBackground() async {
+    if (!isLoggedIn || !_isOnline || _isSyncing) return;
+    _isSyncing = true;
+    try {
+      final eventKey = await fetchCurrentEventKey();
+      await Future.delayed(const Duration(milliseconds: 150));
+      await fetchMatchConfig();
+      await Future.delayed(const Duration(milliseconds: 150));
+      await fetchPitConfig();
+      await Future.delayed(const Duration(milliseconds: 150));
+      await fetchQualConfig();
+      await Future.delayed(const Duration(milliseconds: 150));
+      await fetchTeams(eventKey);
+      await Future.delayed(const Duration(milliseconds: 150));
+      await fetchMatches(eventKey);
+      await Future.delayed(const Duration(milliseconds: 150));
+      await fetchScoutingEntries();
+      await Future.delayed(const Duration(milliseconds: 150));
+      await fetchAnalyticsWidgets();
+    } catch (_) {
+    } finally {
+      _isSyncing = false;
+    }
   }
 
   Future<void> _setCache(String key, String rawJson) async {
@@ -117,22 +144,6 @@ class ApiService {
     } catch (_) {
       return null;
     }
-  }
-
-  Future<void> syncAllServerDataInBackground() async {
-    if (!isLoggedIn) return;
-    try {
-      final eventKey = await fetchCurrentEventKey();
-      await Future.wait([
-        fetchMatchConfig(),
-        fetchPitConfig(),
-        fetchQualConfig(),
-        fetchTeams(eventKey),
-        fetchMatches(eventKey),
-        fetchScoutingEntries(),
-        fetchAnalyticsWidgets(),
-      ]);
-    } catch (_) {}
   }
 
   Future<bool> _verifySession() async {

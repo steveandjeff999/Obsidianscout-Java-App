@@ -264,12 +264,15 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     }
   }
 
+  bool _isFrameDecoding = false;
+
   void _startDesktopScanningLoop() {
     _desktopScanTimer?.cancel();
-    _desktopScanTimer = Timer.periodic(const Duration(milliseconds: 600), (_) async {
-      if (!_isScanning || _isProcessingScan || _desktopCameraController == null || !_desktopCameraController!.value.isInitialized) {
+    _desktopScanTimer = Timer.periodic(const Duration(milliseconds: 900), (_) async {
+      if (_isFrameDecoding || !_isScanning || _isProcessingScan || _desktopCameraController == null || !_desktopCameraController!.value.isInitialized) {
         return;
       }
+      _isFrameDecoding = true;
       try {
         final xfile = await _desktopCameraController!.takePicture();
         final decodedText = await _decodeQrFromImageFile(xfile.path);
@@ -283,7 +286,10 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         if (decodedText != null && decodedText.isNotEmpty) {
           _handleRawScan(decodedText);
         }
-      } catch (_) {}
+      } catch (_) {
+      } finally {
+        _isFrameDecoding = false;
+      }
     });
   }
 
