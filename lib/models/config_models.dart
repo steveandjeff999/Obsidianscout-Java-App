@@ -1,9 +1,12 @@
 class ScoutingFieldModel {
   final String id;
   final String label;
-  final String type; // e.g. "counter", "number", "toggle", "boolean", "select", "text", "section"
+  final String? description;
+  final String type; // e.g. "counter", "number", "slider", "range", "toggle", "boolean", "select", "radio", "multiselect", "rating", "text", "textarea", "section"
   final bool required;
   final String? phase; // e.g. "auto", "teleop", "endgame"
+  final String? placeholder;
+  final dynamic defaultValue;
   final List<ScoutingOptionModel> options;
   final int? min;
   final int? max;
@@ -13,9 +16,12 @@ class ScoutingFieldModel {
   ScoutingFieldModel({
     required this.id,
     required this.label,
+    this.description,
     required this.type,
     this.required = false,
     this.phase,
+    this.placeholder,
+    this.defaultValue,
     this.options = const [],
     this.min,
     this.max,
@@ -29,22 +35,38 @@ class ScoutingFieldModel {
     if (json['label'] is Map) {
       parsedLabel = (json['label'] as Map)['en']?.toString() ?? json['id'] ?? '';
     } else {
-      parsedLabel = json['label']?.toString() ?? json['id'] ?? '';
+      parsedLabel = json['label']?.toString() ?? json['name']?.toString() ?? json['title']?.toString() ?? json['id'] ?? '';
+    }
+
+    String? parsedDesc;
+    if (json['description'] is Map) {
+      parsedDesc = (json['description'] as Map)['en']?.toString();
+    } else {
+      parsedDesc = json['description']?.toString() ?? json['helpText']?.toString() ?? json['subtitle']?.toString();
     }
 
     List<ScoutingOptionModel> parsedOptions = [];
     if (json['options'] is List) {
-      parsedOptions = (json['options'] as List)
-          .map((opt) => ScoutingOptionModel.fromJson(opt as Map<String, dynamic>))
-          .toList();
+      parsedOptions = (json['options'] as List).map((opt) {
+        if (opt is Map<String, dynamic>) {
+          return ScoutingOptionModel.fromJson(opt);
+        } else if (opt is Map) {
+          return ScoutingOptionModel.fromJson(Map<String, dynamic>.from(opt));
+        } else {
+          return ScoutingOptionModel(label: opt.toString(), value: opt.toString());
+        }
+      }).toList();
     }
 
     return ScoutingFieldModel(
-      id: json['id']?.toString() ?? '',
+      id: json['id']?.toString() ?? json['key']?.toString() ?? '',
       label: parsedLabel,
-      type: json['type']?.toString() ?? 'text',
+      description: parsedDesc,
+      type: json['type']?.toString() ?? json['fieldType']?.toString() ?? 'text',
       required: json['required'] == true,
       phase: json['phase']?.toString(),
+      placeholder: json['placeholder']?.toString() ?? json['hint']?.toString(),
+      defaultValue: json['defaultValue'] ?? json['default'],
       options: parsedOptions,
       min: (json['min'] as num?)?.toInt(),
       max: (json['max'] as num?)?.toInt(),

@@ -6,12 +6,14 @@ class DashboardScreen extends StatelessWidget {
   final VoidCallback onNavigateMatch;
   final VoidCallback onNavigatePit;
   final VoidCallback onNavigateAnalytics;
+  final VoidCallback onNavigateQrScanner;
 
   const DashboardScreen({
     super.key,
     required this.onNavigateMatch,
     required this.onNavigatePit,
     required this.onNavigateAnalytics,
+    required this.onNavigateQrScanner,
   });
 
   @override
@@ -65,7 +67,7 @@ class DashboardScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16.0),
                 const Text(
-                  'Scout matches in real-time, inspect team pits, and view instant performance analytics.',
+                  'Scout matches in real-time, inspect team pits, scan offline barcodes, and view instant performance analytics.',
                   style: TextStyle(fontSize: 14.0, color: Colors.white70, height: 1.4),
                 ),
               ],
@@ -119,6 +121,34 @@ class DashboardScreen extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+
+          // QR Scanner Quick Action Card
+          ObsidianGlassCard(
+            onTap: onNavigateQrScanner,
+            child: const Row(
+              children: [
+                Icon(Icons.qr_code_scanner_rounded, size: 32.0, color: ObsidianUITheme.primaryAccent),
+                SizedBox(width: 16.0),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'QR & Barcode Scanner',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0, color: Colors.white),
+                      ),
+                      SizedBox(height: 2.0),
+                      Text(
+                        'Scan offline barcodes, manage queue, & upload to server',
+                        style: TextStyle(fontSize: 12.0, color: Colors.white54),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.arrow_forward_ios_rounded, size: 16.0, color: Colors.white38),
+              ],
+            ),
           ),
 
           ObsidianGlassCard(

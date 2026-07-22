@@ -8,6 +8,7 @@ import 'screens/match_scout_screen.dart';
 import 'screens/pit_scout_screen.dart';
 import 'screens/qual_scout_screen.dart';
 import 'screens/graphs_screen.dart';
+import 'screens/qr_scanner_screen.dart';
 import 'services/api_service.dart';
 
 void main() async {
@@ -49,6 +50,14 @@ class _MainShellState extends State<MainShell> {
   final List<String> _titles = ['Dashboard', 'Match Scout', 'Pit Scout', 'Qual Scout', 'Graphs'];
   final List<String> _subtitles = ['Overview', 'Match Form', 'Pit Inspection', 'Qualitative Form', 'Data Visualization'];
 
+  void _openQrScanner() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (ctx) => QrScannerScreen(apiService: widget.apiService),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!_isAuthenticated) {
@@ -67,6 +76,7 @@ class _MainShellState extends State<MainShell> {
         onNavigateMatch: () => setState(() => _currentIndex = 1),
         onNavigatePit: () => setState(() => _currentIndex = 2),
         onNavigateAnalytics: () => setState(() => _currentIndex = 4),
+        onNavigateQrScanner: _openQrScanner,
       ),
       MatchScoutScreen(apiService: widget.apiService),
       PitScoutScreen(apiService: widget.apiService),
@@ -81,6 +91,11 @@ class _MainShellState extends State<MainShell> {
         title: _titles[_currentIndex],
         subtitle: _subtitles[_currentIndex],
         actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code_scanner_rounded, color: ObsidianUITheme.primaryAccent),
+            tooltip: 'QR & Barcode Scanner',
+            onPressed: _openQrScanner,
+          ),
           IconButton(
             icon: const Icon(Icons.logout_rounded, color: Colors.white70),
             onPressed: () {

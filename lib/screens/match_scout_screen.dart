@@ -5,6 +5,7 @@ import '../models/config_models.dart';
 import '../models/team_match_models.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../services/api_service.dart';
+import '../widgets/obsidian_barcode_modal.dart';
 
 class MatchScoutScreen extends StatefulWidget {
   final ApiService apiService;
@@ -56,14 +57,23 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
 
   void _resetFormData(ScoutingConfigModel config) {
     for (var field in config.fields) {
-      if (field.type.toLowerCase() == 'counter' || field.type.toLowerCase() == 'number') {
-        _formData[field.id] = field.min ?? 0;
-      } else if (field.type.toLowerCase() == 'boolean' || field.type.toLowerCase() == 'toggle') {
-        _formData[field.id] = false;
-      } else if (field.type.toLowerCase() == 'select' && field.options.isNotEmpty) {
-        _formData[field.id] = field.options.first.value;
+      final t = field.type.toLowerCase();
+      if (t == 'section' || t == 'header' || t == 'divider') continue;
+
+      if (t == 'counter' || t == 'number' || t == 'stepper') {
+        _formData[field.id] = field.defaultValue ?? field.min ?? 0;
+      } else if (t == 'slider' || t == 'range') {
+        _formData[field.id] = field.defaultValue ?? field.min ?? 0;
+      } else if (t == 'rating' || t == 'stars') {
+        _formData[field.id] = field.defaultValue ?? field.min ?? 1;
+      } else if (t == 'boolean' || t == 'toggle' || t == 'checkbox') {
+        _formData[field.id] = field.defaultValue == true || field.defaultValue == 'true';
+      } else if ((t == 'select' || t == 'dropdown' || t == 'radio' || t == 'choice') && field.options.isNotEmpty) {
+        _formData[field.id] = field.defaultValue?.toString() ?? field.options.first.value;
+      } else if (t == 'multiselect' || t == 'multi-select') {
+        _formData[field.id] = field.defaultValue is List ? field.defaultValue : [];
       } else {
-        _formData[field.id] = '';
+        _formData[field.id] = field.defaultValue?.toString() ?? '';
       }
     }
   }
@@ -106,6 +116,37 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
         ),
       );
     }
+  }
+
+  void _generateBarcode() {
+    if (_selectedTeam == null || _selectedMatch == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select both a Team and a Match'),
+          backgroundColor: ObsidianUITheme.warningOrange,
+        ),
+      );
+      return;
+    }
+
+    _formKey.currentState?.save();
+
+    final payload = {
+      'eventKey': _eventKey ?? '',
+      'targetTeamNumber': _selectedTeam!.teamNumber,
+      'matchKey': _selectedMatch!.matchKey,
+      'matchNumber': _selectedMatch!.matchNumber,
+      'type': 'match-scout',
+      ..._formData,
+    };
+
+    ObsidianBarcodeModal.show(
+      context,
+      payload: payload,
+      typeLabel: 'Match Scouting',
+      targetTeamNumber: _selectedTeam!.teamNumber,
+      matchKey: _selectedMatch!.displayLabel,
+    );
   }
 
   @override
@@ -263,6 +304,24 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                   ],
                 ),
               ),
+
+            // Generate QR / JAB Code Button Card
+            ObsidianGlassCard(
+              onTap: _generateBarcode,
+              child: const Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.qr_code_2_rounded, color: ObsidianUITheme.secondaryAccent),
+                    SizedBox(width: 10.0),
+                    Text(
+                      'GENERATE QR / JAB CODE',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.0, color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
+            ),
 
             // Submit Button
             ObsidianGlassCard(

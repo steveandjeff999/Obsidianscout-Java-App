@@ -5,6 +5,7 @@ import '../models/config_models.dart';
 import '../models/team_match_models.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../services/api_service.dart';
+import '../widgets/obsidian_barcode_modal.dart';
 
 class QualScoutScreen extends StatefulWidget {
   final ApiService apiService;
@@ -37,9 +38,56 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
 
   void _loadQualData() async {
     final eventKey = await widget.apiService.fetchCurrentEventKey();
-    final config = await widget.apiService.fetchQualConfig(); // Dedicated /api/qual-config
+    var config = await widget.apiService.fetchQualConfig();
     final teams = await widget.apiService.fetchTeams(eventKey);
     final matches = await widget.apiService.fetchMatches(eventKey);
+
+    if (config == null || config.fields.isEmpty) {
+      config = ScoutingConfigModel(
+        title: 'Qualitative Scouting',
+        fields: [
+          ScoutingFieldModel(
+            id: 'driver_skill',
+            label: 'Driver Skill (1-5)',
+            type: 'counter',
+            min: 1,
+            max: 5,
+            step: 1,
+          ),
+          ScoutingFieldModel(
+            id: 'defense_rating',
+            label: 'Defense Rating (1-5)',
+            type: 'counter',
+            min: 1,
+            max: 5,
+            step: 1,
+          ),
+          ScoutingFieldModel(
+            id: 'speed_rating',
+            label: 'Speed & Agility (1-5)',
+            type: 'counter',
+            min: 1,
+            max: 5,
+            step: 1,
+          ),
+          ScoutingFieldModel(
+            id: 'robot_durability',
+            label: 'Robot Durability',
+            type: 'select',
+            options: [
+              ScoutingOptionModel(label: 'Sturdy / Solid', value: 'sturdy'),
+              ScoutingOptionModel(label: 'Average', value: 'average'),
+              ScoutingOptionModel(label: 'Fragile / Breakdowns', value: 'fragile'),
+            ],
+          ),
+          ScoutingFieldModel(
+            id: 'qualitative_notes',
+            label: 'Qualitative Notes / Strategy Comments',
+            type: 'text',
+          ),
+        ],
+      );
+    }
 
     setState(() {
       _eventKey = eventKey;
@@ -48,17 +96,24 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
       _matches = matches;
       _isLoading = false;
 
-      if (config != null) {
-        for (var field in config.fields) {
-          if (field.type.toLowerCase() == 'counter' || field.type.toLowerCase() == 'number') {
-            _formData[field.id] = field.min ?? 0;
-          } else if (field.type.toLowerCase() == 'boolean' || field.type.toLowerCase() == 'toggle') {
-            _formData[field.id] = false;
-          } else if (field.type.toLowerCase() == 'select' && field.options.isNotEmpty) {
-            _formData[field.id] = field.options.first.value;
-          } else {
-            _formData[field.id] = '';
-          }
+      for (var field in config!.fields) {
+        final t = field.type.toLowerCase();
+        if (t == 'section' || t == 'header' || t == 'divider') continue;
+
+        if (t == 'counter' || t == 'number' || t == 'stepper') {
+          _formData[field.id] = field.defaultValue ?? field.min ?? 1;
+        } else if (t == 'slider' || t == 'range') {
+          _formData[field.id] = field.defaultValue ?? field.min ?? 1;
+        } else if (t == 'rating' || t == 'stars') {
+          _formData[field.id] = field.defaultValue ?? field.min ?? 1;
+        } else if (t == 'boolean' || t == 'toggle' || t == 'checkbox') {
+          _formData[field.id] = field.defaultValue == true || field.defaultValue == 'true';
+        } else if ((t == 'select' || t == 'dropdown' || t == 'radio' || t == 'choice') && field.options.isNotEmpty) {
+          _formData[field.id] = field.defaultValue?.toString() ?? field.options.first.value;
+        } else if (t == 'multiselect' || t == 'multi-select') {
+          _formData[field.id] = field.defaultValue is List ? field.defaultValue : [];
+        } else {
+          _formData[field.id] = field.defaultValue?.toString() ?? '';
         }
       }
     });
@@ -103,6 +158,38 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
         ),
       );
     }
+  }
+
+  void _generateBarcode() {
+    if (_selectedTeam == null || _selectedMatch == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select both a Team and a Match'),
+          backgroundColor: ObsidianUITheme.warningOrange,
+        ),
+      );
+      return;
+    }
+
+    _formKey.currentState?.save();
+
+    final payload = {
+      'eventKey': _eventKey ?? '',
+      'targetTeamNumber': _selectedTeam!.teamNumber,
+      'matchKey': _selectedMatch!.matchKey,
+      'matchNumber': _selectedMatch!.matchNumber,
+      'type': 'qualitative-scouting',
+      ..._formData,
+      'timestamp': DateTime.now().toIso8601String(),
+    };
+
+    ObsidianBarcodeModal.show(
+      context,
+      payload: payload,
+      typeLabel: 'Qualitative Scouting',
+      targetTeamNumber: _selectedTeam!.teamNumber,
+      matchKey: _selectedMatch!.displayLabel,
+    );
   }
 
   @override
@@ -183,6 +270,22 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
                   ],
                 ),
               ),
+            ObsidianGlassCard(
+              onTap: _generateBarcode,
+              child: const Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.qr_code_2_rounded, color: ObsidianUITheme.warningOrange),
+                    SizedBox(width: 10.0),
+                    Text(
+                      'GENERATE QR / JAB CODE',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.0, color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             ObsidianGlassCard(
               onTap: _isSubmitting ? null : _submitQualData,
               child: Center(

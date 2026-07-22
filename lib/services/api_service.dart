@@ -60,6 +60,41 @@ class ApiService {
     }
   }
 
+  Future<bool> register(
+    String username,
+    String password, {
+    required int teamNumber,
+    String program = "FRC",
+    String? email,
+    String role = "SCOUT",
+    bool keepMeLoggedIn = false,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/auth/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'username': username,
+          'teamNumber': teamNumber,
+          'program': program,
+          'password': password,
+          'role': role,
+          'email': (email != null && email.trim().isNotEmpty) ? email.trim() : null,
+          'keepMeLoggedIn': keepMeLoggedIn,
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 302) {
+        final rawCookie = response.headers['set-cookie'];
+        _sessionCookie = rawCookie?.split(';').first;
+        return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
   // Settings & Event resolution
   Future<String?> fetchCurrentEventKey() async {
     try {
@@ -193,6 +228,41 @@ class ApiService {
         Uri.parse('$_currentServerUrl/api/qual-scouting'),
         headers: _headers,
         body: jsonEncode({'data': data}),
+      );
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> submitScannedItem(String type, Map<String, dynamic> data) async {
+    String endpoint;
+    final lowerType = type.toLowerCase().replaceAll('_', '-');
+    if (lowerType == 'scout' || lowerType == 'match-scout' || lowerType == 'match-scouting' || lowerType == 'match') {
+      endpoint = '/api/scouting';
+    } else if (lowerType == 'pit-scout' || lowerType == 'pit-scouting' || lowerType == 'pit') {
+      endpoint = '/api/pit-scouting';
+    } else if (lowerType == 'qual-scout' || lowerType == 'qualitative-scouting' || lowerType == 'qual-scouting' || lowerType == 'qual') {
+      endpoint = '/api/qual-scouting';
+    } else if (lowerType == 'prescout-scout' || lowerType == 'prescout-match') {
+      endpoint = '/api/prescout/scouting';
+    } else if (lowerType == 'prescout-pit') {
+      endpoint = '/api/prescout/pit-scouting';
+    } else if (lowerType == 'prescout-qual') {
+      endpoint = '/api/prescout/qual-scouting';
+    } else {
+      endpoint = '/api/scouting';
+    }
+
+    try {
+      final innerData = data.containsKey('data') && data['data'] is Map<String, dynamic>
+          ? data['data']
+          : data;
+
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl$endpoint'),
+        headers: _headers,
+        body: jsonEncode({'data': innerData}),
       );
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (_) {
