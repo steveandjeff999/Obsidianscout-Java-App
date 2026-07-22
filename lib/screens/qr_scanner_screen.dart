@@ -119,9 +119,21 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     }
   }
 
+  String? _lastScannedText;
+  DateTime? _lastScanTime;
+
   void _handleRawScan(String rawText) async {
     if (rawText.isEmpty || _isProcessingScan) return;
+
+    final now = DateTime.now();
+    if (_lastScannedText == rawText && _lastScanTime != null && now.difference(_lastScanTime!).inMilliseconds < 1200) {
+      return;
+    }
+
     _isProcessingScan = true;
+    _lastScannedText = rawText;
+    _lastScanTime = now;
+    int coolDownMs = 1000;
 
     try {
       HapticFeedback.vibrate();
@@ -141,12 +153,13 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
           }
 
           if (_activeMultiParts.containsKey(index)) {
+            coolDownMs = 400;
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('Part $index already scanned. Scan remaining part(s).'),
                   backgroundColor: ObsidianUITheme.warningOrange,
-                  duration: const Duration(seconds: 2),
+                  duration: const Duration(seconds: 1),
                 ),
               );
             }
@@ -157,12 +170,13 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
           setState(() {});
 
           if (_activeMultiParts.length < total) {
+            coolDownMs = 400;
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('Scanned Part $index of $total! Scan remaining part(s).'),
                   backgroundColor: ObsidianUITheme.warningOrange,
-                  duration: const Duration(seconds: 2),
+                  duration: const Duration(seconds: 1),
                 ),
               );
             }
@@ -217,7 +231,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
             const SnackBar(
               content: Text('Entry already exists in queue'),
               backgroundColor: ObsidianUITheme.warningOrange,
-              duration: Duration(seconds: 2),
+              duration: Duration(seconds: 1),
             ),
           );
         }
@@ -256,7 +270,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         );
       }
     } finally {
-      await Future.delayed(const Duration(milliseconds: 1500));
+      await Future.delayed(Duration(milliseconds: coolDownMs));
       if (mounted) {
         setState(() {
           _isProcessingScan = false;
@@ -461,6 +475,28 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         backgroundColor: ObsidianUITheme.background,
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded, color: Colors.white70),
+            tooltip: 'Restart Camera Preview',
+            onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
+              try {
+                await _scannerController.stop();
+                await _scannerController.start();
+              } catch (_) {}
+              setState(() {
+                _isProcessingScan = false;
+                _lastScannedText = null;
+              });
+              if (!mounted) return;
+              messenger.showSnackBar(
+                const SnackBar(
+                  content: Text('Camera preview restarted'),
+                  duration: Duration(seconds: 1),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: Icon(_showManualInput ? Icons.camera_alt_rounded : Icons.keyboard_rounded, color: Colors.white70),
             tooltip: _showManualInput ? 'Use Camera' : 'Manual Code Input',

@@ -19,7 +19,7 @@ class BarcodeCompressor {
   }
 
   /// Splits compressed string into multi-part QR payload chunks if data exceeds chunkSize
-  static List<String> compressAndChunkData(String dataStr, {int chunkSize = 180}) {
+  static List<String> compressAndChunkData(String dataStr, {int chunkSize = 450}) {
     final compressed = compressData(dataStr);
     if (compressed.length <= chunkSize) {
       return [compressed];
