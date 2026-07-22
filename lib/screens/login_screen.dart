@@ -120,13 +120,16 @@ class _LoginScreenState extends State<LoginScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
-                              'SERVER CONFIGURATION',
-                              style: TextStyle(
-                                fontSize: 11.0,
-                                fontWeight: FontWeight.bold,
-                                color: ObsidianUITheme.primaryAccent,
-                                letterSpacing: 1.0,
+                            const Expanded(
+                              child: Text(
+                                'SERVER CONFIGURATION',
+                                style: TextStyle(
+                                  fontSize: 11.0,
+                                  fontWeight: FontWeight.bold,
+                                  color: ObsidianUITheme.primaryAccent,
+                                  letterSpacing: 1.0,
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             IconButton(
@@ -202,6 +205,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 16.0),
                         // Program Selection (FRC / FTC)
                         DropdownButtonFormField<String>(
+                          isExpanded: true,
                           initialValue: _selectedProgram,
                           dropdownColor: ObsidianUITheme.surface,
                           style: const TextStyle(color: Colors.white),
@@ -212,8 +216,14 @@ class _LoginScreenState extends State<LoginScreen> {
                             enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
                           ),
                           items: const [
-                            DropdownMenuItem(value: 'FRC', child: Text('FRC (FIRST Robotics Competition)')),
-                            DropdownMenuItem(value: 'FTC', child: Text('FTC (FIRST Tech Challenge)')),
+                            DropdownMenuItem(
+                              value: 'FRC',
+                              child: Text('FRC (FIRST Robotics Competition)', overflow: TextOverflow.ellipsis),
+                            ),
+                            DropdownMenuItem(
+                              value: 'FTC',
+                              child: Text('FTC (FIRST Tech Challenge)', overflow: TextOverflow.ellipsis),
+                            ),
                           ],
                           onChanged: (val) {
                             if (val != null) {

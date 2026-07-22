@@ -77,6 +77,7 @@ class DynamicFieldWidget extends StatelessWidget {
       case 'select':
         String val = currentValue?.toString() ?? (field.options.isNotEmpty ? field.options.first.value : '');
         return DropdownButtonFormField<String>(
+          isExpanded: true,
           initialValue: val.isNotEmpty ? val : null,
           dropdownColor: ObsidianUITheme.surface,
           style: const TextStyle(color: Colors.white),
@@ -88,7 +89,7 @@ class DynamicFieldWidget extends StatelessWidget {
           items: field.options.map((opt) {
             return DropdownMenuItem<String>(
               value: opt.value,
-              child: Text(opt.label),
+              child: Text(opt.label, overflow: TextOverflow.ellipsis),
             );
           }).toList(),
           onChanged: (String? newSelection) {

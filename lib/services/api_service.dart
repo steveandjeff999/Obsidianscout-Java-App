@@ -145,6 +145,21 @@ class ApiService {
     return [];
   }
 
+  Future<List<dynamic>> fetchScoutingEntries() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_currentServerUrl/api/scouting?includePrescout=true'),
+        headers: _headers,
+      );
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is List) return decoded;
+        if (decoded is Map && decoded['entries'] is List) return decoded['entries'] as List;
+      }
+    } catch (_) {}
+    return [];
+  }
+
   // Data Submissions
   Future<bool> submitMatchScouting(Map<String, dynamic> data) async {
     try {

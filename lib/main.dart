@@ -7,7 +7,7 @@ import 'screens/dashboard_screen.dart';
 import 'screens/match_scout_screen.dart';
 import 'screens/pit_scout_screen.dart';
 import 'screens/qual_scout_screen.dart';
-import 'screens/analytics_screen.dart';
+import 'screens/graphs_screen.dart';
 import 'services/api_service.dart';
 
 void main() async {
@@ -46,8 +46,8 @@ class _MainShellState extends State<MainShell> {
   bool _isAuthenticated = false;
   int _currentIndex = 0;
 
-  final List<String> _titles = ['Dashboard', 'Match Scout', 'Pit Scout', 'Qual Scout', 'Analytics'];
-  final List<String> _subtitles = ['Overview', 'Match Form', 'Pit Inspection', 'Qualitative Form', 'Server Metrics'];
+  final List<String> _titles = ['Dashboard', 'Match Scout', 'Pit Scout', 'Qual Scout', 'Graphs'];
+  final List<String> _subtitles = ['Overview', 'Match Form', 'Pit Inspection', 'Qualitative Form', 'Data Visualization'];
 
   @override
   Widget build(BuildContext context) {
@@ -71,7 +71,7 @@ class _MainShellState extends State<MainShell> {
       MatchScoutScreen(apiService: widget.apiService),
       PitScoutScreen(apiService: widget.apiService),
       QualScoutScreen(apiService: widget.apiService),
-      AnalyticsScreen(apiService: widget.apiService),
+      GraphsScreen(apiService: widget.apiService),
     ];
 
     return Scaffold(

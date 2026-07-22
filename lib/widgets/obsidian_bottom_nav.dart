@@ -19,7 +19,7 @@ class ObsidianBottomNav extends StatelessWidget {
       {'icon': Icons.sports_esports_rounded, 'label': 'Match'},
       {'icon': Icons.build_circle_rounded, 'label': 'Pit'},
       {'icon': Icons.rate_review_rounded, 'label': 'Qual'},
-      {'icon': Icons.analytics_rounded, 'label': 'Analytics'},
+      {'icon': Icons.bar_chart_rounded, 'label': 'Graphs'},
     ];
 
     return Container(

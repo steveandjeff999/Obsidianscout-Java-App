@@ -124,6 +124,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
                   ),
                   const SizedBox(height: 12.0),
                   DropdownButtonFormField<TeamModel>(
+                    isExpanded: true,
                     initialValue: _selectedTeam,
                     dropdownColor: ObsidianUITheme.surface,
                     style: const TextStyle(color: Colors.white),
@@ -133,7 +134,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
                       prefixIcon: Icon(Icons.build_circle_outlined, color: ObsidianUITheme.secondaryAccent),
                       enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
                     ),
-                    items: _teams.map((t) => DropdownMenuItem(value: t, child: Text(t.displayName))).toList(),
+                    items: _teams.map((t) => DropdownMenuItem(value: t, child: Text(t.displayName, overflow: TextOverflow.ellipsis))).toList(),
                     onChanged: (team) => setState(() => _selectedTeam = team),
                   ),
                 ],
