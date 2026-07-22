@@ -15,11 +15,10 @@ class ObsidianBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final navItems = [
-      {'icon': Icons.dashboard_rounded, 'label': 'Dashboard'},
-      {'icon': Icons.sports_esports_rounded, 'label': 'Match'},
-      {'icon': Icons.build_circle_rounded, 'label': 'Pit'},
-      {'icon': Icons.rate_review_rounded, 'label': 'Qual'},
-      {'icon': Icons.bar_chart_rounded, 'label': 'Graphs'},
+      {'targetIndex': 0, 'icon': Icons.dashboard_rounded, 'label': 'Dashboard'},
+      {'targetIndex': 1, 'icon': Icons.sports_esports_rounded, 'label': 'Match'},
+      {'targetIndex': 4, 'icon': Icons.bar_chart_rounded, 'label': 'Graphs'},
+      {'targetIndex': 5, 'icon': Icons.settings_suggest_rounded, 'label': 'Settings'},
     ];
 
     return Container(
@@ -52,9 +51,10 @@ class ObsidianBottomNav extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: List.generate(navItems.length, (index) {
-                final isSelected = index == currentIndex;
+                final targetIndex = navItems[index]['targetIndex'] as int;
+                final isSelected = targetIndex == currentIndex;
                 return GestureDetector(
-                  onTap: () => onTap(index),
+                  onTap: () => onTap(targetIndex),
                   behavior: HitTestBehavior.opaque,
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 250),

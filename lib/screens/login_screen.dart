@@ -22,9 +22,9 @@ class _LoginScreenState extends State<LoginScreen> {
   final _registerFormKey = GlobalKey<FormState>();
 
   late TextEditingController _serverUrlController;
-  final TextEditingController _usernameController = TextEditingController(text: 'admin');
-  final TextEditingController _passwordController = TextEditingController(text: 'changeme');
-  final TextEditingController _teamNumberController = TextEditingController(text: '0');
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _teamNumberController = TextEditingController();
 
   // Register Controllers
   final TextEditingController _regUsernameController = TextEditingController();
@@ -47,6 +47,11 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     _serverUrlController = TextEditingController(text: widget.apiService.serverUrl);
+    _keepMeLoggedIn = widget.apiService.keepMeLoggedIn;
+    _regKeepMeLoggedIn = widget.apiService.keepMeLoggedIn;
+    if (widget.apiService.savedUsername.isNotEmpty) {
+      _usernameController.text = widget.apiService.savedUsername;
+    }
   }
 
   @override

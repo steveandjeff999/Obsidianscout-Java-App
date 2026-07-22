@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../theme/obsidian_ui_theme.dart';
+import '../services/api_service.dart';
 
 class DashboardScreen extends StatelessWidget {
+  final ApiService? apiService;
   final VoidCallback onNavigateMatch;
   final VoidCallback onNavigatePit;
   final VoidCallback onNavigateAnalytics;
@@ -10,6 +12,7 @@ class DashboardScreen extends StatelessWidget {
 
   const DashboardScreen({
     super.key,
+    this.apiService,
     required this.onNavigateMatch,
     required this.onNavigatePit,
     required this.onNavigateAnalytics,
@@ -18,6 +21,10 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isConnected = apiService?.isLoggedIn ?? true;
+    final String statusText = isConnected ? 'Connected' : 'Disconnected';
+    final Color statusColor = isConnected ? ObsidianUITheme.successGreen : Colors.redAccent;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.only(top: 100.0, bottom: 120.0),
       child: Column(
@@ -43,10 +50,10 @@ class DashboardScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 12.0),
-                    const Column(
+                    Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        const Text(
                           'Obsidianscout Portal',
                           style: TextStyle(
                             fontSize: 18.0,
@@ -55,10 +62,10 @@ class DashboardScreen extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          'Connected to Local Server',
+                          statusText,
                           style: TextStyle(
                             fontSize: 12.0,
-                            color: ObsidianUITheme.successGreen,
+                            color: statusColor,
                           ),
                         ),
                       ],

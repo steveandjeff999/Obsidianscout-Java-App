@@ -324,23 +324,38 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
             ),
 
             // Submit Button
-            ObsidianGlassCard(
-              onTap: _isSubmitting ? null : _submitData,
-              child: Center(
-                child: _isSubmitting
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.send_rounded, color: Colors.white),
-                          SizedBox(width: 10.0),
-                          Text(
-                            'SUBMIT MATCH DATA',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15.0, color: Colors.white),
-                          ),
-                        ],
-                      ),
-              ),
+            Builder(
+              builder: (context) {
+                final isOnline = widget.apiService.isOnline;
+                return Opacity(
+                  opacity: isOnline ? 1.0 : 0.45,
+                  child: ObsidianGlassCard(
+                    onTap: (_isSubmitting || !isOnline) ? null : _submitData,
+                    child: Center(
+                      child: _isSubmitting
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  isOnline ? Icons.send_rounded : Icons.cloud_off_rounded,
+                                  color: isOnline ? Colors.white : Colors.white54,
+                                ),
+                                const SizedBox(width: 10.0),
+                                Text(
+                                  isOnline ? 'SUBMIT MATCH DATA' : 'DIRECT UPLOAD (OFFLINE - USE QR CODE ABOVE)',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13.0,
+                                    color: isOnline ? Colors.white : Colors.white54,
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ),
+                );
+              },
             ),
           ],
         ),

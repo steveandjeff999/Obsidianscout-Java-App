@@ -1,13 +1,16 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'theme/obsidian_ui_theme.dart';
 import 'widgets/obsidian_glass_app_bar.dart';
 import 'widgets/obsidian_bottom_nav.dart';
+import 'widgets/obsidian_drawer.dart';
 import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/match_scout_screen.dart';
 import 'screens/pit_scout_screen.dart';
 import 'screens/qual_scout_screen.dart';
 import 'screens/graphs_screen.dart';
+import 'screens/settings_screen.dart';
 import 'screens/qr_scanner_screen.dart';
 import 'services/api_service.dart';
 
@@ -44,11 +47,38 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> {
-  bool _isAuthenticated = false;
+  late bool _isAuthenticated;
+  late bool _isOnline;
   int _currentIndex = 0;
+  StreamSubscription<bool>? _onlineSub;
 
-  final List<String> _titles = ['Dashboard', 'Match Scout', 'Pit Scout', 'Qual Scout', 'Graphs'];
-  final List<String> _subtitles = ['Overview', 'Match Form', 'Pit Inspection', 'Qualitative Form', 'Data Visualization'];
+  @override
+  void initState() {
+    super.initState();
+    _isAuthenticated = widget.apiService.isLoggedIn;
+    _isOnline = widget.apiService.isOnline;
+    _onlineSub = widget.apiService.onOnlineStatusChanged.listen((online) {
+      if (mounted) {
+        setState(() => _isOnline = online);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _onlineSub?.cancel();
+    super.dispose();
+  }
+
+  final List<String> _titles = ['Dashboard', 'Match Scout', 'Pit Scout', 'Qual Scout', 'Graphs', 'Settings & Cache'];
+  final List<String> _subtitles = [
+    'Overview',
+    'Match Form',
+    'Pit Inspection',
+    'Qualitative Form',
+    'Data Visualization',
+    'Cache Manager & Config',
+  ];
 
   void _openQrScanner() {
     Navigator.of(context).push(
@@ -56,6 +86,15 @@ class _MainShellState extends State<MainShell> {
         builder: (ctx) => QrScannerScreen(apiService: widget.apiService),
       ),
     );
+  }
+
+  Future<void> _handleLogout() async {
+    await widget.apiService.logout();
+    if (mounted) {
+      setState(() {
+        _isAuthenticated = false;
+      });
+    }
   }
 
   @override
@@ -73,6 +112,7 @@ class _MainShellState extends State<MainShell> {
 
     final screens = [
       DashboardScreen(
+        apiService: widget.apiService,
         onNavigateMatch: () => setState(() => _currentIndex = 1),
         onNavigatePit: () => setState(() => _currentIndex = 2),
         onNavigateAnalytics: () => setState(() => _currentIndex = 4),
@@ -82,6 +122,7 @@ class _MainShellState extends State<MainShell> {
       PitScoutScreen(apiService: widget.apiService),
       QualScoutScreen(apiService: widget.apiService),
       GraphsScreen(apiService: widget.apiService),
+      SettingsScreen(apiService: widget.apiService, onLogout: _handleLogout),
     ];
 
     return Scaffold(
@@ -90,21 +131,28 @@ class _MainShellState extends State<MainShell> {
       appBar: ObsidianGlassAppBar(
         title: _titles[_currentIndex],
         subtitle: _subtitles[_currentIndex],
+        isOnline: _isOnline,
         actions: [
+          Builder(
+            builder: (ctx) => IconButton(
+              icon: const Icon(Icons.menu_rounded, color: Colors.white),
+              tooltip: 'Navigation Menu',
+              onPressed: () => Scaffold.of(ctx).openDrawer(),
+            ),
+          ),
           IconButton(
-            icon: const Icon(Icons.qr_code_scanner_rounded, color: ObsidianUITheme.primaryAccent),
+            icon: const Icon(Icons.qr_code_scanner_rounded, color: Colors.cyanAccent),
             tooltip: 'QR & Barcode Scanner',
             onPressed: _openQrScanner,
           ),
-          IconButton(
-            icon: const Icon(Icons.logout_rounded, color: Colors.white70),
-            onPressed: () {
-              setState(() {
-                _isAuthenticated = false;
-              });
-            },
-          ),
         ],
+      ),
+      drawer: ObsidianNavigationDrawer(
+        apiService: widget.apiService,
+        currentIndex: _currentIndex,
+        onSelectScreen: (index) => setState(() => _currentIndex = index),
+        onOpenQrScanner: _openQrScanner,
+        onLogout: _handleLogout,
       ),
       body: Center(
         child: Container(
