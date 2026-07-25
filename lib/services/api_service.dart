@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/config_models.dart';
 import '../models/team_match_models.dart';
+import '../models/chat_models.dart';
 
 class ApiService {
   static const String keyServerUrl = "obsidianscout_server_url";
@@ -589,6 +590,206 @@ class ApiService {
     return cachedWidgets;
   }
 
+  // Chat API Methods
+  Future<bool> fetchChatEnabled() async {
+    final cached = await _getCache("cache_chat_enabled");
+    if (cached != null) {
+      if (cached == "false") return false;
+      if (cached == "true") return true;
+    }
+    if (!_isOnline) return cached == "true";
+
+    try {
+      final response = await http
+          .get(Uri.parse('$_currentServerUrl/api/settings?local=true'), headers: _headers)
+          .timeout(const Duration(seconds: 2));
+      if (response.statusCode == 200) {
+        final jsonMap = jsonDecode(response.body);
+        final settings = jsonMap['settings'] ?? jsonMap;
+        final enabled = settings['chatEnabled'] != false;
+        await _setCache("cache_chat_enabled", enabled ? "true" : "false");
+        return enabled;
+      }
+    } catch (_) {
+      _updateOnlineState(false);
+    }
+    return true;
+  }
+
+  Future<List<String>> fetchChatGroups() async {
+    final cached = await _getCache("cache_chat_groups");
+    List<String> cachedGroups = ["general"];
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        final List list = jsonDecode(cached);
+        cachedGroups = list.map((e) => e.toString()).toList();
+        if (!cachedGroups.contains("general")) {
+          cachedGroups.insert(0, "general");
+        }
+      } catch (_) {}
+    }
+
+    if (!_isOnline) return cachedGroups;
+
+    try {
+      final response = await http
+          .get(Uri.parse('$_currentServerUrl/api/chat/groups'), headers: _headers)
+          .timeout(const Duration(seconds: 2));
+      if (response.statusCode == 200) {
+        await _setCache("cache_chat_groups", response.body);
+        final List list = jsonDecode(response.body);
+        final set = <String>{"general", ...list.map((e) => e.toString())};
+        return set.toList();
+      }
+    } catch (_) {
+      _updateOnlineState(false);
+    }
+
+    return cachedGroups;
+  }
+
+  Future<bool> createChatGroup(String groupName) async {
+    if (!_isOnline) return false;
+    try {
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/chat/groups'),
+        headers: _headers,
+        body: jsonEncode({'groupName': groupName}),
+      );
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (_) {
+      _updateOnlineState(false);
+      return false;
+    }
+  }
+
+  Future<List<ChatMessageModel>> fetchChatMessages(String groupName) async {
+    final cacheKey = "cache_chat_messages_$groupName";
+    final cached = await _getCache(cacheKey);
+    List<ChatMessageModel> cachedList = [];
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        final List list = jsonDecode(cached);
+        cachedList = list.map((e) => ChatMessageModel.fromJson(e as Map<String, dynamic>)).toList();
+      } catch (_) {}
+    }
+
+    if (!_isOnline) return cachedList;
+
+    try {
+      final response = await http
+          .get(Uri.parse('$_currentServerUrl/api/chat/messages?group=${Uri.encodeComponent(groupName)}'), headers: _headers)
+          .timeout(const Duration(seconds: 2));
+      if (response.statusCode == 200) {
+        await _setCache(cacheKey, response.body);
+        final List list = jsonDecode(response.body);
+        return list.map((e) => ChatMessageModel.fromJson(e as Map<String, dynamic>)).toList();
+      }
+    } catch (_) {
+      _updateOnlineState(false);
+    }
+
+    return cachedList;
+  }
+
+  Future<bool> sendChatMessage(String groupName, String content) async {
+    if (!_isOnline) return false;
+    try {
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/chat/messages'),
+        headers: _headers,
+        body: jsonEncode({
+          'groupName': groupName,
+          'content': content,
+        }),
+      );
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (_) {
+      _updateOnlineState(false);
+      return false;
+    }
+  }
+
+  Future<bool> toggleChatReaction(String messageId, String emoji) async {
+    if (!_isOnline) return false;
+    try {
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/chat/messages/$messageId/react'),
+        headers: _headers,
+        body: jsonEncode({'emoji': emoji}),
+      );
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (_) {
+      _updateOnlineState(false);
+      return false;
+    }
+  }
+
+  Future<bool> markChatGroupRead(String groupName) async {
+    if (!_isOnline) return false;
+    try {
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/chat/read'),
+        headers: _headers,
+        body: jsonEncode({'groupName': groupName}),
+      );
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<List<String>> fetchChatTeamUsers() async {
+    final cached = await _getCache("cache_chat_team_users");
+    List<String> cachedUsers = ["everyone", "channel"];
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        final List list = jsonDecode(cached);
+        cachedUsers = list.map((e) => e.toString()).toList();
+      } catch (_) {}
+    }
+
+    if (!_isOnline) return cachedUsers;
+
+    try {
+      final response = await http
+          .get(Uri.parse('$_currentServerUrl/api/chat/team-users'), headers: _headers)
+          .timeout(const Duration(seconds: 2));
+      if (response.statusCode == 200) {
+        await _setCache("cache_chat_team_users", response.body);
+        final List list = jsonDecode(response.body);
+        final filtered = list.map((e) => e.toString()).where((u) => u.toLowerCase() != "deleted user").toList();
+        final set = <String>{"everyone", "channel", ...filtered};
+        return set.toList();
+      }
+    } catch (_) {
+      _updateOnlineState(false);
+    }
+
+    return cachedUsers;
+  }
+
+  Future<Map<String, ChatGroupUnreadModel>> fetchChatUnreadStatus() async {
+    if (!_isOnline) return {};
+    try {
+      final response = await http
+          .get(Uri.parse('$_currentServerUrl/api/chat/unread-status'), headers: _headers)
+          .timeout(const Duration(seconds: 2));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final Map<String, ChatGroupUnreadModel> result = {};
+        if (data['groups'] is List) {
+          for (final item in data['groups']) {
+            final model = ChatGroupUnreadModel.fromJson(item as Map<String, dynamic>);
+            result[model.groupName] = model;
+          }
+        }
+        return result;
+      }
+    } catch (_) {}
+    return {};
+  }
+
   Future<void> clearAllCache() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -597,6 +798,50 @@ class ApiService {
         await prefs.remove(key);
       }
     } catch (_) {}
+  }
+
+  Future<Map<String, dynamic>?> fetchFcmPublicConfig() async {
+    try {
+      final response = await http
+          .get(Uri.parse('$_currentServerUrl/api/config/fcm-public'))
+          .timeout(const Duration(seconds: 3));
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<bool> registerFcmToken(String deviceToken, String platform) async {
+    if (!_isOnline) return false;
+    try {
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/fcm/token'),
+        headers: _headers,
+        body: jsonEncode({
+          'deviceToken': deviceToken,
+          'platform': platform,
+        }),
+      );
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> unregisterFcmToken(String deviceToken) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$_currentServerUrl/api/fcm/token'),
+        headers: _headers,
+        body: jsonEncode({
+          'deviceToken': deviceToken,
+        }),
+      );
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<Map<String, int>> getCacheSummary() async {

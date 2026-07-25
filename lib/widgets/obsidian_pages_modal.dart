@@ -82,6 +82,14 @@ class ObsidianPagesModal extends StatelessWidget {
         'tag': 'System',
         'color': Colors.orangeAccent,
       },
+      {
+        'index': 6,
+        'icon': Icons.chat_bubble_outline_rounded,
+        'name': 'Team Chat',
+        'desc': 'Real-time team messaging, channels, & mentions',
+        'tag': 'Social',
+        'color': Colors.deepPurpleAccent,
+      },
     ];
 
     return Container(

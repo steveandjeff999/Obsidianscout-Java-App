@@ -11,8 +11,11 @@ import 'screens/pit_scout_screen.dart';
 import 'screens/qual_scout_screen.dart';
 import 'screens/graphs_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/chat_screen.dart';
 import 'screens/qr_scanner_screen.dart';
 import 'services/api_service.dart';
+import 'services/fcm_helper.dart';
+import 'services/notification_websocket_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,7 +32,7 @@ class ObsidianscoutApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Obsidianscout App',
+      title: 'ObsidianScout',
       debugShowCheckedModeBanner: false,
       theme: ObsidianUITheme.darkTheme,
       home: MainShell(apiService: apiService),
@@ -52,6 +55,9 @@ class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
   StreamSubscription<bool>? _onlineSub;
 
+  String? _pendingChatChannel;
+  NotificationWebSocketService? _wsNotificationService;
+
   @override
   void initState() {
     super.initState();
@@ -62,15 +68,83 @@ class _MainShellState extends State<MainShell> {
         setState(() => _isOnline = online);
       }
     });
+
+    if (_isAuthenticated) {
+      _bootstrapFcm();
+      _bootstrapWsNotifications();
+    }
+  }
+
+  void _bootstrapFcm() {
+    FcmHelper.initializeDynamicFcm(widget.apiService, (groupName) {
+      if (mounted) {
+        setState(() {
+          _pendingChatChannel = groupName;
+          _currentIndex = 6;
+        });
+      }
+    });
+  }
+
+  void _bootstrapWsNotifications() {
+    _wsNotificationService = NotificationWebSocketService(
+      apiService: widget.apiService,
+      onNotificationReceived: (groupName, title, body, sender) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            duration: const Duration(seconds: 6),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: ObsidianUITheme.surface,
+            content: Row(
+              children: [
+                const Icon(Icons.chat_bubble_outline_rounded, color: Colors.cyanAccent, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13)),
+                      Text(body, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            action: SnackBarAction(
+              label: 'OPEN',
+              textColor: Colors.cyanAccent,
+              onPressed: () {
+                setState(() {
+                  _pendingChatChannel = groupName;
+                  _currentIndex = 6;
+                });
+              },
+            ),
+          ),
+        );
+      },
+    )..connect();
   }
 
   @override
   void dispose() {
     _onlineSub?.cancel();
+    _wsNotificationService?.dispose();
     super.dispose();
   }
 
-  final List<String> _titles = ['Dashboard', 'Match Scout', 'Pit Scout', 'Qual Scout', 'Graphs', 'Settings & Cache'];
+  final List<String> _titles = [
+    'Dashboard',
+    'Match Scout',
+    'Pit Scout',
+    'Qual Scout',
+    'Graphs',
+    'Settings & Cache',
+    'Team Chat',
+  ];
   final List<String> _subtitles = [
     'Overview',
     'Match Form',
@@ -78,6 +152,7 @@ class _MainShellState extends State<MainShell> {
     'Qualitative Form',
     'Data Visualization',
     'Cache Manager & Config',
+    'Channels & Messages',
   ];
 
   void _openQrScanner() {
@@ -89,6 +164,7 @@ class _MainShellState extends State<MainShell> {
   }
 
   Future<void> _handleLogout() async {
+    await FcmHelper.unregisterOnLogout(widget.apiService);
     await widget.apiService.logout();
     if (mounted) {
       setState(() {
@@ -106,6 +182,7 @@ class _MainShellState extends State<MainShell> {
           setState(() {
             _isAuthenticated = true;
           });
+          _bootstrapFcm();
         },
       );
     }
@@ -123,6 +200,10 @@ class _MainShellState extends State<MainShell> {
       QualScoutScreen(apiService: widget.apiService),
       GraphsScreen(apiService: widget.apiService),
       SettingsScreen(apiService: widget.apiService, onLogout: _handleLogout),
+      ChatScreen(
+        apiService: widget.apiService,
+        initialChannel: _pendingChatChannel,
+      ),
     ];
 
     return Scaffold(

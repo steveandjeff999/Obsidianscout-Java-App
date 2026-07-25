@@ -27,6 +27,7 @@ class ObsidianNavigationDrawer extends StatelessWidget {
       {'index': 2, 'icon': Icons.build_circle_rounded, 'label': 'Pit Scouting', 'subtitle': 'Robot Inspection'},
       {'index': 3, 'icon': Icons.rate_review_rounded, 'label': 'Qual Scouting', 'subtitle': 'Driver Performance'},
       {'index': 4, 'icon': Icons.bar_chart_rounded, 'label': 'Graphs & Analytics', 'subtitle': 'Visual Insights'},
+      {'index': 6, 'icon': Icons.chat_bubble_outline_rounded, 'label': 'Team Chat', 'subtitle': 'Channels & Messages'},
       {'index': 5, 'icon': Icons.settings_suggest_rounded, 'label': 'Settings & Cache', 'subtitle': 'Cache Manager & Config'},
     ];
 

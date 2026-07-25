@@ -17,6 +17,7 @@ class ObsidianBottomNav extends StatelessWidget {
     final navItems = [
       {'targetIndex': 0, 'icon': Icons.dashboard_rounded, 'label': 'Dashboard'},
       {'targetIndex': 1, 'icon': Icons.sports_esports_rounded, 'label': 'Match'},
+      {'targetIndex': 6, 'icon': Icons.chat_bubble_outline_rounded, 'label': 'Chat'},
       {'targetIndex': 4, 'icon': Icons.bar_chart_rounded, 'label': 'Graphs'},
       {'targetIndex': 5, 'icon': Icons.settings_suggest_rounded, 'label': 'Settings'},
     ];
