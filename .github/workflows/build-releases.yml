@@ -1,0 +1,199 @@
+name: Build & Package All Release Installers
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Android Release APK
+        run: flutter build apk --release
+
+      - name: Upload Android APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+  build-windows:
+    name: Build Windows App & MSIX
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Windows Desktop Executable
+        run: flutter build windows --release
+
+      - name: Generate MSIX Package
+        run: flutter pub run msix:create
+
+      - name: Package Windows Zip & Extract Certificate
+        shell: powershell
+        run: |
+          $winDir = "build/windows/x64/runner/Release"
+          $outDir = "windows_out"
+          New-Item -ItemType Directory -Path $outDir -Force
+
+          # Zip executable bundle
+          Compress-Archive -Path "$winDir/*" -DestinationPath "$outDir/ObsidianScout-Windows.zip" -Force
+
+          # Move MSIX and extract certificate
+          $msix = Get-ChildItem -Path $winDir -Filter "*.msix" | Select-Object -First 1
+          if ($msix) {
+            Copy-Item -Path $msix.FullName -Destination "$outDir/ObsidianScout-Windows-Installer.msix" -Force
+            $sig = Get-AuthenticodeSignature -FilePath $msix.FullName
+            if ($sig.SignerCertificate) {
+              [void](Export-Certificate -Cert $sig.SignerCertificate -FilePath "$outDir/ObsidianScout-Windows-Certificate.cer" -Type CERT)
+            }
+          }
+
+          # Create Install-Certificate.bat helper
+          $batContent = @"
+          @echo off
+          echo Installing ObsidianScout Security Certificate into Trusted People store...
+          certutil -addstore "TrustedPeople" "%~dp0ObsidianScout-Windows-Certificate.cer"
+          if %errorlevel% equ 0 (
+              echo.
+              echo Certificate successfully installed! You can now double-click the .msix file to install ObsidianScout.
+          ) else (
+              echo.
+              echo Certificate installation failed. Please right-click this script and select 'Run as administrator'.
+          )
+          pause
+          "@
+          Set-Content -Path "$outDir/Install-Certificate.bat" -Value $batContent -Encoding ASCII
+
+      - name: Upload Windows Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release
+          path: windows_out/*
+
+  build-linux:
+    name: Build Linux App & .deb Installer
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Linux Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+
+      - name: Set up Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Linux Desktop Application
+        run: flutter build linux --release
+
+      - name: Package Linux .tar.gz and .deb Package
+        run: |
+          mkdir -p linux_out
+          cd build/linux/x64/release/bundle
+          tar -czf ../../../../../linux_out/ObsidianScout-Linux.tar.gz .
+          cd ../../../../../
+
+          # Build Debian .deb package
+          DEB_DIR="/tmp/obsidianscout_deb"
+          rm -rf "$DEB_DIR"
+          mkdir -p "$DEB_DIR/DEBIAN" "$DEB_DIR/usr/lib/obsidianscout" "$DEB_DIR/usr/bin" "$DEB_DIR/usr/share/applications" "$DEB_DIR/usr/share/pixmaps"
+          cp -r build/linux/x64/release/bundle/* "$DEB_DIR/usr/lib/obsidianscout/"
+          ln -sf /usr/lib/obsidianscout/obsidianscout_app "$DEB_DIR/usr/bin/obsidianscout"
+          cp assets/images/obsidian-512.png "$DEB_DIR/usr/share/pixmaps/obsidianscout.png"
+
+          cat << 'EOF' > "$DEB_DIR/DEBIAN/control"
+          Package: obsidianscout
+          Version: 1.0.0
+          Architecture: amd64
+          Maintainer: ObsidianScout Team
+          Description: ObsidianScout Scouting Companion App
+          EOF
+
+          cat << 'EOF' > "$DEB_DIR/usr/share/applications/obsidianscout.desktop"
+          [Desktop Entry]
+          Name=ObsidianScout
+          Comment=ObsidianScout Scouting App
+          Exec=/usr/bin/obsidianscout
+          Icon=obsidianscout
+          Terminal=false
+          Type=Application
+          Categories=Utility;Sports;
+          EOF
+
+          dpkg-deb --build "$DEB_DIR" "linux_out/ObsidianScout-Linux.deb"
+
+      - name: Upload Linux Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-release
+          path: linux_out/*
+
+  package-master-release:
+    name: Package All Installers & Checksums
+    runs-on: ubuntu-latest
+    needs: [build-android, build-windows, build-linux]
+
+    steps:
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release_staging
+          merge-multiple: true
+
+      - name: Generate SHA-256 Checksums & Master Zip
+        run: |
+          cd release_staging
+          sha256sum * > checksums.txt
+          zip -r ../ObsidianScout-AllInstallers.zip *
+
+      - name: Upload Master Release Bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: ObsidianScout-AllInstallers
+          path: |
+            release_staging/*
+            ObsidianScout-AllInstallers.zip
