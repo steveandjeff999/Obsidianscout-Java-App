@@ -59,6 +59,25 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: true
+  image_path: "assets/images/obsidian-512.png"
+  adaptive_icon_background: "#000000"
+  adaptive_icon_foreground: "assets/images/obsidian-512.png"
+  remove_alpha_ios: true
+  web:
+    generate: true
+    image_path: "assets/images/obsidian-512.png"
+  windows:
+    generate: true
+    image_path: "assets/images/obsidian-512.png"
+    icon_size: 48
+  macos:
+    generate: true
+    image_path: "assets/images/obsidian-512.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
