@@ -919,7 +919,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                             ] else if (_isScanning)
                               MobileScanner(
                                 controller: _scannerController,
-                                errorBuilder: (context, error, child) {
+                                errorBuilder: (context, error) {
                                   return Container(
                                     color: Colors.black87,
                                     padding: const EdgeInsets.all(16.0),
