@@ -9,8 +9,15 @@ import '../widgets/obsidian_barcode_modal.dart';
 
 class PitScoutScreen extends StatefulWidget {
   final ApiService apiService;
+  final bool isVisible;
+  final bool isBarsVisible;
 
-  const PitScoutScreen({super.key, required this.apiService});
+  const PitScoutScreen({
+    super.key,
+    required this.apiService,
+    this.isVisible = true,
+    this.isBarsVisible = true,
+  });
 
   @override
   State<PitScoutScreen> createState() => _PitScoutScreenState();
@@ -31,6 +38,14 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
   void initState() {
     super.initState();
     _loadPitData();
+  }
+
+  @override
+  void didUpdateWidget(covariant PitScoutScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isVisible && !oldWidget.isVisible) {
+      _loadPitData();
+    }
   }
 
   void _loadPitData() async {
@@ -148,7 +163,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
     final fields = _config?.fields ?? [];
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.only(top: 100.0, bottom: 120.0),
+      padding: EdgeInsets.only(top: widget.isBarsVisible ? 100.0 : 16.0, bottom: widget.isBarsVisible ? 120.0 : 20.0),
       child: Form(
         key: _formKey,
         child: Column(

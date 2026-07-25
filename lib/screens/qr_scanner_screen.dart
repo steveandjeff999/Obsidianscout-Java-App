@@ -668,7 +668,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        isComplete ? '🎉 Multi-Part Entry Complete!' : '📦 Multi-Part Scan ($scannedCount of $total Scanned)',
+                        isComplete ? 'Multi-Part Entry Complete!' : 'Multi-Part Scan ($scannedCount of $total Scanned)',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: isComplete ? ObsidianUITheme.successGreen : Colors.white,

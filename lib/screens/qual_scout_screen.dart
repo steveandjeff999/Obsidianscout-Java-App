@@ -9,8 +9,15 @@ import '../widgets/obsidian_barcode_modal.dart';
 
 class QualScoutScreen extends StatefulWidget {
   final ApiService apiService;
+  final bool isVisible;
+  final bool isBarsVisible;
 
-  const QualScoutScreen({super.key, required this.apiService});
+  const QualScoutScreen({
+    super.key,
+    required this.apiService,
+    this.isVisible = true,
+    this.isBarsVisible = true,
+  });
 
   @override
   State<QualScoutScreen> createState() => _QualScoutScreenState();
@@ -34,6 +41,14 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
   void initState() {
     super.initState();
     _loadQualData();
+  }
+
+  @override
+  void didUpdateWidget(covariant QualScoutScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isVisible && !oldWidget.isVisible) {
+      _loadQualData();
+    }
   }
 
   void _loadQualData() async {
@@ -203,7 +218,7 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
     final fields = _config?.fields ?? [];
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.only(top: 100.0, bottom: 120.0),
+      padding: EdgeInsets.only(top: widget.isBarsVisible ? 100.0 : 16.0, bottom: widget.isBarsVisible ? 120.0 : 20.0),
       child: Form(
         key: _formKey,
         child: Column(

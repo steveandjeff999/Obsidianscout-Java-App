@@ -9,8 +9,15 @@ import '../widgets/obsidian_barcode_modal.dart';
 
 class MatchScoutScreen extends StatefulWidget {
   final ApiService apiService;
+  final bool isVisible;
+  final bool isBarsVisible;
 
-  const MatchScoutScreen({super.key, required this.apiService});
+  const MatchScoutScreen({
+    super.key,
+    required this.apiService,
+    this.isVisible = true,
+    this.isBarsVisible = true,
+  });
 
   @override
   State<MatchScoutScreen> createState() => _MatchScoutScreenState();
@@ -34,6 +41,14 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
   void initState() {
     super.initState();
     _loadPageData();
+  }
+
+  @override
+  void didUpdateWidget(covariant MatchScoutScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isVisible && !oldWidget.isVisible) {
+      _loadPageData();
+    }
   }
 
   void _loadPageData() async {
@@ -164,7 +179,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
     final generalFields = fields.where((f) => f.phase == null || (f.phase!.toLowerCase() != 'auto' && f.phase!.toLowerCase() != 'teleop' && f.phase!.toLowerCase() != 'endgame')).toList();
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.only(top: 100.0, bottom: 120.0),
+      padding: EdgeInsets.only(top: widget.isBarsVisible ? 100.0 : 16.0, bottom: widget.isBarsVisible ? 120.0 : 20.0),
       child: Form(
         key: _formKey,
         child: Column(

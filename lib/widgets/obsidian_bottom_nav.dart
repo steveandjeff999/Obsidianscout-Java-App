@@ -14,9 +14,16 @@ class ObsidianBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = ObsidianUITheme.isDark(context);
+    final navBg = isDark ? const Color(0x24121620) : const Color(0xECFFFFFF);
+    final borderColor = ObsidianUITheme.getGlassBorderColor(context);
+    final shadowColor = isDark ? Colors.black.withValues(alpha: 0.5) : Colors.black.withValues(alpha: 0.1);
+    final inactiveItemColor = isDark ? Colors.white54 : const Color(0xFF64748B);
+
     final navItems = [
       {'targetIndex': 0, 'icon': Icons.dashboard_rounded, 'label': 'Dashboard'},
       {'targetIndex': 1, 'icon': Icons.sports_esports_rounded, 'label': 'Match'},
+      {'targetIndex': 7, 'icon': Icons.stars_rounded, 'label': 'Alliance'},
       {'targetIndex': 6, 'icon': Icons.chat_bubble_outline_rounded, 'label': 'Chat'},
       {'targetIndex': 4, 'icon': Icons.bar_chart_rounded, 'label': 'Graphs'},
       {'targetIndex': 5, 'icon': Icons.settings_suggest_rounded, 'label': 'Settings'},
@@ -29,9 +36,9 @@ class ObsidianBottomNav extends StatelessWidget {
         borderRadius: BorderRadius.circular(32.0),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.5),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: shadowColor,
+            blurRadius: isDark ? 20 : 12,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -43,9 +50,9 @@ class ObsidianBottomNav extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 8.0),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(32.0),
-              color: const Color(0x24121620),
+              color: navBg,
               border: Border.all(
-                color: ObsidianUITheme.glassBorderLight,
+                color: borderColor,
                 width: 1.2,
               ),
             ),
@@ -84,7 +91,7 @@ class ObsidianBottomNav extends StatelessWidget {
                       children: [
                         Icon(
                           navItems[index]['icon'] as IconData,
-                          color: isSelected ? Colors.white : Colors.white54,
+                          color: isSelected ? Colors.white : inactiveItemColor,
                           size: 20.0,
                         ),
                         if (isSelected) ...[

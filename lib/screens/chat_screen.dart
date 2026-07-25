@@ -9,11 +9,15 @@ import '../theme/obsidian_ui_theme.dart';
 class ChatScreen extends StatefulWidget {
   final ApiService apiService;
   final String? initialChannel;
+  final bool isVisible;
+  final bool isBarsVisible;
 
   const ChatScreen({
     super.key,
     required this.apiService,
     this.initialChannel,
+    this.isVisible = true,
+    this.isBarsVisible = true,
   });
 
   @override
@@ -66,6 +70,8 @@ class _ChatScreenState extends State<ChatScreen> {
         }
       });
       _loadMessagesAndUnreads(scrollToBottom: true);
+    } else if (widget.isVisible && !oldWidget.isVisible) {
+      _loadMessagesAndUnreads(scrollToBottom: false);
     }
   }
 
@@ -435,7 +441,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             child: Row(
               children: [
-                const Text('🛡️', style: TextStyle(fontSize: 18)),
+                const Icon(Icons.shield_outlined, color: Colors.white, size: 20),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text.rich(
@@ -746,8 +752,10 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
 
           // Bottom Chat Input Area
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 110),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOutCubic,
+            padding: EdgeInsets.fromLTRB(16.0, 12.0, 16.0, widget.isBarsVisible ? 134.0 : 16.0),
             color: const Color(0x30121620),
             child: Row(
               children: [

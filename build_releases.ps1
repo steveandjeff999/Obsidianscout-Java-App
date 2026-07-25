@@ -62,7 +62,12 @@ if (Test-Path "C:\src\flutter\bin\flutter.bat") {
     $flutterCmd = "C:\src\flutter\bin\flutter.bat"
 }
 
-Write-Host "`nCleaning workspace and stopping background Gradle daemons..." -ForegroundColor Cyan
+Write-Host "`nCleaning workspace and stopping background Gradle/build processes..." -ForegroundColor Cyan
+try {
+    Stop-Process -Name cmake, ninja, msbuild -ErrorAction SilentlyContinue
+    Start-Sleep -Milliseconds 500
+} catch {}
+
 if (Test-Path "$appDir\android\gradlew.bat") {
     try {
         Push-Location "$appDir\android"
@@ -71,6 +76,12 @@ if (Test-Path "$appDir\android\gradlew.bat") {
         Pop-Location
     }
 }
+
+try {
+    if (Test-Path "$appDir\build") {
+        Remove-Item -Path "$appDir\build" -Recurse -Force -ErrorAction SilentlyContinue
+    }
+} catch {}
 
 & $flutterCmd clean
 & $flutterCmd pub get
@@ -177,8 +188,39 @@ if (Get-Command "wsl" -ErrorAction SilentlyContinue) {
         wsl bash -c $wslRunCmd
 
         # Build native .deb installer package in WSL
-        $debCmd = 'DEB_DIR=/tmp/obsidianscout_deb; rm -rf "$DEB_DIR"; mkdir -p "$DEB_DIR/DEBIAN" "$DEB_DIR/usr/lib/obsidianscout" "$DEB_DIR/usr/bin" "$DEB_DIR/usr/share/applications" "$DEB_DIR/usr/share/pixmaps"; cp -r "' + $wslPath + '/build/linux/x64/release/bundle/"* "$DEB_DIR/usr/lib/obsidianscout/"; ln -sf /usr/lib/obsidianscout/obsidianscout_app "$DEB_DIR/usr/bin/obsidianscout"; cp "' + $wslPath + '/assets/images/obsidian-512.png" "$DEB_DIR/usr/share/pixmaps/obsidianscout.png"; printf "Package: obsidianscout\nVersion: ' + $displayVersion + '\nArchitecture: amd64\nMaintainer: ObsidianScout Team\nDescription: ObsidianScout Scouting App\n" > "$DEB_DIR/DEBIAN/control"; printf "[Desktop Entry]\nName=ObsidianScout\nComment=ObsidianScout Scouting App\nExec=/usr/bin/obsidianscout\nIcon=obsidianscout\nTerminal=false\nType=Application\nCategories=Utility;Sports;\n" > "$DEB_DIR/usr/share/applications/obsidianscout.desktop"; dpkg-deb --build "$DEB_DIR" "' + $wslPath + '/build/linux/x64/release/obsidianscout.deb"'
-        wsl bash -c $debCmd
+        $wslDebScript = @"
+DEB_DIR=/tmp/obsidianscout_deb
+rm -rf "`$DEB_DIR"
+mkdir -p "`$DEB_DIR/DEBIAN" "`$DEB_DIR/usr/lib/obsidianscout" "`$DEB_DIR/usr/bin" "`$DEB_DIR/usr/share/applications" "`$DEB_DIR/usr/share/pixmaps"
+cp -r '$wslPath/build/linux/x64/release/bundle/'* "`$DEB_DIR/usr/lib/obsidianscout/"
+ln -sf /usr/lib/obsidianscout/obsidianscout_app "`$DEB_DIR/usr/bin/obsidianscout"
+cp '$wslPath/assets/images/obsidian-512.png' "`$DEB_DIR/usr/share/pixmaps/obsidianscout.png"
+
+cat << 'EOF' > "`$DEB_DIR/DEBIAN/control"
+Package: obsidianscout
+Version: $displayVersion
+Architecture: amd64
+Maintainer: ObsidianScout Team
+Description: ObsidianScout Scouting App
+EOF
+
+cat << 'EOF' > "`$DEB_DIR/usr/share/applications/obsidianscout.desktop"
+[Desktop Entry]
+Name=ObsidianScout
+Comment=ObsidianScout Scouting App
+Exec=/usr/bin/obsidianscout
+Icon=obsidianscout
+Terminal=false
+Type=Application
+Categories=Utility;Sports;
+EOF
+
+dpkg-deb --build "`$DEB_DIR" '$wslPath/build/linux/x64/release/obsidianscout.deb'
+"@
+        $wslDebFile = Join-Path $appDir "build_deb.sh"
+        Set-Content -Path $wslDebFile -Value $wslDebScript -Encoding ASCII
+        wsl bash -c "cd '$wslPath' && bash ./build_deb.sh"
+        Remove-Item -Path $wslDebFile -Force -ErrorAction SilentlyContinue
     } catch {
         Write-Host "WSL Linux build process exited." -ForegroundColor Yellow
     }

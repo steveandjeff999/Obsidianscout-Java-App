@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/config_models.dart';
@@ -12,6 +13,7 @@ class ApiService {
   static const String keySessionCookie = "obsidianscout_session_cookie";
   static const String keyKeepMeLoggedIn = "obsidianscout_keep_me_logged_in";
   static const String keySavedUsername = "obsidianscout_saved_username";
+  static const String keyThemeMode = "obsidianscout_theme_mode";
   static const String defaultUrl = "http://localhost:8080";
 
   String _currentServerUrl = defaultUrl;
@@ -19,6 +21,8 @@ class ApiService {
   bool _keepMeLoggedIn = false;
   String _savedUsername = '';
   Timer? _syncTimer;
+
+  final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier<ThemeMode>(ThemeMode.dark);
 
   bool _isOnline = true;
   Timer? _healthCheckTimer;
@@ -31,12 +35,28 @@ class ApiService {
   String get savedUsername => _savedUsername;
   bool get isOnline => _isOnline;
   Stream<bool> get onOnlineStatusChanged => _onlineStreamController.stream;
+  ThemeMode get themeMode => themeNotifier.value;
+
+  Future<void> setThemeMode(ThemeMode mode) async {
+    themeNotifier.value = mode;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(keyThemeMode, mode.name);
+  }
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     _currentServerUrl = prefs.getString(keyServerUrl) ?? defaultUrl;
     _keepMeLoggedIn = prefs.getBool(keyKeepMeLoggedIn) ?? false;
     _savedUsername = prefs.getString(keySavedUsername) ?? '';
+
+    final savedThemeStr = prefs.getString(keyThemeMode) ?? 'dark';
+    if (savedThemeStr == 'light') {
+      themeNotifier.value = ThemeMode.light;
+    } else if (savedThemeStr == 'system') {
+      themeNotifier.value = ThemeMode.system;
+    } else {
+      themeNotifier.value = ThemeMode.dark;
+    }
 
     _initConnectivityMonitor();
 
@@ -844,6 +864,60 @@ class ApiService {
     }
   }
 
+  Future<Map<String, dynamic>?> getAllianceSelection(String eventKey) async {
+    final cacheKey = "cache_alliance_selection_$eventKey";
+    final prefs = await SharedPreferences.getInstance();
+
+    if (_isOnline) {
+      try {
+        final response = await http
+            .get(Uri.parse('$_currentServerUrl/api/alliance-selection?eventKey=$eventKey'), headers: _headers)
+            .timeout(const Duration(seconds: 4));
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body) as Map<String, dynamic>;
+          await prefs.setString(cacheKey, response.body);
+          return data;
+        }
+      } catch (_) {}
+    }
+
+    final cached = prefs.getString(cacheKey);
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        return jsonDecode(cached) as Map<String, dynamic>;
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  Future<bool> saveAllianceSelection(String eventKey, String selectionJson) async {
+    final cacheKey = "cache_alliance_selection_$eventKey";
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      cacheKey,
+      jsonEncode({
+        'selectionJson': selectionJson,
+        'updatedAt': DateTime.now().millisecondsSinceEpoch,
+      }),
+    );
+
+    if (!_isOnline) return true;
+
+    try {
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/alliance-selection'),
+        headers: _headers,
+        body: jsonEncode({
+          'eventKey': eventKey,
+          'selectionJson': selectionJson,
+        }),
+      );
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<Map<String, int>> getCacheSummary() async {
     final Map<String, int> summary = {};
     try {
@@ -856,5 +930,33 @@ class ApiService {
       }
     } catch (_) {}
     return summary;
+  }
+
+  Future<List<EventModel>> fetchEvents({int? year}) async {
+    final targetYear = year ?? DateTime.now().year;
+    final cacheKey = "cache_events_$targetYear";
+    final prefs = await SharedPreferences.getInstance();
+
+    if (_isOnline) {
+      try {
+        final response = await http
+            .get(Uri.parse('$_currentServerUrl/api/events?year=$targetYear&cached=1'), headers: _headers)
+            .timeout(const Duration(seconds: 4));
+        if (response.statusCode == 200) {
+          final List data = jsonDecode(response.body);
+          await prefs.setString(cacheKey, response.body);
+          return data.map((e) => EventModel.fromJson(e)).toList();
+        }
+      } catch (_) {}
+    }
+
+    final cached = prefs.getString(cacheKey);
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        final List data = jsonDecode(cached);
+        return data.map((e) => EventModel.fromJson(e)).toList();
+      } catch (_) {}
+    }
+    return [];
   }
 }

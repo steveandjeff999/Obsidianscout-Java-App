@@ -6,11 +6,15 @@ import '../widgets/obsidian_glass_card.dart';
 class SettingsScreen extends StatefulWidget {
   final ApiService apiService;
   final VoidCallback onLogout;
+  final bool isVisible;
+  final bool isBarsVisible;
 
   const SettingsScreen({
     super.key,
     required this.apiService,
     required this.onLogout,
+    this.isVisible = true,
+    this.isBarsVisible = true,
   });
 
   @override
@@ -26,6 +30,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     _loadCacheSummary();
+  }
+
+  @override
+  void didUpdateWidget(covariant SettingsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isVisible && !oldWidget.isVisible) {
+      _loadCacheSummary();
+    }
   }
 
   Future<void> _loadCacheSummary() async {
@@ -159,7 +171,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16.0, 96.0, 16.0, 100.0),
+      padding: EdgeInsets.fromLTRB(16.0, widget.isBarsVisible ? 96.0 : 16.0, 16.0, widget.isBarsVisible ? 100.0 : 20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

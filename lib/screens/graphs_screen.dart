@@ -13,8 +13,15 @@ const _reserved = {'eventKey', 'matchKey', 'matchNumber', 'targetTeamNumber'};
 
 class GraphsScreen extends StatefulWidget {
   final ApiService apiService;
+  final bool isVisible;
+  final bool isBarsVisible;
 
-  const GraphsScreen({super.key, required this.apiService});
+  const GraphsScreen({
+    super.key,
+    required this.apiService,
+    this.isVisible = true,
+    this.isBarsVisible = true,
+  });
 
   @override
   State<GraphsScreen> createState() => _GraphsScreenState();
@@ -51,6 +58,14 @@ class _GraphsScreenState extends State<GraphsScreen> {
   void initState() {
     super.initState();
     _loadData();
+  }
+
+  @override
+  void didUpdateWidget(covariant GraphsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isVisible && !oldWidget.isVisible) {
+      _loadData();
+    }
   }
 
   Future<void> _loadData() async {
@@ -293,7 +308,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
     }).toList();
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.only(top: 100.0, bottom: 120.0),
+      padding: EdgeInsets.only(top: widget.isBarsVisible ? 100.0 : 16.0, bottom: widget.isBarsVisible ? 120.0 : 20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

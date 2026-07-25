@@ -20,15 +20,26 @@ class ObsidianGlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = ObsidianUITheme.isDark(context);
+    final cardBgColor = ObsidianUITheme.getGlassSurfaceColor(context);
+    final borderColor = ObsidianUITheme.getGlassBorderColor(context);
+    final shadowColor = isDark
+        ? Colors.black.withValues(alpha: 0.35)
+        : Colors.black.withValues(alpha: 0.06);
+
+    final gradientColors = isDark
+        ? const [Color(0x22FFFFFF), Color(0x06FFFFFF)]
+        : const [Color(0xFFFFFFFF), Color(0xF0F8FAFC)];
+
     Widget cardContent = Container(
       margin: margin,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(borderRadius),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.35),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
+            color: shadowColor,
+            blurRadius: isDark ? 16 : 12,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -40,18 +51,15 @@ class ObsidianGlassCard extends StatelessWidget {
             padding: padding,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(borderRadius),
-              color: ObsidianUITheme.glassSurface,
+              color: cardBgColor,
               border: Border.all(
-                color: ObsidianUITheme.glassBorderLight,
+                color: borderColor,
                 width: 1.2,
               ),
-              gradient: const LinearGradient(
+              gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  Color(0x22FFFFFF),
-                  Color(0x06FFFFFF),
-                ],
+                colors: gradientColors,
               ),
             ),
             child: Material(

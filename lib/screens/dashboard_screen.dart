@@ -9,6 +9,9 @@ class DashboardScreen extends StatelessWidget {
   final VoidCallback onNavigatePit;
   final VoidCallback onNavigateAnalytics;
   final VoidCallback onNavigateQrScanner;
+  final VoidCallback? onNavigateAlliance;
+  final bool isVisible;
+  final bool isBarsVisible;
 
   const DashboardScreen({
     super.key,
@@ -17,6 +20,9 @@ class DashboardScreen extends StatelessWidget {
     required this.onNavigatePit,
     required this.onNavigateAnalytics,
     required this.onNavigateQrScanner,
+    this.onNavigateAlliance,
+    this.isVisible = true,
+    this.isBarsVisible = true,
   });
 
   @override
@@ -26,7 +32,7 @@ class DashboardScreen extends StatelessWidget {
     final Color statusColor = isConnected ? ObsidianUITheme.successGreen : Colors.redAccent;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.only(top: 100.0, bottom: 120.0),
+      padding: EdgeInsets.only(top: isBarsVisible ? 100.0 : 16.0, bottom: isBarsVisible ? 120.0 : 20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -50,17 +56,18 @@ class DashboardScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 12.0),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Obsidianscout Portal',
-                          style: TextStyle(
-                            fontSize: 18.0,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Obsidianscout Portal',
+                            style: TextStyle(
+                              fontSize: 18.0,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
                           ),
-                        ),
                         Text(
                           statusText,
                           style: TextStyle(
@@ -70,8 +77,9 @@ class DashboardScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
                 const SizedBox(height: 16.0),
                 const Text(
                   'Scout matches in real-time, inspect team pits, scan offline barcodes, and view instant performance analytics.',
@@ -175,6 +183,33 @@ class DashboardScreen extends StatelessWidget {
                       SizedBox(height: 2.0),
                       Text(
                         'View charts, alliance predictions, and live ranks',
+                        style: TextStyle(fontSize: 12.0, color: Colors.white54),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.arrow_forward_ios_rounded, size: 16.0, color: Colors.white38),
+              ],
+            ),
+          ),
+
+          ObsidianGlassCard(
+            onTap: onNavigateAlliance,
+            child: const Row(
+              children: [
+                Icon(Icons.stars_rounded, size: 32.0, color: Colors.amberAccent),
+                SizedBox(width: 16.0),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Alliance Selection',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0, color: Colors.white),
+                      ),
+                      SizedBox(height: 2.0),
+                      Text(
+                        'Manage playoff pick lists, captain choices & server sync',
                         style: TextStyle(fontSize: 12.0, color: Colors.white54),
                       ),
                     ],
