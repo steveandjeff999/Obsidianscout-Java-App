@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'theme/obsidian_ui_theme.dart';
 import 'widgets/obsidian_glass_app_bar.dart';
 import 'widgets/obsidian_bottom_nav.dart';
@@ -106,7 +105,7 @@ class _MainShellState extends State<MainShell> {
           SnackBar(
             duration: const Duration(seconds: 6),
             behavior: SnackBarBehavior.floating,
-            backgroundColor: ObsidianUITheme.surface,
+            backgroundColor: ObsidianUITheme.getSurfaceColor(context),
             content: Row(
               children: [
                 const Icon(Icons.chat_bubble_outline_rounded, color: Colors.cyanAccent, size: 20),
@@ -116,8 +115,8 @@ class _MainShellState extends State<MainShell> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13)),
-                      Text(body, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                      Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: ObsidianUITheme.getPrimaryTextColor(context), fontSize: 13)),
+                      Text(body, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context), fontSize: 12)),
                     ],
                   ),
                 ),
@@ -229,57 +228,62 @@ class _MainShellState extends State<MainShell> {
       extendBody: true,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(90.0),
-        child: AnimatedSlide(
-          offset: _isBarsVisible ? Offset.zero : const Offset(0, -1.2),
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeInOutCubic,
-          child: ObsidianGlassAppBar(
-            title: _titles[_currentIndex],
-            subtitle: _subtitles[_currentIndex],
-            isOnline: _isOnline,
-            actions: [
-              IconButton(
-                icon: Icon(
-                  widget.apiService.themeMode == ThemeMode.light
-                      ? Icons.dark_mode_rounded
-                      : Icons.light_mode_rounded,
-                  color: widget.apiService.themeMode == ThemeMode.light
-                      ? const Color(0xFF4F46E5)
-                      : const Color(0xFFFFB703),
-                ),
-                tooltip: widget.apiService.themeMode == ThemeMode.light
-                    ? 'Switch to Dark Mode'
-                    : 'Switch to Light Mode',
-                onPressed: () {
-                  final nextMode = widget.apiService.themeMode == ThemeMode.light
-                      ? ThemeMode.dark
-                      : ThemeMode.light;
-                  widget.apiService.setThemeMode(nextMode);
-                },
-              ),
-              Builder(
-                builder: (ctx) => IconButton(
+        child: AnimatedOpacity(
+          opacity: _isBarsVisible ? 1.0 : 0.0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          child: AnimatedSlide(
+            offset: _isBarsVisible ? Offset.zero : const Offset(0, -0.8),
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.fastOutSlowIn,
+            child: ObsidianGlassAppBar(
+              title: _titles[_currentIndex],
+              subtitle: _subtitles[_currentIndex],
+              isOnline: _isOnline,
+              actions: [
+                IconButton(
                   icon: Icon(
-                    Icons.menu_rounded,
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white
-                        : const Color(0xFF0F172A),
+                    widget.apiService.themeMode == ThemeMode.light
+                        ? Icons.dark_mode_rounded
+                        : Icons.light_mode_rounded,
+                    color: widget.apiService.themeMode == ThemeMode.light
+                        ? const Color(0xFF4F46E5)
+                        : const Color(0xFFFFB703),
                   ),
-                  tooltip: 'Navigation Menu',
-                  onPressed: () => Scaffold.of(ctx).openDrawer(),
+                  tooltip: widget.apiService.themeMode == ThemeMode.light
+                      ? 'Switch to Dark Mode'
+                      : 'Switch to Light Mode',
+                  onPressed: () {
+                    final nextMode = widget.apiService.themeMode == ThemeMode.light
+                        ? ThemeMode.dark
+                        : ThemeMode.light;
+                    widget.apiService.setThemeMode(nextMode);
+                  },
                 ),
-              ),
-              IconButton(
-                icon: Icon(
-                  Icons.qr_code_scanner_rounded,
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.cyanAccent
-                      : const Color(0xFF0284C7),
+                Builder(
+                  builder: (ctx) => IconButton(
+                    icon: Icon(
+                      Icons.menu_rounded,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : const Color(0xFF0F172A),
+                    ),
+                    tooltip: 'Navigation Menu',
+                    onPressed: () => Scaffold.of(ctx).openDrawer(),
+                  ),
                 ),
-                tooltip: 'QR & Barcode Scanner',
-                onPressed: _openQrScanner,
-              ),
-            ],
+                IconButton(
+                  icon: Icon(
+                    Icons.qr_code_scanner_rounded,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.cyanAccent
+                        : const Color(0xFF0284C7),
+                  ),
+                  tooltip: 'QR & Barcode Scanner',
+                  onPressed: _openQrScanner,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -295,12 +299,13 @@ class _MainShellState extends State<MainShell> {
       ),
       body: NotificationListener<ScrollNotification>(
         onNotification: (notification) {
-          if (notification is UserScrollNotification) {
-            if (notification.direction == ScrollDirection.reverse) {
+          if (notification is ScrollUpdateNotification) {
+            final delta = notification.scrollDelta ?? 0;
+            if (delta > 8.0) {
               if (_isBarsVisible) {
                 setState(() => _isBarsVisible = false);
               }
-            } else if (notification.direction == ScrollDirection.forward) {
+            } else if (delta < -8.0) {
               if (!_isBarsVisible) {
                 setState(() => _isBarsVisible = true);
               }
@@ -321,21 +326,26 @@ class _MainShellState extends State<MainShell> {
           ),
         ),
       ),
-      bottomNavigationBar: AnimatedSlide(
-        offset: _isBarsVisible ? Offset.zero : const Offset(0, 1.5),
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeInOutCubic,
-        child: SafeArea(
-          child: Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 600.0),
-              child: ObsidianBottomNav(
-                currentIndex: _currentIndex,
-                onTap: (index) => setState(() {
-                  _currentIndex = index;
-                  _isBarsVisible = true;
-                }),
+      bottomNavigationBar: AnimatedOpacity(
+        opacity: _isBarsVisible ? 1.0 : 0.0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        child: AnimatedSlide(
+          offset: _isBarsVisible ? Offset.zero : const Offset(0, 0.8),
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.fastOutSlowIn,
+          child: SafeArea(
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 600.0),
+                child: ObsidianBottomNav(
+                  currentIndex: _currentIndex,
+                  onTap: (index) => setState(() {
+                    _currentIndex = index;
+                    _isBarsVisible = true;
+                  }),
+                ),
               ),
             ),
           ),

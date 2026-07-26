@@ -31,9 +31,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     });
   }
 
-  Widget _buildBarChart(List<AnalyticsSeriesPointModel> series) {
+  Widget _buildBarChart(BuildContext context, List<AnalyticsSeriesPointModel> series) {
     if (series.isEmpty) {
-      return const Text('No chart data recorded yet', style: TextStyle(color: Colors.white38, fontSize: 12.0));
+      return Text('No chart data recorded yet', style: TextStyle(color: ObsidianUITheme.getFaintTextColor(context), fontSize: 12.0));
     }
 
     double maxVal = 1.0;
@@ -52,7 +52,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(point.label, style: const TextStyle(color: Colors.white70, fontSize: 13.0)),
+                  Text(point.label, style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context), fontSize: 13.0)),
                   Text(point.value.toStringAsFixed(1), style: const TextStyle(color: ObsidianUITheme.primaryAccent, fontWeight: FontWeight.bold, fontSize: 13.0)),
                 ],
               ),
@@ -64,7 +64,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       height: 8.0,
                       width: constraints.maxWidth,
                       decoration: BoxDecoration(
-                        color: Colors.white10,
+                        color: ObsidianUITheme.getBorderColor(context),
                         borderRadius: BorderRadius.circular(4.0),
                       ),
                     ),
@@ -97,6 +97,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       );
     }
 
+    final primaryText = ObsidianUITheme.getPrimaryTextColor(context);
+    final secondaryText = ObsidianUITheme.getSecondaryTextColor(context);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.only(top: 100.0, bottom: 120.0),
       child: Column(
@@ -115,11 +118,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   child: const Icon(Icons.leaderboard_rounded, color: ObsidianUITheme.primaryAccent),
                 ),
                 const SizedBox(width: 14.0),
-                const Column(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Live Competition Analytics', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0, color: Colors.white)),
-                    Text('Calculated from Server Scouting Entries', style: TextStyle(fontSize: 12.0, color: Colors.white54)),
+                    Text('Live Competition Analytics', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0, color: primaryText)),
+                    Text('Calculated from Server Scouting Entries', style: TextStyle(fontSize: 12.0, color: secondaryText)),
                   ],
                 ),
               ],
@@ -127,13 +130,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           ),
 
           if (_widgets.isEmpty)
-            const ObsidianGlassCard(
+            ObsidianGlassCard(
               child: Center(
                 child: Padding(
-                  padding: EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(16.0),
                   child: Text(
                     'No analytics data or scouting entries available on server.',
-                    style: TextStyle(color: Colors.white54),
+                    style: TextStyle(color: secondaryText),
                   ),
                 ),
               ),
@@ -147,16 +150,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 children: [
                   Text(
                     widgetModel.title,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15.0, color: Colors.white),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15.0, color: primaryText),
                   ),
                   const SizedBox(height: 12.0),
                   if (widgetModel.type.toLowerCase() == 'bar')
-                    _buildBarChart(widgetModel.series)
+                    _buildBarChart(context, widgetModel.series)
                   else
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Calculated Metric', style: TextStyle(color: Colors.white54, fontSize: 13.0)),
+                        Text('Calculated Metric', style: TextStyle(color: secondaryText, fontSize: 13.0)),
                         Text(
                           widgetModel.value != null
                               ? (widgetModel.value! % 1 == 0 ? widgetModel.value!.toInt().toString() : widgetModel.value!.toStringAsFixed(2))

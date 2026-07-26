@@ -219,6 +219,12 @@ class _ObsidianBarcodeModalState extends State<ObsidianBarcodeModal> {
 
   @override
   Widget build(BuildContext context) {
+    final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+    final tertiaryTextColor = ObsidianUITheme.getTertiaryTextColor(context);
+    final faintTextColor = ObsidianUITheme.getFaintTextColor(context);
+    final surfaceColor = ObsidianUITheme.getSurfaceColor(context);
+
     return Container(
       padding: EdgeInsets.only(
         left: 20.0,
@@ -226,9 +232,9 @@ class _ObsidianBarcodeModalState extends State<ObsidianBarcodeModal> {
         top: 20.0,
         bottom: MediaQuery.of(context).viewInsets.bottom + 24.0,
       ),
-      decoration: const BoxDecoration(
-        color: ObsidianUITheme.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28.0)),
+      decoration: BoxDecoration(
+        color: surfaceColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28.0)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -238,7 +244,7 @@ class _ObsidianBarcodeModalState extends State<ObsidianBarcodeModal> {
             width: 40.0,
             height: 4.0,
             decoration: BoxDecoration(
-              color: Colors.white30,
+              color: faintTextColor,
               borderRadius: BorderRadius.circular(2.0),
             ),
           ),
@@ -251,12 +257,12 @@ class _ObsidianBarcodeModalState extends State<ObsidianBarcodeModal> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Scouting Entry QR Code',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18.0,
-                      color: Colors.white,
+                      color: primaryTextColor,
                     ),
                   ),
                   if (_qrChunks.length > 1)
@@ -267,7 +273,7 @@ class _ObsidianBarcodeModalState extends State<ObsidianBarcodeModal> {
                 ],
               ),
               IconButton(
-                icon: const Icon(Icons.close_rounded, color: Colors.white70),
+                icon: Icon(Icons.close_rounded, color: secondaryTextColor),
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ],
@@ -290,7 +296,7 @@ class _ObsidianBarcodeModalState extends State<ObsidianBarcodeModal> {
                         padding: const EdgeInsets.only(bottom: 4.0),
                         child: Text(
                           'Part ${idx + 1} of ${_qrChunks.length}',
-                          style: const TextStyle(color: Colors.white70, fontSize: 11.0, fontWeight: FontWeight.bold),
+                          style: TextStyle(color: secondaryTextColor, fontSize: 11.0, fontWeight: FontWeight.bold),
                         ),
                       ),
                     Container(
@@ -322,9 +328,9 @@ class _ObsidianBarcodeModalState extends State<ObsidianBarcodeModal> {
             ),
           ),
           const SizedBox(height: 8.0),
-          const Text(
+          Text(
             'Tap QR code grid for full screen',
-            style: TextStyle(fontSize: 12.0, color: Colors.white54),
+            style: TextStyle(fontSize: 12.0, color: tertiaryTextColor),
           ),
           const SizedBox(height: 16.0),
 
@@ -333,10 +339,10 @@ class _ObsidianBarcodeModalState extends State<ObsidianBarcodeModal> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _detailCol('TYPE', widget.typeLabel),
-                _detailCol('TEAM', '${widget.targetTeamNumber}'),
+                _detailCol(context, 'TYPE', widget.typeLabel),
+                _detailCol(context, 'TEAM', '${widget.targetTeamNumber}'),
                 if (widget.matchKey != null && widget.matchKey!.isNotEmpty)
-                  _detailCol('MATCH', widget.matchKey!),
+                  _detailCol(context, 'MATCH', widget.matchKey!),
               ],
             ),
           ),
@@ -346,7 +352,7 @@ class _ObsidianBarcodeModalState extends State<ObsidianBarcodeModal> {
     );
   }
 
-  Widget _detailCol(String label, String value) {
+  Widget _detailCol(BuildContext context, String label, String value) {
     return Column(
       children: [
         Text(
@@ -356,7 +362,7 @@ class _ObsidianBarcodeModalState extends State<ObsidianBarcodeModal> {
         const SizedBox(height: 4.0),
         Text(
           value,
-          style: const TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold, color: Colors.white),
+          style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.getPrimaryTextColor(context)),
         ),
       ],
     );

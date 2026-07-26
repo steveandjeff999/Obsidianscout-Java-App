@@ -130,7 +130,27 @@ class ObsidianUITheme {
   }
 
   static Color getSecondaryTextColor(BuildContext context) {
-    return isDark(context) ? Colors.white70 : const Color(0xFF475569);
+    return isDark(context) ? Colors.white70 : const Color(0xFF334155);
+  }
+
+  static Color getTertiaryTextColor(BuildContext context) {
+    return isDark(context) ? Colors.white54 : const Color(0xFF64748B);
+  }
+
+  static Color getFaintTextColor(BuildContext context) {
+    return isDark(context) ? Colors.white38 : const Color(0xFF94A3B8);
+  }
+
+  static Color getBorderColor(BuildContext context) {
+    return isDark(context) ? Colors.white12 : const Color(0x1F000000);
+  }
+
+  static Color getInputFillColor(BuildContext context) {
+    return isDark(context) ? glassInputBackground : glassInputBackgroundLightMode;
+  }
+
+  static Color getSurfaceColor(BuildContext context) {
+    return isDark(context) ? surface : surfaceLight;
   }
 }
 

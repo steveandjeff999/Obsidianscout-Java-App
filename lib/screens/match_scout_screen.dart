@@ -198,13 +198,13 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                   DropdownButtonFormField<TeamModel>(
                     isExpanded: true,
                     initialValue: _selectedTeam,
-                    dropdownColor: ObsidianUITheme.surface,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
+                    dropdownColor: ObsidianUITheme.getSurfaceColor(context),
+                    style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
+                    decoration: InputDecoration(
                       labelText: 'Select Team',
-                      labelStyle: TextStyle(color: Colors.white60),
-                      prefixIcon: Icon(Icons.group_outlined, color: ObsidianUITheme.primaryAccent),
-                      enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                      labelStyle: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context)),
+                      prefixIcon: const Icon(Icons.group_outlined, color: ObsidianUITheme.primaryAccent),
+                      enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
                     ),
                     items: _teams.map((t) => DropdownMenuItem(value: t, child: Text(t.displayName, overflow: TextOverflow.ellipsis))).toList(),
                     onChanged: (team) => setState(() => _selectedTeam = team),
@@ -213,13 +213,13 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                   DropdownButtonFormField<MatchModel>(
                     isExpanded: true,
                     initialValue: _selectedMatch,
-                    dropdownColor: ObsidianUITheme.surface,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
+                    dropdownColor: ObsidianUITheme.getSurfaceColor(context),
+                    style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
+                    decoration: InputDecoration(
                       labelText: 'Select Match',
-                      labelStyle: TextStyle(color: Colors.white60),
-                      prefixIcon: Icon(Icons.sports_esports_outlined, color: ObsidianUITheme.primaryAccent),
-                      enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                      labelStyle: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context)),
+                      prefixIcon: const Icon(Icons.sports_esports_outlined, color: ObsidianUITheme.primaryAccent),
+                      enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
                     ),
                     items: _matches.map((m) => DropdownMenuItem(value: m, child: Text(m.displayLabel, overflow: TextOverflow.ellipsis))).toList(),
                     onChanged: (match) => setState(() => _selectedMatch = match),
@@ -323,15 +323,15 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
             // Generate QR / JAB Code Button Card
             ObsidianGlassCard(
               onTap: _generateBarcode,
-              child: const Center(
+              child: Center(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.qr_code_2_rounded, color: ObsidianUITheme.secondaryAccent),
-                    SizedBox(width: 10.0),
+                    const Icon(Icons.qr_code_2_rounded, color: ObsidianUITheme.secondaryAccent),
+                    const SizedBox(width: 10.0),
                     Text(
                       'GENERATE QR / JAB CODE',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.0, color: Colors.white),
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.0, color: ObsidianUITheme.getPrimaryTextColor(context)),
                     ),
                   ],
                 ),
@@ -342,19 +342,21 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
             Builder(
               builder: (context) {
                 final isOnline = widget.apiService.isOnline;
+                final primaryColor = ObsidianUITheme.getPrimaryTextColor(context);
+                final faintColor = ObsidianUITheme.getFaintTextColor(context);
                 return Opacity(
                   opacity: isOnline ? 1.0 : 0.45,
                   child: ObsidianGlassCard(
                     onTap: (_isSubmitting || !isOnline) ? null : _submitData,
                     child: Center(
                       child: _isSubmitting
-                          ? const CircularProgressIndicator(color: Colors.white)
+                          ? const CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)
                           : Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(
                                   isOnline ? Icons.send_rounded : Icons.cloud_off_rounded,
-                                  color: isOnline ? Colors.white : Colors.white54,
+                                  color: isOnline ? primaryColor : faintColor,
                                 ),
                                 const SizedBox(width: 10.0),
                                 Text(
@@ -362,7 +364,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13.0,
-                                    color: isOnline ? Colors.white : Colors.white54,
+                                    color: isOnline ? primaryColor : faintColor,
                                   ),
                                 ),
                               ],

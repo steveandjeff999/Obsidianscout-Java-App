@@ -68,19 +68,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _handleClearCache() async {
+    final surfaceColor = ObsidianUITheme.getSurfaceColor(context);
+    final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+    final tertiaryTextColor = ObsidianUITheme.getTertiaryTextColor(context);
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: ObsidianUITheme.surface,
-        title: const Text('Clear All Offline Cache?', style: TextStyle(color: Colors.white)),
-        content: const Text(
+        backgroundColor: surfaceColor,
+        title: Text('Clear All Offline Cache?', style: TextStyle(color: primaryTextColor)),
+        content: Text(
           'This will purge all locally saved teams, matches, configs, and analytics. New data will be fetched when online.',
-          style: TextStyle(color: Colors.white70),
+          style: TextStyle(color: secondaryTextColor),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+            child: Text('Cancel', style: TextStyle(color: tertiaryTextColor)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.errorRed),
@@ -108,25 +113,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _showEditServerUrlDialog() {
     final controller = TextEditingController(text: widget.apiService.serverUrl);
+    final surfaceColor = ObsidianUITheme.getSurfaceColor(context);
+    final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+    final tertiaryTextColor = ObsidianUITheme.getTertiaryTextColor(context);
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: ObsidianUITheme.surface,
-        title: const Text('Change Server URL', style: TextStyle(color: Colors.white)),
+        backgroundColor: surfaceColor,
+        title: Text('Change Server URL', style: TextStyle(color: primaryTextColor)),
         content: TextField(
           controller: controller,
-          style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
+          style: TextStyle(color: primaryTextColor),
+          decoration: InputDecoration(
             labelText: 'Server URL (e.g. http://192.168.1.50:8080)',
-            labelStyle: TextStyle(color: ObsidianUITheme.primaryAccent),
-            enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-            focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+            labelStyle: const TextStyle(color: ObsidianUITheme.primaryAccent),
+            enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
+            focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+            child: Text('Cancel', style: TextStyle(color: tertiaryTextColor)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.primaryAccent),
@@ -170,6 +179,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+    final tertiaryTextColor = ObsidianUITheme.getTertiaryTextColor(context);
+    final faintTextColor = ObsidianUITheme.getFaintTextColor(context);
+    final borderColor = ObsidianUITheme.getBorderColor(context);
+
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(16.0, widget.isBarsVisible ? 96.0 : 16.0, 16.0, widget.isBarsVisible ? 100.0 : 20.0),
       child: Column(
@@ -192,14 +207,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'App Settings & Cache',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: primaryTextColor),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'Manage offline data, server endpoint, & authentication',
-                        style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.7)),
+                        style: TextStyle(fontSize: 12, color: secondaryTextColor),
                       ),
                     ],
                   ),
@@ -217,13 +232,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Row(
+                    Row(
                       children: [
-                        Icon(Icons.folder_zip_rounded, color: ObsidianUITheme.primaryAccent),
-                        SizedBox(width: 8),
+                        const Icon(Icons.folder_zip_rounded, color: ObsidianUITheme.primaryAccent),
+                        const SizedBox(width: 8),
                         Text(
                           'Offline Cache Manager',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
                         ),
                       ],
                     ),
@@ -233,14 +248,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ],
                 ),
-                const Divider(color: Colors.white12, height: 24),
+                Divider(color: borderColor, height: 24),
 
                 if (_isLoadingCache)
                   const Center(child: Padding(padding: EdgeInsets.all(16.0), child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)))
                 else if (_cacheSummary.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12.0),
-                    child: Text('No offline cache stored yet. Sync data to enable full offline support.', style: TextStyle(color: Colors.white54, fontSize: 13)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12.0),
+                    child: Text('No offline cache stored yet. Sync data to enable full offline support.', style: TextStyle(color: tertiaryTextColor, fontSize: 13)),
                   )
                 else
                   Column(
@@ -256,10 +271,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               children: [
                                 const Icon(Icons.check_circle_outline_rounded, color: Colors.greenAccent, size: 16),
                                 const SizedBox(width: 8),
-                                Text(name, style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 13)),
+                                Text(name, style: TextStyle(color: primaryTextColor, fontSize: 13)),
                               ],
                             ),
-                            Text('$kb KB', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12, fontFamily: 'monospace')),
+                            Text('$kb KB', style: TextStyle(color: tertiaryTextColor, fontSize: 12, fontFamily: 'monospace')),
                           ],
                         ),
                       );
@@ -309,17 +324,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   children: [
-                    Icon(Icons.dns_rounded, color: ObsidianUITheme.primaryAccent),
-                    SizedBox(width: 8),
+                    const Icon(Icons.dns_rounded, color: ObsidianUITheme.primaryAccent),
+                    const SizedBox(width: 8),
                     Text(
                       'Server Endpoint',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
                     ),
                   ],
                 ),
-                const Divider(color: Colors.white12, height: 24),
+                Divider(color: borderColor, height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -327,11 +342,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Active Server URL', style: TextStyle(fontSize: 12, color: Colors.white54)),
+                          Text('Active Server URL', style: TextStyle(fontSize: 12, color: secondaryTextColor)),
                           const SizedBox(height: 2),
                           Text(
                             widget.apiService.serverUrl,
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white, fontFamily: 'monospace'),
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: primaryTextColor, fontFamily: 'monospace'),
                           ),
                         ],
                       ),
@@ -352,17 +367,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   children: [
-                    Icon(Icons.person_pin_rounded, color: ObsidianUITheme.primaryAccent),
-                    SizedBox(width: 8),
+                    const Icon(Icons.person_pin_rounded, color: ObsidianUITheme.primaryAccent),
+                    const SizedBox(width: 8),
                     Text(
                       'Account & Session',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
                     ),
                   ],
                 ),
-                const Divider(color: Colors.white12, height: 24),
+                Divider(color: borderColor, height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -372,7 +387,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         children: [
                           Text(
                             widget.apiService.savedUsername.isNotEmpty ? widget.apiService.savedUsername : 'Logged In User',
-                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primaryTextColor),
                           ),
                           const SizedBox(height: 2),
                           const Text('Session Status: Active (Keep Logged In)', style: TextStyle(fontSize: 12, color: Colors.greenAccent)),

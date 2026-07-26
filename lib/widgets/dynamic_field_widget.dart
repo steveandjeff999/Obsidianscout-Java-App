@@ -17,6 +17,9 @@ class DynamicFieldWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final type = field.type.toLowerCase();
+    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+    final tertiaryTextColor = ObsidianUITheme.getTertiaryTextColor(context);
+    final borderColor = ObsidianUITheme.getBorderColor(context);
 
     // 1. SECTION HEADER / DIVIDER
     if (type == 'section' || type == 'header' || type == 'divider') {
@@ -53,11 +56,11 @@ class DynamicFieldWidget extends StatelessWidget {
               const SizedBox(height: 4.0),
               Text(
                 field.description!,
-                style: const TextStyle(fontSize: 12.0, color: Colors.white60),
+                style: TextStyle(fontSize: 12.0, color: secondaryTextColor),
               ),
             ],
             const SizedBox(height: 8.0),
-            const Divider(color: Colors.white12, height: 1.0),
+            Divider(color: borderColor, height: 1.0),
           ],
         ),
       );
@@ -74,7 +77,7 @@ class DynamicFieldWidget extends StatelessWidget {
               padding: const EdgeInsets.only(top: 4.0, left: 2.0),
               child: Text(
                 field.description!,
-                style: const TextStyle(fontSize: 11.5, color: Colors.white54),
+                style: TextStyle(fontSize: 11.5, color: tertiaryTextColor),
               ),
             ),
         ],
@@ -83,6 +86,13 @@ class DynamicFieldWidget extends StatelessWidget {
   }
 
   Widget _buildFieldControl(BuildContext context, String type) {
+    final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+    final tertiaryTextColor = ObsidianUITheme.getTertiaryTextColor(context);
+    final faintTextColor = ObsidianUITheme.getFaintTextColor(context);
+    final borderColor = ObsidianUITheme.getBorderColor(context);
+    final surfaceColor = ObsidianUITheme.getSurfaceColor(context);
+
     switch (type) {
       // 2. COUNTER / NUMBER
       case 'counter':
@@ -99,25 +109,25 @@ class DynamicFieldWidget extends StatelessWidget {
             Expanded(
               child: Text(
                 field.label,
-                style: const TextStyle(fontSize: 14.5, color: Colors.white, fontWeight: FontWeight.w500),
+                style: TextStyle(fontSize: 14.5, color: primaryTextColor, fontWeight: FontWeight.w500),
               ),
             ),
             Row(
               children: [
                 IconButton(
                   onPressed: val > minVal ? () => onChanged(val - stepVal) : null,
-                  icon: const Icon(Icons.remove_circle_outline, color: Colors.white70),
+                  icon: Icon(Icons.remove_circle_outline, color: secondaryTextColor),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 6.0),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12.0),
                     color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.25),
-                    border: Border.all(color: ObsidianUITheme.glassBorderLight),
+                    border: Border.all(color: ObsidianUITheme.getGlassBorderColor(context)),
                   ),
                   child: Text(
                     '$val',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0, color: Colors.white),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0, color: primaryTextColor),
                   ),
                 ),
                 IconButton(
@@ -149,7 +159,7 @@ class DynamicFieldWidget extends StatelessWidget {
               children: [
                 Text(
                   field.label,
-                  style: const TextStyle(fontSize: 14.5, color: Colors.white, fontWeight: FontWeight.w500),
+                  style: TextStyle(fontSize: 14.5, color: primaryTextColor, fontWeight: FontWeight.w500),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 2.0),
@@ -168,11 +178,11 @@ class DynamicFieldWidget extends StatelessWidget {
             SliderTheme(
               data: SliderThemeData(
                 activeTrackColor: ObsidianUITheme.primaryAccent,
-                inactiveTrackColor: Colors.white12,
+                inactiveTrackColor: borderColor,
                 thumbColor: ObsidianUITheme.primaryAccent,
                 overlayColor: ObsidianUITheme.primaryAccent.withValues(alpha: 0.2),
-                valueIndicatorColor: ObsidianUITheme.surface,
-                valueIndicatorTextStyle: const TextStyle(color: Colors.white),
+                valueIndicatorColor: surfaceColor,
+                valueIndicatorTextStyle: TextStyle(color: primaryTextColor),
               ),
               child: Slider(
                 value: current,
@@ -197,7 +207,7 @@ class DynamicFieldWidget extends StatelessWidget {
           children: [
             Text(
               field.label,
-              style: const TextStyle(fontSize: 14.5, color: Colors.white, fontWeight: FontWeight.w500),
+              style: TextStyle(fontSize: 14.5, color: primaryTextColor, fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 6.0),
             Row(
@@ -209,7 +219,7 @@ class DynamicFieldWidget extends StatelessWidget {
                   constraints: const BoxConstraints(),
                   icon: Icon(
                     isSelected ? Icons.star_rounded : Icons.star_border_rounded,
-                    color: isSelected ? Colors.amber : Colors.white30,
+                    color: isSelected ? Colors.amber : faintTextColor,
                     size: 28.0,
                   ),
                   onPressed: () => onChanged(starNum),
@@ -226,7 +236,7 @@ class DynamicFieldWidget extends StatelessWidget {
         bool val = currentValue == true || currentValue == 1 || currentValue == 'true';
         return SwitchListTile(
           contentPadding: EdgeInsets.zero,
-          title: Text(field.label, style: const TextStyle(color: Colors.white, fontSize: 14.5)),
+          title: Text(field.label, style: TextStyle(color: primaryTextColor, fontSize: 14.5)),
           value: val,
           activeThumbColor: ObsidianUITheme.primaryAccent,
           activeTrackColor: ObsidianUITheme.primaryAccent.withValues(alpha: 0.4),
@@ -242,7 +252,7 @@ class DynamicFieldWidget extends StatelessWidget {
           children: [
             Text(
               field.label,
-              style: const TextStyle(fontSize: 14.5, color: Colors.white, fontWeight: FontWeight.w500),
+              style: TextStyle(fontSize: 14.5, color: primaryTextColor, fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 8.0),
             Wrap(
@@ -254,9 +264,9 @@ class DynamicFieldWidget extends StatelessWidget {
                   label: Text(opt.label),
                   selected: isSelected,
                   selectedColor: ObsidianUITheme.primaryAccent,
-                  backgroundColor: Colors.white10,
+                  backgroundColor: ObsidianUITheme.isDark(context) ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
                   labelStyle: TextStyle(
-                    color: isSelected ? Colors.white : Colors.white70,
+                    color: isSelected ? Colors.white : secondaryTextColor,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                     fontSize: 13.0,
                   ),
@@ -284,7 +294,7 @@ class DynamicFieldWidget extends StatelessWidget {
           children: [
             Text(
               field.label,
-              style: const TextStyle(fontSize: 14.5, color: Colors.white, fontWeight: FontWeight.w500),
+              style: TextStyle(fontSize: 14.5, color: primaryTextColor, fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 8.0),
             Wrap(
@@ -296,9 +306,9 @@ class DynamicFieldWidget extends StatelessWidget {
                   label: Text(opt.label),
                   selected: isSelected,
                   selectedColor: ObsidianUITheme.primaryAccent,
-                  backgroundColor: Colors.white10,
+                  backgroundColor: ObsidianUITheme.isDark(context) ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
                   labelStyle: TextStyle(
-                    color: isSelected ? Colors.white : Colors.white70,
+                    color: isSelected ? Colors.white : secondaryTextColor,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                     fontSize: 13.0,
                   ),
@@ -324,13 +334,13 @@ class DynamicFieldWidget extends StatelessWidget {
         return DropdownButtonFormField<String>(
           isExpanded: true,
           initialValue: field.options.any((o) => o.value == val) ? val : (field.options.isNotEmpty ? field.options.first.value : null),
-          dropdownColor: ObsidianUITheme.surface,
-          style: const TextStyle(color: Colors.white),
+          dropdownColor: surfaceColor,
+          style: TextStyle(color: primaryTextColor),
           decoration: InputDecoration(
             labelText: field.label,
             hintText: field.placeholder,
-            labelStyle: const TextStyle(color: Colors.white60),
-            enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+            labelStyle: TextStyle(color: secondaryTextColor),
+            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
             focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
           ),
           items: field.options.map((opt) {
@@ -353,15 +363,15 @@ class DynamicFieldWidget extends StatelessWidget {
         return TextFormField(
           initialValue: val,
           maxLines: 3,
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: primaryTextColor),
           decoration: InputDecoration(
             labelText: field.label,
             hintText: field.placeholder ?? 'Enter comments...',
-            hintStyle: const TextStyle(color: Colors.white30, fontSize: 13.0),
-            labelStyle: const TextStyle(color: Colors.white60),
-            enabledBorder: const OutlineInputBorder(
-              borderSide: BorderSide(color: Colors.white24),
-              borderRadius: BorderRadius.all(Radius.circular(12.0)),
+            hintStyle: TextStyle(color: tertiaryTextColor, fontSize: 13.0),
+            labelStyle: TextStyle(color: secondaryTextColor),
+            enabledBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: borderColor),
+              borderRadius: const BorderRadius.all(Radius.circular(12.0)),
             ),
             focusedBorder: const OutlineInputBorder(
               borderSide: BorderSide(color: ObsidianUITheme.primaryAccent),
@@ -378,13 +388,13 @@ class DynamicFieldWidget extends StatelessWidget {
         String val = currentValue?.toString() ?? '';
         return TextFormField(
           initialValue: val,
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: primaryTextColor),
           decoration: InputDecoration(
             labelText: field.label,
             hintText: field.placeholder,
-            hintStyle: const TextStyle(color: Colors.white30, fontSize: 13.0),
-            labelStyle: const TextStyle(color: Colors.white60),
-            enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+            hintStyle: TextStyle(color: tertiaryTextColor, fontSize: 13.0),
+            labelStyle: TextStyle(color: secondaryTextColor),
+            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
             focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
           ),
           onChanged: (text) => onChanged(text),

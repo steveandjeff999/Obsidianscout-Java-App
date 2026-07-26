@@ -64,7 +64,13 @@ class ObsidianGlassCard extends StatelessWidget {
             ),
             child: Material(
               color: Colors.transparent,
-              child: child,
+              child: DefaultTextStyle.merge(
+                style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
+                child: IconTheme.merge(
+                  data: IconThemeData(color: ObsidianUITheme.getPrimaryTextColor(context)),
+                  child: child,
+                ),
+              ),
             ),
           ),
         ),

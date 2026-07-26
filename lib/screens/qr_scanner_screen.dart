@@ -671,14 +671,14 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                         isComplete ? 'Multi-Part Entry Complete!' : 'Multi-Part Scan ($scannedCount of $total Scanned)',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: isComplete ? ObsidianUITheme.successGreen : Colors.white,
+                          color: isComplete ? ObsidianUITheme.successGreen : ObsidianUITheme.getPrimaryTextColor(context),
                           fontSize: 14.0,
                         ),
                       ),
                       const SizedBox(height: 2.0),
                       Text(
                         isComplete ? 'Assembling entry...' : 'Scan remaining parts in any order',
-                        style: const TextStyle(color: Colors.white60, fontSize: 11.0),
+                        style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context), fontSize: 11.0),
                       ),
                     ],
                   ),
@@ -701,11 +701,11 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
               children: List.generate(total, (idx) {
                 final partNum = idx + 1;
                 final isDone = _activeMultiParts.containsKey(partNum);
-                final color = isDone ? ObsidianUITheme.successGreen : Colors.white54;
+                final color = isDone ? ObsidianUITheme.successGreen : ObsidianUITheme.getTertiaryTextColor(context);
                 return Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
                   decoration: BoxDecoration(
-                    color: isDone ? ObsidianUITheme.successGreen.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.08),
+                    color: isDone ? ObsidianUITheme.successGreen.withValues(alpha: 0.2) : ObsidianUITheme.getBorderColor(context),
                     borderRadius: BorderRadius.circular(16.0),
                     border: Border.all(color: color),
                   ),
@@ -735,9 +735,9 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         margin: const EdgeInsets.only(bottom: 12.0),
         padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.08),
+          color: ObsidianUITheme.getInputFillColor(context),
           borderRadius: BorderRadius.circular(12.0),
-          border: Border.all(color: Colors.white12),
+          border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
         ),
         child: Row(
           children: [
@@ -748,8 +748,8 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                 child: DropdownButton<int>(
                   value: _selectedCameraIndex,
                   isExpanded: true,
-                  dropdownColor: ObsidianUITheme.surface,
-                  style: const TextStyle(color: Colors.white, fontSize: 13.0),
+                  dropdownColor: ObsidianUITheme.getSurfaceColor(context),
+                  style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context), fontSize: 13.0),
                   items: List.generate(_availableCameras.length, (idx) {
                     final cam = _availableCameras[idx];
                     final name = _formatCameraName(cam.name);
@@ -805,11 +805,17 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   @override
   Widget build(BuildContext context) {
     final pendingCount = _queue.where((i) => i.status == 'pending' || i.status == 'error').length;
+    final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+    final tertiaryTextColor = ObsidianUITheme.getTertiaryTextColor(context);
+    final faintTextColor = ObsidianUITheme.getFaintTextColor(context);
+    final borderColor = ObsidianUITheme.getBorderColor(context);
+    final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('QR / Barcode Scanner', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-        backgroundColor: ObsidianUITheme.background,
+        title: Text('QR / Barcode Scanner', style: TextStyle(fontWeight: FontWeight.bold, color: primaryTextColor)),
+        backgroundColor: scaffoldBg,
         elevation: 0,
         actions: [
           IconButton(
@@ -818,7 +824,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
             onPressed: _pasteFromClipboard,
           ),
           IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: Colors.white70),
+            icon: Icon(Icons.refresh_rounded, color: secondaryTextColor),
             tooltip: 'Restart Camera Preview',
             onPressed: () async {
               final messenger = ScaffoldMessenger.of(context);
@@ -844,13 +850,13 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
             },
           ),
           IconButton(
-            icon: Icon(_showManualInput ? Icons.camera_alt_rounded : Icons.keyboard_rounded, color: Colors.white70),
+            icon: Icon(_showManualInput ? Icons.camera_alt_rounded : Icons.keyboard_rounded, color: secondaryTextColor),
             tooltip: _showManualInput ? 'Use Camera' : 'Manual Code / Clipboard Input',
             onPressed: () => setState(() => _showManualInput = !_showManualInput),
           ),
         ],
       ),
-      backgroundColor: ObsidianUITheme.background,
+      backgroundColor: scaffoldBg,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -906,10 +912,10 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                                           ),
                                           const SizedBox(width: 8),
                                           ElevatedButton.icon(
-                                            style: ElevatedButton.styleFrom(backgroundColor: Colors.white12),
+                                            style: ElevatedButton.styleFrom(backgroundColor: borderColor),
                                             onPressed: _pasteFromClipboard,
-                                            icon: const Icon(Icons.assignment_turned_in_rounded, size: 14),
-                                            label: const Text('Paste Clipboard', style: TextStyle(fontSize: 11)),
+                                            icon: Icon(Icons.assignment_turned_in_rounded, size: 14, color: primaryTextColor),
+                                            label: Text('Paste Clipboard', style: TextStyle(fontSize: 11, color: primaryTextColor)),
                                           ),
                                         ],
                                       ),
@@ -957,8 +963,8 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                             else
                               Container(
                                 color: Colors.black87,
-                                child: const Center(
-                                  child: Text('Scanner Paused', style: TextStyle(color: Colors.white54)),
+                                child: Center(
+                                  child: Text('Scanner Paused', style: TextStyle(color: tertiaryTextColor)),
                                 ),
                               ),
                             // Viewfinder Reticle Overlay
@@ -989,7 +995,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.flash_on_rounded, color: Colors.white70),
+                          icon: Icon(Icons.flash_on_rounded, color: secondaryTextColor),
                           tooltip: 'Toggle Flashlight',
                           onPressed: _safeToggleTorch,
                         ),
@@ -999,7 +1005,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                           onPressed: () => setState(() => _isScanning = !_isScanning),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.cameraswitch_rounded, color: Colors.white70),
+                          icon: Icon(Icons.cameraswitch_rounded, color: secondaryTextColor),
                           tooltip: 'Switch Camera (PC Webcam)',
                           onPressed: _safeSwitchCamera,
                         ),
@@ -1015,14 +1021,14 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                     TextField(
                       controller: _manualInputController,
                       maxLines: 3,
-                      style: const TextStyle(color: Colors.white, fontSize: 13.0),
-                      decoration: const InputDecoration(
+                      style: TextStyle(color: primaryTextColor, fontSize: 13.0),
+                      decoration: InputDecoration(
                         labelText: 'Paste OSC: payload or JSON data',
-                        labelStyle: TextStyle(color: Colors.white60),
+                        labelStyle: TextStyle(color: secondaryTextColor),
                         hintText: 'OSC:... or {"type":"match-scout",...}',
-                        hintStyle: TextStyle(color: Colors.white24),
-                        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-                        focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+                        hintStyle: TextStyle(color: faintTextColor),
+                        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
+                        focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
                       ),
                     ),
                     const SizedBox(height: 12.0),
@@ -1047,12 +1053,12 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                         const SizedBox(width: 8),
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white12,
+                            backgroundColor: borderColor,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                           onPressed: _pasteFromClipboard,
-                          icon: const Icon(Icons.assignment_turned_in_rounded, color: Colors.white),
-                          label: const Text('PASTE CLIPBOARD', style: TextStyle(color: Colors.white, fontSize: 12)),
+                          icon: Icon(Icons.assignment_turned_in_rounded, color: primaryTextColor),
+                          label: Text('PASTE CLIPBOARD', style: TextStyle(color: primaryTextColor, fontSize: 12)),
                         ),
                       ],
                     ),
@@ -1066,17 +1072,17 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'SCANNED QUEUE (${_queue.length})',
-                  style: const TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, letterSpacing: 1.0),
+                const Text(
+                  'SCANNED QUEUE',
+                  style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, letterSpacing: 1.0),
                 ),
                 Row(
                   children: [
                     if (_queue.isNotEmpty)
                       TextButton.icon(
                         onPressed: _clearQueue,
-                        icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Colors.white54),
-                        label: const Text('Clear', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                        icon: Icon(Icons.delete_outline_rounded, size: 16, color: tertiaryTextColor),
+                        label: Text('Clear', style: TextStyle(color: tertiaryTextColor, fontSize: 12)),
                       ),
                   ],
                 ),
@@ -1089,15 +1095,15 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
               onTap: _isUploading || pendingCount == 0 ? null : _uploadQueue,
               child: Center(
                 child: _isUploading
-                    ? const CircularProgressIndicator(color: Colors.white)
+                    ? const CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)
                     : Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.cloud_upload_rounded, color: Colors.white),
+                          Icon(Icons.cloud_upload_rounded, color: primaryTextColor),
                           const SizedBox(width: 10.0),
                           Text(
                             pendingCount > 0 ? 'UPLOAD QUEUE ($pendingCount PENDING)' : 'QUEUE UPTODATE',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.0, color: Colors.white),
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.0, color: primaryTextColor),
                           ),
                         ],
                       ),
@@ -1107,11 +1113,11 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
 
             // Scanned Queue List
             if (_queue.isEmpty)
-              const ObsidianGlassCard(
+              ObsidianGlassCard(
                 child: Center(
                   child: Padding(
-                    padding: EdgeInsets.all(20.0),
-                    child: Text('No scanned items in queue. Point camera at barcode.', style: TextStyle(color: Colors.white54)),
+                    padding: const EdgeInsets.all(20.0),
+                    child: Text('No scanned items in queue. Point camera at barcode.', style: TextStyle(color: tertiaryTextColor)),
                   ),
                 ),
               )
@@ -1137,7 +1143,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                                 Expanded(
                                   child: Text(
                                     '$typeLabel - Team $team',
-                                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14.0),
+                                    style: TextStyle(fontWeight: FontWeight.bold, color: primaryTextColor, fontSize: 14.0),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
@@ -1159,7 +1165,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                             const SizedBox(height: 4.0),
                             Text(
                               'Event: ${item.data['eventKey'] ?? 'N/A'}${match.isNotEmpty ? " | Match: $match" : ""}',
-                              style: const TextStyle(fontSize: 12.0, color: Colors.white60),
+                              style: TextStyle(fontSize: 12.0, color: secondaryTextColor),
                             ),
                             if (item.errorMsg.isNotEmpty)
                               Text('Error: ${item.errorMsg}', style: const TextStyle(fontSize: 11.0, color: ObsidianUITheme.errorRed)),
@@ -1167,7 +1173,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close_rounded, color: Colors.white38, size: 18),
+                        icon: Icon(Icons.close_rounded, color: tertiaryTextColor, size: 18),
                         onPressed: () => _removeQueueItem(item.id),
                       ),
                     ],

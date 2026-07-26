@@ -219,25 +219,30 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _showCreateGroupDialog() {
     final controller = TextEditingController();
+    final surfaceColor = ObsidianUITheme.getSurfaceColor(context);
+    final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+    final faintTextColor = ObsidianUITheme.getFaintTextColor(context);
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: ObsidianUITheme.surface,
-        title: const Text('Create New Channel', style: TextStyle(color: Colors.white)),
+        backgroundColor: surfaceColor,
+        title: Text('Create New Channel', style: TextStyle(color: primaryTextColor)),
         content: TextField(
           controller: controller,
-          style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
+          style: TextStyle(color: primaryTextColor),
+          decoration: InputDecoration(
             hintText: 'Group name (e.g. strategy, scouting)',
-            hintStyle: TextStyle(color: Colors.white38),
-            enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-            focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+            hintStyle: TextStyle(color: faintTextColor),
+            enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
+            focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+            child: Text('Cancel', style: TextStyle(color: secondaryTextColor)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.primaryAccent),
@@ -378,10 +383,16 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
+    final surfaceColor = ObsidianUITheme.getSurfaceColor(context);
+    final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+    final faintTextColor = ObsidianUITheme.getFaintTextColor(context);
+
     if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: ObsidianUITheme.background,
-        body: Center(
+      return Scaffold(
+        backgroundColor: scaffoldBg,
+        body: const Center(
           child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent),
         ),
       );
@@ -389,7 +400,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     if (!_isChatEnabled) {
       return Scaffold(
-        backgroundColor: ObsidianUITheme.background,
+        backgroundColor: scaffoldBg,
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(32.0),
@@ -405,15 +416,15 @@ class _ChatScreenState extends State<ChatScreen> {
                   child: const Icon(Icons.lock_outline_rounded, size: 56, color: ObsidianUITheme.warningOrange),
                 ),
                 const SizedBox(height: 20),
-                const Text(
+                Text(
                   'Team Chat is Disabled',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: primaryTextColor),
                 ),
                 const SizedBox(height: 10),
                 Text(
                   'An administrator has turned off team chat. Contact your lead mentor in app settings to enable communications.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.7)),
+                  style: TextStyle(fontSize: 14, color: secondaryTextColor),
                 ),
               ],
             ),
@@ -425,7 +436,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final currentUsername = widget.apiService.savedUsername;
 
     return Scaffold(
-      backgroundColor: ObsidianUITheme.background,
+      backgroundColor: scaffoldBg,
       body: Column(
         children: [
           // Top Spacer for AppBar overlay
@@ -480,23 +491,23 @@ class _ChatScreenState extends State<ChatScreen> {
           // Channel Selector Header Bar
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: const Color(0x30121620),
+            color: ObsidianUITheme.isDark(context) ? const Color(0x30121620) : const Color(0xF0F1F5F9),
             child: Row(
               children: [
                 const Icon(Icons.tag_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
                 const SizedBox(width: 6),
                 Expanded(
                   child: PopupMenuButton<String>(
-                    color: ObsidianUITheme.surface,
+                    color: surfaceColor,
                     onSelected: _switchGroup,
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
                           '# $_currentGroup',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
                         ),
-                        const Icon(Icons.arrow_drop_down_rounded, color: Colors.white70),
+                        Icon(Icons.arrow_drop_down_rounded, color: secondaryTextColor),
                       ],
                     ),
                     itemBuilder: (ctx) {
@@ -510,7 +521,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text('# $group', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                              Text('# $group', style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.w600)),
                               if (mentionCount > 0)
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -584,7 +595,9 @@ class _ChatScreenState extends State<ChatScreen> {
                                 constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
                                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                                 decoration: BoxDecoration(
-                                  color: isMe ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.25) : const Color(0x25FFFFFF),
+                                  color: isMe
+                                      ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.25)
+                                      : (ObsidianUITheme.isDark(context) ? const Color(0x25FFFFFF) : ObsidianUITheme.getSurfaceColor(context)),
                                   borderRadius: BorderRadius.only(
                                     topLeft: const Radius.circular(16),
                                     topRight: const Radius.circular(16),
@@ -592,7 +605,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                     bottomRight: Radius.circular(isMe ? 2 : 16),
                                   ),
                                   border: Border.all(
-                                    color: isMe ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.5) : Colors.white10,
+                                    color: isMe ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.5) : ObsidianUITheme.getBorderColor(context),
                                     width: 1,
                                   ),
                                 ),
@@ -608,13 +621,13 @@ class _ChatScreenState extends State<ChatScreen> {
                                           style: TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 12,
-                                            color: isMe ? ObsidianUITheme.primaryAccent : Colors.white.withValues(alpha: 0.9),
+                                            color: isMe ? ObsidianUITheme.primaryAccent : primaryTextColor,
                                           ),
                                         ),
                                         const SizedBox(width: 8),
                                         Text(
                                           _formatTimestamp(msg.createdAt),
-                                          style: const TextStyle(fontSize: 10, color: Colors.white38),
+                                          style: TextStyle(fontSize: 10, color: faintTextColor),
                                         ),
                                       ],
                                     ),
@@ -623,7 +636,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                     // Content Text
                                     Text(
                                       msg.content,
-                                      style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.3),
+                                      style: TextStyle(color: primaryTextColor, fontSize: 14, height: 1.3),
                                     ),
 
                                     // Reactions Bar
@@ -656,13 +669,13 @@ class _ChatScreenState extends State<ChatScreen> {
                                                           Expanded(
                                                             child: Text(
                                                               'Reacted by: $userList',
-                                                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+                                                              style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.w500),
                                                             ),
                                                           ),
                                                         ],
                                                       ),
                                                       duration: const Duration(seconds: 3),
-                                                      backgroundColor: ObsidianUITheme.surface,
+                                                      backgroundColor: surfaceColor,
                                                       behavior: SnackBarBehavior.floating,
                                                     ),
                                                   );
@@ -670,14 +683,14 @@ class _ChatScreenState extends State<ChatScreen> {
                                                 child: Container(
                                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                                   decoration: BoxDecoration(
-                                                    color: hasReacted ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.3) : Colors.white10,
+                                                    color: hasReacted ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.3) : ObsidianUITheme.getBorderColor(context),
                                                     borderRadius: BorderRadius.circular(12),
                                                     border: Border.all(
                                                       color: hasReacted ? ObsidianUITheme.primaryAccent : Colors.transparent,
                                                       width: 1,
                                                     ),
                                                   ),
-                                                  child: Text('$emoji $count', style: const TextStyle(fontSize: 11, color: Colors.white)),
+                                                  child: Text('$emoji $count', style: TextStyle(fontSize: 11, color: primaryTextColor)),
                                                 ),
                                               ),
                                             );
@@ -689,10 +702,10 @@ class _ChatScreenState extends State<ChatScreen> {
                                               child: Container(
                                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                                 decoration: BoxDecoration(
-                                                  color: Colors.white10,
+                                                  color: ObsidianUITheme.getBorderColor(context),
                                                   borderRadius: BorderRadius.circular(12),
                                                 ),
-                                                child: const Text('+', style: TextStyle(fontSize: 11, color: Colors.white70, fontWeight: FontWeight.bold)),
+                                                child: Text('+', style: TextStyle(fontSize: 11, color: secondaryTextColor, fontWeight: FontWeight.bold)),
                                               ),
                                             ),
                                         ],
@@ -756,19 +769,19 @@ class _ChatScreenState extends State<ChatScreen> {
             duration: const Duration(milliseconds: 250),
             curve: Curves.easeInOutCubic,
             padding: EdgeInsets.fromLTRB(16.0, 12.0, 16.0, widget.isBarsVisible ? 134.0 : 16.0),
-            color: const Color(0x30121620),
+            color: ObsidianUITheme.isDark(context) ? const Color(0x30121620) : const Color(0xF0F1F5F9),
             child: Row(
               children: [
                 Expanded(
                   child: TextField(
                     controller: _messageController,
                     focusNode: _inputFocusNode,
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    style: TextStyle(color: primaryTextColor, fontSize: 14),
                     decoration: InputDecoration(
                       hintText: 'Type a message... (use @ to mention)',
-                      hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
+                      hintStyle: TextStyle(color: faintTextColor, fontSize: 13),
                       filled: true,
-                      fillColor: ObsidianUITheme.surface,
+                      fillColor: surfaceColor,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(20),

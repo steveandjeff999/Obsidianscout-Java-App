@@ -163,10 +163,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
+    final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+    final faintTextColor = ObsidianUITheme.getFaintTextColor(context);
+    final borderColor = ObsidianUITheme.getBorderColor(context);
+    final surfaceColor = ObsidianUITheme.getSurfaceColor(context);
+
     return Scaffold(
+      backgroundColor: scaffoldBg,
       body: Container(
-        decoration: const BoxDecoration(
-          color: ObsidianUITheme.background,
+        decoration: BoxDecoration(
+          color: scaffoldBg,
         ),
         child: Center(
           child: SingleChildScrollView(
@@ -180,18 +188,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   color: ObsidianUITheme.primaryAccent,
                 ),
                 const SizedBox(height: 12.0),
-                const Text(
+                Text(
                   'Obsidianscout',
                   style: TextStyle(
                     fontSize: 32.0,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: primaryTextColor,
                     letterSpacing: -0.5,
                   ),
                 ),
-                const Text(
+                Text(
                   'Scouting Portal Authentication',
-                  style: TextStyle(fontSize: 14.0, color: Colors.white54),
+                  style: TextStyle(fontSize: 14.0, color: secondaryTextColor),
                 ),
                 const SizedBox(height: 24.0),
 
@@ -219,7 +227,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           IconButton(
                             icon: Icon(
                               _showServerConfig ? Icons.settings : Icons.settings_outlined,
-                              color: _showServerConfig ? ObsidianUITheme.primaryAccent : Colors.white60,
+                              color: _showServerConfig ? ObsidianUITheme.primaryAccent : secondaryTextColor,
                               size: 20.0,
                             ),
                             onPressed: () {
@@ -232,27 +240,27 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 8.0),
                         TextFormField(
                           controller: _serverUrlController,
-                          style: const TextStyle(color: Colors.white, fontSize: 14.0),
-                          decoration: const InputDecoration(
+                          style: TextStyle(color: primaryTextColor, fontSize: 14.0),
+                          decoration: InputDecoration(
                             labelText: 'Server Host / URL',
-                            labelStyle: TextStyle(color: Colors.white60),
+                            labelStyle: TextStyle(color: secondaryTextColor),
                             hintText: 'http://localhost:8080 or https://192.168.1.100:8443',
-                            hintStyle: TextStyle(color: Colors.white24),
-                            prefixIcon: Icon(Icons.dns_rounded, color: ObsidianUITheme.primaryAccent),
-                            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                            hintStyle: TextStyle(color: faintTextColor),
+                            prefixIcon: const Icon(Icons.dns_rounded, color: ObsidianUITheme.primaryAccent),
+                            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
                           ),
                         ),
                         const SizedBox(height: 12.0),
                       ],
-                      const Divider(color: Colors.white12),
+                      Divider(color: borderColor),
                       const SizedBox(height: 12.0),
 
                       // Auth Tab Selector (Sign In vs Create Account)
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.05),
+                          color: borderColor,
                           borderRadius: BorderRadius.circular(16.0),
-                          border: Border.all(color: Colors.white12),
+                          border: Border.all(color: borderColor),
                         ),
                         padding: const EdgeInsets.all(4.0),
                         child: Row(
@@ -273,7 +281,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14.0,
-                                      color: _activeTabIndex == 0 ? Colors.white : Colors.white60,
+                                      color: _activeTabIndex == 0 ? Colors.white : secondaryTextColor,
                                     ),
                                   ),
                                 ),
@@ -295,7 +303,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14.0,
-                                      color: _activeTabIndex == 1 ? Colors.white : Colors.white60,
+                                      color: _activeTabIndex == 1 ? Colors.white : secondaryTextColor,
                                     ),
                                   ),
                                 ),
@@ -307,7 +315,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 16.0),
 
                       // Render Login Form or Register Form
-                      _activeTabIndex == 0 ? _buildLoginForm() : _buildRegisterForm(),
+                      _activeTabIndex == 0 ? _buildLoginForm(primaryTextColor, secondaryTextColor, borderColor, surfaceColor) : _buildRegisterForm(primaryTextColor, secondaryTextColor, borderColor, surfaceColor),
                     ],
                   ),
                 ),
@@ -318,18 +326,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   onTap: _isSubmitting ? null : (_activeTabIndex == 0 ? _handleLogin : _handleRegister),
                   child: Center(
                     child: _isSubmitting
-                        ? const CircularProgressIndicator(color: Colors.white)
+                        ? const CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)
                         : Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
                                 _activeTabIndex == 0 ? Icons.login_rounded : Icons.person_add_rounded,
-                                color: Colors.white,
+                                color: primaryTextColor,
                               ),
                               const SizedBox(width: 10.0),
                               Text(
                                 _activeTabIndex == 0 ? 'CONNECT & LOGIN' : 'CREATE ACCOUNT & REGISTER',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15.0, color: Colors.white),
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15.0, color: primaryTextColor),
                               ),
                             ],
                           ),
@@ -343,19 +351,19 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildLoginForm() {
+  Widget _buildLoginForm(Color primaryTextColor, Color secondaryTextColor, Color borderColor, Color surfaceColor) {
     return Form(
       key: _loginFormKey,
       child: Column(
         children: [
           TextFormField(
             controller: _usernameController,
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
+            style: TextStyle(color: primaryTextColor),
+            decoration: InputDecoration(
               labelText: 'Username',
-              labelStyle: TextStyle(color: Colors.white60),
-              prefixIcon: Icon(Icons.person_outline, color: Colors.white70),
-              enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+              labelStyle: TextStyle(color: secondaryTextColor),
+              prefixIcon: Icon(Icons.person_outline, color: secondaryTextColor),
+              enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
             ),
             validator: (val) => val == null || val.trim().isEmpty ? 'Username required' : null,
           ),
@@ -363,12 +371,12 @@ class _LoginScreenState extends State<LoginScreen> {
           TextFormField(
             controller: _passwordController,
             obscureText: true,
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
+            style: TextStyle(color: primaryTextColor),
+            decoration: InputDecoration(
               labelText: 'Password',
-              labelStyle: TextStyle(color: Colors.white60),
-              prefixIcon: Icon(Icons.lock_outline, color: Colors.white70),
-              enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+              labelStyle: TextStyle(color: secondaryTextColor),
+              prefixIcon: Icon(Icons.lock_outline, color: secondaryTextColor),
+              enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
             ),
             validator: (val) => val == null || val.isEmpty ? 'Password required' : null,
           ),
@@ -376,25 +384,25 @@ class _LoginScreenState extends State<LoginScreen> {
           TextFormField(
             controller: _teamNumberController,
             keyboardType: TextInputType.number,
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
+            style: TextStyle(color: primaryTextColor),
+            decoration: InputDecoration(
               labelText: 'Team Number',
-              labelStyle: TextStyle(color: Colors.white60),
-              prefixIcon: Icon(Icons.group_outlined, color: Colors.white70),
-              enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+              labelStyle: TextStyle(color: secondaryTextColor),
+              prefixIcon: Icon(Icons.group_outlined, color: secondaryTextColor),
+              enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
             ),
           ),
           const SizedBox(height: 16.0),
           DropdownButtonFormField<String>(
             isExpanded: true,
             initialValue: _selectedProgram,
-            dropdownColor: ObsidianUITheme.surface,
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
+            dropdownColor: surfaceColor,
+            style: TextStyle(color: primaryTextColor),
+            decoration: InputDecoration(
               labelText: 'Program',
-              labelStyle: TextStyle(color: Colors.white60),
-              prefixIcon: Icon(Icons.category_outlined, color: Colors.white70),
-              enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+              labelStyle: TextStyle(color: secondaryTextColor),
+              prefixIcon: Icon(Icons.category_outlined, color: secondaryTextColor),
+              enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
             ),
             items: const [
               DropdownMenuItem(
@@ -417,7 +425,7 @@ class _LoginScreenState extends State<LoginScreen> {
             color: Colors.transparent,
             child: CheckboxListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Keep Me Logged In', style: TextStyle(color: Colors.white70, fontSize: 14.0)),
+              title: Text('Keep Me Logged In', style: TextStyle(color: secondaryTextColor, fontSize: 14.0)),
               value: _keepMeLoggedIn,
               activeColor: ObsidianUITheme.primaryAccent,
               onChanged: (val) => setState(() => _keepMeLoggedIn = val ?? true),
@@ -428,19 +436,19 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildRegisterForm() {
+  Widget _buildRegisterForm(Color primaryTextColor, Color secondaryTextColor, Color borderColor, Color surfaceColor) {
     return Form(
       key: _registerFormKey,
       child: Column(
         children: [
           TextFormField(
             controller: _regUsernameController,
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
+            style: TextStyle(color: primaryTextColor),
+            decoration: InputDecoration(
               labelText: 'New Username',
-              labelStyle: TextStyle(color: Colors.white60),
-              prefixIcon: Icon(Icons.person_add_outlined, color: ObsidianUITheme.secondaryAccent),
-              enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+              labelStyle: TextStyle(color: secondaryTextColor),
+              prefixIcon: const Icon(Icons.person_add_outlined, color: ObsidianUITheme.secondaryAccent),
+              enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
             ),
             validator: (val) => val == null || val.trim().isEmpty ? 'Username is required' : null,
           ),
@@ -448,24 +456,24 @@ class _LoginScreenState extends State<LoginScreen> {
           TextFormField(
             controller: _regEmailController,
             keyboardType: TextInputType.emailAddress,
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
+            style: TextStyle(color: primaryTextColor),
+            decoration: InputDecoration(
               labelText: 'Email Address (Optional)',
-              labelStyle: TextStyle(color: Colors.white60),
-              prefixIcon: Icon(Icons.email_outlined, color: Colors.white70),
-              enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+              labelStyle: TextStyle(color: secondaryTextColor),
+              prefixIcon: Icon(Icons.email_outlined, color: secondaryTextColor),
+              enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
             ),
           ),
           const SizedBox(height: 12.0),
           TextFormField(
             controller: _regTeamNumberController,
             keyboardType: TextInputType.number,
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
+            style: TextStyle(color: primaryTextColor),
+            decoration: InputDecoration(
               labelText: 'Team Number',
-              labelStyle: TextStyle(color: Colors.white60),
-              prefixIcon: Icon(Icons.group_outlined, color: Colors.white70),
-              enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+              labelStyle: TextStyle(color: secondaryTextColor),
+              prefixIcon: Icon(Icons.group_outlined, color: secondaryTextColor),
+              enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
             ),
             validator: (val) {
               if (val == null || val.trim().isEmpty) return 'Team number required';
@@ -478,13 +486,13 @@ class _LoginScreenState extends State<LoginScreen> {
           DropdownButtonFormField<String>(
             isExpanded: true,
             initialValue: _regProgram,
-            dropdownColor: ObsidianUITheme.surface,
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
+            dropdownColor: surfaceColor,
+            style: TextStyle(color: primaryTextColor),
+            decoration: InputDecoration(
               labelText: 'Program',
-              labelStyle: TextStyle(color: Colors.white60),
-              prefixIcon: Icon(Icons.category_outlined, color: Colors.white70),
-              enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+              labelStyle: TextStyle(color: secondaryTextColor),
+              prefixIcon: Icon(Icons.category_outlined, color: secondaryTextColor),
+              enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
             ),
             items: const [
               DropdownMenuItem(
@@ -506,13 +514,13 @@ class _LoginScreenState extends State<LoginScreen> {
           DropdownButtonFormField<String>(
             isExpanded: true,
             initialValue: _regRole,
-            dropdownColor: ObsidianUITheme.surface,
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
+            dropdownColor: surfaceColor,
+            style: TextStyle(color: primaryTextColor),
+            decoration: InputDecoration(
               labelText: 'User Role',
-              labelStyle: TextStyle(color: Colors.white60),
-              prefixIcon: Icon(Icons.badge_outlined, color: ObsidianUITheme.secondaryAccent),
-              enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+              labelStyle: TextStyle(color: secondaryTextColor),
+              prefixIcon: const Icon(Icons.badge_outlined, color: ObsidianUITheme.secondaryAccent),
+              enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
             ),
             items: const [
               DropdownMenuItem(value: 'SCOUT', child: Text('Scout', overflow: TextOverflow.ellipsis)),
@@ -529,12 +537,12 @@ class _LoginScreenState extends State<LoginScreen> {
           TextFormField(
             controller: _regPasswordController,
             obscureText: true,
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
+            style: TextStyle(color: primaryTextColor),
+            decoration: InputDecoration(
               labelText: 'Password',
-              labelStyle: TextStyle(color: Colors.white60),
-              prefixIcon: Icon(Icons.lock_outline, color: Colors.white70),
-              enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+              labelStyle: TextStyle(color: secondaryTextColor),
+              prefixIcon: Icon(Icons.lock_outline, color: secondaryTextColor),
+              enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
             ),
             validator: (val) => val == null || val.length < 4 ? 'Password must be at least 4 characters' : null,
           ),
@@ -542,12 +550,12 @@ class _LoginScreenState extends State<LoginScreen> {
           TextFormField(
             controller: _regConfirmPasswordController,
             obscureText: true,
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
+            style: TextStyle(color: primaryTextColor),
+            decoration: InputDecoration(
               labelText: 'Confirm Password',
-              labelStyle: TextStyle(color: Colors.white60),
-              prefixIcon: Icon(Icons.lock_reset_outlined, color: Colors.white70),
-              enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+              labelStyle: TextStyle(color: secondaryTextColor),
+              prefixIcon: Icon(Icons.lock_reset_outlined, color: secondaryTextColor),
+              enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
             ),
             validator: (val) {
               if (val == null || val.isEmpty) return 'Please confirm password';
@@ -560,7 +568,7 @@ class _LoginScreenState extends State<LoginScreen> {
             color: Colors.transparent,
             child: CheckboxListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Keep Me Logged In', style: TextStyle(color: Colors.white70, fontSize: 14.0)),
+              title: Text('Keep Me Logged In', style: TextStyle(color: secondaryTextColor, fontSize: 14.0)),
               value: _regKeepMeLoggedIn,
               activeColor: ObsidianUITheme.secondaryAccent,
               onChanged: (val) => setState(() => _regKeepMeLoggedIn = val ?? true),
