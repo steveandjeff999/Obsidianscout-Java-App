@@ -339,7 +339,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
   String _formatTimestamp(String raw) {
     try {
-      final dt = DateTime.parse(raw).toLocal();
+      // Ensure UTC interpretation: append 'Z' if no timezone info present
+      final normalized = raw.endsWith('Z') || raw.contains('+') ? raw : '${raw}Z';
+      final dt = DateTime.parse(normalized).toLocal();
       final hour = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
       final minute = dt.minute.toString().padLeft(2, '0');
       final period = dt.hour >= 12 ? 'PM' : 'AM';

@@ -104,7 +104,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
       'eventKey': _eventKey ?? '',
       'targetTeamNumber': _selectedTeam!.teamNumber,
       ..._formData,
-      'timestamp': DateTime.now().toIso8601String(),
+      'timestamp': DateTime.now().toUtc().toIso8601String(),
     };
 
     final success = await widget.apiService.submitPitScouting(payload);
@@ -141,7 +141,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
       'targetTeamNumber': _selectedTeam!.teamNumber,
       'type': 'pit-scout',
       ..._formData,
-      'timestamp': DateTime.now().toIso8601String(),
+      'timestamp': DateTime.now().toUtc().toIso8601String(),
     };
 
     ObsidianBarcodeModal.show(

@@ -114,6 +114,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
       'targetTeamNumber': _selectedTeam!.teamNumber,
       'matchKey': _selectedMatch!.matchKey,
       'matchNumber': _selectedMatch!.matchNumber,
+      'timestamp': DateTime.now().toUtc().toIso8601String(),
       ..._formData,
     };
 
@@ -152,6 +153,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
       'matchKey': _selectedMatch!.matchKey,
       'matchNumber': _selectedMatch!.matchNumber,
       'type': 'match-scout',
+      'timestamp': DateTime.now().toUtc().toIso8601String(),
       ..._formData,
     };
 

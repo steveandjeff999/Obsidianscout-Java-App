@@ -156,7 +156,7 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
       'matchKey': _selectedMatch!.matchKey,
       'matchNumber': _selectedMatch!.matchNumber,
       ..._formData,
-      'timestamp': DateTime.now().toIso8601String(),
+      'timestamp': DateTime.now().toUtc().toIso8601String(),
     };
 
     final success = await widget.apiService.submitQualScouting(payload);
@@ -195,7 +195,7 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
       'matchNumber': _selectedMatch!.matchNumber,
       'type': 'qualitative-scouting',
       ..._formData,
-      'timestamp': DateTime.now().toIso8601String(),
+      'timestamp': DateTime.now().toUtc().toIso8601String(),
     };
 
     ObsidianBarcodeModal.show(
