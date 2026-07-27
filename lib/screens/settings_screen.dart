@@ -182,7 +182,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
     final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
     final tertiaryTextColor = ObsidianUITheme.getTertiaryTextColor(context);
-    final faintTextColor = ObsidianUITheme.getFaintTextColor(context);
     final borderColor = ObsidianUITheme.getBorderColor(context);
 
     return SingleChildScrollView(

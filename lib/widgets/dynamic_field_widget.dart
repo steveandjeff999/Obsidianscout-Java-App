@@ -116,10 +116,13 @@ class DynamicFieldWidget extends StatelessWidget {
               children: [
                 IconButton(
                   onPressed: val > minVal ? () => onChanged(val - stepVal) : null,
-                  icon: Icon(Icons.remove_circle_outline, color: secondaryTextColor),
+                  icon: Icon(Icons.remove_circle_outline, color: secondaryTextColor, size: 30.0),
+                  iconSize: 30.0,
+                  padding: const EdgeInsets.all(14.0),
+                  constraints: const BoxConstraints(minWidth: 56.0, minHeight: 56.0),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 6.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 8.0),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12.0),
                     color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.25),
@@ -127,12 +130,15 @@ class DynamicFieldWidget extends StatelessWidget {
                   ),
                   child: Text(
                     '$val',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0, color: primaryTextColor),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0, color: primaryTextColor),
                   ),
                 ),
                 IconButton(
                   onPressed: val < maxVal ? () => onChanged(val + stepVal) : null,
-                  icon: const Icon(Icons.add_circle_outline, color: ObsidianUITheme.primaryAccent),
+                  icon: const Icon(Icons.add_circle_outline, color: ObsidianUITheme.primaryAccent, size: 30.0),
+                  iconSize: 30.0,
+                  padding: const EdgeInsets.all(14.0),
+                  constraints: const BoxConstraints(minWidth: 56.0, minHeight: 56.0),
                 ),
               ],
             ),
@@ -210,17 +216,18 @@ class DynamicFieldWidget extends StatelessWidget {
               style: TextStyle(fontSize: 14.5, color: primaryTextColor, fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 6.0),
-            Row(
+            Wrap(
+              spacing: 2.0,
               children: List.generate(maxRating, (idx) {
                 final starNum = idx + 1;
                 final isSelected = starNum <= currentRating;
                 return IconButton(
-                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(10.0),
+                  constraints: const BoxConstraints(minWidth: 48.0, minHeight: 48.0),
                   icon: Icon(
                     isSelected ? Icons.star_rounded : Icons.star_border_rounded,
                     color: isSelected ? Colors.amber : faintTextColor,
-                    size: 28.0,
+                    size: 32.0,
                   ),
                   onPressed: () => onChanged(starNum),
                 );
@@ -261,14 +268,19 @@ class DynamicFieldWidget extends StatelessWidget {
               children: field.options.map((opt) {
                 final isSelected = selectedVal == opt.value;
                 return ChoiceChip(
-                  label: Text(opt.label),
+                  label: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 4.0),
+                    child: Text(opt.label, style: const TextStyle(fontSize: 14.0)),
+                  ),
                   selected: isSelected,
                   selectedColor: ObsidianUITheme.primaryAccent,
                   backgroundColor: ObsidianUITheme.isDark(context) ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+                  materialTapTargetSize: MaterialTapTargetSize.padded,
+                  labelPadding: EdgeInsets.zero,
+                  padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
                   labelStyle: TextStyle(
                     color: isSelected ? Colors.white : secondaryTextColor,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    fontSize: 13.0,
                   ),
                   onSelected: (selected) {
                     if (selected) onChanged(opt.value);
@@ -303,14 +315,19 @@ class DynamicFieldWidget extends StatelessWidget {
               children: field.options.map((opt) {
                 final isSelected = selectedList.contains(opt.value);
                 return FilterChip(
-                  label: Text(opt.label),
+                  label: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 4.0),
+                    child: Text(opt.label, style: const TextStyle(fontSize: 14.0)),
+                  ),
                   selected: isSelected,
                   selectedColor: ObsidianUITheme.primaryAccent,
                   backgroundColor: ObsidianUITheme.isDark(context) ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+                  materialTapTargetSize: MaterialTapTargetSize.padded,
+                  labelPadding: EdgeInsets.zero,
+                  padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
                   labelStyle: TextStyle(
                     color: isSelected ? Colors.white : secondaryTextColor,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    fontSize: 13.0,
                   ),
                   onSelected: (selected) {
                     final newList = List<String>.from(selectedList);
