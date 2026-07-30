@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
@@ -58,10 +59,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) {
       setState(() => _isSyncing = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Offline cache refreshed successfully!'),
+        SnackBar(
+          content: Text(context.tr('dashboard.sync_complete')),
           backgroundColor: ObsidianUITheme.primaryAccent,
-          duration: Duration(seconds: 2),
+          duration: const Duration(seconds: 2),
         ),
       );
     }
@@ -77,7 +78,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: surfaceColor,
-        title: Text('Clear All Offline Cache?', style: TextStyle(color: primaryTextColor)),
+        title: Text(context.tr('settings.clear_cache'), style: TextStyle(color: primaryTextColor)),
         content: Text(
           'This will purge all locally saved teams, matches, configs, and analytics. New data will be fetched when online.',
           style: TextStyle(color: secondaryTextColor),
@@ -85,12 +86,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text('Cancel', style: TextStyle(color: tertiaryTextColor)),
+            child: Text(context.tr('events.cancel'), style: TextStyle(color: tertiaryTextColor)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.errorRed),
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Clear Cache', style: TextStyle(color: Colors.white)),
+            child: Text(context.tr('graphs.clear_all'), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -121,7 +122,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: surfaceColor,
-        title: Text('Change Server URL', style: TextStyle(color: primaryTextColor)),
+        title: Text(context.tr('login.server_url'), style: TextStyle(color: primaryTextColor)),
         content: TextField(
           controller: controller,
           style: TextStyle(color: primaryTextColor),
@@ -135,7 +136,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text('Cancel', style: TextStyle(color: tertiaryTextColor)),
+            child: Text(context.tr('events.cancel'), style: TextStyle(color: tertiaryTextColor)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.primaryAccent),
@@ -147,7 +148,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _handleSyncNow();
               }
             },
-            child: const Text('Save & Reconnect', style: TextStyle(color: Colors.white)),
+            child: Text(context.tr('settings.save'), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -207,16 +208,67 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'App Settings & Cache',
+                        context.tr('nav.settings_cache'),
                         style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: primaryTextColor),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Manage offline data, server endpoint, & authentication',
+                        context.tr('subtitle.settings'),
                         style: TextStyle(fontSize: 12, color: secondaryTextColor),
                       ),
                     ],
                   ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Language Selector Card
+          ObsidianGlassCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.language_rounded, color: ObsidianUITheme.primaryAccent),
+                    const SizedBox(width: 8),
+                    Text(
+                      context.tr('settings.language'),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
+                    ),
+                  ],
+                ),
+                Divider(color: borderColor, height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(context.tr('settings.language_subtitle'), style: TextStyle(fontSize: 12, color: secondaryTextColor)),
+                        ],
+                      ),
+                    ),
+                    DropdownButton<String>(
+                      value: widget.apiService.currentLocale.languageCode,
+                      dropdownColor: ObsidianUITheme.getSurfaceColor(context),
+                      style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.bold),
+                      underline: Container(height: 2, color: ObsidianUITheme.primaryAccent),
+                      items: const [
+                        DropdownMenuItem(value: 'en', child: Text('English 🇺🇸')),
+                        DropdownMenuItem(value: 'es', child: Text('Español 🇪🇸')),
+                        DropdownMenuItem(value: 'he', child: Text('עברית 🇮🇱')),
+                        DropdownMenuItem(value: 'tr', child: Text('Türkçe 🇹🇷')),
+                      ],
+                      onChanged: (newLang) {
+                        if (newLang != null) {
+                          widget.apiService.setLocale(Locale(newLang));
+                        }
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -236,13 +288,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const Icon(Icons.folder_zip_rounded, color: ObsidianUITheme.primaryAccent),
                         const SizedBox(width: 8),
                         Text(
-                          'Offline Cache Manager',
+                          context.tr('settings.offline_cache'),
                           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
                         ),
                       ],
                     ),
                     Text(
-                      '${(_totalBytes / 1024).toStringAsFixed(1)} KB Total',
+                      '${(_totalBytes / 1024).toStringAsFixed(1)} KB ${context.tr("dashboard.total")}',
                       style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ObsidianUITheme.primaryAccent),
                     ),
                   ],
@@ -254,7 +306,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 else if (_cacheSummary.isEmpty)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 12.0),
-                    child: Text('No offline cache stored yet. Sync data to enable full offline support.', style: TextStyle(color: tertiaryTextColor, fontSize: 13)),
+                    child: Text(context.tr('settings.no_cache'), style: TextStyle(color: tertiaryTextColor, fontSize: 13)),
                   )
                 else
                   Column(
@@ -295,7 +347,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                             : const Icon(Icons.sync_rounded, color: Colors.white, size: 20),
                         label: Text(
-                          _isSyncing ? 'Syncing...' : 'Sync Cache Now',
+                          _isSyncing ? context.tr('dashboard.quick_sync') : context.tr('settings.sync_now'),
                           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                         ),
                       ),
@@ -309,7 +361,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       onPressed: _handleClearCache,
                       icon: const Icon(Icons.delete_sweep_rounded, color: ObsidianUITheme.errorRed, size: 20),
-                      label: const Text('Clear', style: TextStyle(color: ObsidianUITheme.errorRed, fontWeight: FontWeight.bold)),
+                      label: Text(context.tr('graphs.clear_all'), style: const TextStyle(color: ObsidianUITheme.errorRed, fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
@@ -328,7 +380,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const Icon(Icons.dns_rounded, color: ObsidianUITheme.primaryAccent),
                     const SizedBox(width: 8),
                     Text(
-                      'Server Endpoint',
+                      context.tr('login.server_url'),
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
                     ),
                   ],
@@ -341,7 +393,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Active Server URL', style: TextStyle(fontSize: 12, color: secondaryTextColor)),
+                          Text(context.tr('settings.active_server'), style: TextStyle(fontSize: 12, color: secondaryTextColor)),
                           const SizedBox(height: 2),
                           Text(
                             widget.apiService.serverUrl,
@@ -371,7 +423,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const Icon(Icons.person_pin_rounded, color: ObsidianUITheme.primaryAccent),
                     const SizedBox(width: 8),
                     Text(
-                      'Account & Session',
+                      context.tr('settings.account_session'),
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
                     ),
                   ],
@@ -385,11 +437,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            widget.apiService.savedUsername.isNotEmpty ? widget.apiService.savedUsername : 'Logged In User',
+                            widget.apiService.savedUsername.isNotEmpty ? widget.apiService.savedUsername : 'Operator',
                             style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primaryTextColor),
                           ),
                           const SizedBox(height: 2),
-                          const Text('Session Status: Active (Keep Logged In)', style: TextStyle(fontSize: 12, color: Colors.greenAccent)),
+                          Text('Session: ${context.tr("connection.online")}', style: const TextStyle(fontSize: 12, color: Colors.greenAccent)),
                         ],
                       ),
                     ),
@@ -401,7 +453,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       onPressed: widget.onLogout,
                       icon: const Icon(Icons.logout_rounded, color: Colors.white, size: 18),
-                      label: const Text('Sign Out', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      label: Text(context.tr('settings.logout'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),

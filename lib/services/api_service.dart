@@ -14,6 +14,7 @@ class ApiService {
   static const String keyKeepMeLoggedIn = "obsidianscout_keep_me_logged_in";
   static const String keySavedUsername = "obsidianscout_saved_username";
   static const String keyThemeMode = "obsidianscout_theme_mode";
+  static const String keyLocale = "obsidianscout_locale";
   static const String defaultUrl = "http://localhost:8080";
 
   String _currentServerUrl = defaultUrl;
@@ -23,6 +24,7 @@ class ApiService {
   Timer? _syncTimer;
 
   final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier<ThemeMode>(ThemeMode.dark);
+  final ValueNotifier<Locale> localeNotifier = ValueNotifier<Locale>(const Locale('en'));
 
   bool _isOnline = true;
   Timer? _healthCheckTimer;
@@ -36,11 +38,18 @@ class ApiService {
   bool get isOnline => _isOnline;
   Stream<bool> get onOnlineStatusChanged => _onlineStreamController.stream;
   ThemeMode get themeMode => themeNotifier.value;
+  Locale get currentLocale => localeNotifier.value;
 
   Future<void> setThemeMode(ThemeMode mode) async {
     themeNotifier.value = mode;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(keyThemeMode, mode.name);
+  }
+
+  Future<void> setLocale(Locale locale) async {
+    localeNotifier.value = locale;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(keyLocale, locale.languageCode);
   }
 
   Future<void> init() async {
@@ -56,6 +65,13 @@ class ApiService {
       themeNotifier.value = ThemeMode.system;
     } else {
       themeNotifier.value = ThemeMode.dark;
+    }
+
+    final savedLocaleStr = prefs.getString(keyLocale);
+    if (savedLocaleStr != null && ['en', 'es', 'he', 'tr'].contains(savedLocaleStr)) {
+      localeNotifier.value = Locale(savedLocaleStr);
+    } else {
+      localeNotifier.value = const Locale('en');
     }
 
     _initConnectivityMonitor();
@@ -326,6 +342,33 @@ class ApiService {
       _updateOnlineState(false);
     }
     return cachedEventKey;
+  }
+
+  Future<List<Map<String, dynamic>>> fetchBanners() async {
+    final cached = await _getCache("cache_banners");
+    List<Map<String, dynamic>> cachedList = [];
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        final List list = jsonDecode(cached);
+        cachedList = list.cast<Map<String, dynamic>>();
+      } catch (_) {}
+    }
+
+    if (!_isOnline) return cachedList;
+
+    try {
+      final response = await http
+          .get(Uri.parse('$_currentServerUrl/api/banners'), headers: _headers)
+          .timeout(const Duration(seconds: 3));
+      if (response.statusCode == 200) {
+        await _setCache("cache_banners", response.body);
+        final List list = jsonDecode(response.body);
+        return list.cast<Map<String, dynamic>>();
+      }
+    } catch (_) {
+      _updateOnlineState(false);
+    }
+    return cachedList;
   }
 
   // Config Fetching

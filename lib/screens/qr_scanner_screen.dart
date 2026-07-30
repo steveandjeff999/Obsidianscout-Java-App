@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zxing_lib/common.dart' as zxing_common;
 import 'package:zxing_lib/qrcode.dart' as zxing_qr;
 import 'package:zxing_lib/zxing.dart' as zxing;
+import '../l10n/app_localizations.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/obsidian_barcode_modal.dart';
@@ -814,7 +815,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('QR / Barcode Scanner', style: TextStyle(fontWeight: FontWeight.bold, color: primaryTextColor)),
+        title: Text(context.tr('scanner.title'), style: TextStyle(fontWeight: FontWeight.bold, color: primaryTextColor)),
         backgroundColor: scaffoldBg,
         elevation: 0,
         actions: [

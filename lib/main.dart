@@ -1,9 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'l10n/app_localizations.dart';
 import 'theme/obsidian_ui_theme.dart';
 import 'widgets/obsidian_glass_app_bar.dart';
 import 'widgets/obsidian_bottom_nav.dart';
 import 'widgets/obsidian_drawer.dart';
+import 'widgets/obsidian_banner_widget.dart';
 import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/match_scout_screen.dart';
@@ -14,6 +17,8 @@ import 'screens/settings_screen.dart';
 import 'screens/chat_screen.dart';
 import 'screens/qr_scanner_screen.dart';
 import 'screens/alliance_selection_screen.dart';
+import 'screens/teams_list_screen.dart';
+import 'screens/match_list_screen.dart';
 import 'services/api_service.dart';
 import 'services/fcm_helper.dart';
 import 'services/notification_websocket_service.dart';
@@ -32,15 +37,28 @@ class ObsidianscoutApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<ThemeMode>(
-      valueListenable: apiService.themeNotifier,
-      builder: (context, currentThemeMode, child) {
+    return ListenableBuilder(
+      listenable: Listenable.merge([apiService.themeNotifier, apiService.localeNotifier]),
+      builder: (context, child) {
         return MaterialApp(
           title: 'ObsidianScout',
           debugShowCheckedModeBanner: false,
           theme: ObsidianUITheme.lightTheme,
           darkTheme: ObsidianUITheme.darkTheme,
-          themeMode: currentThemeMode,
+          themeMode: apiService.themeMode,
+          locale: apiService.currentLocale,
+          supportedLocales: const [
+            Locale('en'),
+            Locale('es'),
+            Locale('he'),
+            Locale('tr'),
+          ],
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
           home: MainShell(apiService: apiService),
         );
       },
@@ -145,25 +163,29 @@ class _MainShellState extends State<MainShell> {
     super.dispose();
   }
 
-  final List<String> _titles = [
-    'Dashboard',
-    'Match Scout',
-    'Pit Scout',
-    'Qual Scout',
-    'Graphs',
-    'Settings & Cache',
-    'Team Chat',
-    'Alliance Selection',
+  final List<String> _titleKeys = [
+    'nav.dashboard',
+    'nav.match_scout',
+    'nav.pit_scout',
+    'nav.qual_scout',
+    'nav.graphs',
+    'nav.settings_cache',
+    'nav.team_chat',
+    'nav.alliance_selection',
+    'nav.teams',
+    'nav.matches',
   ];
-  final List<String> _subtitles = [
-    'Overview',
-    'Match Form',
-    'Pit Inspection',
-    'Qualitative Form',
-    'Data Visualization',
-    'Cache Manager & Config',
-    'Channels & Messages',
-    'Playoff Pick Lists & Alliances',
+  final List<String> _subtitleKeys = [
+    'subtitle.dashboard',
+    'subtitle.match_scout',
+    'subtitle.pit_scout',
+    'subtitle.qual_scout',
+    'subtitle.graphs',
+    'subtitle.settings',
+    'subtitle.chat',
+    'subtitle.alliance_selection',
+    'subtitle.teams',
+    'subtitle.matches',
   ];
 
   void _openQrScanner() {
@@ -221,6 +243,8 @@ class _MainShellState extends State<MainShell> {
         isBarsVisible: _isBarsVisible,
       ),
       AllianceSelectionScreen(apiService: widget.apiService, isVisible: _currentIndex == 7, isBarsVisible: _isBarsVisible),
+      TeamsListScreen(apiService: widget.apiService, isVisible: _currentIndex == 8, isBarsVisible: _isBarsVisible),
+      MatchListScreen(apiService: widget.apiService, isVisible: _currentIndex == 9, isBarsVisible: _isBarsVisible),
     ];
 
     return Scaffold(
@@ -237,8 +261,8 @@ class _MainShellState extends State<MainShell> {
             duration: const Duration(milliseconds: 300),
             curve: Curves.fastOutSlowIn,
             child: ObsidianGlassAppBar(
-              title: _titles[_currentIndex],
-              subtitle: _subtitles[_currentIndex],
+              title: context.tr(_titleKeys[_currentIndex]),
+              subtitle: context.tr(_subtitleKeys[_currentIndex]),
               isOnline: _isOnline,
               actions: [
                 IconButton(
@@ -297,32 +321,28 @@ class _MainShellState extends State<MainShell> {
         onOpenQrScanner: _openQrScanner,
         onLogout: _handleLogout,
       ),
-      body: NotificationListener<ScrollNotification>(
-        onNotification: (notification) {
-          if (notification is ScrollUpdateNotification) {
-            final delta = notification.scrollDelta ?? 0;
-            if (delta > 8.0) {
-              if (_isBarsVisible) {
-                setState(() => _isBarsVisible = false);
-              }
-            } else if (delta < -8.0) {
-              if (!_isBarsVisible) {
-                setState(() => _isBarsVisible = true);
-              }
-            }
-          }
-          return false;
-        },
-        child: Center(
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 1600.0),
-            decoration: BoxDecoration(
-              color: Theme.of(context).scaffoldBackgroundColor,
-            ),
-            child: IndexedStack(
-              index: _currentIndex,
-              children: screens,
-            ),
+      body: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 1600.0),
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+          ),
+          child: Stack(
+            children: [
+              IndexedStack(
+                index: _currentIndex,
+                children: screens,
+              ),
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: ObsidianBannerWidget(
+                  apiService: widget.apiService,
+                  isBarsVisible: _isBarsVisible,
+                ),
+              ),
+            ],
           ),
         ),
       ),

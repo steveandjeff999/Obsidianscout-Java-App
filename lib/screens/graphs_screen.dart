@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../l10n/app_localizations.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../models/config_models.dart';
 import '../models/team_match_models.dart';
@@ -317,14 +318,14 @@ class _GraphsScreenState extends State<GraphsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('DATA SUMMARY', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, letterSpacing: 1.0)),
+                Text(context.tr('dashboard.data_summary').toUpperCase(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, letterSpacing: 1.0)),
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    _statChip('Entries', '$_totalEntries', Icons.description_rounded),
-                    _statChip('Teams', '$_totalTeams', Icons.group_rounded),
-                    _statChip('Matches', '$_totalMatches', Icons.sports_esports_rounded),
-                    _statChip('Events', '$_totalEvents', Icons.event_rounded),
+                    _statChip(context.tr('dashboard.entries'), '$_totalEntries', Icons.description_rounded),
+                    _statChip(context.tr('dashboard.teams'), '$_totalTeams', Icons.group_rounded),
+                    _statChip(context.tr('dashboard.matches'), '$_totalMatches', Icons.sports_esports_rounded),
+                    _statChip(context.tr('dashboard.events'), '$_totalEvents', Icons.event_rounded),
                   ],
                 ),
               ],
@@ -336,7 +337,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('METRIC', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, letterSpacing: 1.0)),
+                Text(context.tr('rankings.metric').toUpperCase(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, letterSpacing: 1.0)),
                 const SizedBox(height: 10),
                 DropdownButtonFormField<GraphMetric>(
                   isExpanded: true,
@@ -344,7 +345,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
                   dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                   style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
                   decoration: InputDecoration(
-                    labelText: 'Select Metric',
+                    labelText: context.tr('rankings.metric'),
                     labelStyle: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context)),
                     prefixIcon: const Icon(Icons.assessment_rounded, color: ObsidianUITheme.primaryAccent),
                     enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
@@ -361,12 +362,12 @@ class _GraphsScreenState extends State<GraphsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('GRAPH TYPE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.secondaryAccent, letterSpacing: 1.0)),
+                Text(context.tr('graphs.title').toUpperCase(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.secondaryAccent, letterSpacing: 1.0)),
                 const SizedBox(height: 10),
                 _buildGraphTypeRow(),
                 const SizedBox(height: 10),
                 if (_graphType != 'bar') ...[
-                  Text('Data View', style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context), fontSize: 12)),
+                  Text(context.tr('graphs.distribution'), style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context), fontSize: 12)),
                   const SizedBox(height: 6),
                   SegmentedButton<String>(
                     segments: const [
@@ -384,7 +385,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
                   ),
                 ],
                 const SizedBox(height: 10),
-                Text('Sort Order', style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context), fontSize: 12)),
+                Text(context.tr('rankings.sort'), style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context), fontSize: 12)),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<String>(
                   isExpanded: true,
@@ -414,8 +415,8 @@ class _GraphsScreenState extends State<GraphsScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('SELECT TEAMS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.warningOrange, letterSpacing: 1.0)),
-                    Text('${_selectedTeams.length} selected', style: TextStyle(color: ObsidianUITheme.getTertiaryTextColor(context), fontSize: 12)),
+                    Text(context.tr('scout.select_team').toUpperCase(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.warningOrange, letterSpacing: 1.0)),
+                    Text(context.tr('graphs.selected_count', {'count': '${_selectedTeams.length}'}), style: TextStyle(color: ObsidianUITheme.getTertiaryTextColor(context), fontSize: 12)),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -423,13 +424,13 @@ class _GraphsScreenState extends State<GraphsScreen> {
                 Wrap(
                   spacing: 8,
                   children: [
-                    _quickChip('All', Icons.select_all_rounded, () {
+                    _quickChip(context.tr('graphs.select_all'), Icons.select_all_rounded, () {
                       setState(() => _selectedTeams = _teams.map((t) => t.teamNumber).toSet());
                     }),
-                    _quickChip('Top 8', Icons.emoji_events_rounded, () {
+                    _quickChip(context.tr('graphs.select_top'), Icons.emoji_events_rounded, () {
                       _selectTopN(8);
                     }),
-                    _quickChip('Clear', Icons.clear_all_rounded, () {
+                    _quickChip(context.tr('graphs.clear_all'), Icons.clear_all_rounded, () {
                       setState(() => _selectedTeams.clear());
                     }),
                   ],
@@ -439,7 +440,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
                   onChanged: (v) => setState(() => _teamSearch = v),
                   style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
                   decoration: InputDecoration(
-                    hintText: 'Search teams...',
+                    hintText: context.tr('scout.search_teams'),
                     hintStyle: TextStyle(color: ObsidianUITheme.getFaintTextColor(context)),
                     prefixIcon: Icon(Icons.search_rounded, color: ObsidianUITheme.getFaintTextColor(context)),
                     enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
@@ -452,7 +453,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
                 SizedBox(
                   height: 200,
                   child: filteredTeams.isEmpty
-                      ? Center(child: Text('No teams found', style: TextStyle(color: ObsidianUITheme.getFaintTextColor(context))))
+                      ? Center(child: Text(context.tr('errors.no_teams_found'), style: TextStyle(color: ObsidianUITheme.getFaintTextColor(context))))
                       : ListView.builder(
                           itemCount: filteredTeams.length,
                           itemBuilder: (ctx, i) {

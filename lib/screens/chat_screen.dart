@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../l10n/app_localizations.dart';
 import '../models/chat_models.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
@@ -780,7 +781,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     focusNode: _inputFocusNode,
                     style: TextStyle(color: primaryTextColor, fontSize: 14),
                     decoration: InputDecoration(
-                      hintText: 'Type a message... (use @ to mention)',
+                      hintText: context.tr('contact.placeholder.message'),
                       hintStyle: TextStyle(color: faintTextColor, fontSize: 13),
                       filled: true,
                       fillColor: surfaceColor,

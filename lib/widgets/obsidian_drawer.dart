@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
 
@@ -28,14 +29,19 @@ class ObsidianNavigationDrawer extends StatelessWidget {
     final sectionLabelColor = isDark ? Colors.white38 : Colors.black45;
 
     final menuItems = [
-      {'index': 0, 'icon': Icons.dashboard_rounded, 'label': 'Dashboard', 'subtitle': 'Overview & Stats'},
-      {'index': 1, 'icon': Icons.sports_esports_rounded, 'label': 'Match Scouting', 'subtitle': 'Live Game Data'},
-      {'index': 2, 'icon': Icons.build_circle_rounded, 'label': 'Pit Scouting', 'subtitle': 'Robot Inspection'},
-      {'index': 3, 'icon': Icons.rate_review_rounded, 'label': 'Qual Scouting', 'subtitle': 'Driver Performance'},
-      {'index': 4, 'icon': Icons.bar_chart_rounded, 'label': 'Graphs & Analytics', 'subtitle': 'Visual Insights'},
-      {'index': 7, 'icon': Icons.stars_rounded, 'label': 'Alliance Selection', 'subtitle': 'Playoff Pick Lists & Alliances'},
-      {'index': 6, 'icon': Icons.chat_bubble_outline_rounded, 'label': 'Team Chat', 'subtitle': 'Channels & Messages'},
-      {'index': 5, 'icon': Icons.settings_suggest_rounded, 'label': 'Settings & Cache', 'subtitle': 'Cache Manager & Config'},
+      {'index': 0, 'icon': Icons.dashboard_rounded, 'labelKey': 'nav.dashboard', 'subKey': 'subtitle.dashboard'},
+      {'index': 1, 'icon': Icons.sports_esports_rounded, 'labelKey': 'nav.match_scout', 'subKey': 'subtitle.match_scout'},
+      {'index': 2, 'icon': Icons.build_circle_rounded, 'labelKey': 'nav.pit_scout', 'subKey': 'subtitle.pit_scout'},
+      {'index': 3, 'icon': Icons.rate_review_rounded, 'labelKey': 'nav.qual_scout', 'subKey': 'subtitle.qual_scout'},
+      {'index': 4, 'icon': Icons.bar_chart_rounded, 'labelKey': 'nav.graphs', 'subKey': 'subtitle.graphs'},
+      {'index': 7, 'icon': Icons.stars_rounded, 'labelKey': 'nav.alliance_selection', 'subKey': 'subtitle.alliance_selection'},
+      {'index': 6, 'icon': Icons.chat_bubble_outline_rounded, 'labelKey': 'nav.team_chat', 'subKey': 'subtitle.chat'},
+      {'index': 5, 'icon': Icons.settings_suggest_rounded, 'labelKey': 'nav.settings_cache', 'subKey': 'subtitle.settings'},
+    ];
+
+    final eventDataItems = [
+      {'index': 8, 'icon': Icons.groups_rounded, 'labelKey': 'nav.teams', 'subKey': 'subtitle.teams'},
+      {'index': 9, 'icon': Icons.event_note_rounded, 'labelKey': 'nav.matches', 'subKey': 'subtitle.matches'},
     ];
 
     return Drawer(
@@ -136,7 +142,7 @@ class ObsidianNavigationDrawer extends StatelessWidget {
                               size: 22.0,
                             ),
                             title: Text(
-                              item['label'] as String,
+                              context.tr(item['labelKey'] as String),
                               style: TextStyle(
                                 color: isSelected ? (isDark ? Colors.white : ObsidianUITheme.primaryAccent) : unselectedItemColor,
                                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
@@ -144,7 +150,7 @@ class ObsidianNavigationDrawer extends StatelessWidget {
                               ),
                             ),
                             subtitle: Text(
-                              item['subtitle'] as String,
+                              context.tr(item['subKey'] as String),
                               style: TextStyle(color: sectionLabelColor, fontSize: 11.0),
                             ),
                             trailing: isSelected
@@ -154,6 +160,73 @@ class ObsidianNavigationDrawer extends StatelessWidget {
                                     decoration: const BoxDecoration(
                                       shape: BoxShape.circle,
                                       color: ObsidianUITheme.primaryAccent,
+                                    ),
+                                  )
+                                : null,
+                            onTap: () {
+                              Navigator.of(context).pop();
+                              onSelectScreen(idx);
+                            },
+                          ),
+                        );
+                      }),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Divider(color: borderColor),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 12.0, bottom: 8.0),
+                        child: Text(
+                          context.tr('sidebar.section.scouting').toUpperCase(),
+                          style: TextStyle(
+                            color: sectionLabelColor,
+                            fontSize: 10.0,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      ),
+                      ...eventDataItems.map((item) {
+                        final idx = item['index'] as int;
+                        final isSelected = idx == currentIndex;
+                        final unselectedItemColor = isDark ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF334155);
+                        final unselectedIconColor = isDark ? Colors.white70 : const Color(0xFF64748B);
+                        final accentColor = idx == 8 ? ObsidianUITheme.primaryAccent : ObsidianUITheme.secondaryAccent;
+
+                        return Container(
+                          margin: const EdgeInsets.symmetric(vertical: 3.0),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(14.0),
+                            color: isSelected ? accentColor.withValues(alpha: 0.2) : Colors.transparent,
+                            border: isSelected
+                                ? Border.all(color: accentColor.withValues(alpha: 0.5), width: 1.2)
+                                : null,
+                          ),
+                          child: ListTile(
+                            leading: Icon(
+                              item['icon'] as IconData,
+                              color: isSelected ? accentColor : unselectedIconColor,
+                              size: 22.0,
+                            ),
+                            title: Text(
+                              context.tr(item['labelKey'] as String),
+                              style: TextStyle(
+                                color: isSelected ? (isDark ? Colors.white : accentColor) : unselectedItemColor,
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                fontSize: 14.0,
+                              ),
+                            ),
+                            subtitle: Text(
+                              context.tr(item['subKey'] as String),
+                              style: TextStyle(color: sectionLabelColor, fontSize: 11.0),
+                            ),
+                            trailing: isSelected
+                                ? Container(
+                                    width: 6,
+                                    height: 6,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: accentColor,
                                     ),
                                   )
                                 : null,

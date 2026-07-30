@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/dynamic_field_widget.dart';
 import '../models/config_models.dart';
@@ -87,8 +88,8 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
   void _submitPitData() async {
     if (_selectedTeam == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a Team for Pit Inspection'),
+        SnackBar(
+          content: Text(context.tr('scout.select_team')),
           backgroundColor: ObsidianUITheme.warningOrange,
         ),
       );
@@ -115,7 +116,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            success ? 'Pit inspection saved to server!' : 'Saved offline to queue',
+            success ? context.tr('dashboard.sync_complete') : context.tr('connection.offline'),
           ),
           backgroundColor: success ? ObsidianUITheme.successGreen : ObsidianUITheme.warningOrange,
         ),
@@ -126,8 +127,8 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
   void _generateBarcode() {
     if (_selectedTeam == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a Team for Pit Inspection'),
+        SnackBar(
+          content: Text(context.tr('scout.select_team')),
           backgroundColor: ObsidianUITheme.warningOrange,
         ),
       );
@@ -147,7 +148,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
     ObsidianBarcodeModal.show(
       context,
       payload: payload,
-      typeLabel: 'Pit Scouting',
+      typeLabel: context.tr('nav.pit_scout'),
       targetTeamNumber: _selectedTeam!.teamNumber,
     );
   }
@@ -172,9 +173,9 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'PIT INSPECTION TEAM',
-                    style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.secondaryAccent, letterSpacing: 1.0),
+                  Text(
+                    context.tr('nav.pit_scout').toUpperCase(),
+                    style: const TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.secondaryAccent, letterSpacing: 1.0),
                   ),
                   const SizedBox(height: 12.0),
                   DropdownButtonFormField<TeamModel>(
@@ -183,7 +184,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
                     dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                     style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
                     decoration: InputDecoration(
-                      labelText: 'Select Team',
+                      labelText: context.tr('scout.select_team'),
                       labelStyle: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context)),
                       prefixIcon: const Icon(Icons.build_circle_outlined, color: ObsidianUITheme.secondaryAccent),
                       enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
@@ -200,7 +201,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'ROBOT SPECIFICATIONS & FEATURES',
+                      context.tr('subtitle.pit_scout').toUpperCase(),
                       style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.getSecondaryTextColor(context), letterSpacing: 1.0),
                     ),
                     const SizedBox(height: 12.0),
@@ -224,7 +225,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
                     const Icon(Icons.qr_code_2_rounded, color: ObsidianUITheme.secondaryAccent),
                     const SizedBox(width: 10.0),
                     Text(
-                      'GENERATE QR / JAB CODE',
+                      context.tr('scanner.scan_qr').toUpperCase(),
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.0, color: ObsidianUITheme.getPrimaryTextColor(context)),
                     ),
                   ],
@@ -252,7 +253,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
                                 ),
                                 const SizedBox(width: 10.0),
                                 Text(
-                                  isOnline ? 'SAVE PIT INSPECTION' : 'DIRECT UPLOAD (OFFLINE - USE QR CODE ABOVE)',
+                                  isOnline ? context.tr('scout.save_entry').toUpperCase() : context.tr('connection.offline').toUpperCase(),
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13.0,

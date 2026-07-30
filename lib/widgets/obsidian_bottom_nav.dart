@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/obsidian_ui_theme.dart';
 
 class ObsidianBottomNav extends StatelessWidget {
@@ -21,12 +22,12 @@ class ObsidianBottomNav extends StatelessWidget {
     final inactiveItemColor = isDark ? Colors.white54 : const Color(0xFF64748B);
 
     final navItems = [
-      {'targetIndex': 0, 'icon': Icons.dashboard_rounded, 'label': 'Dashboard'},
-      {'targetIndex': 1, 'icon': Icons.sports_esports_rounded, 'label': 'Match'},
-      {'targetIndex': 7, 'icon': Icons.stars_rounded, 'label': 'Alliance'},
-      {'targetIndex': 6, 'icon': Icons.chat_bubble_outline_rounded, 'label': 'Chat'},
-      {'targetIndex': 4, 'icon': Icons.bar_chart_rounded, 'label': 'Graphs'},
-      {'targetIndex': 5, 'icon': Icons.settings_suggest_rounded, 'label': 'Settings'},
+      {'targetIndex': 0, 'icon': Icons.dashboard_rounded, 'labelKey': 'nav.dashboard'},
+      {'targetIndex': 1, 'icon': Icons.sports_esports_rounded, 'labelKey': 'nav.scout'},
+      {'targetIndex': 7, 'icon': Icons.stars_rounded, 'labelKey': 'nav.alliances'},
+      {'targetIndex': 6, 'icon': Icons.chat_bubble_outline_rounded, 'labelKey': 'nav.team_chat'},
+      {'targetIndex': 4, 'icon': Icons.bar_chart_rounded, 'labelKey': 'nav.graphs'},
+      {'targetIndex': 5, 'icon': Icons.settings_suggest_rounded, 'labelKey': 'nav.settings'},
     ];
 
     return Container(
@@ -97,7 +98,7 @@ class ObsidianBottomNav extends StatelessWidget {
                         if (isSelected) ...[
                           const SizedBox(width: 6.0),
                           Text(
-                            navItems[index]['label'] as String,
+                            context.tr(navItems[index]['labelKey'] as String),
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,

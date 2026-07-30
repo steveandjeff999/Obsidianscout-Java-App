@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../l10n/app_localizations.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
@@ -429,7 +430,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Select Team — Alliance $allianceNum (${_formatSlotLabel(slotName)})',
+                        '${context.tr("alliance-selection.select_team")} — ${context.tr("alliances.alliances")} $allianceNum (${_formatSlotLabel(context, slotName)})',
                         style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.cyanAccent),
                       ),
                       IconButton(
@@ -443,7 +444,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                     controller: _searchController,
                     style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
                     decoration: InputDecoration(
-                      hintText: 'Search team by number or name...',
+                      hintText: context.tr('alliance-selection.placeholder_search_team_number_or_name'),
                       hintStyle: TextStyle(color: ObsidianUITheme.getFaintTextColor(context)),
                       prefixIcon: Icon(Icons.search_rounded, color: ObsidianUITheme.getFaintTextColor(context)),
                       filled: true,
@@ -601,11 +602,11 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
     );
   }
 
-  String _formatSlotLabel(String slot) {
-    if (slot == 'captain') return 'Captain';
-    if (slot == 'firstPick') return 'First Pick';
-    if (slot == 'secondPick') return 'Second Pick';
-    if (slot == 'backup') return 'Backup';
+  String _formatSlotLabel(BuildContext context, String slot) {
+    if (slot == 'captain') return context.tr('alliance_selection.captain');
+    if (slot == 'firstPick') return context.tr('alliance_selection.first_pick');
+    if (slot == 'secondPick') return context.tr('alliance_selection.second_pick');
+    if (slot == 'backup') return context.tr('alliance_selection.backup');
     return slot;
   }
 
@@ -635,15 +636,15 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           Text(
-                            'Alliance Selection',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                            context.tr('nav.alliance_selection'),
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
                           ),
-                          SizedBox(height: 2),
+                          const SizedBox(height: 2),
                           Text(
-                            'Track selections and view data-backed recommendations.',
-                            style: TextStyle(fontSize: 11, color: Colors.white54),
+                            context.tr('subtitle.alliance_selection'),
+                            style: const TextStyle(fontSize: 11, color: Colors.white54),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -654,7 +655,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                     ElevatedButton.icon(
                       onPressed: _resetBoard,
                       icon: const Icon(Icons.refresh_rounded, size: 14),
-                      label: const Text('Reset Board', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                      label: Text(context.tr('graphs.clear_all'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.redAccent.withValues(alpha: 0.2),
                         foregroundColor: Colors.redAccent,
@@ -669,7 +670,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                   children: [
                     const Icon(Icons.event_note_rounded, color: Colors.cyanAccent, size: 20),
                     const SizedBox(width: 8),
-                    const Text('EVENT:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70, fontSize: 11)),
+                    Text('${context.tr("events.event").toUpperCase()}:', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white70, fontSize: 11)),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Container(
@@ -710,7 +711,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                     else
                       IconButton(
                         icon: const Icon(Icons.sync_rounded, color: Colors.cyanAccent, size: 20),
-                        tooltip: 'Real-time Server Sync',
+                        tooltip: context.tr('dashboard.quick_sync'),
                         onPressed: () => _catchUpAndSyncWithServer(),
                       ),
                   ],
@@ -725,7 +726,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                       runSpacing: 4.0,
                       children: [
                         Text(
-                          'Event Teams: ${_allTeams.length} | Picked: ${_pickedTeamNumbers.length}',
+                          '${context.tr("dashboard.teams")}: ${_allTeams.length} | Picked: ${_pickedTeamNumbers.length}',
                           style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
                         ),
                         Row(
@@ -739,9 +740,9 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                                   borderRadius: BorderRadius.circular(4),
                                   border: Border.all(color: ObsidianUITheme.warningOrange, width: 0.8),
                                 ),
-                                child: const Text(
-                                  'OFFLINE QUEUED',
-                                  style: TextStyle(color: ObsidianUITheme.warningOrange, fontSize: 9, fontWeight: FontWeight.bold),
+                                child: Text(
+                                  context.tr('connection.pending').toUpperCase(),
+                                  style: const TextStyle(color: ObsidianUITheme.warningOrange, fontSize: 9, fontWeight: FontWeight.bold),
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -750,7 +751,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                               const Icon(Icons.bolt_rounded, color: ObsidianUITheme.successGreen, size: 14),
                               const SizedBox(width: 2),
                               Text(
-                                'Live Sync: ${_lastSyncedTime!.hour.toString().padLeft(2, '0')}:${_lastSyncedTime!.minute.toString().padLeft(2, '0')}:${_lastSyncedTime!.second.toString().padLeft(2, '0')}',
+                                '${context.tr("dashboard.last_sync")} ${_lastSyncedTime!.hour.toString().padLeft(2, '0')}:${_lastSyncedTime!.minute.toString().padLeft(2, '0')}:${_lastSyncedTime!.second.toString().padLeft(2, '0')}',
                                 style: const TextStyle(color: ObsidianUITheme.successGreen, fontSize: 11, fontWeight: FontWeight.w600),
                               ),
                             ],
@@ -803,9 +804,9 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                             indicatorColor: ObsidianUITheme.primaryAccent,
                             labelColor: ObsidianUITheme.primaryAccent,
                             unselectedLabelColor: ObsidianUITheme.getSecondaryTextColor(context),
-                            tabs: const [
-                              Tab(icon: Icon(Icons.groups_rounded, size: 18), text: 'Playoff Alliances'),
-                              Tab(icon: Icon(Icons.insights_rounded, size: 18), text: 'Recommendations'),
+                            tabs: [
+                              Tab(icon: const Icon(Icons.groups_rounded, size: 18), text: context.tr('nav.alliances')),
+                              Tab(icon: const Icon(Icons.insights_rounded, size: 18), text: context.tr('nav.analytics')),
                             ],
                           ),
                         ),
@@ -925,7 +926,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                 SizedBox(
                   width: 75,
                   child: Text(
-                    _formatSlotLabel(slotName).toUpperCase(),
+                    _formatSlotLabel(context, slotName).toUpperCase(),
                     style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: accentColor),
                   ),
                 ),
@@ -938,7 +939,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
             ),
             const SizedBox(height: 4),
             Text(
-              isEmpty ? 'Click to select...' : (teamObj?.displayName ?? 'Team #$teamNumber'),
+              isEmpty ? context.tr('scout.select_team') : (teamObj?.displayName ?? 'Team #$teamNumber'),
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 12,
@@ -966,7 +967,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Recommendations',
+            context.tr('alliance-selection.recommendations'),
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
           ),
           const SizedBox(height: 10),
@@ -981,7 +982,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                     controller: _searchController,
                     style: TextStyle(color: primaryTextColor, fontSize: 12),
                     decoration: InputDecoration(
-                      hintText: 'Search team or name...',
+                      hintText: context.tr('alliance-selection.placeholder_search_team_or_name'),
                       hintStyle: TextStyle(color: faintTextColor, fontSize: 11),
                       prefixIcon: Icon(Icons.search_rounded, color: faintTextColor, size: 16),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -1007,11 +1008,11 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                     value: _selectedMetric,
                     dropdownColor: surfaceColor,
                     style: const TextStyle(color: Colors.cyanAccent, fontSize: 11, fontWeight: FontWeight.bold),
-                    items: const [
-                      DropdownMenuItem(value: 'weighted', child: Text('Weighted')),
-                      DropdownMenuItem(value: 'scouted', child: Text('Scouted')),
-                      DropdownMenuItem(value: 'epa', child: Text('EPA')),
-                      DropdownMenuItem(value: 'opr', child: Text('OPR')),
+                    items: [
+                      DropdownMenuItem(value: 'weighted', child: Text(context.tr('alliance-selection.weighted'))),
+                      DropdownMenuItem(value: 'scouted', child: Text(context.tr('alliance-selection.scouted_avg'))),
+                      DropdownMenuItem(value: 'epa', child: Text(context.tr('alliance-selection.epa'))),
+                      DropdownMenuItem(value: 'opr', child: Text(context.tr('alliance-selection.opr'))),
                     ],
                     onChanged: (val) {
                       if (val != null) {

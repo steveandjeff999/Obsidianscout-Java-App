@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../services/api_service.dart';
@@ -28,7 +29,7 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isConnected = apiService?.isLoggedIn ?? true;
-    final String statusText = isConnected ? 'Connected' : 'Disconnected';
+    final String statusText = isConnected ? context.tr('connection.online') : context.tr('connection.offline');
     final Color statusColor = isConnected ? ObsidianUITheme.successGreen : Colors.redAccent;
     final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
     final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
@@ -65,7 +66,7 @@ class DashboardScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Obsidianscout Portal',
+                            context.tr('app.title'),
                             style: TextStyle(
                               fontSize: 18.0,
                               fontWeight: FontWeight.bold,
@@ -86,7 +87,7 @@ class DashboardScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16.0),
                 Text(
-                  'Scout matches in real-time, inspect team pits, scan offline barcodes, and view instant performance analytics.',
+                  context.tr('dashboard.notice'),
                   style: TextStyle(fontSize: 14.0, color: secondaryTextColor, height: 1.4),
                 ),
               ],
@@ -117,9 +118,9 @@ class DashboardScreen extends StatelessWidget {
                     children: [
                       const Icon(Icons.sports_esports_rounded, size: 36.0, color: ObsidianUITheme.primaryAccent),
                       const SizedBox(height: 12.0),
-                      Text('Match Scout', style: TextStyle(fontWeight: FontWeight.bold, color: primaryTextColor)),
+                      Text(context.tr('nav.match_scout'), style: TextStyle(fontWeight: FontWeight.bold, color: primaryTextColor)),
                       const SizedBox(height: 4.0),
-                      Text('Record Match Data', style: TextStyle(fontSize: 11.0, color: tertiaryTextColor)),
+                      Text(context.tr('subtitle.match_scout'), style: TextStyle(fontSize: 11.0, color: tertiaryTextColor)),
                     ],
                   ),
                 ),
@@ -132,9 +133,9 @@ class DashboardScreen extends StatelessWidget {
                     children: [
                       const Icon(Icons.build_circle_rounded, size: 36.0, color: ObsidianUITheme.secondaryAccent),
                       const SizedBox(height: 12.0),
-                      Text('Pit Scout', style: TextStyle(fontWeight: FontWeight.bold, color: primaryTextColor)),
+                      Text(context.tr('nav.pit_scout'), style: TextStyle(fontWeight: FontWeight.bold, color: primaryTextColor)),
                       const SizedBox(height: 4.0),
-                      Text('Inspect Robots', style: TextStyle(fontSize: 11.0, color: tertiaryTextColor)),
+                      Text(context.tr('subtitle.pit_scout'), style: TextStyle(fontSize: 11.0, color: tertiaryTextColor)),
                     ],
                   ),
                 ),
@@ -154,12 +155,12 @@ class DashboardScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'QR & Barcode Scanner',
+                        context.tr('scanner.title'),
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0, color: primaryTextColor),
                       ),
                       const SizedBox(height: 2.0),
                       Text(
-                        'Scan offline barcodes, manage queue, & upload to server',
+                        context.tr('scanner.scan_qr'),
                         style: TextStyle(fontSize: 12.0, color: tertiaryTextColor),
                       ),
                     ],
@@ -181,12 +182,12 @@ class DashboardScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Team Analytics & Rankings',
+                        context.tr('nav.graphs'),
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0, color: primaryTextColor),
                       ),
                       const SizedBox(height: 2.0),
                       Text(
-                        'View charts, alliance predictions, and live ranks',
+                        context.tr('subtitle.graphs'),
                         style: TextStyle(fontSize: 12.0, color: tertiaryTextColor),
                       ),
                     ],
@@ -208,12 +209,12 @@ class DashboardScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Alliance Selection',
+                        context.tr('nav.alliance_selection'),
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0, color: primaryTextColor),
                       ),
                       const SizedBox(height: 2.0),
                       Text(
-                        'Manage playoff pick lists, captain choices & server sync',
+                        context.tr('subtitle.alliance_selection'),
                         style: TextStyle(fontSize: 12.0, color: tertiaryTextColor),
                       ),
                     ],

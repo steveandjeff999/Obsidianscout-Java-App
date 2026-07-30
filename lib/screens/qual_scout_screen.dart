@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/dynamic_field_widget.dart';
 import '../models/config_models.dart';
@@ -137,8 +138,8 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
   void _submitQualData() async {
     if (_selectedTeam == null || _selectedMatch == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select both a Team and a Match'),
+        SnackBar(
+          content: Text(context.tr('scout.select_team')),
           backgroundColor: ObsidianUITheme.warningOrange,
         ),
       );
@@ -167,7 +168,7 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            success ? 'Qualitative scouting saved!' : 'Saved offline to queue',
+            success ? context.tr('dashboard.sync_complete') : context.tr('connection.offline'),
           ),
           backgroundColor: success ? ObsidianUITheme.successGreen : ObsidianUITheme.warningOrange,
         ),
@@ -178,8 +179,8 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
   void _generateBarcode() {
     if (_selectedTeam == null || _selectedMatch == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select both a Team and a Match'),
+        SnackBar(
+          content: Text(context.tr('scout.select_team')),
           backgroundColor: ObsidianUITheme.warningOrange,
         ),
       );
@@ -201,7 +202,7 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
     ObsidianBarcodeModal.show(
       context,
       payload: payload,
-      typeLabel: 'Qualitative Scouting',
+      typeLabel: context.tr('nav.qual_scout'),
       targetTeamNumber: _selectedTeam!.teamNumber,
       matchKey: _selectedMatch!.displayLabel,
     );
@@ -227,9 +228,9 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'QUALITATIVE EVALUATION SELECTION',
-                    style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.warningOrange, letterSpacing: 1.0),
+                  Text(
+                    context.tr('nav.qual_scout').toUpperCase(),
+                    style: const TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.warningOrange, letterSpacing: 1.0),
                   ),
                   const SizedBox(height: 12.0),
                   DropdownButtonFormField<TeamModel>(
@@ -238,7 +239,7 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
                     dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                     style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
                     decoration: InputDecoration(
-                      labelText: 'Select Team',
+                      labelText: context.tr('scout.select_team'),
                       labelStyle: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context)),
                       prefixIcon: const Icon(Icons.group_outlined, color: ObsidianUITheme.warningOrange),
                       enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
@@ -253,7 +254,7 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
                     dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                     style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
                     decoration: InputDecoration(
-                      labelText: 'Select Match',
+                      labelText: context.tr('scout.select_match'),
                       labelStyle: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context)),
                       prefixIcon: const Icon(Icons.rate_review_outlined, color: ObsidianUITheme.warningOrange),
                       enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
@@ -270,7 +271,7 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'QUALITATIVE METRICS & DRIVER EVALUATION',
+                      context.tr('subtitle.qual_scout').toUpperCase(),
                       style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.getSecondaryTextColor(context), letterSpacing: 1.0),
                     ),
                     const SizedBox(height: 12.0),
@@ -294,7 +295,7 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
                     const Icon(Icons.qr_code_2_rounded, color: ObsidianUITheme.warningOrange),
                     const SizedBox(width: 10.0),
                     Text(
-                      'GENERATE QR / JAB CODE',
+                      context.tr('scanner.scan_qr').toUpperCase(),
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.0, color: ObsidianUITheme.getPrimaryTextColor(context)),
                     ),
                   ],
@@ -322,7 +323,7 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
                                 ),
                                 const SizedBox(width: 10.0),
                                 Text(
-                                  isOnline ? 'SUBMIT QUALITATIVE DATA' : 'DIRECT UPLOAD (OFFLINE - USE QR CODE ABOVE)',
+                                  isOnline ? context.tr('scout.save_entry').toUpperCase() : context.tr('connection.offline').toUpperCase(),
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13.0,

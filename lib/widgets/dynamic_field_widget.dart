@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../models/config_models.dart';
 import '../theme/obsidian_ui_theme.dart';
 
@@ -41,7 +42,7 @@ class DynamicFieldWidget extends StatelessWidget {
                 const SizedBox(width: 8.0),
                 Expanded(
                   child: Text(
-                    field.label.toUpperCase(),
+                    context.tr(field.label).toUpperCase(),
                     style: const TextStyle(
                       fontSize: 13.0,
                       fontWeight: FontWeight.bold,
@@ -108,7 +109,7 @@ class DynamicFieldWidget extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                field.label,
+                context.tr(field.label),
                 style: TextStyle(fontSize: 14.5, color: primaryTextColor, fontWeight: FontWeight.w500),
               ),
             ),

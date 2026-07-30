@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/dynamic_field_widget.dart';
 import '../models/config_models.dart';
@@ -96,8 +97,8 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
   void _submitData() async {
     if (_selectedTeam == null || _selectedMatch == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select both a Team and a Match'),
+        SnackBar(
+          content: Text(context.tr('scout.select_team')),
           backgroundColor: ObsidianUITheme.warningOrange,
         ),
       );
@@ -110,12 +111,12 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
     setState(() => _isSubmitting = true);
 
     final payload = {
-      'eventKey': _eventKey ?? '',
-      'targetTeamNumber': _selectedTeam!.teamNumber,
-      'matchKey': _selectedMatch!.matchKey,
-      'matchNumber': _selectedMatch!.matchNumber,
-      'timestamp': DateTime.now().toUtc().toIso8601String(),
-      ..._formData,
+      'event_key': _eventKey ?? '',
+      'team_number': _selectedTeam!.teamNumber,
+      'match_number': _selectedMatch!.matchNumber,
+      'comp_level': _selectedMatch!.compLevel,
+      'data': _formData,
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
     };
 
     final success = await widget.apiService.submitMatchScouting(payload);
@@ -123,22 +124,45 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
     setState(() => _isSubmitting = false);
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            success ? 'Match scouting entry saved!' : 'Saved locally (Offline mode)',
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(context.tr('dashboard.sync_complete')),
+            backgroundColor: ObsidianUITheme.successGreen,
           ),
-          backgroundColor: success ? ObsidianUITheme.successGreen : ObsidianUITheme.warningOrange,
-        ),
-      );
+        );
+        if (_config != null) {
+          setState(() {
+            _formData.clear();
+            for (var f in _config!.fields) {
+              final t = f.type.toLowerCase();
+              if (t == 'section' || t == 'header' || t == 'divider') continue;
+              if (t == 'counter' || t == 'number' || t == 'stepper') {
+                _formData[f.id] = f.defaultValue ?? f.min ?? 0;
+              } else if (t == 'boolean' || t == 'toggle' || t == 'checkbox') {
+                _formData[f.id] = f.defaultValue == true || f.defaultValue == 'true';
+              } else {
+                _formData[f.id] = f.defaultValue?.toString() ?? '';
+              }
+            }
+          });
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(context.tr('connection.offline')),
+            backgroundColor: ObsidianUITheme.warningOrange,
+          ),
+        );
+      }
     }
   }
 
   void _generateBarcode() {
     if (_selectedTeam == null || _selectedMatch == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select both a Team and a Match'),
+        SnackBar(
+          content: Text(context.tr('scout.select_team')),
           backgroundColor: ObsidianUITheme.warningOrange,
         ),
       );
@@ -148,19 +172,18 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
     _formKey.currentState?.save();
 
     final payload = {
-      'eventKey': _eventKey ?? '',
-      'targetTeamNumber': _selectedTeam!.teamNumber,
-      'matchKey': _selectedMatch!.matchKey,
-      'matchNumber': _selectedMatch!.matchNumber,
-      'type': 'match-scout',
-      'timestamp': DateTime.now().toUtc().toIso8601String(),
-      ..._formData,
+      'event_key': _eventKey ?? '',
+      'team_number': _selectedTeam!.teamNumber,
+      'match_number': _selectedMatch!.matchNumber,
+      'comp_level': _selectedMatch!.compLevel,
+      'data': _formData,
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
     };
 
     ObsidianBarcodeModal.show(
       context,
       payload: payload,
-      typeLabel: 'Match Scouting',
+      typeLabel: context.tr('nav.match_scout'),
       targetTeamNumber: _selectedTeam!.teamNumber,
       matchKey: _selectedMatch!.displayLabel,
     );
@@ -192,9 +215,9 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'EVENT SELECTION',
-                    style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, letterSpacing: 1.0),
+                  Text(
+                    context.tr('dashboard.event_context').toUpperCase(),
+                    style: const TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, letterSpacing: 1.0),
                   ),
                   const SizedBox(height: 12.0),
                   DropdownButtonFormField<TeamModel>(
@@ -203,7 +226,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                     dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                     style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
                     decoration: InputDecoration(
-                      labelText: 'Select Team',
+                      labelText: context.tr('scout.select_team'),
                       labelStyle: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context)),
                       prefixIcon: const Icon(Icons.group_outlined, color: ObsidianUITheme.primaryAccent),
                       enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
@@ -218,7 +241,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                     dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                     style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
                     decoration: InputDecoration(
-                      labelText: 'Select Match',
+                      labelText: context.tr('scout.select_match'),
                       labelStyle: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context)),
                       prefixIcon: const Icon(Icons.sports_esports_outlined, color: ObsidianUITheme.primaryAccent),
                       enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
@@ -305,9 +328,9 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'SCOUTING DETAILS',
-                      style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: Colors.white70, letterSpacing: 1.0),
+                    Text(
+                      context.tr('scout.title').toUpperCase(),
+                      style: const TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: Colors.white70, letterSpacing: 1.0),
                     ),
                     const SizedBox(height: 12.0),
                     ...generalFields.map((field) => Padding(
@@ -332,7 +355,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                     const Icon(Icons.qr_code_2_rounded, color: ObsidianUITheme.secondaryAccent),
                     const SizedBox(width: 10.0),
                     Text(
-                      'GENERATE QR / JAB CODE',
+                      context.tr('scanner.scan_qr').toUpperCase(),
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.0, color: ObsidianUITheme.getPrimaryTextColor(context)),
                     ),
                   ],
@@ -362,7 +385,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                                 ),
                                 const SizedBox(width: 10.0),
                                 Text(
-                                  isOnline ? 'SUBMIT MATCH DATA' : 'DIRECT UPLOAD (OFFLINE - USE QR CODE ABOVE)',
+                                  isOnline ? context.tr('scout.save_entry').toUpperCase() : context.tr('connection.offline').toUpperCase(),
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13.0,

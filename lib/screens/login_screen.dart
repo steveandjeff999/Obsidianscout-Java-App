@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../services/api_service.dart';
@@ -91,8 +92,8 @@ class _LoginScreenState extends State<LoginScreen> {
         widget.onLoginSuccess();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to authenticate. Check credentials & server URL.'),
+          SnackBar(
+            content: Text(context.tr('contact.error.generic')),
             backgroundColor: ObsidianUITheme.errorRed,
           ),
         );
@@ -144,16 +145,16 @@ class _LoginScreenState extends State<LoginScreen> {
     if (mounted) {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Account created successfully! Logged in.'),
+          SnackBar(
+            content: Text(context.tr('dashboard.sync_complete')),
             backgroundColor: ObsidianUITheme.successGreen,
           ),
         );
         widget.onLoginSuccess();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Registration failed. Check details or server connectivity.'),
+          SnackBar(
+            content: Text(context.tr('contact.error.generic')),
             backgroundColor: ObsidianUITheme.errorRed,
           ),
         );
@@ -163,7 +164,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
     final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
     final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
     final faintTextColor = ObsidianUITheme.getFaintTextColor(context);
@@ -171,10 +171,9 @@ class _LoginScreenState extends State<LoginScreen> {
     final surfaceColor = ObsidianUITheme.getSurfaceColor(context);
 
     return Scaffold(
-      backgroundColor: scaffoldBg,
       body: Container(
         decoration: BoxDecoration(
-          color: scaffoldBg,
+          color: Theme.of(context).scaffoldBackgroundColor,
         ),
         child: Center(
           child: SingleChildScrollView(
@@ -182,6 +181,28 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    DropdownButton<String>(
+                      value: widget.apiService.currentLocale.languageCode,
+                      dropdownColor: surfaceColor,
+                      style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.bold),
+                      underline: Container(height: 1, color: ObsidianUITheme.primaryAccent),
+                      items: const [
+                        DropdownMenuItem(value: 'en', child: Text('English 🇺🇸')),
+                        DropdownMenuItem(value: 'es', child: Text('Español 🇪🇸')),
+                        DropdownMenuItem(value: 'he', child: Text('עברית 🇮🇱')),
+                        DropdownMenuItem(value: 'tr', child: Text('Türkçe 🇹🇷')),
+                      ],
+                      onChanged: (newLang) {
+                        if (newLang != null) {
+                          widget.apiService.setLocale(Locale(newLang));
+                        }
+                      },
+                    ),
+                  ],
+                ),
                 const Icon(
                   Icons.shield_outlined,
                   size: 64.0,
@@ -189,7 +210,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 12.0),
                 Text(
-                  'Obsidianscout',
+                  context.tr('app.title'),
                   style: TextStyle(
                     fontSize: 32.0,
                     fontWeight: FontWeight.bold,
@@ -198,7 +219,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 Text(
-                  'Scouting Portal Authentication',
+                  context.tr('app.subtitle'),
                   style: TextStyle(fontSize: 14.0, color: secondaryTextColor),
                 ),
                 const SizedBox(height: 24.0),
@@ -212,10 +233,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Expanded(
+                          Expanded(
                             child: Text(
-                              'SERVER CONFIGURATION',
-                              style: TextStyle(
+                              context.tr('login.server_config'),
+                              style: const TextStyle(
                                 fontSize: 11.0,
                                 fontWeight: FontWeight.bold,
                                 color: ObsidianUITheme.primaryAccent,
@@ -242,7 +263,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           controller: _serverUrlController,
                           style: TextStyle(color: primaryTextColor, fontSize: 14.0),
                           decoration: InputDecoration(
-                            labelText: 'Server Host / URL',
+                            labelText: context.tr('login.server_url'),
                             labelStyle: TextStyle(color: secondaryTextColor),
                             hintText: 'http://localhost:8080 or https://192.168.1.100:8443',
                             hintStyle: TextStyle(color: faintTextColor),
@@ -276,7 +297,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     borderRadius: BorderRadius.circular(12.0),
                                   ),
                                   child: Text(
-                                    'Sign In',
+                                    context.tr('login.sign_in'),
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
@@ -298,7 +319,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     borderRadius: BorderRadius.circular(12.0),
                                   ),
                                   child: Text(
-                                    'Create Account',
+                                    context.tr('login.create_account'),
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
@@ -336,7 +357,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               const SizedBox(width: 10.0),
                               Text(
-                                _activeTabIndex == 0 ? 'CONNECT & LOGIN' : 'CREATE ACCOUNT & REGISTER',
+                                _activeTabIndex == 0 ? context.tr('login.connect_login') : context.tr('login.create_register'),
                                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15.0, color: primaryTextColor),
                               ),
                             ],
@@ -360,12 +381,12 @@ class _LoginScreenState extends State<LoginScreen> {
             controller: _usernameController,
             style: TextStyle(color: primaryTextColor),
             decoration: InputDecoration(
-              labelText: 'Username',
+              labelText: context.tr('login.username'),
               labelStyle: TextStyle(color: secondaryTextColor),
               prefixIcon: Icon(Icons.person_outline, color: secondaryTextColor),
               enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
             ),
-            validator: (val) => val == null || val.trim().isEmpty ? 'Username required' : null,
+            validator: (val) => val == null || val.trim().isEmpty ? context.tr('login.username') : null,
           ),
           const SizedBox(height: 12.0),
           TextFormField(
@@ -373,12 +394,12 @@ class _LoginScreenState extends State<LoginScreen> {
             obscureText: true,
             style: TextStyle(color: primaryTextColor),
             decoration: InputDecoration(
-              labelText: 'Password',
+              labelText: context.tr('login.password'),
               labelStyle: TextStyle(color: secondaryTextColor),
               prefixIcon: Icon(Icons.lock_outline, color: secondaryTextColor),
               enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
             ),
-            validator: (val) => val == null || val.isEmpty ? 'Password required' : null,
+            validator: (val) => val == null || val.isEmpty ? context.tr('login.password') : null,
           ),
           const SizedBox(height: 12.0),
           TextFormField(
@@ -386,7 +407,7 @@ class _LoginScreenState extends State<LoginScreen> {
             keyboardType: TextInputType.number,
             style: TextStyle(color: primaryTextColor),
             decoration: InputDecoration(
-              labelText: 'Team Number',
+              labelText: context.tr('login.team_number'),
               labelStyle: TextStyle(color: secondaryTextColor),
               prefixIcon: Icon(Icons.group_outlined, color: secondaryTextColor),
               enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
@@ -399,7 +420,7 @@ class _LoginScreenState extends State<LoginScreen> {
             dropdownColor: surfaceColor,
             style: TextStyle(color: primaryTextColor),
             decoration: InputDecoration(
-              labelText: 'Program',
+              labelText: context.tr('login.program'),
               labelStyle: TextStyle(color: secondaryTextColor),
               prefixIcon: Icon(Icons.category_outlined, color: secondaryTextColor),
               enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
@@ -425,7 +446,7 @@ class _LoginScreenState extends State<LoginScreen> {
             color: Colors.transparent,
             child: CheckboxListTile(
               contentPadding: EdgeInsets.zero,
-              title: Text('Keep Me Logged In', style: TextStyle(color: secondaryTextColor, fontSize: 14.0)),
+              title: Text(context.tr('login.keep_logged_in'), style: TextStyle(color: secondaryTextColor, fontSize: 14.0)),
               value: _keepMeLoggedIn,
               activeColor: ObsidianUITheme.primaryAccent,
               onChanged: (val) => setState(() => _keepMeLoggedIn = val ?? true),
@@ -445,12 +466,12 @@ class _LoginScreenState extends State<LoginScreen> {
             controller: _regUsernameController,
             style: TextStyle(color: primaryTextColor),
             decoration: InputDecoration(
-              labelText: 'New Username',
+              labelText: context.tr('login.new_username'),
               labelStyle: TextStyle(color: secondaryTextColor),
               prefixIcon: const Icon(Icons.person_add_outlined, color: ObsidianUITheme.secondaryAccent),
               enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
             ),
-            validator: (val) => val == null || val.trim().isEmpty ? 'Username is required' : null,
+            validator: (val) => val == null || val.trim().isEmpty ? context.tr('login.username') : null,
           ),
           const SizedBox(height: 12.0),
           TextFormField(
@@ -458,7 +479,7 @@ class _LoginScreenState extends State<LoginScreen> {
             keyboardType: TextInputType.emailAddress,
             style: TextStyle(color: primaryTextColor),
             decoration: InputDecoration(
-              labelText: 'Email Address (Optional)',
+              labelText: context.tr('login.email_optional'),
               labelStyle: TextStyle(color: secondaryTextColor),
               prefixIcon: Icon(Icons.email_outlined, color: secondaryTextColor),
               enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
@@ -470,15 +491,15 @@ class _LoginScreenState extends State<LoginScreen> {
             keyboardType: TextInputType.number,
             style: TextStyle(color: primaryTextColor),
             decoration: InputDecoration(
-              labelText: 'Team Number',
+              labelText: context.tr('login.team_number'),
               labelStyle: TextStyle(color: secondaryTextColor),
               prefixIcon: Icon(Icons.group_outlined, color: secondaryTextColor),
               enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
             ),
             validator: (val) {
-              if (val == null || val.trim().isEmpty) return 'Team number required';
+              if (val == null || val.trim().isEmpty) return context.tr('login.team_number');
               final n = int.tryParse(val.trim());
-              if (n == null || n <= 0) return 'Must be a positive team number';
+              if (n == null || n <= 0) return context.tr('login.team_number');
               return null;
             },
           ),
@@ -489,7 +510,7 @@ class _LoginScreenState extends State<LoginScreen> {
             dropdownColor: surfaceColor,
             style: TextStyle(color: primaryTextColor),
             decoration: InputDecoration(
-              labelText: 'Program',
+              labelText: context.tr('login.program'),
               labelStyle: TextStyle(color: secondaryTextColor),
               prefixIcon: Icon(Icons.category_outlined, color: secondaryTextColor),
               enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
@@ -517,7 +538,7 @@ class _LoginScreenState extends State<LoginScreen> {
             dropdownColor: surfaceColor,
             style: TextStyle(color: primaryTextColor),
             decoration: InputDecoration(
-              labelText: 'User Role',
+              labelText: context.tr('login.role'),
               labelStyle: TextStyle(color: secondaryTextColor),
               prefixIcon: const Icon(Icons.badge_outlined, color: ObsidianUITheme.secondaryAccent),
               enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
@@ -539,12 +560,12 @@ class _LoginScreenState extends State<LoginScreen> {
             obscureText: true,
             style: TextStyle(color: primaryTextColor),
             decoration: InputDecoration(
-              labelText: 'Password',
+              labelText: context.tr('login.password'),
               labelStyle: TextStyle(color: secondaryTextColor),
               prefixIcon: Icon(Icons.lock_outline, color: secondaryTextColor),
               enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
             ),
-            validator: (val) => val == null || val.length < 4 ? 'Password must be at least 4 characters' : null,
+            validator: (val) => val == null || val.length < 4 ? context.tr('login.password') : null,
           ),
           const SizedBox(height: 12.0),
           TextFormField(
@@ -552,14 +573,14 @@ class _LoginScreenState extends State<LoginScreen> {
             obscureText: true,
             style: TextStyle(color: primaryTextColor),
             decoration: InputDecoration(
-              labelText: 'Confirm Password',
+              labelText: context.tr('login.confirm_password'),
               labelStyle: TextStyle(color: secondaryTextColor),
               prefixIcon: Icon(Icons.lock_reset_outlined, color: secondaryTextColor),
               enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
             ),
             validator: (val) {
-              if (val == null || val.isEmpty) return 'Please confirm password';
-              if (val != _regPasswordController.text) return 'Passwords do not match';
+              if (val == null || val.isEmpty) return context.tr('login.confirm_password');
+              if (val != _regPasswordController.text) return context.tr('login.confirm_password');
               return null;
             },
           ),
@@ -568,7 +589,7 @@ class _LoginScreenState extends State<LoginScreen> {
             color: Colors.transparent,
             child: CheckboxListTile(
               contentPadding: EdgeInsets.zero,
-              title: Text('Keep Me Logged In', style: TextStyle(color: secondaryTextColor, fontSize: 14.0)),
+              title: Text(context.tr('login.keep_logged_in'), style: TextStyle(color: secondaryTextColor, fontSize: 14.0)),
               value: _regKeepMeLoggedIn,
               activeColor: ObsidianUITheme.secondaryAccent,
               onChanged: (val) => setState(() => _regKeepMeLoggedIn = val ?? true),
