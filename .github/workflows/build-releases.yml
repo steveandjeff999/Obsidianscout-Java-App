@@ -65,11 +65,16 @@ jobs:
           echo "New tag will be: $NEW_TAG"
           echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
 
-          # Configure git and push new tag
+          # Configure git and push new tag safely if it doesn't already exist
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag "$NEW_TAG"
-          git push origin "$NEW_TAG"
+          
+          if git rev-parse "$NEW_TAG" >/dev/null 2>&1; then
+            echo "Tag $NEW_TAG already exists locally. Skipping tag creation."
+          else
+            git tag "$NEW_TAG"
+            git push origin "$NEW_TAG" || echo "Tag might already exist on remote."
+          fi
 
   build-android:
     name: Build Android APK
