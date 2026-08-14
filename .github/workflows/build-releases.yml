@@ -9,6 +9,8 @@ jobs:
   auto-tag:
     name: Generate Next Version & Tag
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     outputs:
       new_tag: ${{ steps.set_tag.outputs.new_tag }}
     steps:
