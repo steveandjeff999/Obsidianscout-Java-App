@@ -37,7 +37,8 @@ class DashboardScreen extends StatelessWidget {
     final faintTextColor = ObsidianUITheme.getFaintTextColor(context);
 
     return SingleChildScrollView(
-      padding: EdgeInsets.only(top: isBarsVisible ? 100.0 : 16.0, bottom: isBarsVisible ? 120.0 : 20.0),
+      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+      padding: EdgeInsets.only(top: 4.0, bottom: isBarsVisible ? 120.0 : 20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

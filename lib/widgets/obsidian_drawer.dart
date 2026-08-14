@@ -106,6 +106,7 @@ class ObsidianNavigationDrawer extends StatelessWidget {
                 // Menu Items List
                 Expanded(
                   child: ListView(
+                    physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
                     padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 12.0),
                     children: [
                       Padding(

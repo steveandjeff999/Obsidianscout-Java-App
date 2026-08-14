@@ -62,56 +62,103 @@ class ObsidianBottomNav extends StatelessWidget {
               children: List.generate(navItems.length, (index) {
                 final targetIndex = navItems[index]['targetIndex'] as int;
                 final isSelected = targetIndex == currentIndex;
-                return GestureDetector(
-                  onTap: () => onTap(targetIndex),
-                  behavior: HitTestBehavior.opaque,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    curve: Curves.easeOutCubic,
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-                    decoration: isSelected
-                        ? BoxDecoration(
-                            borderRadius: BorderRadius.circular(20.0),
-                            gradient: const LinearGradient(
-                              colors: [
-                                ObsidianUITheme.primaryAccent,
-                                ObsidianUITheme.secondaryAccent,
-                              ],
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.4),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          )
-                        : const BoxDecoration(),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          navItems[index]['icon'] as IconData,
-                          color: isSelected ? Colors.white : inactiveItemColor,
-                          size: 20.0,
-                        ),
-                        if (isSelected) ...[
-                          const SizedBox(width: 6.0),
-                          Text(
-                            context.tr(navItems[index]['labelKey'] as String),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 12.0,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
+                return _ObsidianNavItem(
+                  targetIndex: targetIndex,
+                  isSelected: isSelected,
+                  icon: navItems[index]['icon'] as IconData,
+                  labelKey: navItems[index]['labelKey'] as String,
+                  inactiveItemColor: inactiveItemColor,
+                  onTap: onTap,
                 );
               }),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ObsidianNavItem extends StatefulWidget {
+  final int targetIndex;
+  final bool isSelected;
+  final IconData icon;
+  final String labelKey;
+  final Color inactiveItemColor;
+  final Function(int) onTap;
+
+  const _ObsidianNavItem({
+    required this.targetIndex,
+    required this.isSelected,
+    required this.icon,
+    required this.labelKey,
+    required this.inactiveItemColor,
+    required this.onTap,
+  });
+
+  @override
+  State<_ObsidianNavItem> createState() => _ObsidianNavItemState();
+}
+
+class _ObsidianNavItemState extends State<_ObsidianNavItem> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onTap(widget.targetIndex);
+      },
+      onTapCancel: () => setState(() => _isPressed = false),
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedScale(
+        scale: _isPressed ? 0.88 : (widget.isSelected ? 1.05 : 1.0),
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutBack,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.fastOutSlowIn,
+          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+          decoration: widget.isSelected
+              ? BoxDecoration(
+                  borderRadius: BorderRadius.circular(20.0),
+                  gradient: const LinearGradient(
+                    colors: [
+                      ObsidianUITheme.primaryAccent,
+                      ObsidianUITheme.secondaryAccent,
+                    ],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.4),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                )
+              : const BoxDecoration(),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                widget.icon,
+                color: widget.isSelected ? Colors.white : widget.inactiveItemColor,
+                size: 20.0,
+              ),
+              if (widget.isSelected) ...[
+                const SizedBox(width: 6.0),
+                Text(
+                  context.tr(widget.labelKey),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12.0,
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       ),

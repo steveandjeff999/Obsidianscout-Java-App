@@ -191,7 +191,11 @@ class ApiService {
             headers: _headers,
           )
           .timeout(const Duration(seconds: 3));
-      return response.statusCode == 200;
+      if (response.statusCode == 200) {
+        _updateCookiesFromResponse(response);
+        return true;
+      }
+      return false;
     } catch (_) {
       // If offline / local network check fails, trust stored session if keepMeLoggedIn is true
       return true;
@@ -206,8 +210,45 @@ class ApiService {
 
   Map<String, String> get _headers => {
         'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-Mobile-App': 'true',
         ...?_sessionCookie == null ? null : {'Cookie': _sessionCookie!},
       };
+
+  void _updateCookiesFromResponse(http.Response response) {
+    final rawSetCookie = response.headers['set-cookie'];
+    if (rawSetCookie == null || rawSetCookie.isEmpty) return;
+
+    final Map<String, String> cookieMap = {};
+
+    // Preserve existing cookies
+    if (_sessionCookie != null && _sessionCookie!.isNotEmpty) {
+      for (var pair in _sessionCookie!.split(';')) {
+        final kv = pair.trim().split('=');
+        if (kv.length >= 2) {
+          cookieMap[kv[0].trim()] = kv.sublist(1).join('=').trim();
+        }
+      }
+    }
+
+    // Parse Set-Cookie response header(s)
+    final cookieParts = rawSetCookie.split(RegExp(r',(?=\s*[A-Za-z0-9_\-]+=)'));
+    for (var part in cookieParts) {
+      final firstPair = part.split(';').first.trim();
+      final kv = firstPair.split('=');
+      if (kv.length >= 2) {
+        final name = kv[0].trim();
+        final value = kv.sublist(1).join('=').trim();
+        if (value.isNotEmpty && value != 'deleted') {
+          cookieMap[name] = value;
+        }
+      }
+    }
+
+    if (cookieMap.isNotEmpty) {
+      _sessionCookie = cookieMap.entries.map((e) => '${e.key}=${e.value}').join('; ');
+    }
+  }
 
   Future<bool> login(
     String username,
@@ -219,7 +260,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$_currentServerUrl/api/auth/login'),
-        headers: {'Content-Type': 'application/json'},
+        headers: _headers,
         body: jsonEncode({
           'username': username,
           'teamNumber': teamNumber,
@@ -230,8 +271,7 @@ class ApiService {
       );
 
       if (response.statusCode == 200 || response.statusCode == 302) {
-        final rawCookie = response.headers['set-cookie'];
-        _sessionCookie = rawCookie?.split(';').first;
+        _updateCookiesFromResponse(response);
         _keepMeLoggedIn = keepMeLoggedIn;
         _savedUsername = username;
 
@@ -264,7 +304,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$_currentServerUrl/api/auth/register'),
-        headers: {'Content-Type': 'application/json'},
+        headers: _headers,
         body: jsonEncode({
           'username': username,
           'teamNumber': teamNumber,
@@ -277,8 +317,7 @@ class ApiService {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 302) {
-        final rawCookie = response.headers['set-cookie'];
-        _sessionCookie = rawCookie?.split(';').first;
+        _updateCookiesFromResponse(response);
         _keepMeLoggedIn = keepMeLoggedIn;
         _savedUsername = username;
 

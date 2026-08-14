@@ -90,7 +90,7 @@ class _TeamsListScreenState extends State<TeamsListScreen> {
         AnimatedContainer(
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeInOutCubic,
-          height: widget.isBarsVisible ? 95.0 : 16.0,
+          height: 4.0,
         ),
 
         // Search & Sort Bar
@@ -165,6 +165,7 @@ class _TeamsListScreenState extends State<TeamsListScreen> {
                 const SizedBox(height: 10),
                 // Sort chips
                 SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
@@ -225,6 +226,7 @@ class _TeamsListScreenState extends State<TeamsListScreen> {
                       ),
                     )
                   : ListView.builder(
+                      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
                       padding: EdgeInsets.fromLTRB(16, 4, 16, widget.isBarsVisible ? 100.0 : 20.0),
                       itemCount: _filteredSorted.length,
                       itemBuilder: (context, i) {

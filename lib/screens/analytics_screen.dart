@@ -101,7 +101,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final secondaryText = ObsidianUITheme.getSecondaryTextColor(context);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.only(top: 100.0, bottom: 120.0),
+      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+      padding: const EdgeInsets.only(top: 4.0, bottom: 120.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

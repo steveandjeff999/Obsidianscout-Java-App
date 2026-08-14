@@ -204,7 +204,8 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
     final generalFields = fields.where((f) => f.phase == null || (f.phase!.toLowerCase() != 'auto' && f.phase!.toLowerCase() != 'teleop' && f.phase!.toLowerCase() != 'endgame')).toList();
 
     return SingleChildScrollView(
-      padding: EdgeInsets.only(top: widget.isBarsVisible ? 100.0 : 16.0, bottom: widget.isBarsVisible ? 120.0 : 20.0),
+      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+      padding: EdgeInsets.only(top: 4.0, bottom: widget.isBarsVisible ? 120.0 : 20.0),
       child: Form(
         key: _formKey,
         child: Column(
