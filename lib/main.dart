@@ -59,10 +59,20 @@ class ObsidianscoutApp extends StatelessWidget {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
+          scrollBehavior: const ObsidianBouncingScrollBehavior(),
           home: MainShell(apiService: apiService),
         );
       },
     );
+  }
+}
+
+class ObsidianBouncingScrollBehavior extends MaterialScrollBehavior {
+  const ObsidianBouncingScrollBehavior();
+
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) {
+    return const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics());
   }
 }
 
@@ -197,6 +207,8 @@ class _MainShellState extends State<MainShell> {
   }
 
   Future<void> _handleLogout() async {
+    _wsNotificationService?.dispose();
+    _wsNotificationService = null;
     await FcmHelper.unregisterOnLogout(widget.apiService);
     await widget.apiService.logout();
     if (mounted) {
@@ -327,19 +339,21 @@ class _MainShellState extends State<MainShell> {
           decoration: BoxDecoration(
             color: Theme.of(context).scaffoldBackgroundColor,
           ),
-          child: Stack(
+          child: Column(
             children: [
-              IndexedStack(
-                index: _currentIndex,
-                children: screens,
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOutCubic,
+                height: _isBarsVisible ? 95.0 : 16.0,
               ),
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: ObsidianBannerWidget(
-                  apiService: widget.apiService,
-                  isBarsVisible: _isBarsVisible,
+              ObsidianBannerWidget(
+                apiService: widget.apiService,
+                isBarsVisible: _isBarsVisible,
+              ),
+              Expanded(
+                child: IndexedStack(
+                  index: _currentIndex,
+                  children: screens,
                 ),
               ),
             ],

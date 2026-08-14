@@ -116,7 +116,7 @@ class _MatchListScreenState extends State<MatchListScreen> {
         AnimatedContainer(
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeInOutCubic,
-          height: widget.isBarsVisible ? 95.0 : 16.0,
+          height: 4.0,
         ),
 
         // Header + Search + Filter
@@ -191,6 +191,7 @@ class _MatchListScreenState extends State<MatchListScreen> {
                 const SizedBox(height: 10),
                 // Level filter chips
                 SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
@@ -247,6 +248,7 @@ class _MatchListScreenState extends State<MatchListScreen> {
                       ),
                     )
                   : ListView.builder(
+                      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
                       padding: EdgeInsets.fromLTRB(16, 4, 16, widget.isBarsVisible ? 100.0 : 20.0),
                       itemCount: filtered.length,
                       itemBuilder: (context, i) {

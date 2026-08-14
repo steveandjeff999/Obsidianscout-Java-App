@@ -309,7 +309,8 @@ class _GraphsScreenState extends State<GraphsScreen> {
     }).toList();
 
     return SingleChildScrollView(
-      padding: EdgeInsets.only(top: widget.isBarsVisible ? 100.0 : 16.0, bottom: widget.isBarsVisible ? 120.0 : 20.0),
+      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+      padding: EdgeInsets.only(top: 4.0, bottom: widget.isBarsVisible ? 120.0 : 20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -455,6 +456,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
                   child: filteredTeams.isEmpty
                       ? Center(child: Text(context.tr('errors.no_teams_found'), style: TextStyle(color: ObsidianUITheme.getFaintTextColor(context))))
                       : ListView.builder(
+                          physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
                           itemCount: filteredTeams.length,
                           itemBuilder: (ctx, i) {
                             final team = filteredTeams[i];

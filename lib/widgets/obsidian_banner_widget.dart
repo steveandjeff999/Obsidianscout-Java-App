@@ -20,6 +20,7 @@ class ObsidianBannerWidget extends StatefulWidget {
 class _ObsidianBannerWidgetState extends State<ObsidianBannerWidget> {
   List<Map<String, dynamic>> _banners = [];
   final Set<String> _dismissedIds = {};
+  final Set<String> _expandedIds = {};
   bool _isLoading = true;
   StreamSubscription<bool>? _onlineSub;
 
@@ -75,18 +76,16 @@ class _ObsidianBannerWidgetState extends State<ObsidianBannerWidget> {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
-      padding: EdgeInsets.fromLTRB(
-        16.0,
-        widget.isBarsVisible ? 95.0 : 16.0,
-        16.0,
-        4.0,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: visibleBanners.map((banner) {
           final bannerType = (banner['bannerType'] ?? 'info').toString();
           final isDismissible = banner['isDismissible'] == true;
+          final expandableMsg = banner['expandableMessage']?.toString().trim() ?? '';
+          final isExpandable = banner['isExpandable'] == true && expandableMsg.isNotEmpty;
           final id = banner['id']?.toString() ?? '';
+          final isExpanded = _expandedIds.contains(id);
 
           Color bannerColor;
           IconData bannerIcon;
@@ -121,17 +120,88 @@ class _ObsidianBannerWidgetState extends State<ObsidianBannerWidget> {
             ),
             padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(bannerIcon, color: bannerColor, size: 22.0),
+                Padding(
+                  padding: const EdgeInsets.only(top: 2.0),
+                  child: Icon(bannerIcon, color: bannerColor, size: 22.0),
+                ),
                 const SizedBox(width: 12.0),
                 Expanded(
-                  child: Text(
-                    banner['message']?.toString() ?? '',
-                    style: TextStyle(
-                      color: ObsidianUITheme.getPrimaryTextColor(context),
-                      fontSize: 13.0,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        banner['message']?.toString() ?? '',
+                        style: TextStyle(
+                          color: ObsidianUITheme.getPrimaryTextColor(context),
+                          fontSize: 13.0,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (isExpandable) ...[
+                        const SizedBox(height: 6.0),
+                        InkWell(
+                          onTap: () {
+                            setState(() {
+                              if (isExpanded) {
+                                _expandedIds.remove(id);
+                              } else {
+                                _expandedIds.add(id);
+                              }
+                            });
+                          },
+                          borderRadius: BorderRadius.circular(4.0),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 2.0),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  isExpanded ? 'Show Less' : 'Read More',
+                                  style: TextStyle(
+                                    color: bannerColor,
+                                    fontSize: 12.0,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(width: 2.0),
+                                Icon(
+                                  isExpanded
+                                      ? Icons.keyboard_arrow_up_rounded
+                                      : Icons.keyboard_arrow_down_rounded,
+                                  color: bannerColor,
+                                  size: 16.0,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        if (isExpanded)
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            margin: const EdgeInsets.only(top: 6.0),
+                            padding: const EdgeInsets.all(10.0),
+                            decoration: BoxDecoration(
+                              color: bannerColor.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8.0),
+                              border: Border.all(
+                                color: bannerColor.withValues(alpha: 0.25),
+                                width: 1.0,
+                              ),
+                            ),
+                            child: Text(
+                              expandableMsg,
+                              style: TextStyle(
+                                color: ObsidianUITheme.getPrimaryTextColor(context),
+                                fontSize: 12.0,
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ],
                   ),
                 ),
                 if (isDismissible)

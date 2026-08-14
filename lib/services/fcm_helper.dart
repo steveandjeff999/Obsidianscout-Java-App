@@ -101,9 +101,20 @@ class FcmHelper {
   }
 
   static Future<void> unregisterOnLogout(ApiService apiService) async {
-    if (currentFcmToken != null) {
-      await apiService.unregisterFcmToken(currentFcmToken!);
-      currentFcmToken = null;
+    try {
+      if (currentFcmToken != null && currentFcmToken!.isNotEmpty) {
+        await apiService.unregisterFcmToken(currentFcmToken!);
+        currentFcmToken = null;
+      }
+      if (_isFirebaseInitialized) {
+        final token = await FirebaseMessaging.instance.getToken();
+        if (token != null && token.isNotEmpty) {
+          await apiService.unregisterFcmToken(token);
+          await FirebaseMessaging.instance.deleteToken();
+        }
+      }
+    } catch (e) {
+      debugPrint('[FCM] Unregister on logout failed: $e');
     }
   }
 }

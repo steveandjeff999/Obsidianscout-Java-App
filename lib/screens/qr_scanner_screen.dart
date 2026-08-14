@@ -859,6 +859,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
       ),
       backgroundColor: scaffoldBg,
       body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

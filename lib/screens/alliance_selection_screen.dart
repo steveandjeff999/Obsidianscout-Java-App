@@ -463,6 +463,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                     child: available.isEmpty
                         ? Center(child: Text('No available teams match query', style: TextStyle(color: ObsidianUITheme.getFaintTextColor(context))))
                         : ListView.builder(
+                            physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
                             itemCount: available.length,
                             itemBuilder: (context, idx) {
                               final team = available[idx];
@@ -620,7 +621,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
         AnimatedContainer(
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeInOutCubic,
-          height: widget.isBarsVisible ? 95.0 : 16.0,
+          height: 4.0,
         ),
 
         // Web-matching Header Card: Event Selection Dropdown & Reset Board Button
@@ -829,6 +830,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
 
   Widget _buildAlliancesGrid() {
     return ListView.builder(
+      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
       padding: EdgeInsets.fromLTRB(0, 4.0, 0, widget.isBarsVisible ? 100.0 : 20.0),
       itemCount: 8,
       itemBuilder: (context, idx) {
@@ -1039,6 +1041,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                     ),
                   )
                 : ListView.builder(
+                    physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
                     padding: const EdgeInsets.only(bottom: 20.0),
                     itemCount: available.length,
                     itemBuilder: (context, idx) {

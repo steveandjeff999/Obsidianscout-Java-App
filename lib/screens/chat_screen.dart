@@ -443,7 +443,7 @@ class _ChatScreenState extends State<ChatScreen> {
       body: Column(
         children: [
           // Top Spacer for AppBar overlay
-          const SizedBox(height: 96),
+          const SizedBox(height: 4),
 
           // FIRST YPP Guidelines Reminder Banner
           Container(
@@ -570,6 +570,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   )
                 : ListView.builder(
+                    physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
                     controller: _scrollController,
                     padding: const EdgeInsets.all(16),
                     itemCount: _messages.length,
@@ -745,6 +746,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 10)],
               ),
               child: ListView.builder(
+                physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
                 shrinkWrap: true,
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 itemCount: _filteredMentions.length,

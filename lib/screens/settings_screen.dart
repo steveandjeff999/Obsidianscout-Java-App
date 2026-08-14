@@ -186,7 +186,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final borderColor = ObsidianUITheme.getBorderColor(context);
 
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(16.0, widget.isBarsVisible ? 96.0 : 16.0, 16.0, widget.isBarsVisible ? 100.0 : 20.0),
+      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+      padding: EdgeInsets.fromLTRB(16.0, 4.0, 16.0, widget.isBarsVisible ? 100.0 : 20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
