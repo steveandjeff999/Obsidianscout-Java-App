@@ -94,16 +94,63 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
     }
   }
 
-  void _submitData() async {
+  bool _validateSelection() {
     if (_selectedTeam == null || _selectedMatch == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(context.tr('scout.select_team')),
-          backgroundColor: ObsidianUITheme.warningOrange,
-        ),
+      final title = context.tr('scout.selection_required_title');
+      String message = '';
+      if (_selectedTeam == null && _selectedMatch == null) {
+        message = context.tr('scout.select_team_and_match_msg');
+      } else if (_selectedTeam == null) {
+        message = context.tr('scout.select_team_msg');
+      } else {
+        message = context.tr('scout.select_match_msg');
+      }
+
+      showDialog(
+        context: context,
+        builder: (ctx) {
+          final surfaceColor = ObsidianUITheme.getSurfaceColor(ctx);
+          final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(ctx);
+          final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(ctx);
+
+          return AlertDialog(
+            backgroundColor: surfaceColor,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+            title: Row(
+              children: [
+                const Icon(Icons.warning_amber_rounded, color: ObsidianUITheme.warningOrange, size: 28.0),
+                const SizedBox(width: 10.0),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold, color: primaryTextColor),
+                  ),
+                ),
+              ],
+            ),
+            content: Text(
+              message,
+              style: TextStyle(fontSize: 14.0, color: secondaryTextColor),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(
+                  context.tr('qr.close'),
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent),
+                ),
+              ),
+            ],
+          );
+        },
       );
-      return;
+      return false;
     }
+    return true;
+  }
+
+  void _submitData() async {
+    if (!_validateSelection()) return;
 
     if (!_formKey.currentState!.validate()) return;
     _formKey.currentState!.save();
@@ -159,15 +206,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
   }
 
   void _generateBarcode() {
-    if (_selectedTeam == null || _selectedMatch == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(context.tr('scout.select_team')),
-          backgroundColor: ObsidianUITheme.warningOrange,
-        ),
-      );
-      return;
-    }
+    if (!_validateSelection()) return;
 
     _formKey.currentState?.save();
 
@@ -356,7 +395,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                     const Icon(Icons.qr_code_2_rounded, color: ObsidianUITheme.secondaryAccent),
                     const SizedBox(width: 10.0),
                     Text(
-                      context.tr('scanner.scan_qr').toUpperCase(),
+                      context.tr('qr.button_label').toUpperCase(),
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.0, color: ObsidianUITheme.getPrimaryTextColor(context)),
                     ),
                   ],
