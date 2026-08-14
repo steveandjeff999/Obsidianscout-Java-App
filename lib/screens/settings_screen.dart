@@ -284,19 +284,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.folder_zip_rounded, color: ObsidianUITheme.primaryAccent),
-                        const SizedBox(width: 8),
-                        Text(
-                          context.tr('settings.offline_cache'),
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
-                        ),
-                      ],
+                    Expanded(
+                      child: Row(
+                        children: [
+                          const Icon(Icons.folder_zip_rounded, color: ObsidianUITheme.primaryAccent),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              context.tr('settings.offline_cache'),
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    Text(
-                      '${(_totalBytes / 1024).toStringAsFixed(1)} KB ${context.tr("dashboard.total")}',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ObsidianUITheme.primaryAccent),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        '${(_totalBytes / 1024).toStringAsFixed(1)} KB ${context.tr("dashboard.total")}',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ObsidianUITheme.primaryAccent),
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.end,
+                      ),
                     ),
                   ],
                 ),
@@ -319,13 +329,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Row(
-                              children: [
-                                const Icon(Icons.check_circle_outline_rounded, color: Colors.greenAccent, size: 16),
-                                const SizedBox(width: 8),
-                                Text(name, style: TextStyle(color: primaryTextColor, fontSize: 13)),
-                              ],
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.check_circle_outline_rounded, color: Colors.greenAccent, size: 16),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      name,
+                                      style: TextStyle(color: primaryTextColor, fontSize: 13),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
+                            const SizedBox(width: 8),
                             Text('$kb KB', style: TextStyle(color: tertiaryTextColor, fontSize: 12, fontFamily: 'monospace')),
                           ],
                         ),
