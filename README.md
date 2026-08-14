@@ -1,3 +1,3 @@
-# obsidianscout_app
+# ObsidianScout app
 
 Coming later
