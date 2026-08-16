@@ -765,6 +765,101 @@ class ApiService {
     }
   }
 
+  Future<bool> deleteChatGroup(String groupName) async {
+    if (!_isOnline) return false;
+    try {
+      final response = await http.delete(
+        Uri.parse('$_currentServerUrl/api/chat/groups/${Uri.encodeComponent(groupName)}'),
+        headers: _headers,
+      );
+      return response.statusCode == 200 || response.statusCode == 204;
+    } catch (_) {
+      _updateOnlineState(false);
+      return false;
+    }
+  }
+
+  Future<bool> clearChatGroupMessages(String groupName) async {
+    if (!_isOnline) return false;
+    try {
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/chat/groups/${Uri.encodeComponent(groupName)}/clear'),
+        headers: _headers,
+      );
+      return response.statusCode == 200;
+    } catch (_) {
+      _updateOnlineState(false);
+      return false;
+    }
+  }
+
+  Future<ChatGroupDetailsModel?> fetchChatGroupDetails(String groupName) async {
+    if (!_isOnline) return null;
+    try {
+      final response = await http.get(
+        Uri.parse('$_currentServerUrl/api/chat/groups/${Uri.encodeComponent(groupName)}/details'),
+        headers: _headers,
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return ChatGroupDetailsModel.fromJson(data);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<bool> updateChatGroupPermissions(
+    String groupName,
+    List<String> allowedRoles,
+    List<String> allowedUserIds,
+  ) async {
+    if (!_isOnline) return false;
+    try {
+      final response = await http.put(
+        Uri.parse('$_currentServerUrl/api/chat/groups/${Uri.encodeComponent(groupName)}/permissions'),
+        headers: _headers,
+        body: jsonEncode({
+          'allowedRoles': allowedRoles,
+          'allowedUserIds': allowedUserIds,
+        }),
+      );
+      return response.statusCode == 200;
+    } catch (_) {
+      _updateOnlineState(false);
+      return false;
+    }
+  }
+
+  Future<List<ChatTeamMemberModel>> fetchChatTeamMembers() async {
+    if (!_isOnline) return [];
+    try {
+      final response = await http.get(
+        Uri.parse('$_currentServerUrl/api/chat/team-members'),
+        headers: _headers,
+      );
+      if (response.statusCode == 200) {
+        final List data = jsonDecode(response.body);
+        return data.map((e) => ChatTeamMemberModel.fromJson(e as Map<String, dynamic>)).toList();
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  Future<String?> fetchCurrentUserRole() async {
+    if (!_isOnline) return null;
+    try {
+      final response = await http
+          .get(Uri.parse('$_currentServerUrl/api/auth/me'), headers: _headers)
+          .timeout(const Duration(seconds: 5));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final user = data['user'] as Map<String, dynamic>?;
+        return (user != null ? user['role'] : data['role'])?.toString().toUpperCase();
+      }
+    } catch (_) {}
+    return null;
+  }
+
   Future<List<ChatMessageModel>> fetchChatMessages(String groupName) async {
     final cacheKey = "cache_chat_messages_$groupName";
     final cached = await _getCache(cacheKey);

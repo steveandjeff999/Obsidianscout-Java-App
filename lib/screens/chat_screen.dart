@@ -34,6 +34,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Map<String, ChatGroupUnreadModel> _groupUnreads = {};
   List<ChatMessageModel> _messages = [];
   List<String> _mentionOptions = ['everyone', 'channel'];
+  String? _currentUserRole;
   
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -102,11 +103,13 @@ class _ChatScreenState extends State<ChatScreen> {
 
     final groups = await widget.apiService.fetchChatGroups();
     final teamUsers = await widget.apiService.fetchChatTeamUsers();
+    final role = await widget.apiService.fetchCurrentUserRole();
 
     if (!mounted) return;
 
     setState(() {
       _isChatEnabled = true;
+      _currentUserRole = role;
       _knownGroups = groups.isNotEmpty ? groups : ['general'];
       _mentionOptions = teamUsers.isNotEmpty ? teamUsers : ['everyone', 'channel'];
       if (widget.initialChannel != null && widget.initialChannel!.trim().isNotEmpty) {
@@ -265,6 +268,421 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showClearGroupDialog(String group) {
+    final surfaceColor = ObsidianUITheme.getSurfaceColor(context);
+    final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final msgCleared = context.tr('chat.messages_cleared');
+    final errCleared = context.tr('chat.error_clear_channel');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: surfaceColor,
+        title: Text(context.tr('chat.clear_messages'), style: TextStyle(color: primaryTextColor)),
+        content: Text(
+          context.tr('chat.clear_messages_confirm').replaceAll('{group}', group),
+          style: TextStyle(color: secondaryTextColor),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(context.tr('chat.cancel'), style: TextStyle(color: secondaryTextColor)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.amber.shade700),
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              final success = await widget.apiService.clearChatGroupMessages(group);
+              if (!mounted) return;
+              if (success) {
+                if (_currentGroup == group) {
+                  await _loadMessagesAndUnreads(scrollToBottom: true);
+                }
+                messenger.showSnackBar(
+                  SnackBar(content: Text(msgCleared)),
+                );
+              } else {
+                messenger.showSnackBar(
+                  SnackBar(content: Text(errCleared)),
+                );
+              }
+            },
+            child: Text(context.tr('chat.clear_messages'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteGroupDialog(String group) {
+    if (_knownGroups.length <= 1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('chat.cannot_delete_last'))),
+      );
+      return;
+    }
+
+    final surfaceColor = ObsidianUITheme.getSurfaceColor(context);
+    final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final errDelete = context.tr('chat.error_delete_channel');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: surfaceColor,
+        title: Text(context.tr('chat.delete_channel'), style: TextStyle(color: primaryTextColor)),
+        content: Text(
+          context.tr('chat.delete_channel_confirm').replaceAll('{group}', group),
+          style: TextStyle(color: secondaryTextColor),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(context.tr('chat.cancel'), style: TextStyle(color: secondaryTextColor)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              final success = await widget.apiService.deleteChatGroup(group);
+              if (!mounted) return;
+              if (success) {
+                setState(() {
+                  _knownGroups.remove(group);
+                  if (_currentGroup == group) {
+                    _currentGroup = _knownGroups.isNotEmpty ? _knownGroups.first : 'general';
+                  }
+                });
+                await _initChat();
+              } else {
+                messenger.showSnackBar(
+                  SnackBar(content: Text(errDelete)),
+                );
+              }
+            },
+            child: Text(context.tr('chat.delete'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+  void _showChannelSettingsModal(BuildContext context, String group) {
+    final surfaceColor = ObsidianUITheme.getSurfaceColor(context);
+    final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+    final faintTextColor = ObsidianUITheme.getFaintTextColor(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final msgSaved = context.tr('chat.permissions_saved');
+    final errSaved = context.tr('chat.error_save_permissions');
+    final errAdminRequired = context.tr('chat.admin_required');
+
+    final availableRoles = [
+      'ADMIN',
+      'ANALYTICS',
+      'SCOUT',
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: surfaceColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetCtx) {
+        List<String>? selectedRoles;
+        List<String>? selectedUserIds;
+        String memberFilter = '';
+
+        return FutureBuilder<List<dynamic>>(
+          future: Future.wait([
+            widget.apiService.fetchChatGroupDetails(group),
+            widget.apiService.fetchChatTeamMembers(),
+          ]),
+          builder: (ctx, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Container(
+                padding: const EdgeInsets.all(32),
+                child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              );
+            }
+
+            final details = snapshot.data?[0] as ChatGroupDetailsModel?;
+            final teamMembers = (snapshot.data?[1] as List<ChatTeamMemberModel>?) ?? [];
+
+            final initialRoles = details?.allowedRoles ?? [];
+            final initialUserIds = details?.allowedUserIds ?? [];
+
+            return StatefulBuilder(
+              builder: (modalCtx, setModalState) {
+                selectedRoles ??= List<String>.from(initialRoles);
+                selectedUserIds ??= List<String>.from(initialUserIds);
+
+                final filteredMembers = teamMembers.where((m) {
+                  if (memberFilter.isEmpty) return true;
+                  final q = memberFilter.toLowerCase();
+                  return m.username.toLowerCase().contains(q) || m.role.toLowerCase().contains(q);
+                }).toList();
+
+                return Container(
+                  height: MediaQuery.of(context).size.height * 0.85,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '#$group ${context.tr('chat.channel_settings')}',
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryTextColor),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.close_rounded, color: secondaryTextColor),
+                            onPressed: () => Navigator.of(sheetCtx).pop(),
+                          ),
+                        ],
+                      ),
+                      const Divider(),
+                      Expanded(
+                        child: ListView(
+                          children: [
+                            // Access Control Section
+                            Text(
+                              context.tr('chat.access_control'),
+                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primaryTextColor),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              context.tr('chat.access_control_desc'),
+                              style: TextStyle(fontSize: 12, color: faintTextColor),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              context.tr('chat.allowed_roles'),
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: primaryTextColor),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 6,
+                              children: availableRoles.map((role) {
+                                final isSelected = selectedRoles!.contains(role);
+                                return FilterChip(
+                                  label: Text(
+                                    role,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: isSelected ? Colors.white : primaryTextColor,
+                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                    ),
+                                  ),
+                                  selected: isSelected,
+                                  selectedColor: ObsidianUITheme.primaryAccent,
+                                  checkmarkColor: Colors.white,
+                                  backgroundColor: ObsidianUITheme.isDark(context) ? const Color(0x30121620) : const Color(0xFFE2E8F0),
+                                  onSelected: (val) {
+                                    setModalState(() {
+                                      if (val) {
+                                        selectedRoles!.add(role);
+                                      } else {
+                                        selectedRoles!.remove(role);
+                                      }
+                                    });
+                                  },
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              context.tr('chat.allowed_members'),
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: primaryTextColor),
+                            ),
+                            const SizedBox(height: 8),
+                            TextField(
+                              style: TextStyle(fontSize: 13, color: primaryTextColor),
+                              decoration: InputDecoration(
+                                hintText: context.tr('chat.search_members'),
+                                hintStyle: TextStyle(color: faintTextColor, fontSize: 13),
+                                prefixIcon: Icon(Icons.search_rounded, size: 18, color: secondaryTextColor),
+                                isDense: true,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
+                                focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+                              ),
+                              onChanged: (val) {
+                                setModalState(() {
+                                  memberFilter = val.trim();
+                                });
+                              },
+                            ),
+                            const SizedBox(height: 8),
+                            Container(
+                              constraints: const BoxConstraints(maxHeight: 180),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: filteredMembers.isEmpty
+                                  ? Center(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(16),
+                                        child: Text(
+                                          'No members found',
+                                          style: TextStyle(color: faintTextColor, fontSize: 12),
+                                        ),
+                                      ),
+                                    )
+                                  : ListView.builder(
+                                      shrinkWrap: true,
+                                      itemCount: filteredMembers.length,
+                                      itemBuilder: (ctx, i) {
+                                        final m = filteredMembers[i];
+                                        final isChecked = selectedUserIds!.contains(m.userId);
+                                        return CheckboxListTile(
+                                          value: isChecked,
+                                          dense: true,
+                                          title: Text(m.username, style: TextStyle(fontSize: 13, color: primaryTextColor)),
+                                          subtitle: Text(m.role, style: TextStyle(fontSize: 11, color: faintTextColor)),
+                                          activeColor: ObsidianUITheme.primaryAccent,
+                                          onChanged: (val) {
+                                            setModalState(() {
+                                              if (val == true) {
+                                                selectedUserIds!.add(m.userId);
+                                              } else {
+                                                selectedUserIds!.remove(m.userId);
+                                              }
+                                            });
+                                          },
+                                        );
+                                      },
+                                    ),
+                            ),
+                            const SizedBox(height: 20),
+                            // Save permissions button
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: ObsidianUITheme.primaryAccent,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                ),
+                                onPressed: () async {
+                                  final isRestricted = selectedRoles!.isNotEmpty || selectedUserIds!.isNotEmpty;
+                                  final hasAdminRole = selectedRoles!.contains('ADMIN') || selectedRoles!.contains('SUPERADMIN');
+                                  final hasAdminUser = selectedUserIds!.any((uid) {
+                                    final member = teamMembers.where((m) => m.userId == uid).firstOrNull;
+                                    if (member == null) return false;
+                                    final roleUpper = member.role.trim().toUpperCase();
+                                    return roleUpper == 'ADMIN' || roleUpper == 'SUPERADMIN';
+                                  });
+
+                                  if (isRestricted && !hasAdminRole && !hasAdminUser) {
+                                    messenger.showSnackBar(
+                                      SnackBar(
+                                        content: Text(errAdminRequired),
+                                        backgroundColor: Colors.redAccent,
+                                      ),
+                                    );
+                                    return;
+                                  }
+
+                                  final success = await widget.apiService.updateChatGroupPermissions(
+                                    group,
+                                    selectedRoles!,
+                                    selectedUserIds!,
+                                  );
+                                  if (sheetCtx.mounted) {
+                                    Navigator.of(sheetCtx).pop();
+                                  }
+                                  if (!mounted) return;
+                                  if (success) {
+                                    messenger.showSnackBar(
+                                      SnackBar(content: Text(msgSaved)),
+                                    );
+                                    await _initChat();
+                                  } else {
+                                    messenger.showSnackBar(
+                                      SnackBar(content: Text(errSaved)),
+                                    );
+                                  }
+                                },
+                                child: Text(context.tr('chat.save_changes'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            // Danger Zone
+                            Text(
+                              context.tr('chat.danger_zone'),
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.redAccent),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: Colors.amber.shade700,
+                                      side: BorderSide(color: Colors.amber.shade700.withValues(alpha: 0.5)),
+                                    ),
+                                    icon: const Icon(Icons.cleaning_services_rounded, size: 18),
+                                    label: Text(context.tr('chat.clear_messages'), style: const TextStyle(fontSize: 12)),
+                                    onPressed: () {
+                                      Navigator.of(sheetCtx).pop();
+                                      _showClearGroupDialog(group);
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: Colors.redAccent,
+                                      side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.5)),
+                                    ),
+                                    icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                                    label: Text(context.tr('chat.delete_channel'), style: const TextStyle(fontSize: 12)),
+                                    onPressed: _knownGroups.length <= 1
+                                        ? null
+                                        : () {
+                                            Navigator.of(sheetCtx).pop();
+                                            _showDeleteGroupDialog(group);
+                                          },
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (_knownGroups.length <= 1)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: Text(
+                                  context.tr('chat.cannot_delete_last_hint'),
+                                  style: TextStyle(color: faintTextColor, fontSize: 11),
+                                ),
+                              ),
+                            const SizedBox(height: 24),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 
@@ -688,14 +1106,18 @@ class _ChatScreenState extends State<ChatScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          '# $_currentGroup',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
+                        Flexible(
+                          child: Text(
+                            '# $_currentGroup',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                         Icon(Icons.arrow_drop_down_rounded, color: secondaryTextColor),
                       ],
                     ),
                     itemBuilder: (ctx) {
+                      final isAdmin = _currentUserRole?.toUpperCase() == 'ADMIN' || _currentUserRole?.toUpperCase() == 'SUPERADMIN';
                       return _knownGroups.map((group) {
                         final unreadInfo = _groupUnreads[group];
                         final unreadCount = unreadInfo?.unreadCount ?? 0;
@@ -706,10 +1128,20 @@ class _ChatScreenState extends State<ChatScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text('# $group', style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.w600)),
+                              Expanded(
+                                child: Text(
+                                  '# $group',
+                                  style: TextStyle(
+                                    color: group == _currentGroup ? ObsidianUITheme.primaryAccent : primaryTextColor,
+                                    fontWeight: group == _currentGroup ? FontWeight.bold : FontWeight.w600,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
                               if (mentionCount > 0)
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  margin: const EdgeInsets.only(left: 6),
                                   decoration: BoxDecoration(
                                     color: Colors.redAccent,
                                     borderRadius: BorderRadius.circular(10),
@@ -720,11 +1152,37 @@ class _ChatScreenState extends State<ChatScreen> {
                                 Container(
                                   width: 8,
                                   height: 8,
+                                  margin: const EdgeInsets.only(left: 6),
                                   decoration: const BoxDecoration(
                                     color: Colors.redAccent,
                                     shape: BoxShape.circle,
                                   ),
                                 ),
+                              if (isAdmin) ...[
+                                InkWell(
+                                  onTap: () {
+                                    Navigator.of(ctx).pop();
+                                    _showChannelSettingsModal(context, group);
+                                  },
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: const Padding(
+                                    padding: EdgeInsets.all(4),
+                                    child: Icon(Icons.settings_outlined, size: 18, color: ObsidianUITheme.primaryAccent),
+                                  ),
+                                ),
+                                if (_knownGroups.length > 1)
+                                  InkWell(
+                                    onTap: () {
+                                      Navigator.of(ctx).pop();
+                                      _showDeleteGroupDialog(group);
+                                    },
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: const Padding(
+                                      padding: EdgeInsets.all(4),
+                                      child: Icon(Icons.delete_outline_rounded, size: 18, color: Colors.redAccent),
+                                    ),
+                                  ),
+                              ],
                             ],
                           ),
                         );
@@ -732,6 +1190,12 @@ class _ChatScreenState extends State<ChatScreen> {
                     },
                   ),
                 ),
+                if (_currentUserRole?.toUpperCase() == 'ADMIN' || _currentUserRole?.toUpperCase() == 'SUPERADMIN')
+                  IconButton(
+                    icon: const Icon(Icons.settings_outlined, color: ObsidianUITheme.primaryAccent, size: 22),
+                    tooltip: context.tr('chat.channel_settings'),
+                    onPressed: () => _showChannelSettingsModal(context, _currentGroup),
+                  ),
                 IconButton(
                   icon: const Icon(Icons.add_circle_outline_rounded, color: ObsidianUITheme.primaryAccent, size: 22),
                   tooltip: 'Create Channel',
