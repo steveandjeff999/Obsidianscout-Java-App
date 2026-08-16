@@ -30,6 +30,7 @@ class ApiService {
   Timer? _healthCheckTimer;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
   final StreamController<bool> _onlineStreamController = StreamController<bool>.broadcast();
+  final StreamController<int> _serverErrorController = StreamController<int>.broadcast();
 
   String get serverUrl => _currentServerUrl;
   bool get isLoggedIn => _sessionCookie != null && _sessionCookie!.isNotEmpty;
@@ -37,6 +38,7 @@ class ApiService {
   String get savedUsername => _savedUsername;
   bool get isOnline => _isOnline;
   Stream<bool> get onOnlineStatusChanged => _onlineStreamController.stream;
+  Stream<int> get onServerError => _serverErrorController.stream;
   ThemeMode get themeMode => themeNotifier.value;
   Locale get currentLocale => localeNotifier.value;
 
@@ -214,6 +216,12 @@ class ApiService {
         'X-Mobile-App': 'true',
         ...?_sessionCookie == null ? null : {'Cookie': _sessionCookie!},
       };
+
+  void _checkResponseForServerError(http.Response response) {
+    if (response.statusCode >= 500) {
+      _serverErrorController.add(response.statusCode);
+    }
+  }
 
   void _updateCookiesFromResponse(http.Response response) {
     final rawSetCookie = response.headers['set-cookie'];
@@ -737,6 +745,7 @@ class ApiService {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/chat/groups'), headers: _headers)
           .timeout(const Duration(seconds: 2));
+      _checkResponseForServerError(response);
       if (response.statusCode == 200) {
         await _setCache("cache_chat_groups", response.body);
         final List list = jsonDecode(response.body);
@@ -823,6 +832,7 @@ class ApiService {
           'allowedUserIds': allowedUserIds,
         }),
       );
+      _checkResponseForServerError(response);
       return response.statusCode == 200;
     } catch (_) {
       _updateOnlineState(false);
@@ -877,6 +887,7 @@ class ApiService {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/chat/messages?group=${Uri.encodeComponent(groupName)}'), headers: _headers)
           .timeout(const Duration(seconds: 2));
+      _checkResponseForServerError(response);
       if (response.statusCode == 200) {
         await _setCache(cacheKey, response.body);
         final List list = jsonDecode(response.body);

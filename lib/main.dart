@@ -90,6 +90,7 @@ class _MainShellState extends State<MainShell> {
   late bool _isOnline;
   int _currentIndex = 0;
   StreamSubscription<bool>? _onlineSub;
+  StreamSubscription<int>? _serverErrorSub;
 
   String? _pendingChatChannel;
   NotificationWebSocketService? _wsNotificationService;
@@ -104,6 +105,29 @@ class _MainShellState extends State<MainShell> {
       if (mounted) {
         setState(() => _isOnline = online);
       }
+    });
+    _serverErrorSub = widget.apiService.onServerError.listen((statusCode) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 5),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: const Color(0xFFB91C1C),
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Server error ($statusCode). Something went wrong — please try again.',
+                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
     });
 
     if (_isAuthenticated) {
@@ -169,6 +193,7 @@ class _MainShellState extends State<MainShell> {
   @override
   void dispose() {
     _onlineSub?.cancel();
+    _serverErrorSub?.cancel();
     _wsNotificationService?.dispose();
     super.dispose();
   }
