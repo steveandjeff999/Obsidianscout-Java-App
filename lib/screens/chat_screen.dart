@@ -29,8 +29,8 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   bool _isLoading = true;
   bool _isChatEnabled = true;
-  String _currentGroup = 'general';
-  List<String> _knownGroups = ['general'];
+  String _currentGroup = '';
+  List<String> _knownGroups = [];
   Map<String, ChatGroupUnreadModel> _groupUnreads = {};
   List<ChatMessageModel> _messages = [];
   List<String> _mentionOptions = ['everyone', 'channel'];
@@ -110,15 +110,18 @@ class _ChatScreenState extends State<ChatScreen> {
     setState(() {
       _isChatEnabled = true;
       _currentUserRole = role;
-      _knownGroups = groups.isNotEmpty ? groups : ['general'];
+      _knownGroups = groups.isNotEmpty ? groups : [];
       _mentionOptions = teamUsers.isNotEmpty ? teamUsers : ['everyone', 'channel'];
       if (widget.initialChannel != null && widget.initialChannel!.trim().isNotEmpty) {
-        _currentGroup = widget.initialChannel!.trim();
-        if (!_knownGroups.contains(_currentGroup)) {
-          _knownGroups.add(_currentGroup);
+        final requested = widget.initialChannel!.trim();
+        // Only honour the push-notification channel if the user actually has access to it
+        if (_knownGroups.contains(requested)) {
+          _currentGroup = requested;
+        } else {
+          _currentGroup = _knownGroups.isNotEmpty ? _knownGroups.first : '';
         }
       } else if (!_knownGroups.contains(_currentGroup)) {
-        _currentGroup = _knownGroups.first;
+        _currentGroup = _knownGroups.isNotEmpty ? _knownGroups.first : '';
       }
     });
 
@@ -140,6 +143,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _loadMessagesAndUnreads({bool scrollToBottom = false}) async {
+    if (_currentGroup.isEmpty) return;
     final unreads = await widget.apiService.fetchChatUnreadStatus();
     final msgs = await widget.apiService.fetchChatMessages(_currentGroup);
 
@@ -357,7 +361,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 setState(() {
                   _knownGroups.remove(group);
                   if (_currentGroup == group) {
-                    _currentGroup = _knownGroups.isNotEmpty ? _knownGroups.first : 'general';
+                    _currentGroup = _knownGroups.isNotEmpty ? _knownGroups.first : '';
                   }
                 });
                 await _initChat();
@@ -400,6 +404,7 @@ class _ChatScreenState extends State<ChatScreen> {
         List<String>? selectedRoles;
         List<String>? selectedUserIds;
         String memberFilter = '';
+        String? adminError;
 
         return FutureBuilder<List<dynamic>>(
           future: Future.wait([
@@ -570,6 +575,29 @@ class _ChatScreenState extends State<ChatScreen> {
                                     ),
                             ),
                             const SizedBox(height: 20),
+                            // Admin-required inline error
+                            if (adminError != null)
+                              Container(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: Colors.redAccent.withValues(alpha: 0.12),
+                                  border: Border.all(color: Colors.redAccent.withValues(alpha: 0.5)),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.admin_panel_settings_rounded, color: Colors.redAccent, size: 16),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        adminError!,
+                                        style: const TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.w500),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             // Save permissions button
                             SizedBox(
                               width: double.infinity,
@@ -589,14 +617,10 @@ class _ChatScreenState extends State<ChatScreen> {
                                   });
 
                                   if (isRestricted && !hasAdminRole && !hasAdminUser) {
-                                    messenger.showSnackBar(
-                                      SnackBar(
-                                        content: Text(errAdminRequired),
-                                        backgroundColor: Colors.redAccent,
-                                      ),
-                                    );
+                                    setModalState(() => adminError = errAdminRequired);
                                     return;
                                   }
+                                  setModalState(() => adminError = null);
 
                                   final success = await widget.apiService.updateChatGroupPermissions(
                                     group,
