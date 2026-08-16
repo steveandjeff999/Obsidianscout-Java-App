@@ -78,3 +78,65 @@ class ChatGroupUnreadModel {
     );
   }
 }
+
+class ChatGroupDetailsModel {
+  final String groupName;
+  final bool isDefault;
+  final List<String> allowedRoles;
+  final List<String> allowedUserIds;
+  final String? createdByUserId;
+  final String? createdAt;
+
+  ChatGroupDetailsModel({
+    required this.groupName,
+    this.isDefault = false,
+    required this.allowedRoles,
+    required this.allowedUserIds,
+    this.createdByUserId,
+    this.createdAt,
+  });
+
+  factory ChatGroupDetailsModel.fromJson(Map<String, dynamic> json) {
+    return ChatGroupDetailsModel(
+      groupName: json['groupName']?.toString() ?? '',
+      isDefault: json['isDefault'] == true,
+      allowedRoles: (json['allowedRoles'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      allowedUserIds: (json['allowedUserIds'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      createdByUserId: json['createdByUserId']?.toString(),
+      createdAt: json['createdAt']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'groupName': groupName,
+        'isDefault': isDefault,
+        'allowedRoles': allowedRoles,
+        'allowedUserIds': allowedUserIds,
+        'createdByUserId': createdByUserId,
+        'createdAt': createdAt,
+      };
+}
+
+class ChatTeamMemberModel {
+  final String userId;
+  final String username;
+  final String role;
+  final String? profilePicture;
+
+  ChatTeamMemberModel({
+    required this.userId,
+    required this.username,
+    required this.role,
+    this.profilePicture,
+  });
+
+  factory ChatTeamMemberModel.fromJson(Map<String, dynamic> json) {
+    return ChatTeamMemberModel(
+      userId: json['userId']?.toString() ?? '',
+      username: json['username']?.toString() ?? '',
+      role: json['role']?.toString() ?? '',
+      profilePicture: json['profilePicture']?.toString(),
+    );
+  }
+}
+
