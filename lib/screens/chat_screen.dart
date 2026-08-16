@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../l10n/app_localizations.dart';
 import '../models/chat_models.dart';
@@ -384,6 +385,187 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  void _showMessageActions(BuildContext context, ChatMessageModel msg, bool isMe) {
+    final surfaceColor = ObsidianUITheme.getSurfaceColor(context);
+    final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: surfaceColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: ObsidianUITheme.getBorderColor(context),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              if (!isMe)
+                ListTile(
+                  leading: const Icon(Icons.add_reaction_outlined, color: ObsidianUITheme.primaryAccent),
+                  title: Text(context.tr('chat.add_reaction'), style: TextStyle(color: primaryTextColor)),
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    _showReactionPicker(context, msg.id);
+                  },
+                ),
+              ListTile(
+                leading: Icon(Icons.copy_rounded, color: secondaryTextColor),
+                title: Text(context.tr('chat.copy_text'), style: TextStyle(color: primaryTextColor)),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  Clipboard.setData(ClipboardData(text: msg.content));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(context.tr('chat.copied_to_clipboard')),
+                      duration: const Duration(seconds: 2),
+                      backgroundColor: ObsidianUITheme.primaryAccent,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                },
+              ),
+              if (isMe)
+                ListTile(
+                  leading: const Icon(Icons.edit_outlined, color: ObsidianUITheme.primaryAccent),
+                  title: Text(context.tr('chat.edit_message'), style: TextStyle(color: primaryTextColor)),
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    _showEditMessageDialog(context, msg);
+                  },
+                ),
+              ListTile(
+                leading: const Icon(Icons.delete_outline_rounded, color: ObsidianUITheme.errorRed),
+                title: Text(context.tr('chat.delete_message'), style: const TextStyle(color: ObsidianUITheme.errorRed)),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _showDeleteMessageDialog(context, msg);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showEditMessageDialog(BuildContext context, ChatMessageModel msg) {
+    final controller = TextEditingController(text: msg.content);
+    final surfaceColor = ObsidianUITheme.getSurfaceColor(context);
+    final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+    final faintTextColor = ObsidianUITheme.getFaintTextColor(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final errEdit = context.tr('chat.error_edit');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: surfaceColor,
+        title: Text(context.tr('chat.edit_message'), style: TextStyle(color: primaryTextColor)),
+        content: TextField(
+          controller: controller,
+          maxLines: 4,
+          minLines: 1,
+          style: TextStyle(color: primaryTextColor),
+          decoration: InputDecoration(
+            hintText: context.tr('chat.input_placeholder'),
+            hintStyle: TextStyle(color: faintTextColor),
+            enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
+            focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(context.tr('chat.cancel'), style: TextStyle(color: secondaryTextColor)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.primaryAccent),
+            onPressed: () async {
+              final newContent = controller.text.trim();
+              if (newContent.isNotEmpty && newContent != msg.content) {
+                Navigator.of(ctx).pop();
+                final success = await widget.apiService.editChatMessage(msg.id, newContent);
+                if (mounted) {
+                  if (success) {
+                    await _loadMessagesAndUnreads(scrollToBottom: false);
+                  } else {
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text(errEdit),
+                        backgroundColor: ObsidianUITheme.errorRed,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                }
+              } else if (newContent == msg.content) {
+                Navigator.of(ctx).pop();
+              }
+            },
+            child: Text(context.tr('chat.save'), style: const TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteMessageDialog(BuildContext context, ChatMessageModel msg) {
+    final surfaceColor = ObsidianUITheme.getSurfaceColor(context);
+    final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final errDelete = context.tr('chat.error_delete');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: surfaceColor,
+        title: Text(context.tr('chat.delete_message'), style: TextStyle(color: primaryTextColor)),
+        content: Text(context.tr('chat.delete_confirm'), style: TextStyle(color: secondaryTextColor)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(context.tr('chat.cancel'), style: TextStyle(color: secondaryTextColor)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.errorRed),
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              final success = await widget.apiService.deleteChatMessage(msg.id);
+              if (mounted) {
+                if (success) {
+                  await _loadMessagesAndUnreads(scrollToBottom: false);
+                } else {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(errDelete),
+                      backgroundColor: ObsidianUITheme.errorRed,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
+              }
+            },
+            child: Text(context.tr('chat.delete'), style: const TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
@@ -595,47 +777,61 @@ class _ChatScreenState extends State<ChatScreen> {
                               const SizedBox(width: 10),
                             ],
                             Flexible(
-                              child: Container(
-                                constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: isMe
-                                      ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.25)
-                                      : (ObsidianUITheme.isDark(context) ? const Color(0x25FFFFFF) : ObsidianUITheme.getSurfaceColor(context)),
-                                  borderRadius: BorderRadius.only(
-                                    topLeft: const Radius.circular(16),
-                                    topRight: const Radius.circular(16),
-                                    bottomLeft: Radius.circular(isMe ? 16 : 2),
-                                    bottomRight: Radius.circular(isMe ? 2 : 16),
-                                  ),
-                                  border: Border.all(
-                                    color: isMe ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.5) : ObsidianUITheme.getBorderColor(context),
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // Header: sender & time
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          msg.username,
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12,
-                                            color: isMe ? ObsidianUITheme.primaryAccent : primaryTextColor,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          _formatTimestamp(msg.createdAt),
-                                          style: TextStyle(fontSize: 10, color: faintTextColor),
-                                        ),
-                                      ],
+                              child: GestureDetector(
+                                onLongPress: () => _showMessageActions(context, msg, isMe),
+                                child: Container(
+                                  constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: isMe
+                                        ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.25)
+                                        : (ObsidianUITheme.isDark(context) ? const Color(0x25FFFFFF) : ObsidianUITheme.getSurfaceColor(context)),
+                                    borderRadius: BorderRadius.only(
+                                      topLeft: const Radius.circular(16),
+                                      topRight: const Radius.circular(16),
+                                      bottomLeft: Radius.circular(isMe ? 16 : 2),
+                                      bottomRight: Radius.circular(isMe ? 2 : 16),
                                     ),
-                                    const SizedBox(height: 4),
+                                    border: Border.all(
+                                      color: isMe ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.5) : ObsidianUITheme.getBorderColor(context),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      // Header: sender, time, edited indicator, actions
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            msg.username,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                              color: isMe ? ObsidianUITheme.primaryAccent : primaryTextColor,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            _formatTimestamp(msg.createdAt),
+                                            style: TextStyle(fontSize: 10, color: faintTextColor),
+                                          ),
+                                          if (msg.isEdited) ...[
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              context.tr('chat.edited'),
+                                              style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: faintTextColor),
+                                            ),
+                                          ],
+                                          const SizedBox(width: 6),
+                                          GestureDetector(
+                                            onTap: () => _showMessageActions(context, msg, isMe),
+                                            child: Icon(Icons.more_horiz_rounded, size: 14, color: faintTextColor),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
 
                                     // Content Text
                                     Text(
@@ -719,7 +915,8 @@ class _ChatScreenState extends State<ChatScreen> {
                                 ),
                               ),
                             ),
-                            if (isMe) ...[
+                          ),
+                          if (isMe) ...[
                               const SizedBox(width: 10),
                               CircleAvatar(
                                 radius: 18,
@@ -783,7 +980,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     focusNode: _inputFocusNode,
                     style: TextStyle(color: primaryTextColor, fontSize: 14),
                     decoration: InputDecoration(
-                      hintText: context.tr('contact.placeholder.message'),
+                      hintText: context.tr('chat.input_placeholder'),
                       hintStyle: TextStyle(color: faintTextColor, fontSize: 13),
                       filled: true,
                       fillColor: surfaceColor,

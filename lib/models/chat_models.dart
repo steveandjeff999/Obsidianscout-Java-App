@@ -6,6 +6,8 @@ class ChatMessageModel {
   final String createdAt;
   final String? profilePicture;
   final Map<String, List<String>> reactions;
+  final bool isEdited;
+  final String? updatedAt;
 
   ChatMessageModel({
     required this.id,
@@ -15,6 +17,8 @@ class ChatMessageModel {
     required this.createdAt,
     this.profilePicture,
     required this.reactions,
+    this.isEdited = false,
+    this.updatedAt,
   });
 
   factory ChatMessageModel.fromJson(Map<String, dynamic> json) {
@@ -37,6 +41,8 @@ class ChatMessageModel {
       createdAt: json['createdAt']?.toString() ?? '',
       profilePicture: json['profilePicture']?.toString(),
       reactions: parsedReactions,
+      isEdited: json['isEdited'] == true,
+      updatedAt: json['updatedAt']?.toString(),
     );
   }
 
@@ -48,6 +54,8 @@ class ChatMessageModel {
         'createdAt': createdAt,
         'profilePicture': profilePicture,
         'reactions': reactions,
+        'isEdited': isEdited,
+        'updatedAt': updatedAt,
       };
 }
 
