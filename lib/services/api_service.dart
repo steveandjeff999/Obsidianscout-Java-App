@@ -812,6 +812,37 @@ class ApiService {
     }
   }
 
+  Future<bool> editChatMessage(String messageId, String content) async {
+    if (!_isOnline) return false;
+    try {
+      final response = await http.put(
+        Uri.parse('$_currentServerUrl/api/chat/messages/$messageId'),
+        headers: _headers,
+        body: jsonEncode({
+          'content': content,
+        }),
+      );
+      return response.statusCode == 200;
+    } catch (_) {
+      _updateOnlineState(false);
+      return false;
+    }
+  }
+
+  Future<bool> deleteChatMessage(String messageId) async {
+    if (!_isOnline) return false;
+    try {
+      final response = await http.delete(
+        Uri.parse('$_currentServerUrl/api/chat/messages/$messageId'),
+        headers: _headers,
+      );
+      return response.statusCode == 200 || response.statusCode == 204;
+    } catch (_) {
+      _updateOnlineState(false);
+      return false;
+    }
+  }
+
   Future<bool> toggleChatReaction(String messageId, String emoji) async {
     if (!_isOnline) return false;
     try {
