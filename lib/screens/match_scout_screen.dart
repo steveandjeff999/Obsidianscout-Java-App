@@ -86,13 +86,17 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
       if (p == 'postmatch' || p == 'post-match' || p == 'post match' || p == 'post') {
         return 'postmatch';
       }
+      if (p == 'general') {
+        return 'teleop';
+      }
       return p;
     }
     final id = field.id.toLowerCase();
     if (id.startsWith('auto')) return 'auto';
     if (id.startsWith('teleop')) return 'teleop';
     if (id.startsWith('endgame')) return 'endgame';
-    return 'postmatch';
+    if (id.startsWith('post')) return 'postmatch';
+    return 'teleop';
   }
 
   double _calculateFieldPoints(ScoutingFieldModel field, dynamic value) {
@@ -236,6 +240,10 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
 
     // Check required fields across all phases and auto-switch tab if missing
     for (final field in _config?.fields ?? <ScoutingFieldModel>[]) {
+      final t = field.type.toLowerCase();
+      if (t == 'text' || t == 'static_text' || t == 'label' || t == 'info' || t == 'section' || t == 'header' || t == 'divider') {
+        continue;
+      }
       if (field.required) {
         final val = _formData[field.id];
         if (val == null || val == '' || (val is List && val.isEmpty)) {
@@ -302,6 +310,64 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
           isOffline: response.isOffline,
         );
       }
+    }
+  }
+
+  Future<void> _confirmAndResetForm() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        final surfaceColor = ObsidianUITheme.getSurfaceColor(ctx);
+        final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(ctx);
+        final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(ctx);
+
+        final titleText = ctx.tr('scout.clear_form');
+        final displayTitle = (titleText == 'scout.clear_form' || titleText == 'scout.clear') ? 'Clear form' : titleText;
+        final msgText = ctx.tr('scout.confirm_clear');
+        final displayMsg = (msgText == 'scout.confirm_clear') ? 'Are you sure you want to clear the form? All entered data will be reset.' : msgText;
+
+        return AlertDialog(
+          backgroundColor: surfaceColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+          title: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: ObsidianUITheme.warningOrange, size: 28.0),
+              const SizedBox(width: 10.0),
+              Expanded(
+                child: Text(
+                  displayTitle,
+                  style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold, color: primaryTextColor),
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            displayMsg,
+            style: TextStyle(fontSize: 14.0, color: secondaryTextColor),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(
+                ctx.tr('events.cancel'),
+                style: TextStyle(color: ObsidianUITheme.getTertiaryTextColor(ctx)),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.errorRed),
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(
+                ctx.tr('graphs.clear_all'),
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      _resetForm();
     }
   }
 
@@ -484,7 +550,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
         accentColor = ObsidianUITheme.successGreen;
         break;
       default:
-        sectionTitle = 'POST-MATCH / GENERAL';
+        sectionTitle = 'POST-MATCH';
         accentColor = Colors.white70;
         break;
     }
@@ -651,7 +717,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
 
             // Clear Form Button
             ObsidianGlassCard(
-              onTap: _resetForm,
+              onTap: _confirmAndResetForm,
               child: Center(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,

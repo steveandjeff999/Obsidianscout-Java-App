@@ -403,12 +403,13 @@ class DynamicFieldWidget extends StatelessWidget {
       case 'notes':
         String val = currentValue?.toString() ?? '';
         return TextFormField(
+          key: ValueKey('textarea_${field.id}'),
           initialValue: val,
           maxLines: 3,
           style: TextStyle(color: primaryTextColor),
           decoration: InputDecoration(
-            labelText: field.label,
-            hintText: field.placeholder ?? 'Enter comments...',
+            labelText: context.tr(field.label),
+            hintText: field.placeholder != null ? context.tr(field.placeholder!) : 'Enter comments...',
             hintStyle: TextStyle(color: tertiaryTextColor, fontSize: 13.0),
             labelStyle: TextStyle(color: secondaryTextColor),
             enabledBorder: OutlineInputBorder(
@@ -423,17 +424,60 @@ class DynamicFieldWidget extends StatelessWidget {
           onChanged: (text) => onChanged(text),
         );
 
-      // 10. TEXT / DEFAULT STRING
+      // 10. TEXT (STATIC TEXT DISPLAY)
       case 'text':
-      case 'string':
+      case 'static_text':
+      case 'label':
+      case 'info':
+        final labelText = context.tr(field.label);
+        final placeholderText = field.placeholder != null ? context.tr(field.placeholder!) : null;
+        return Container(
+          key: ValueKey('text_static_${field.id}'),
+          width: double.infinity,
+          margin: const EdgeInsets.symmetric(vertical: 2.0),
+          padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
+          decoration: BoxDecoration(
+            color: surfaceColor.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(10.0),
+            border: Border.all(color: borderColor.withValues(alpha: 0.6)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                labelText,
+                style: TextStyle(
+                  color: primaryTextColor,
+                  fontSize: 14.0,
+                  fontWeight: FontWeight.w500,
+                  height: 1.3,
+                ),
+              ),
+              if (placeholderText != null && placeholderText.isNotEmpty) ...[
+                const SizedBox(height: 4.0),
+                Text(
+                  placeholderText,
+                  style: TextStyle(
+                    color: tertiaryTextColor,
+                    fontSize: 12.0,
+                    height: 1.2,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+
       default:
         String val = currentValue?.toString() ?? '';
         return TextFormField(
+          key: ValueKey('field_${field.id}'),
           initialValue: val,
           style: TextStyle(color: primaryTextColor),
           decoration: InputDecoration(
-            labelText: field.label,
-            hintText: field.placeholder,
+            labelText: context.tr(field.label),
+            hintText: field.placeholder != null ? context.tr(field.placeholder!) : null,
             hintStyle: TextStyle(color: tertiaryTextColor, fontSize: 13.0),
             labelStyle: TextStyle(color: secondaryTextColor),
             enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
