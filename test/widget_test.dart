@@ -116,7 +116,7 @@ void main() {
     // Tap Post Match tab
     await tester.tap(find.text('Post Match').first);
     await tester.pumpAndSettle();
-    expect(find.text('POST-MATCH / GENERAL'), findsOneWidget);
+    expect(find.text('POST-MATCH'), findsOneWidget);
     expect(find.text('Comments'), findsOneWidget);
   });
 }

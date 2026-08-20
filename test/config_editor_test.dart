@@ -390,5 +390,61 @@ void main() {
       await tester.pump();
       expect(updatedValue, 5);
     });
+
+    testWidgets('renders text as static display and textarea as input field', (WidgetTester tester) async {
+      String? updatedTextarea;
+
+      final textField = ScoutingFieldModel(
+        id: 'driverComments',
+        label: 'Driver Instructions & Notice',
+        placeholder: 'Ensure intake is raised before parking',
+        type: 'text',
+        phase: 'teleop',
+      );
+
+      final textareaField = ScoutingFieldModel(
+        id: 'robotNotes',
+        label: 'Robot Notes',
+        type: 'textarea',
+        phase: 'teleop',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ObsidianUITheme.darkTheme,
+          home: Scaffold(
+            body: Column(
+              children: [
+                DynamicFieldWidget(
+                  field: textField,
+                  currentValue: null,
+                  onChanged: (val) {},
+                ),
+                DynamicFieldWidget(
+                  field: textareaField,
+                  currentValue: 'Initial Area',
+                  onChanged: (val) => updatedTextarea = val.toString(),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      // Text field is a static display
+      expect(find.text('Driver Instructions & Notice'), findsOneWidget);
+      expect(find.text('Ensure intake is raised before parking'), findsOneWidget);
+      expect(find.byKey(const ValueKey('text_static_driverComments')), findsOneWidget);
+      // No editable text input for static text
+      expect(find.byKey(const ValueKey('text_driverComments')), findsNothing);
+
+      // Textarea is an editable input field
+      expect(find.text('Robot Notes'), findsOneWidget);
+      expect(find.text('Initial Area'), findsOneWidget);
+      expect(find.byKey(const ValueKey('textarea_robotNotes')), findsOneWidget);
+
+      await tester.enterText(find.byKey(const ValueKey('textarea_robotNotes')), 'Great defense and intake');
+      expect(updatedTextarea, 'Great defense and intake');
+    });
   });
 }

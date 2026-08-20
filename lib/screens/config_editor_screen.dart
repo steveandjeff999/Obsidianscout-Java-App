@@ -88,11 +88,13 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     }
 
     if (mounted) {
+      final sanitizedFields = config!.fields.where((f) => f.type.toLowerCase() != 'section').toList();
+      final sanitizedConfig = config.copyWith(fields: sanitizedFields);
       setState(() {
-        _currentConfig = config!;
-        _titleController.text = config.title;
-        _versionController.text = config.version.toString();
-        _rawJsonController.text = const JsonEncoder.withIndent('  ').convert(config.toJson());
+        _currentConfig = sanitizedConfig;
+        _titleController.text = sanitizedConfig.title;
+        _versionController.text = sanitizedConfig.version.toString();
+        _rawJsonController.text = const JsonEncoder.withIndent('  ').convert(sanitizedConfig.toJson());
         _isLoading = false;
       });
       _loadPresets();
@@ -125,10 +127,12 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       final text = _rawJsonController.text.trim();
       final Map<String, dynamic> decoded = jsonDecode(text);
       final model = ScoutingConfigModel.fromJson(decoded);
+      final sanitizedFields = model.fields.where((f) => f.type.toLowerCase() != 'section').toList();
+      final sanitizedConfig = model.copyWith(fields: sanitizedFields);
       setState(() {
-        _currentConfig = model;
-        _titleController.text = model.title;
-        _versionController.text = model.version.toString();
+        _currentConfig = sanitizedConfig;
+        _titleController.text = sanitizedConfig.title;
+        _versionController.text = sanitizedConfig.version.toString();
         _rawJsonError = null;
       });
       return true;
@@ -272,7 +276,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     final labelCtrl = TextEditingController();
     final idCtrl = TextEditingController();
     String selectedType = 'counter';
-    String selectedPhase = '';
+    String selectedPhase = 'teleop';
     bool isRequired = false;
     int? minVal = 0;
     int? maxVal = 10;
@@ -294,11 +298,15 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
             final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
 
             return Container(
-              padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 24),
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
               decoration: BoxDecoration(
                 color: bg,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
               ),
               child: SingleChildScrollView(
                 child: Column(
@@ -308,61 +316,37 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Icon(Icons.add_circle_outline_rounded, color: ObsidianUITheme.primaryAccent, size: 22),
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Add New Field',
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryTextColor),
-                            ),
-                          ],
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close_rounded),
-                          color: ObsidianUITheme.getTertiaryTextColor(context),
-                          onPressed: () => Navigator.of(ctx).pop(),
-                        ),
+                        Text('Add Custom Field', style: TextStyle(color: primaryTextColor, fontSize: 18, fontWeight: FontWeight.bold)),
+                        IconButton(icon: Icon(Icons.close_rounded, color: secondaryTextColor), onPressed: () => Navigator.pop(ctx)),
                       ],
                     ),
                     const SizedBox(height: 16),
 
-                    // Label input
+                    // Label Input
                     TextField(
                       controller: labelCtrl,
                       style: TextStyle(color: primaryTextColor),
                       decoration: InputDecoration(
-                        labelText: 'Field Label (e.g. Speaker Score)',
+                        labelText: 'Field Label (e.g. Speaker Cycles)',
                         labelStyle: TextStyle(color: secondaryTextColor),
                         enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
-                        focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
                       ),
                       onChanged: (val) {
                         if (autoId) {
-                          setModalState(() {
-                            idCtrl.text = _slugify(val);
-                          });
+                          idCtrl.text = _slugify(val);
                         }
                       },
                     ),
                     const SizedBox(height: 12),
 
-                    // ID input
+                    // Field Slug / ID Input
                     TextField(
                       controller: idCtrl,
                       style: TextStyle(color: primaryTextColor),
                       decoration: InputDecoration(
-                        labelText: 'Field ID / Key (e.g. speakerScore)',
+                        labelText: 'Field ID / Slug (e.g. speakerCycles)',
                         labelStyle: TextStyle(color: secondaryTextColor),
                         enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
-                        focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
                       ),
                       onChanged: (val) => autoId = false,
                     ),
@@ -387,8 +371,8 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                               DropdownMenuItem(value: 'rating', child: Text('RATING')),
                               DropdownMenuItem(value: 'checkbox', child: Text('CHECKBOX')),
                               DropdownMenuItem(value: 'select', child: Text('SELECT')),
-                              DropdownMenuItem(value: 'text', child: Text('TEXT')),
-                              DropdownMenuItem(value: 'textarea', child: Text('TEXTAREA')),
+                              DropdownMenuItem(value: 'text', child: Text('TEXT (STATIC)')),
+                              DropdownMenuItem(value: 'textarea', child: Text('TEXTAREA (INPUT)')),
                             ],
                             onChanged: (val) {
                               if (val != null) {
@@ -413,7 +397,9 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                         const SizedBox(width: 12),
                         Expanded(
                           child: DropdownButtonFormField<String>(
-                            initialValue: selectedPhase,
+                            initialValue: const ['auto', 'teleop', 'endgame'].contains(selectedPhase.toLowerCase())
+                                ? selectedPhase.toLowerCase()
+                                : 'teleop',
                             dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                             style: TextStyle(color: primaryTextColor),
                             decoration: InputDecoration(
@@ -422,12 +408,11 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                               enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
                             ),
                             items: const [
-                              DropdownMenuItem(value: '', child: Text('General')),
                               DropdownMenuItem(value: 'auto', child: Text('Auto')),
                               DropdownMenuItem(value: 'teleop', child: Text('Teleop')),
                               DropdownMenuItem(value: 'endgame', child: Text('Endgame')),
                             ],
-                            onChanged: (val) => setModalState(() => selectedPhase = val ?? ''),
+                            onChanged: (val) => setModalState(() => selectedPhase = val ?? 'teleop'),
                           ),
                         ),
                       ],
@@ -476,7 +461,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                             id: id,
                             label: label,
                             type: selectedType,
-                            phase: selectedPhase.isNotEmpty ? selectedPhase : null,
+                            phase: selectedPhase.isNotEmpty ? (selectedPhase.toLowerCase() == 'general' ? 'teleop' : selectedPhase) : 'teleop',
                             required: isRequired,
                             min: minVal,
                             max: maxVal,
@@ -637,31 +622,50 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                         trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: ObsidianUITheme.primaryAccent),
                         onTap: () async {
                           Navigator.of(ctx).pop();
-                          setState(() => _isLoading = true);
-                          final response = await widget.apiService.applyDefaultPreset(_activeKind, p.name);
-                          if (!mounted) return;
-                          if (response.success && response.data != null) {
-                            final updated = response.data!;
-                            setState(() {
-                              _currentConfig = updated;
-                              _titleController.text = updated.title;
-                              _versionController.text = updated.version.toString();
-                              _rawJsonController.text = const JsonEncoder.withIndent('  ').convert(updated.toJson());
-                              _isLoading = false;
-                            });
-                            ObsidianFeedback.showSuccess(
-                              context,
-                              title: 'Preset Applied',
-                              message: "Applied preset '${p.name}' successfully (HTTP ${response.statusCode ?? 200})",
-                              statusCode: response.statusCode,
-                            );
-                          } else {
-                            _loadConfigForKind(_activeKind);
-                            ObsidianFeedback.showApiResponse(
-                              context,
-                              response,
-                              actionName: "Apply Preset '${p.name}'",
-                            );
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (c) => AlertDialog(
+                              backgroundColor: ObsidianUITheme.getSurfaceColor(context),
+                              title: Text('Apply Preset?', style: TextStyle(color: primaryTextColor)),
+                              content: Text('Are you sure you want to apply preset "${p.name}" to ${_getKindLabel(_activeKind)}? Unsaved changes will be replaced.', style: TextStyle(color: secondaryTextColor)),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.of(c).pop(false), child: const Text('Cancel')),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.primaryAccent),
+                                  onPressed: () => Navigator.of(c).pop(true),
+                                  child: const Text('Apply', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                ),
+                              ],
+                            ),
+                          );
+
+                          if (confirm == true) {
+                            setState(() => _isLoading = true);
+                            final response = await widget.apiService.applyDefaultPreset(_activeKind, p.name);
+                            if (!mounted) return;
+                            if (response.success && response.data != null) {
+                              final updated = response.data!;
+                              setState(() {
+                                _currentConfig = updated;
+                                _titleController.text = updated.title;
+                                _versionController.text = updated.version.toString();
+                                _rawJsonController.text = const JsonEncoder.withIndent('  ').convert(updated.toJson());
+                                _isLoading = false;
+                              });
+                              ObsidianFeedback.showSuccess(
+                                context,
+                                title: 'Preset Applied',
+                                message: "Applied preset '${p.name}' successfully (HTTP ${response.statusCode ?? 200})",
+                                statusCode: response.statusCode,
+                              );
+                            } else {
+                              _loadConfigForKind(_activeKind);
+                              ObsidianFeedback.showApiResponse(
+                                context,
+                                response,
+                                actionName: "Apply Preset '${p.name}'",
+                              );
+                            }
                           }
                         },
                       );
@@ -1995,7 +1999,9 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
             children: [
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  initialValue: field.type,
+                  initialValue: const ['counter', 'number', 'rating', 'checkbox', 'select', 'text', 'textarea'].contains(field.type.toLowerCase())
+                      ? field.type.toLowerCase()
+                      : 'text',
                   dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                   style: TextStyle(color: primaryTextColor, fontSize: 12),
                   decoration: InputDecoration(
@@ -2010,8 +2016,8 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                     DropdownMenuItem(value: 'rating', child: Text('RATING')),
                     DropdownMenuItem(value: 'checkbox', child: Text('CHECKBOX')),
                     DropdownMenuItem(value: 'select', child: Text('SELECT')),
-                    DropdownMenuItem(value: 'text', child: Text('TEXT')),
-                    DropdownMenuItem(value: 'textarea', child: Text('TEXTAREA')),
+                    DropdownMenuItem(value: 'text', child: Text('TEXT (STATIC)')),
+                    DropdownMenuItem(value: 'textarea', child: Text('TEXTAREA (INPUT)')),
                   ],
                   onChanged: (val) {
                     if (val != null) {
@@ -2028,7 +2034,9 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
               const SizedBox(width: 8),
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  initialValue: field.phase ?? '',
+                  initialValue: const ['auto', 'teleop', 'endgame'].contains(field.phase?.toLowerCase() ?? '')
+                      ? (field.phase?.toLowerCase() ?? 'teleop')
+                      : 'teleop',
                   dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                   style: TextStyle(color: primaryTextColor, fontSize: 12),
                   decoration: InputDecoration(
@@ -2038,14 +2046,14 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                     enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
                   ),
                   items: const [
-                    DropdownMenuItem(value: '', child: Text('General')),
                     DropdownMenuItem(value: 'auto', child: Text('Auto')),
                     DropdownMenuItem(value: 'teleop', child: Text('Teleop')),
                     DropdownMenuItem(value: 'endgame', child: Text('Endgame')),
                   ],
                   onChanged: (val) {
                     final fields = List<ScoutingFieldModel>.from(_currentConfig.fields);
-                    fields[index] = field.copyWith(phase: val, clearPhase: val == '');
+                    final newPhase = (val == null || val.isEmpty || val.toLowerCase() == 'general') ? 'teleop' : val;
+                    fields[index] = field.copyWith(phase: newPhase);
                     _currentConfig = _currentConfig.copyWith(fields: fields);
                     _syncVisualToRaw();
                   },
