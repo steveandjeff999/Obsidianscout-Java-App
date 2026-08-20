@@ -1,20 +1,24 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
 
 class ObsidianPagesModal extends StatelessWidget {
+  final ApiService? apiService;
   final int currentIndex;
   final Function(int) onSelectScreen;
   final VoidCallback onOpenQrScanner;
 
   const ObsidianPagesModal({
     super.key,
+    this.apiService,
     required this.currentIndex,
     required this.onSelectScreen,
     required this.onOpenQrScanner,
   });
 
   static void show(BuildContext context, {
+    ApiService? apiService,
     required int currentIndex,
     required Function(int) onSelectScreen,
     required VoidCallback onOpenQrScanner,
@@ -24,6 +28,7 @@ class ObsidianPagesModal extends StatelessWidget {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (ctx) => ObsidianPagesModal(
+        apiService: apiService,
         currentIndex: currentIndex,
         onSelectScreen: onSelectScreen,
         onOpenQrScanner: onOpenQrScanner,
@@ -33,8 +38,9 @@ class ObsidianPagesModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final allPages = [
+    final rawPages = [
       {
+        'pageId': 'dashboard',
         'index': 0,
         'icon': Icons.dashboard_rounded,
         'name': 'Dashboard',
@@ -43,6 +49,7 @@ class ObsidianPagesModal extends StatelessWidget {
         'color': ObsidianUITheme.primaryAccent,
       },
       {
+        'pageId': 'scout',
         'index': 1,
         'icon': Icons.sports_esports_rounded,
         'name': 'Match Scouting',
@@ -51,6 +58,7 @@ class ObsidianPagesModal extends StatelessWidget {
         'color': Colors.amberAccent,
       },
       {
+        'pageId': 'pit-scout',
         'index': 2,
         'icon': Icons.build_circle_rounded,
         'name': 'Pit Scouting',
@@ -59,6 +67,7 @@ class ObsidianPagesModal extends StatelessWidget {
         'color': Colors.cyanAccent,
       },
       {
+        'pageId': 'qual-scout',
         'index': 3,
         'icon': Icons.rate_review_rounded,
         'name': 'Qualitative Scouting',
@@ -67,6 +76,7 @@ class ObsidianPagesModal extends StatelessWidget {
         'color': Colors.lightGreenAccent,
       },
       {
+        'pageId': 'graphs',
         'index': 4,
         'icon': Icons.bar_chart_rounded,
         'name': 'Graphs & Analytics',
@@ -75,14 +85,34 @@ class ObsidianPagesModal extends StatelessWidget {
         'color': ObsidianUITheme.secondaryAccent,
       },
       {
-        'index': 5,
-        'icon': Icons.settings_suggest_rounded,
-        'name': 'Settings & Cache',
-        'desc': 'Manage offline storage, server IP, & account sync',
-        'tag': 'System',
-        'color': Colors.orangeAccent,
+        'pageId': 'teams',
+        'index': 8,
+        'icon': Icons.groups_rounded,
+        'name': 'Teams Directory',
+        'desc': 'Roster, EPA rankings, pit specs, & team records',
+        'tag': 'Data',
+        'color': Colors.tealAccent,
       },
       {
+        'pageId': 'matches',
+        'index': 9,
+        'icon': Icons.event_note_rounded,
+        'name': 'Matches Schedule',
+        'desc': 'Qualification schedule, alliance breakdown, & scores',
+        'tag': 'Data',
+        'color': Colors.indigoAccent,
+      },
+      {
+        'pageId': 'alliance-selection',
+        'index': 7,
+        'icon': Icons.stars_rounded,
+        'name': 'Alliance Selection',
+        'desc': 'Draft board, alliance boards, picks, & strategy notes',
+        'tag': 'Strategy',
+        'color': Colors.pinkAccent,
+      },
+      {
+        'pageId': 'chat',
         'index': 6,
         'icon': Icons.chat_bubble_outline_rounded,
         'name': 'Team Chat',
@@ -90,7 +120,32 @@ class ObsidianPagesModal extends StatelessWidget {
         'tag': 'Social',
         'color': Colors.deepPurpleAccent,
       },
+      {
+        'pageId': 'admin-settings',
+        'index': 10,
+        'icon': Icons.tune_rounded,
+        'name': 'Config Editor',
+        'desc': 'Customize scouting form fields, options, & points weights',
+        'tag': 'Admin',
+        'color': Colors.purpleAccent,
+      },
+      {
+        'pageId': 'settings',
+        'index': 5,
+        'icon': Icons.settings_suggest_rounded,
+        'name': 'Settings & Cache',
+        'desc': 'Manage offline storage, server IP, & account sync',
+        'tag': 'System',
+        'color': Colors.orangeAccent,
+      },
     ];
+
+    final allPages = rawPages.where((p) {
+      final pageId = p['pageId'] as String;
+      return apiService?.hasPageAccess(pageId) ?? true;
+    }).toList();
+
+    final canAccessQr = apiService?.hasPageAccess('qr-scanner') ?? true;
 
     return Container(
       constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.82),
@@ -157,17 +212,19 @@ class ObsidianPagesModal extends StatelessWidget {
                         final isSelected = idx == currentIndex;
                         final color = page['color'] as Color;
 
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 10.0),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16.0),
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 10.0),
+                          child: Material(
                             color: isSelected ? color.withValues(alpha: 0.15) : const Color(0x15FFFFFF),
-                            border: Border.all(
-                              color: isSelected ? color : Colors.white10,
-                              width: isSelected ? 1.5 : 1.0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16.0),
+                              side: BorderSide(
+                                color: isSelected ? color : Colors.white10,
+                                width: isSelected ? 1.5 : 1.0,
+                              ),
                             ),
-                          ),
-                          child: ListTile(
+                            clipBehavior: Clip.antiAlias,
+                            child: ListTile(
                             contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
                             leading: Container(
                               padding: const EdgeInsets.all(10.0),
@@ -217,42 +274,46 @@ class ObsidianPagesModal extends StatelessWidget {
                               onSelectScreen(idx);
                             },
                           ),
-                        );
+                        ),
+                      );
                       }),
-                      const SizedBox(height: 8),
+                      if (canAccessQr) ...[
+                        const SizedBox(height: 8),
 
-                      // Tool: QR Scanner
-                      Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16.0),
+                        // Tool: QR Scanner
+                        Material(
                           color: Colors.cyanAccent.withValues(alpha: 0.1),
-                          border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.3), width: 1.0),
-                        ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-                          leading: Container(
-                            padding: const EdgeInsets.all(10.0),
-                            decoration: BoxDecoration(
-                              color: Colors.cyanAccent.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(12.0),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16.0),
+                            side: BorderSide(color: Colors.cyanAccent.withValues(alpha: 0.3), width: 1.0),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                            leading: Container(
+                              padding: const EdgeInsets.all(10.0),
+                              decoration: BoxDecoration(
+                                color: Colors.cyanAccent.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(12.0),
+                              ),
+                              child: const Icon(Icons.qr_code_scanner_rounded, color: Colors.cyanAccent, size: 22.0),
                             ),
-                            child: const Icon(Icons.qr_code_scanner_rounded, color: Colors.cyanAccent, size: 22.0),
+                            title: const Text(
+                              'QR & Barcode Scanner',
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15.0),
+                            ),
+                            subtitle: const Text(
+                              'Multi-code camera scanner & clipboard payload sync',
+                              style: TextStyle(color: Colors.white54, fontSize: 12.0),
+                            ),
+                            trailing: const Icon(Icons.open_in_new_rounded, color: Colors.cyanAccent, size: 20),
+                            onTap: () {
+                              Navigator.of(context).pop();
+                              onOpenQrScanner();
+                            },
                           ),
-                          title: const Text(
-                            'QR & Barcode Scanner',
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15.0),
-                          ),
-                          subtitle: const Text(
-                            'Multi-code camera scanner & clipboard payload sync',
-                            style: TextStyle(color: Colors.white54, fontSize: 12.0),
-                          ),
-                          trailing: const Icon(Icons.open_in_new_rounded, color: Colors.cyanAccent, size: 20),
-                          onTap: () {
-                            Navigator.of(context).pop();
-                            onOpenQrScanner();
-                          },
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),

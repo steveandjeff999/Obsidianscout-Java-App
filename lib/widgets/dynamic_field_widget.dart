@@ -22,49 +22,9 @@ class DynamicFieldWidget extends StatelessWidget {
     final tertiaryTextColor = ObsidianUITheme.getTertiaryTextColor(context);
     final borderColor = ObsidianUITheme.getBorderColor(context);
 
-    // 1. SECTION HEADER / DIVIDER
+    // 1. SECTION HEADER / DIVIDER - Deprecated / No longer rendered
     if (type == 'section' || type == 'header' || type == 'divider') {
-      return Container(
-        margin: const EdgeInsets.only(top: 16.0, bottom: 8.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 4.0,
-                  height: 18.0,
-                  decoration: BoxDecoration(
-                    color: ObsidianUITheme.primaryAccent,
-                    borderRadius: BorderRadius.circular(2.0),
-                  ),
-                ),
-                const SizedBox(width: 8.0),
-                Expanded(
-                  child: Text(
-                    context.tr(field.label).toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 13.0,
-                      fontWeight: FontWeight.bold,
-                      color: ObsidianUITheme.primaryAccent,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            if (field.description != null && field.description!.isNotEmpty) ...[
-              const SizedBox(height: 4.0),
-              Text(
-                field.description!,
-                style: TextStyle(fontSize: 12.0, color: secondaryTextColor),
-              ),
-            ],
-            const SizedBox(height: 8.0),
-            Divider(color: borderColor, height: 1.0),
-          ],
-        ),
-      );
+      return const SizedBox.shrink();
     }
 
     return Padding(
@@ -100,9 +60,73 @@ class DynamicFieldWidget extends StatelessWidget {
       case 'number':
       case 'stepper':
         int minVal = field.min ?? 0;
-        int maxVal = field.max ?? 99;
-        int stepVal = field.step ?? 1;
+        int maxVal = (field.max != null && field.max! > minVal) ? field.max! : 999999;
+        int stepVal = (field.step != null && field.step! > 0) ? field.step! : 1;
+        int? doubleStep = (field.doubleStep != null && field.doubleStep! > 0) ? field.doubleStep : null;
+        bool hasDoubleStep = doubleStep != null && doubleStep > 0;
         int val = (currentValue is num) ? (currentValue as num).toInt() : minVal;
+
+        if (hasDoubleStep) {
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  context.tr(field.label),
+                  style: TextStyle(fontSize: 14.5, color: primaryTextColor, fontWeight: FontWeight.w500),
+                ),
+              ),
+              const SizedBox(width: 8.0),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildStepButton(
+                    context: context,
+                    label: '-$doubleStep',
+                    onPressed: val > minVal ? () => onChanged((val - doubleStep).clamp(minVal, maxVal)) : null,
+                    isAccent: false,
+                  ),
+                  const SizedBox(width: 4.0),
+                  _buildStepButton(
+                    context: context,
+                    label: '-$stepVal',
+                    onPressed: val > minVal ? () => onChanged((val - stepVal).clamp(minVal, maxVal)) : null,
+                    isAccent: false,
+                  ),
+                  const SizedBox(width: 6.0),
+                  Container(
+                    constraints: const BoxConstraints(minWidth: 40.0),
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10.0),
+                      color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.25),
+                      border: Border.all(color: ObsidianUITheme.getGlassBorderColor(context)),
+                    ),
+                    child: Text(
+                      '$val',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0, color: primaryTextColor),
+                    ),
+                  ),
+                  const SizedBox(width: 6.0),
+                  _buildStepButton(
+                    context: context,
+                    label: '+$stepVal',
+                    onPressed: val < maxVal ? () => onChanged((val + stepVal).clamp(minVal, maxVal)) : null,
+                    isAccent: true,
+                  ),
+                  const SizedBox(width: 4.0),
+                  _buildStepButton(
+                    context: context,
+                    label: '+$doubleStep',
+                    onPressed: val < maxVal ? () => onChanged((val + doubleStep).clamp(minVal, maxVal)) : null,
+                    isAccent: true,
+                  ),
+                ],
+              ),
+            ],
+          );
+        }
 
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -116,7 +140,7 @@ class DynamicFieldWidget extends StatelessWidget {
             Row(
               children: [
                 IconButton(
-                  onPressed: val > minVal ? () => onChanged(val - stepVal) : null,
+                  onPressed: val > minVal ? () => onChanged((val - stepVal).clamp(minVal, maxVal)) : null,
                   icon: Icon(Icons.remove_circle_outline, color: secondaryTextColor, size: 30.0),
                   iconSize: 30.0,
                   padding: const EdgeInsets.all(14.0),
@@ -135,7 +159,7 @@ class DynamicFieldWidget extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  onPressed: val < maxVal ? () => onChanged(val + stepVal) : null,
+                  onPressed: val < maxVal ? () => onChanged((val + stepVal).clamp(minVal, maxVal)) : null,
                   icon: const Icon(Icons.add_circle_outline, color: ObsidianUITheme.primaryAccent, size: 30.0),
                   iconSize: 30.0,
                   padding: const EdgeInsets.all(14.0),
@@ -418,5 +442,53 @@ class DynamicFieldWidget extends StatelessWidget {
           onChanged: (text) => onChanged(text),
         );
     }
+  }
+
+  Widget _buildStepButton({
+    required BuildContext context,
+    required String label,
+    required VoidCallback? onPressed,
+    required bool isAccent,
+  }) {
+    final borderColor = ObsidianUITheme.getBorderColor(context);
+    final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+    final faintTextColor = ObsidianUITheme.getFaintTextColor(context);
+    final isEnabled = onPressed != null;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(8.0),
+        child: Container(
+          constraints: const BoxConstraints(minWidth: 40.0, minHeight: 38.0),
+          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8.0),
+            color: isEnabled
+                ? (isAccent
+                    ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.18)
+                    : ObsidianUITheme.getGlassSurfaceColor(context))
+                : ObsidianUITheme.getGlassSurfaceColor(context).withValues(alpha: 0.05),
+            border: Border.all(
+              color: isEnabled
+                  ? (isAccent ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.6) : borderColor)
+                  : borderColor.withValues(alpha: 0.2),
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13.0,
+              fontWeight: FontWeight.bold,
+              color: isEnabled
+                  ? (isAccent ? ObsidianUITheme.primaryAccent : primaryTextColor)
+                  : faintTextColor,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

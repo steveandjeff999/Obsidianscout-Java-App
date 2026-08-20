@@ -4,6 +4,7 @@ import '../models/team_match_models.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
+import 'team_details_screen.dart';
 
 class TeamsListScreen extends StatefulWidget {
   final ApiService apiService;
@@ -141,7 +142,7 @@ class _TeamsListScreenState extends State<TeamsListScreen> {
                 TextField(
                   style: TextStyle(color: primaryTextColor, fontSize: 14),
                   decoration: InputDecoration(
-                    hintText: context.tr('contact.placeholder.message'),
+                    hintText: context.tr('alliance-selection.placeholder_search_team_number_or_name'),
                     hintStyle: TextStyle(color: secondaryTextColor, fontSize: 13),
                     prefixIcon: const Icon(Icons.search_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
                     filled: true,
@@ -233,6 +234,16 @@ class _TeamsListScreenState extends State<TeamsListScreen> {
                         final team = _filteredSorted[i];
                         final hasStats = team.epa != null || team.opr != null || team.averagePoints != null;
                         return ObsidianGlassCard(
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => TeamDetailsScreen(
+                                  team: team,
+                                  apiService: widget.apiService,
+                                ),
+                              ),
+                            );
+                          },
                           child: Row(
                             children: [
                               Container(
@@ -299,6 +310,11 @@ class _TeamsListScreenState extends State<TeamsListScreen> {
                                     ],
                                   ],
                                 ),
+                              ),
+                              Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                size: 14,
+                                color: secondaryTextColor.withValues(alpha: 0.5),
                               ),
                             ],
                           ),

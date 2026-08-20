@@ -15,6 +15,7 @@ import '../l10n/app_localizations.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/obsidian_barcode_modal.dart';
+import '../widgets/obsidian_feedback.dart';
 import '../services/api_service.dart';
 
 class ScannedQueueItem {
@@ -552,20 +553,27 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
 
     int successCount = 0;
     int failCount = 0;
+    String? lastErrorMsg;
+    int? lastErrorCode;
 
     for (final item in pendingItems) {
-      final success = await widget.apiService.submitScannedItem(item.type, item.data);
-      if (success) {
+      final response = await widget.apiService.submitScannedItem(item.type, item.data);
+      if (response.success) {
         setState(() {
           item.status = 'success';
           item.errorMsg = '';
         });
         successCount++;
       } else {
+        final errorText = response.statusCode != null
+            ? 'HTTP ${response.statusCode}${response.message != null && response.message!.isNotEmpty ? ": " + response.message! : ""}'
+            : (response.isOffline ? 'Offline' : (response.message ?? 'Upload failed'));
         setState(() {
           item.status = 'error';
-          item.errorMsg = 'Upload failed';
+          item.errorMsg = errorText;
         });
+        lastErrorMsg = errorText;
+        lastErrorCode = response.statusCode;
         failCount++;
       }
       await _saveQueue();
@@ -574,20 +582,24 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     setState(() => _isUploading = false);
 
     if (mounted) {
-      if (successCount > 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Successfully uploaded $successCount entries!'),
-            backgroundColor: ObsidianUITheme.successGreen,
-          ),
+      if (successCount > 0 && failCount == 0) {
+        ObsidianFeedback.showSuccess(
+          context,
+          title: 'Upload Successful',
+          message: 'Successfully uploaded $successCount entries to server!',
         );
-      }
-      if (failCount > 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to upload $failCount entries.'),
-            backgroundColor: ObsidianUITheme.errorRed,
-          ),
+      } else if (failCount > 0 && successCount == 0) {
+        ObsidianFeedback.showError(
+          context,
+          title: 'Upload Failed',
+          message: 'Failed to upload $failCount entries ($lastErrorMsg)',
+          statusCode: lastErrorCode,
+        );
+      } else if (failCount > 0 && successCount > 0) {
+        ObsidianFeedback.showWarning(
+          context,
+          title: 'Partial Upload Complete',
+          message: 'Uploaded $successCount entries. Failed to upload $failCount entries ($lastErrorMsg)',
         );
       }
     }
@@ -927,7 +939,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                             ] else if (_isScanning)
                               MobileScanner(
                                 controller: _scannerController,
-                                errorBuilder: (context, error) {
+                                errorBuilder: (context, error, child) {
                                   return Container(
                                     color: Colors.black87,
                                     padding: const EdgeInsets.all(16.0),

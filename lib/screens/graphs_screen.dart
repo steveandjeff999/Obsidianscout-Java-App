@@ -342,7 +342,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
                 const SizedBox(height: 10),
                 DropdownButtonFormField<GraphMetric>(
                   isExpanded: true,
-                  initialValue: _selectedMetric,
+                  value: _metrics.contains(_selectedMetric) ? _selectedMetric : (_metrics.isNotEmpty ? _metrics.first : null),
                   dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                   style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
                   decoration: InputDecoration(
@@ -441,7 +441,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
                   onChanged: (v) => setState(() => _teamSearch = v),
                   style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
                   decoration: InputDecoration(
-                    hintText: context.tr('scout.search_teams'),
+                    hintText: context.tr('alliance-selection.placeholder_search_team_number_or_name'),
                     hintStyle: TextStyle(color: ObsidianUITheme.getFaintTextColor(context)),
                     prefixIcon: Icon(Icons.search_rounded, color: ObsidianUITheme.getFaintTextColor(context)),
                     enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),

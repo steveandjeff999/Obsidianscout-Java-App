@@ -7,6 +7,7 @@ import '../models/team_match_models.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
+import '../widgets/obsidian_feedback.dart';
 
 class AllianceSelectionScreen extends StatefulWidget {
   final ApiService apiService;
@@ -243,27 +244,33 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
         });
 
         final jsonStr = jsonEncode(_boardState);
-        final success = await widget.apiService.saveAllianceSelection(eventKey, jsonStr);
+        final response = await widget.apiService.saveAllianceSelection(eventKey, jsonStr);
 
         if (mounted) {
           setState(() {
             _isSaving = false;
-            if (success) {
+            if (response.success) {
               _hasPendingOfflineChanges = false;
               _lastSyncedTime = DateTime.now();
               _saveLocalSlotMetadata(eventKey);
             }
           });
 
-          if (isReconnecting && success) {
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Reconnected! Synced offline changes (Last Write Wins)'),
-                backgroundColor: ObsidianUITheme.successGreen,
-                behavior: SnackBarBehavior.floating,
-                duration: Duration(seconds: 3),
-              ),
+          if (isReconnecting && response.success) {
+            ObsidianFeedback.showSuccess(
+              context,
+              title: 'Synced with Server',
+              message: 'Reconnected! Synced offline changes (HTTP ${response.statusCode ?? 200})',
+              statusCode: response.statusCode,
+            );
+          } else if (!response.success && !response.isOffline) {
+            ObsidianFeedback.showError(
+              context,
+              title: 'Alliance Save Failed',
+              message: response.message != null && response.message!.isNotEmpty
+                  ? response.message!
+                  : 'Failed to sync alliance selection to server.',
+              statusCode: response.statusCode,
             );
           }
         }
