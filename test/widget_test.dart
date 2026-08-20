@@ -92,6 +92,19 @@ void main() {
 
     await tester.pumpAndSettle();
     expect(find.byType(MatchScoutScreen), findsOneWidget);
+    expect(find.text('Select a team and match to start scouting.'), findsOneWidget);
+
+    // Select team
+    await tester.tap(find.byType(DropdownButtonFormField<TeamModel>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('1234 - Test Team').last);
+    await tester.pumpAndSettle();
+
+    // Select match
+    await tester.tap(find.byType(DropdownButtonFormField<MatchModel>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Quals 1').last);
+    await tester.pumpAndSettle();
 
     // Find phase tabs
     expect(find.text('Auto'), findsWidgets);
