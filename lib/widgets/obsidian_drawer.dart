@@ -87,6 +87,13 @@ class ObsidianNavigationDrawer extends StatelessWidget {
             'subKey': 'subtitle.qual_scout',
           },
           {
+            'pageId': 'prescout',
+            'index': 11,
+            'icon': Icons.history_edu_rounded,
+            'labelKey': 'nav.prescout',
+            'subKey': 'subtitle.prescout',
+          },
+          {
             'pageId': 'qr-scanner',
             'isAction': true,
             'action': onOpenQrScanner,

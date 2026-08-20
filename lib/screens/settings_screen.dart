@@ -169,6 +169,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return 'App & Event Settings';
       case 'cache_scouting':
         return 'Scouting Submissions';
+      case 'cache_pit_scouting':
+        return 'Pit Scouting Submissions';
+      case 'cache_qual_scouting':
+        return 'Qual Scouting Submissions';
+      case 'cache_prescout_scouting':
+        return 'Prescout Match Submissions';
+      case 'cache_prescout_pit_scouting':
+        return 'Prescout Pit Submissions';
+      case 'cache_prescout_qual_scouting':
+        return 'Prescout Qual Submissions';
       case 'cache_analytics':
         return 'Analytics & Visualizations';
       default:

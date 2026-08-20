@@ -76,6 +76,15 @@ class ObsidianPagesModal extends StatelessWidget {
         'color': Colors.lightGreenAccent,
       },
       {
+        'pageId': 'prescout',
+        'index': 11,
+        'icon': Icons.history_edu_rounded,
+        'name': 'Pre-Scouting Hub',
+        'desc': 'Match, pit, & qual prescouting for external events & teams',
+        'tag': 'Form',
+        'color': Colors.cyanAccent,
+      },
+      {
         'pageId': 'graphs',
         'index': 4,
         'icon': Icons.bar_chart_rounded,

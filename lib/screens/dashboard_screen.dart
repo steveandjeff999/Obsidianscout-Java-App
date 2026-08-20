@@ -11,6 +11,7 @@ class DashboardScreen extends StatelessWidget {
   final VoidCallback onNavigateAnalytics;
   final VoidCallback onNavigateQrScanner;
   final VoidCallback? onNavigateAlliance;
+  final VoidCallback? onNavigatePrescout;
   final bool isVisible;
   final bool isBarsVisible;
 
@@ -22,6 +23,7 @@ class DashboardScreen extends StatelessWidget {
     required this.onNavigateAnalytics,
     required this.onNavigateQrScanner,
     this.onNavigateAlliance,
+    this.onNavigatePrescout,
     this.isVisible = true,
     this.isBarsVisible = true,
   });
@@ -103,8 +105,9 @@ class DashboardScreen extends StatelessWidget {
               final canQr = apiService?.hasPageAccess('qr-scanner') ?? true;
               final canAnalytics = apiService?.hasPageAccess('graphs') ?? true;
               final canAlliance = (apiService?.hasPageAccess('alliance-selection') ?? true) && onNavigateAlliance != null;
+              final canPrescout = (apiService?.hasPageAccess('prescout') ?? true) && onNavigatePrescout != null;
 
-              final hasAnyActions = canScout || canPitScout || canQr || canAnalytics || canAlliance;
+              final hasAnyActions = canScout || canPitScout || canQr || canAnalytics || canAlliance || canPrescout;
               if (!hasAnyActions) return const SizedBox.shrink();
 
               return Column(
@@ -277,6 +280,34 @@ class DashboardScreen extends StatelessWidget {
                                 const SizedBox(height: 2.0),
                                 Text(
                                   context.tr('subtitle.alliance_selection'),
+                                  style: TextStyle(fontSize: 12.0, color: tertiaryTextColor),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(Icons.arrow_forward_ios_rounded, size: 16.0, color: faintTextColor),
+                        ],
+                      ),
+                    ),
+
+                  if (canPrescout)
+                    ObsidianGlassCard(
+                      onTap: onNavigatePrescout,
+                      child: Row(
+                        children: [
+                          const Icon(Icons.history_edu_rounded, size: 32.0, color: Colors.cyanAccent),
+                          const SizedBox(width: 16.0),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  context.tr('nav.prescout'),
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0, color: primaryTextColor),
+                                ),
+                                const SizedBox(height: 2.0),
+                                Text(
+                                  context.tr('subtitle.prescout'),
                                   style: TextStyle(fontSize: 12.0, color: tertiaryTextColor),
                                 ),
                               ],

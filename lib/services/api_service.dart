@@ -210,6 +210,12 @@ class ApiService {
       await Future.delayed(const Duration(milliseconds: 150));
       await fetchScoutingEntries();
       await Future.delayed(const Duration(milliseconds: 150));
+      await fetchPrescoutScoutingEntries();
+      await Future.delayed(const Duration(milliseconds: 150));
+      await fetchPrescoutPitScoutingEntries();
+      await Future.delayed(const Duration(milliseconds: 150));
+      await fetchPrescoutQualScoutingEntries();
+      await Future.delayed(const Duration(milliseconds: 150));
       await fetchAnalyticsWidgets();
     } catch (_) {
     } finally {
@@ -1111,6 +1117,96 @@ class ApiService {
     return cachedEntries;
   }
 
+  Future<List<dynamic>> fetchPrescoutScoutingEntries() async {
+    final cached = await _getCache("cache_prescout_scouting");
+    List<dynamic> cachedEntries = [];
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(cached);
+        if (decoded is List) cachedEntries = decoded;
+        if (decoded is Map && decoded['entries'] is List) cachedEntries = decoded['entries'] as List;
+      } catch (_) {}
+    }
+
+    if (!_isOnline) return cachedEntries;
+
+    try {
+      final response = await http
+          .get(Uri.parse('$_currentServerUrl/api/prescout/scouting'), headers: _headers)
+          .timeout(const Duration(seconds: 2));
+      if (response.statusCode == 200) {
+        await _setCache("cache_prescout_scouting", response.body);
+        final decoded = jsonDecode(response.body);
+        if (decoded is List) return decoded;
+        if (decoded is Map && decoded['entries'] is List) return decoded['entries'] as List;
+      }
+    } catch (_) {
+      _updateOnlineState(false);
+    }
+
+    return cachedEntries;
+  }
+
+  Future<List<dynamic>> fetchPrescoutPitScoutingEntries() async {
+    final cached = await _getCache("cache_prescout_pit_scouting");
+    List<dynamic> cachedEntries = [];
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(cached);
+        if (decoded is List) cachedEntries = decoded;
+        if (decoded is Map && decoded['entries'] is List) cachedEntries = decoded['entries'] as List;
+      } catch (_) {}
+    }
+
+    if (!_isOnline) return cachedEntries;
+
+    try {
+      final response = await http
+          .get(Uri.parse('$_currentServerUrl/api/prescout/pit-scouting'), headers: _headers)
+          .timeout(const Duration(seconds: 2));
+      if (response.statusCode == 200) {
+        await _setCache("cache_prescout_pit_scouting", response.body);
+        final decoded = jsonDecode(response.body);
+        if (decoded is List) return decoded;
+        if (decoded is Map && decoded['entries'] is List) return decoded['entries'] as List;
+      }
+    } catch (_) {
+      _updateOnlineState(false);
+    }
+
+    return cachedEntries;
+  }
+
+  Future<List<dynamic>> fetchPrescoutQualScoutingEntries() async {
+    final cached = await _getCache("cache_prescout_qual_scouting");
+    List<dynamic> cachedEntries = [];
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(cached);
+        if (decoded is List) cachedEntries = decoded;
+        if (decoded is Map && decoded['entries'] is List) cachedEntries = decoded['entries'] as List;
+      } catch (_) {}
+    }
+
+    if (!_isOnline) return cachedEntries;
+
+    try {
+      final response = await http
+          .get(Uri.parse('$_currentServerUrl/api/prescout/qual-scouting'), headers: _headers)
+          .timeout(const Duration(seconds: 2));
+      if (response.statusCode == 200) {
+        await _setCache("cache_prescout_qual_scouting", response.body);
+        final decoded = jsonDecode(response.body);
+        if (decoded is List) return decoded;
+        if (decoded is Map && decoded['entries'] is List) return decoded['entries'] as List;
+      }
+    } catch (_) {
+      _updateOnlineState(false);
+    }
+
+    return cachedEntries;
+  }
+
   // Data Submissions
   Future<ApiResponse<void>> submitMatchScouting(Map<String, dynamic> data) async {
     try {
@@ -1135,7 +1231,34 @@ class ApiService {
       );
       return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to submit match scouting');
     } catch (e) {
-      return ApiResponse.error(isOffline: true, message: 'Connection error: saved to offline cache.');
+      return const ApiResponse.error(isOffline: true, message: 'Connection error: saved to offline cache.');
+    }
+  }
+
+  Future<ApiResponse<void>> submitPrescoutMatchScouting(Map<String, dynamic> data) async {
+    try {
+      final cached = await _getCache("cache_prescout_scouting");
+      List list = [];
+      if (cached != null && cached.isNotEmpty) {
+        final decoded = jsonDecode(cached);
+        if (decoded is List) list = decoded;
+      }
+      list.add(data);
+      await _setCache("cache_prescout_scouting", jsonEncode(list));
+    } catch (_) {}
+
+    if (!_isOnline) {
+      return const ApiResponse.error(isOffline: true, message: 'Saved to offline cache. Will synchronize when online.');
+    }
+    try {
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/prescout/scouting'),
+        headers: _headers,
+        body: jsonEncode({'data': data}),
+      );
+      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to submit match prescout');
+    } catch (e) {
+      return const ApiResponse.error(isOffline: true, message: 'Connection error: saved to offline cache.');
     }
   }
 
@@ -1162,7 +1285,34 @@ class ApiService {
       );
       return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to submit pit scouting');
     } catch (e) {
-      return ApiResponse.error(isOffline: true, message: 'Connection error: saved to offline cache.');
+      return const ApiResponse.error(isOffline: true, message: 'Connection error: saved to offline cache.');
+    }
+  }
+
+  Future<ApiResponse<void>> submitPrescoutPitScouting(Map<String, dynamic> data) async {
+    try {
+      final cached = await _getCache("cache_prescout_pit_scouting");
+      List list = [];
+      if (cached != null && cached.isNotEmpty) {
+        final decoded = jsonDecode(cached);
+        if (decoded is List) list = decoded;
+      }
+      list.add(data);
+      await _setCache("cache_prescout_pit_scouting", jsonEncode(list));
+    } catch (_) {}
+
+    if (!_isOnline) {
+      return const ApiResponse.error(isOffline: true, message: 'Saved to offline cache. Will synchronize when online.');
+    }
+    try {
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/prescout/pit-scouting'),
+        headers: _headers,
+        body: jsonEncode({'data': data}),
+      );
+      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to submit pit prescout');
+    } catch (e) {
+      return const ApiResponse.error(isOffline: true, message: 'Connection error: saved to offline cache.');
     }
   }
 
@@ -1189,7 +1339,34 @@ class ApiService {
       );
       return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to submit qualitative scouting');
     } catch (e) {
-      return ApiResponse.error(isOffline: true, message: 'Connection error: saved to offline cache.');
+      return const ApiResponse.error(isOffline: true, message: 'Connection error: saved to offline cache.');
+    }
+  }
+
+  Future<ApiResponse<void>> submitPrescoutQualScouting(Map<String, dynamic> data) async {
+    try {
+      final cached = await _getCache("cache_prescout_qual_scouting");
+      List list = [];
+      if (cached != null && cached.isNotEmpty) {
+        final decoded = jsonDecode(cached);
+        if (decoded is List) list = decoded;
+      }
+      list.add(data);
+      await _setCache("cache_prescout_qual_scouting", jsonEncode(list));
+    } catch (_) {}
+
+    if (!_isOnline) {
+      return const ApiResponse.error(isOffline: true, message: 'Saved to offline cache. Will synchronize when online.');
+    }
+    try {
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/prescout/qual-scouting'),
+        headers: _headers,
+        body: jsonEncode({'data': data}),
+      );
+      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to submit qualitative prescout');
+    } catch (e) {
+      return const ApiResponse.error(isOffline: true, message: 'Connection error: saved to offline cache.');
     }
   }
 

@@ -21,6 +21,7 @@ import 'screens/alliance_selection_screen.dart';
 import 'screens/teams_list_screen.dart';
 import 'screens/match_list_screen.dart';
 import 'screens/config_editor_screen.dart';
+import 'screens/prescout_screen.dart';
 import 'services/api_service.dart';
 import 'services/fcm_helper.dart';
 import 'services/notification_websocket_service.dart';
@@ -229,6 +230,7 @@ class _MainShellState extends State<MainShell> {
     'nav.teams',
     'nav.matches',
     'nav.config_editor',
+    'nav.prescout',
   ];
   final List<String> _subtitleKeys = [
     'subtitle.dashboard',
@@ -242,6 +244,7 @@ class _MainShellState extends State<MainShell> {
     'subtitle.teams',
     'subtitle.matches',
     'subtitle.config_editor',
+    'subtitle.prescout',
   ];
 
   String _getPageIdForIndex(int index) {
@@ -268,6 +271,8 @@ class _MainShellState extends State<MainShell> {
         return 'matches';
       case 10:
         return 'admin-settings';
+      case 11:
+        return 'prescout';
       default:
         return 'dashboard';
     }
@@ -371,6 +376,7 @@ class _MainShellState extends State<MainShell> {
         onNavigateAnalytics: () => _navigateScreen(4),
         onNavigateQrScanner: _openQrScanner,
         onNavigateAlliance: () => _navigateScreen(7),
+        onNavigatePrescout: () => _navigateScreen(11),
         isVisible: _currentIndex == 0,
         isBarsVisible: _isBarsVisible,
       ),
@@ -395,6 +401,7 @@ class _MainShellState extends State<MainShell> {
       TeamsListScreen(apiService: widget.apiService, isVisible: _currentIndex == 8, isBarsVisible: _isBarsVisible),
       MatchListScreen(apiService: widget.apiService, isVisible: _currentIndex == 9, isBarsVisible: _isBarsVisible),
       ConfigEditorScreen(apiService: widget.apiService, isVisible: _currentIndex == 10, isBarsVisible: _isBarsVisible),
+      PrescoutScreen(apiService: widget.apiService, isVisible: _currentIndex == 11, isBarsVisible: _isBarsVisible),
     ];
 
     return Scaffold(
