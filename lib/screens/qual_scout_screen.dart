@@ -422,102 +422,136 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
                 ],
               ),
             ),
-            if (fields.isNotEmpty)
+            if (_selectedTeam == null || _selectedMatch == null)
               ObsidianGlassCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      context.tr('subtitle.qual_scout').toUpperCase(),
-                      style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.getSecondaryTextColor(context), letterSpacing: 1.0),
-                    ),
-                    const SizedBox(height: 12.0),
-                    ...fields.map((field) => Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6.0),
-                          child: DynamicFieldWidget(
-                            field: field,
-                            currentValue: _formData[field.id],
-                            onChanged: (val) => setState(() => _formData[field.id] = val),
-                          ),
-                        )),
-                  ],
-                ),
-              ),
-            ObsidianGlassCard(
-              onTap: _generateBarcode,
-              child: Center(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.qr_code_2_rounded, color: ObsidianUITheme.warningOrange),
-                    const SizedBox(width: 10.0),
-                    Text(
-                      context.tr('qr.button_label').toUpperCase(),
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.0, color: ObsidianUITheme.getPrimaryTextColor(context)),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Builder(
-              builder: (context) {
-                final isOnline = widget.apiService.isOnline;
-                final primaryColor = ObsidianUITheme.getPrimaryTextColor(context);
-                return ObsidianGlassCard(
-                  onTap: _isSubmitting ? null : _submitQualData,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
                   child: Center(
-                    child: _isSubmitting
-                        ? const CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)
-                        : Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                isOnline ? Icons.save_rounded : Icons.save_rounded,
-                                color: isOnline ? ObsidianUITheme.primaryAccent : ObsidianUITheme.warningOrange,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.info_outline_rounded, color: ObsidianUITheme.warningOrange, size: 36.0),
+                        const SizedBox(height: 12.0),
+                        Builder(
+                          builder: (ctx) {
+                            final rawText = ctx.tr('qual-scout.select_a_team_and_match_to_sta');
+                            final msg = (rawText == 'qual-scout.select_a_team_and_match_to_sta' || rawText == 'scout.select_a_team_and_match_to_sta')
+                                ? 'Select a team and match to start qualitative scouting.'
+                                : rawText;
+                            return Text(
+                              msg,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 14.5,
+                                color: ObsidianUITheme.getSecondaryTextColor(ctx),
+                                height: 1.4,
                               ),
-                              const SizedBox(width: 10.0),
-                              Text(
-                                isOnline ? context.tr('scout.save_entry').toUpperCase() : '${context.tr('scout.save_entry')} (OFFLINE)'.toUpperCase(),
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13.0,
-                                  color: primaryColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                  ),
-                );
-              },
-            ),
-
-            // Clear Form Button
-            ObsidianGlassCard(
-              onTap: _confirmAndResetForm,
-              child: Center(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.refresh_rounded, size: 18.0, color: ObsidianUITheme.getSecondaryTextColor(context)),
-                    const SizedBox(width: 8.0),
-                    Builder(
-                      builder: (ctx) {
-                        final clearLabel = ctx.tr('qual_scout.clear_form');
-                        final displayClear = (clearLabel == 'qual_scout.clear_form' || clearLabel == 'qual_scout.clear') ? 'Clear Form' : clearLabel;
-                        return Text(
-                          displayClear.toUpperCase(),
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12.0,
-                            color: ObsidianUITheme.getSecondaryTextColor(ctx),
-                          ),
-                        );
-                      },
+                            );
+                          },
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
+                ),
+              )
+            else ...[
+              if (fields.isNotEmpty)
+                ObsidianGlassCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        context.tr('subtitle.qual_scout').toUpperCase(),
+                        style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.getSecondaryTextColor(context), letterSpacing: 1.0),
+                      ),
+                      const SizedBox(height: 12.0),
+                      ...fields.map((field) => Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6.0),
+                            child: DynamicFieldWidget(
+                              field: field,
+                              currentValue: _formData[field.id],
+                              onChanged: (val) => setState(() => _formData[field.id] = val),
+                            ),
+                          )),
+                    ],
+                  ),
+                ),
+              ObsidianGlassCard(
+                onTap: _generateBarcode,
+                child: Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.qr_code_2_rounded, color: ObsidianUITheme.warningOrange),
+                      const SizedBox(width: 10.0),
+                      Text(
+                        context.tr('qr.button_label').toUpperCase(),
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.0, color: ObsidianUITheme.getPrimaryTextColor(context)),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
+              Builder(
+                builder: (context) {
+                  final isOnline = widget.apiService.isOnline;
+                  final primaryColor = ObsidianUITheme.getPrimaryTextColor(context);
+                  return ObsidianGlassCard(
+                    onTap: _isSubmitting ? null : _submitQualData,
+                    child: Center(
+                      child: _isSubmitting
+                          ? const CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  isOnline ? Icons.save_rounded : Icons.save_rounded,
+                                  color: isOnline ? ObsidianUITheme.primaryAccent : ObsidianUITheme.warningOrange,
+                                ),
+                                const SizedBox(width: 10.0),
+                                Text(
+                                  isOnline ? context.tr('scout.save_entry').toUpperCase() : '${context.tr('scout.save_entry')} (OFFLINE)'.toUpperCase(),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13.0,
+                                    color: primaryColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                  );
+                },
+              ),
+
+              // Clear Form Button
+              ObsidianGlassCard(
+                onTap: _confirmAndResetForm,
+                child: Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.refresh_rounded, size: 18.0, color: ObsidianUITheme.getSecondaryTextColor(context)),
+                      const SizedBox(width: 8.0),
+                      Builder(
+                        builder: (ctx) {
+                          final clearLabel = ctx.tr('qual_scout.clear_form');
+                          final displayClear = (clearLabel == 'qual_scout.clear_form' || clearLabel == 'qual_scout.clear') ? 'Clear Form' : clearLabel;
+                          return Text(
+                            displayClear.toUpperCase(),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12.0,
+                              color: ObsidianUITheme.getSecondaryTextColor(ctx),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
