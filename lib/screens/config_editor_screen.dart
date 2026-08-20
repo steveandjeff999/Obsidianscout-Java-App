@@ -397,7 +397,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                         const SizedBox(width: 12),
                         Expanded(
                           child: DropdownButtonFormField<String>(
-                            initialValue: const ['auto', 'teleop', 'endgame'].contains(selectedPhase.toLowerCase())
+                            initialValue: const ['auto', 'teleop', 'endgame', 'postmatch'].contains(selectedPhase.toLowerCase())
                                 ? selectedPhase.toLowerCase()
                                 : 'teleop',
                             dropdownColor: ObsidianUITheme.getSurfaceColor(context),
@@ -411,6 +411,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                               DropdownMenuItem(value: 'auto', child: Text('Auto')),
                               DropdownMenuItem(value: 'teleop', child: Text('Teleop')),
                               DropdownMenuItem(value: 'endgame', child: Text('Endgame')),
+                              DropdownMenuItem(value: 'postmatch', child: Text('Post Match')),
                             ],
                             onChanged: (val) => setModalState(() => selectedPhase = val ?? 'teleop'),
                           ),
@@ -2034,7 +2035,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
               const SizedBox(width: 8),
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  initialValue: const ['auto', 'teleop', 'endgame'].contains(field.phase?.toLowerCase() ?? '')
+                  initialValue: const ['auto', 'teleop', 'endgame', 'postmatch'].contains(field.phase?.toLowerCase() ?? '')
                       ? (field.phase?.toLowerCase() ?? 'teleop')
                       : 'teleop',
                   dropdownColor: ObsidianUITheme.getSurfaceColor(context),
@@ -2049,6 +2050,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                     DropdownMenuItem(value: 'auto', child: Text('Auto')),
                     DropdownMenuItem(value: 'teleop', child: Text('Teleop')),
                     DropdownMenuItem(value: 'endgame', child: Text('Endgame')),
+                    DropdownMenuItem(value: 'postmatch', child: Text('Post Match')),
                   ],
                   onChanged: (val) {
                     final fields = List<ScoutingFieldModel>.from(_currentConfig.fields);
