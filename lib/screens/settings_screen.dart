@@ -7,6 +7,7 @@ import '../widgets/obsidian_glass_card.dart';
 class SettingsScreen extends StatefulWidget {
   final ApiService apiService;
   final VoidCallback onLogout;
+  final VoidCallback? onNavigateConfigEditor;
   final bool isVisible;
   final bool isBarsVisible;
 
@@ -14,6 +15,7 @@ class SettingsScreen extends StatefulWidget {
     super.key,
     required this.apiService,
     required this.onLogout,
+    this.onNavigateConfigEditor,
     this.isVisible = true,
     this.isBarsVisible = true,
   });
@@ -268,6 +270,115 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           widget.apiService.setLocale(Locale(newLang));
                         }
                       },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          // Form Configuration Editor Card
+          ObsidianGlassCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.tune_rounded, color: ObsidianUITheme.primaryAccent),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Scouting Forms Editor',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
+                        ),
+                      ],
+                    ),
+                    if (widget.onNavigateConfigEditor != null)
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: ObsidianUITheme.primaryAccent,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        icon: const Icon(Icons.edit_note_rounded, color: Colors.white, size: 18),
+                        label: const Text('Open Editor', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                        onPressed: widget.onNavigateConfigEditor,
+                      ),
+                  ],
+                ),
+                Divider(color: borderColor, height: 24),
+                Text(
+                  'Customize field inputs, numeric ranges, double-stepping, scoring points, dropdown options, and form schemas for Match, Pit, and Qualitative scouting.',
+                  style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: borderColor),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: widget.onNavigateConfigEditor,
+                        child: Text('Match Form', style: TextStyle(color: primaryTextColor, fontSize: 12, fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: borderColor),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: widget.onNavigateConfigEditor,
+                        child: Text('Pit Form', style: TextStyle(color: primaryTextColor, fontSize: 12, fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: borderColor),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: widget.onNavigateConfigEditor,
+                        child: Text('Qual Form', style: TextStyle(color: primaryTextColor, fontSize: 12, fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: borderColor),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        icon: const Icon(Icons.history_rounded, size: 14, color: ObsidianUITheme.primaryAccent),
+                        label: const Text('Schema History', style: TextStyle(color: ObsidianUITheme.primaryAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                        onPressed: widget.onNavigateConfigEditor,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: borderColor),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        icon: const Icon(Icons.transform_rounded, size: 14, color: Colors.cyanAccent),
+                        label: const Text('Data Migration', style: TextStyle(color: Colors.cyanAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                        onPressed: widget.onNavigateConfigEditor,
+                      ),
                     ),
                   ],
                 ),

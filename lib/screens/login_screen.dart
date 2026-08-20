@@ -93,7 +93,7 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(context.tr('contact.error.generic')),
+            content: const Text('Login failed. Please check your credentials and server connection.'),
             backgroundColor: ObsidianUITheme.errorRed,
           ),
         );
@@ -154,7 +154,7 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(context.tr('contact.error.generic')),
+            content: const Text('Registration failed. Please check your information and try again.'),
             backgroundColor: ObsidianUITheme.errorRed,
           ),
         );

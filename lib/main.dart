@@ -7,6 +7,7 @@ import 'widgets/obsidian_glass_app_bar.dart';
 import 'widgets/obsidian_bottom_nav.dart';
 import 'widgets/obsidian_drawer.dart';
 import 'widgets/obsidian_banner_widget.dart';
+import 'widgets/obsidian_feedback.dart';
 import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/match_scout_screen.dart';
@@ -19,6 +20,7 @@ import 'screens/qr_scanner_screen.dart';
 import 'screens/alliance_selection_screen.dart';
 import 'screens/teams_list_screen.dart';
 import 'screens/match_list_screen.dart';
+import 'screens/config_editor_screen.dart';
 import 'services/api_service.dart';
 import 'services/fcm_helper.dart';
 import 'services/notification_websocket_service.dart';
@@ -41,6 +43,8 @@ class ObsidianscoutApp extends StatelessWidget {
       listenable: Listenable.merge([apiService.themeNotifier, apiService.localeNotifier]),
       builder: (context, child) {
         return MaterialApp(
+          navigatorKey: ObsidianFeedback.navigatorKey,
+          scaffoldMessengerKey: ObsidianFeedback.messengerKey,
           title: 'ObsidianScout',
           debugShowCheckedModeBanner: false,
           theme: ObsidianUITheme.lightTheme,
@@ -134,6 +138,20 @@ class _MainShellState extends State<MainShell> {
       _bootstrapFcm();
       _bootstrapWsNotifications();
     }
+
+    widget.apiService.permissionsNotifier.addListener(_onPermissionsChanged);
+  }
+
+  void _onPermissionsChanged() {
+    if (!mounted) return;
+    final currentPageId = _getPageIdForIndex(_currentIndex);
+    if (!widget.apiService.hasPageAccess(currentPageId)) {
+      setState(() {
+        _currentIndex = 0;
+      });
+    } else {
+      setState(() {});
+    }
   }
 
   void _bootstrapFcm() {
@@ -141,7 +159,7 @@ class _MainShellState extends State<MainShell> {
       if (mounted) {
         setState(() {
           _pendingChatChannel = groupName;
-          _currentIndex = 6;
+          _navigateScreen(6);
         });
       }
     });
@@ -180,7 +198,7 @@ class _MainShellState extends State<MainShell> {
               onPressed: () {
                 setState(() {
                   _pendingChatChannel = groupName;
-                  _currentIndex = 6;
+                  _navigateScreen(6);
                 });
               },
             ),
@@ -192,6 +210,7 @@ class _MainShellState extends State<MainShell> {
 
   @override
   void dispose() {
+    widget.apiService.permissionsNotifier.removeListener(_onPermissionsChanged);
     _onlineSub?.cancel();
     _serverErrorSub?.cancel();
     _wsNotificationService?.dispose();
@@ -209,6 +228,7 @@ class _MainShellState extends State<MainShell> {
     'nav.alliance_selection',
     'nav.teams',
     'nav.matches',
+    'nav.config_editor',
   ];
   final List<String> _subtitleKeys = [
     'subtitle.dashboard',
@@ -221,9 +241,95 @@ class _MainShellState extends State<MainShell> {
     'subtitle.alliance_selection',
     'subtitle.teams',
     'subtitle.matches',
+    'subtitle.config_editor',
   ];
 
+  String _getPageIdForIndex(int index) {
+    switch (index) {
+      case 0:
+        return 'dashboard';
+      case 1:
+        return 'scout';
+      case 2:
+        return 'pit-scout';
+      case 3:
+        return 'qual-scout';
+      case 4:
+        return 'graphs';
+      case 5:
+        return 'settings';
+      case 6:
+        return 'chat';
+      case 7:
+        return 'alliance-selection';
+      case 8:
+        return 'teams';
+      case 9:
+        return 'matches';
+      case 10:
+        return 'admin-settings';
+      default:
+        return 'dashboard';
+    }
+  }
+
+  void _navigateScreen(int index) {
+    final pageId = _getPageIdForIndex(index);
+    if (!widget.apiService.hasPageAccess(pageId)) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: const Color(0xFFB91C1C),
+          content: const Row(
+            children: [
+              Icon(Icons.lock_rounded, color: Colors.white, size: 20),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'You do not have access to this page',
+                  style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _currentIndex = index;
+      _isBarsVisible = true;
+    });
+  }
+
   void _openQrScanner() {
+    if (!widget.apiService.hasPageAccess('qr-scanner')) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          duration: Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Color(0xFFB91C1C),
+          content: Row(
+            children: [
+              Icon(Icons.lock_rounded, color: Colors.white, size: 20),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'You do not have access to QR Scanner',
+                  style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+      return;
+    }
+
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (ctx) => QrScannerScreen(apiService: widget.apiService),
@@ -260,11 +366,11 @@ class _MainShellState extends State<MainShell> {
     final screens = [
       DashboardScreen(
         apiService: widget.apiService,
-        onNavigateMatch: () => setState(() => _currentIndex = 1),
-        onNavigatePit: () => setState(() => _currentIndex = 2),
-        onNavigateAnalytics: () => setState(() => _currentIndex = 4),
+        onNavigateMatch: () => _navigateScreen(1),
+        onNavigatePit: () => _navigateScreen(2),
+        onNavigateAnalytics: () => _navigateScreen(4),
         onNavigateQrScanner: _openQrScanner,
-        onNavigateAlliance: () => setState(() => _currentIndex = 7),
+        onNavigateAlliance: () => _navigateScreen(7),
         isVisible: _currentIndex == 0,
         isBarsVisible: _isBarsVisible,
       ),
@@ -272,7 +378,13 @@ class _MainShellState extends State<MainShell> {
       PitScoutScreen(apiService: widget.apiService, isVisible: _currentIndex == 2, isBarsVisible: _isBarsVisible),
       QualScoutScreen(apiService: widget.apiService, isVisible: _currentIndex == 3, isBarsVisible: _isBarsVisible),
       GraphsScreen(apiService: widget.apiService, isVisible: _currentIndex == 4, isBarsVisible: _isBarsVisible),
-      SettingsScreen(apiService: widget.apiService, onLogout: _handleLogout, isVisible: _currentIndex == 5, isBarsVisible: _isBarsVisible),
+      SettingsScreen(
+        apiService: widget.apiService,
+        onLogout: _handleLogout,
+        onNavigateConfigEditor: () => _navigateScreen(10),
+        isVisible: _currentIndex == 5,
+        isBarsVisible: _isBarsVisible,
+      ),
       ChatScreen(
         apiService: widget.apiService,
         initialChannel: _pendingChatChannel,
@@ -282,6 +394,7 @@ class _MainShellState extends State<MainShell> {
       AllianceSelectionScreen(apiService: widget.apiService, isVisible: _currentIndex == 7, isBarsVisible: _isBarsVisible),
       TeamsListScreen(apiService: widget.apiService, isVisible: _currentIndex == 8, isBarsVisible: _isBarsVisible),
       MatchListScreen(apiService: widget.apiService, isVisible: _currentIndex == 9, isBarsVisible: _isBarsVisible),
+      ConfigEditorScreen(apiService: widget.apiService, isVisible: _currentIndex == 10, isBarsVisible: _isBarsVisible),
     ];
 
     return Scaffold(
@@ -333,16 +446,17 @@ class _MainShellState extends State<MainShell> {
                     onPressed: () => Scaffold.of(ctx).openDrawer(),
                   ),
                 ),
-                IconButton(
-                  icon: Icon(
-                    Icons.qr_code_scanner_rounded,
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.cyanAccent
-                        : const Color(0xFF0284C7),
+                if (widget.apiService.hasPageAccess('qr-scanner'))
+                  IconButton(
+                    icon: Icon(
+                      Icons.qr_code_scanner_rounded,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.cyanAccent
+                          : const Color(0xFF0284C7),
+                    ),
+                    tooltip: 'QR & Barcode Scanner',
+                    onPressed: _openQrScanner,
                   ),
-                  tooltip: 'QR & Barcode Scanner',
-                  onPressed: _openQrScanner,
-                ),
               ],
             ),
           ),
@@ -351,10 +465,7 @@ class _MainShellState extends State<MainShell> {
       drawer: ObsidianNavigationDrawer(
         apiService: widget.apiService,
         currentIndex: _currentIndex,
-        onSelectScreen: (index) => setState(() {
-          _currentIndex = index;
-          _isBarsVisible = true;
-        }),
+        onSelectScreen: _navigateScreen,
         onOpenQrScanner: _openQrScanner,
         onLogout: _handleLogout,
       ),
@@ -399,11 +510,9 @@ class _MainShellState extends State<MainShell> {
               child: Container(
                 constraints: const BoxConstraints(maxWidth: 600.0),
                 child: ObsidianBottomNav(
+                  apiService: widget.apiService,
                   currentIndex: _currentIndex,
-                  onTap: (index) => setState(() {
-                    _currentIndex = index;
-                    _isBarsVisible = true;
-                  }),
+                  onTap: _navigateScreen,
                 ),
               ),
             ),

@@ -4,6 +4,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../models/api_response.dart';
 import '../models/config_models.dart';
 import '../models/team_match_models.dart';
 import '../models/chat_models.dart';
@@ -23,6 +24,10 @@ class ApiService {
   String _savedUsername = '';
   Timer? _syncTimer;
 
+  UserModel? _currentUser;
+  AppSettingsModel? _currentSettings;
+  final ValueNotifier<int> permissionsNotifier = ValueNotifier<int>(0);
+
   final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier<ThemeMode>(ThemeMode.dark);
   final ValueNotifier<Locale> localeNotifier = ValueNotifier<Locale>(const Locale('en'));
 
@@ -36,6 +41,10 @@ class ApiService {
   bool get isLoggedIn => _sessionCookie != null && _sessionCookie!.isNotEmpty;
   bool get keepMeLoggedIn => _keepMeLoggedIn;
   String get savedUsername => _savedUsername;
+  UserModel? get currentUser => _currentUser;
+  AppSettingsModel? get currentSettings => _currentSettings;
+  String get currentUserRole => _currentUser?.role ?? 'SCOUT';
+  String get currentProgram => _currentUser?.program ?? _currentSettings?.program ?? 'FRC';
   bool get isOnline => _isOnline;
   Stream<bool> get onOnlineStatusChanged => _onlineStreamController.stream;
   Stream<int> get onServerError => _serverErrorController.stream;
@@ -52,6 +61,18 @@ class ApiService {
     localeNotifier.value = locale;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(keyLocale, locale.languageCode);
+  }
+
+  @visibleForTesting
+  void setCachedUserForTesting(UserModel? user) {
+    _currentUser = user;
+    permissionsNotifier.value++;
+  }
+
+  @visibleForTesting
+  void setCachedSettingsForTesting(AppSettingsModel? settings) {
+    _currentSettings = settings;
+    permissionsNotifier.value++;
   }
 
   Future<void> init() async {
@@ -76,6 +97,24 @@ class ApiService {
       localeNotifier.value = const Locale('en');
     }
 
+    // Restore cached user and settings
+    final cachedUser = await _getCache("cache_auth_me");
+    if (cachedUser != null && cachedUser.isNotEmpty) {
+      try {
+        final jsonMap = jsonDecode(cachedUser);
+        final userObj = jsonMap['user'] is Map ? (jsonMap['user'] as Map<String, dynamic>) : jsonMap;
+        _currentUser = UserModel.fromJson(userObj);
+      } catch (_) {}
+    }
+
+    final cachedSettings = await _getCache("cache_settings");
+    if (cachedSettings != null && cachedSettings.isNotEmpty) {
+      try {
+        final jsonMap = jsonDecode(cachedSettings);
+        _currentSettings = AppSettingsModel.fromJson(jsonMap);
+      } catch (_) {}
+    }
+
     _initConnectivityMonitor();
 
     if (_keepMeLoggedIn) {
@@ -88,6 +127,11 @@ class ApiService {
           await prefs.remove(keySessionCookie);
         }
       }
+    }
+
+    if (isLoggedIn) {
+      unawaited(fetchCurrentUser());
+      unawaited(fetchSettings());
     }
 
     _startBackgroundSync();
@@ -148,6 +192,10 @@ class ApiService {
     if (!isLoggedIn || !_isOnline || _isSyncing) return;
     _isSyncing = true;
     try {
+      await fetchCurrentUser();
+      await Future.delayed(const Duration(milliseconds: 100));
+      await fetchSettings();
+      await Future.delayed(const Duration(milliseconds: 100));
       final eventKey = await fetchCurrentEventKey();
       await Future.delayed(const Duration(milliseconds: 150));
       await fetchMatchConfig();
@@ -292,6 +340,8 @@ class ApiService {
           await prefs.remove(keySessionCookie);
         }
         _startBackgroundSync();
+        unawaited(fetchCurrentUser());
+        unawaited(fetchSettings());
         return true;
       }
       return false;
@@ -338,6 +388,8 @@ class ApiService {
           await prefs.remove(keySessionCookie);
         }
         _startBackgroundSync();
+        unawaited(fetchCurrentUser());
+        unawaited(fetchSettings());
         return true;
       }
       return false;
@@ -356,9 +408,127 @@ class ApiService {
     } catch (_) {}
     _sessionCookie = null;
     _keepMeLoggedIn = false;
+    _currentUser = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(keySessionCookie);
+    await prefs.remove("cache_auth_me");
     await prefs.setBool(keyKeepMeLoggedIn, false);
+    permissionsNotifier.value++;
+  }
+
+  // User Profile & Settings
+  Future<UserModel?> fetchCurrentUser() async {
+    final cached = await _getCache("cache_auth_me");
+    if (cached != null && cached.isNotEmpty && _currentUser == null) {
+      try {
+        final jsonMap = jsonDecode(cached);
+        final userObj = jsonMap['user'] is Map ? (jsonMap['user'] as Map<String, dynamic>) : jsonMap;
+        _currentUser = UserModel.fromJson(userObj);
+      } catch (_) {}
+    }
+
+    if (!_isOnline) return _currentUser;
+
+    try {
+      final response = await http
+          .get(Uri.parse('$_currentServerUrl/api/auth/me'), headers: _headers)
+          .timeout(const Duration(seconds: 4));
+      if (response.statusCode == 200) {
+        await _setCache("cache_auth_me", response.body);
+        final jsonMap = jsonDecode(response.body);
+        final userObj = jsonMap['user'] is Map ? (jsonMap['user'] as Map<String, dynamic>) : jsonMap;
+        _currentUser = UserModel.fromJson(userObj);
+        permissionsNotifier.value++;
+        return _currentUser;
+      }
+    } catch (_) {
+      _updateOnlineState(false);
+    }
+    return _currentUser;
+  }
+
+  Future<AppSettingsModel?> fetchSettings() async {
+    final cached = await _getCache("cache_settings");
+    if (cached != null && cached.isNotEmpty && _currentSettings == null) {
+      try {
+        final jsonMap = jsonDecode(cached);
+        _currentSettings = AppSettingsModel.fromJson(jsonMap);
+      } catch (_) {}
+    }
+
+    if (!_isOnline) return _currentSettings;
+
+    try {
+      final response = await http
+          .get(Uri.parse('$_currentServerUrl/api/settings'), headers: _headers)
+          .timeout(const Duration(seconds: 4));
+      if (response.statusCode == 200) {
+        await _setCache("cache_settings", response.body);
+        final jsonMap = jsonDecode(response.body);
+        _currentSettings = AppSettingsModel.fromJson(jsonMap);
+        permissionsNotifier.value++;
+        return _currentSettings;
+      }
+    } catch (_) {
+      _updateOnlineState(false);
+    }
+    return _currentSettings;
+  }
+
+  bool hasPageAccess(String pageId) {
+    final role = (_currentUser?.role ?? 'SCOUT').toUpperCase();
+
+    // SuperAdmin has full access to all pages unconditionally
+    if (role == 'SUPERADMIN') {
+      return true;
+    }
+
+    // SuperAdmin only pages
+    if (superAdminOnlyPages.contains(pageId)) {
+      return false;
+    }
+
+    // Admin only base pages (only ADMIN or SUPERADMIN can access)
+    final isAdminPage = adminOnlyBasePages.contains(pageId);
+    if (role != 'ADMIN' && isAdminPage) {
+      return false;
+    }
+
+    // Chat toggle check (if chat is disabled for the team, deny SCOUT, ANALYTICS, ADMIN)
+    if (pageId == 'chat' && _currentSettings != null && !_currentSettings!.chatEnabled) {
+      return false;
+    }
+
+    // Bypass pages
+    if (bypassPages.contains(pageId)) {
+      return true;
+    }
+
+    // Resolve aliases
+    final candidatePages = <String>[pageId];
+    if (pageId == 'config-editor') {
+      candidatePages.addAll(['admin-settings', 'default-configs']);
+    } else if (pageId == 'admin-settings' || pageId == 'default-configs') {
+      candidatePages.add('config-editor');
+    }
+    if (pageId == 'alliance-selection') {
+      candidatePages.add('alliances');
+    } else if (pageId == 'alliances') {
+      candidatePages.add('alliance-selection');
+    }
+
+    // Dynamic role permissions from team settings
+    final settings = _currentSettings;
+    List<String> allowedPages;
+    if (role == 'ADMIN') {
+      allowedPages = settings?.adminPages ?? defaultAdminPages;
+    } else if (role == 'ANALYTICS') {
+      allowedPages = settings?.analyticsPages ?? defaultAnalyticsPages;
+    } else {
+      allowedPages = settings?.scoutPages ?? defaultScoutPages;
+    }
+
+    return candidatePages.any((candidate) => allowedPages.contains(candidate));
   }
 
   // Settings & Event resolution
@@ -382,6 +552,7 @@ class ApiService {
       if (response.statusCode == 200) {
         await _setCache("cache_settings", response.body);
         final jsonMap = jsonDecode(response.body);
+        _currentSettings = AppSettingsModel.fromJson(jsonMap);
         final settings = jsonMap['settings'] ?? jsonMap;
         return settings['eventKey']?.toString() ?? settings['eventCode']?.toString();
       }
@@ -497,6 +668,274 @@ class ApiService {
     return cachedModel;
   }
 
+  // Config Saving & Preset Management
+  Future<ApiResponse<void>> saveMatchConfig(String rawJson) async {
+    await _setCache("cache_config", rawJson);
+    if (!_isOnline) {
+      return const ApiResponse.error(isOffline: true, message: 'Saved to offline cache. Will synchronize when online.');
+    }
+    try {
+      final response = await http.put(
+        Uri.parse('$_currentServerUrl/api/config'),
+        headers: _headers,
+        body: jsonEncode({'configJson': rawJson}),
+      );
+      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to save match config');
+    } catch (e) {
+      return ApiResponse.error(message: e.toString());
+    }
+  }
+
+  Future<ApiResponse<void>> savePitConfig(String rawJson) async {
+    await _setCache("cache_pit_config", rawJson);
+    if (!_isOnline) {
+      return const ApiResponse.error(isOffline: true, message: 'Saved to offline cache. Will synchronize when online.');
+    }
+    try {
+      final response = await http.put(
+        Uri.parse('$_currentServerUrl/api/pit-config'),
+        headers: _headers,
+        body: jsonEncode({'configJson': rawJson}),
+      );
+      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to save pit config');
+    } catch (e) {
+      return ApiResponse.error(message: e.toString());
+    }
+  }
+
+  Future<ApiResponse<void>> saveQualConfig(String rawJson) async {
+    await _setCache("cache_qual_config", rawJson);
+    if (!_isOnline) {
+      return const ApiResponse.error(isOffline: true, message: 'Saved to offline cache. Will synchronize when online.');
+    }
+    try {
+      final response = await http.put(
+        Uri.parse('$_currentServerUrl/api/qual-config'),
+        headers: _headers,
+        body: jsonEncode({'configJson': rawJson}),
+      );
+      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to save qual config');
+    } catch (e) {
+      return ApiResponse.error(message: e.toString());
+    }
+  }
+
+  Future<String?> fetchRawConfigJson(String configKind) async {
+    final cacheKey = configKind == 'pit'
+        ? 'cache_pit_config'
+        : (configKind == 'qual' ? 'cache_qual_config' : 'cache_config');
+    final apiPath = configKind == 'pit'
+        ? '/api/pit-config'
+        : (configKind == 'qual' ? '/api/qual-config' : '/api/config');
+
+    if (_isOnline) {
+      try {
+        final response = await http.get(Uri.parse('$_currentServerUrl$apiPath'), headers: _headers).timeout(const Duration(seconds: 2));
+        if (response.statusCode == 200) {
+          await _setCache(cacheKey, response.body);
+          return response.body;
+        }
+      } catch (_) {}
+    }
+    return await _getCache(cacheKey);
+  }
+
+  Future<List<DefaultConfigPresetModel>> fetchDefaultPresets(String configType) async {
+    final typeParam = configType == 'game' ? 'match' : (configType == 'qual' ? 'qualitative' : configType);
+    if (!_isOnline) return [];
+    try {
+      final response = await http
+          .get(Uri.parse('$_currentServerUrl/api/config/defaults?type=$typeParam'), headers: _headers)
+          .timeout(const Duration(seconds: 3));
+      if (response.statusCode == 200) {
+        final List list = jsonDecode(response.body);
+        return list.map((item) => DefaultConfigPresetModel.fromJson(item as Map<String, dynamic>)).toList();
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  Future<ApiResponse<ScoutingConfigModel>> applyDefaultPreset(String configType, String presetName) async {
+    final typeParam = configType == 'game' ? 'match' : (configType == 'qual' ? 'qualitative' : configType);
+    if (!_isOnline) return const ApiResponse.error(isOffline: true, message: 'Device is offline');
+    try {
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/config/apply-default'),
+        headers: _headers,
+        body: jsonEncode({
+          'configType': typeParam,
+          'presetName': presetName,
+        }),
+      );
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final cacheKey = configType == 'pit'
+            ? 'cache_pit_config'
+            : (configType == 'qual' || configType == 'qualitative' ? 'cache_qual_config' : 'cache_config');
+        await _setCache(cacheKey, response.body);
+        return ApiResponse.success(
+          ScoutingConfigModel.fromJson(jsonDecode(response.body)),
+          statusCode: response.statusCode,
+          message: 'Preset applied successfully',
+        );
+      }
+      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to apply preset');
+    } catch (e) {
+      return ApiResponse.error(message: e.toString());
+    }
+  }
+
+  Future<ApiResponse<ScoutingConfigModel>> resetConfigToDefault(String configType) async {
+    final typeParam = configType == 'game' ? 'match' : (configType == 'qual' ? 'qualitative' : configType);
+    if (!_isOnline) return const ApiResponse.error(isOffline: true, message: 'Device is offline');
+    try {
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/config/reset'),
+        headers: _headers,
+        body: jsonEncode({
+          'configType': typeParam,
+        }),
+      );
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final cacheKey = configType == 'pit'
+            ? 'cache_pit_config'
+            : (configType == 'qual' || configType == 'qualitative' ? 'cache_qual_config' : 'cache_config');
+        await _setCache(cacheKey, response.body);
+        return ApiResponse.success(
+          ScoutingConfigModel.fromJson(jsonDecode(response.body)),
+          statusCode: response.statusCode,
+          message: 'Config reset to default',
+        );
+      }
+      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to reset config');
+    } catch (e) {
+      return ApiResponse.error(message: e.toString());
+    }
+  }
+
+  // Schema History API
+  Future<List<ConfigRevisionModel>> fetchConfigHistory(String configKind) async {
+    final kindParam = configKind == 'pit' ? 'pit' : (configKind == 'qual' || configKind == 'qualitative' ? 'qual' : 'game');
+    if (!_isOnline) return [];
+    try {
+      final response = await http
+          .get(Uri.parse('$_currentServerUrl/api/config-history?kind=$kindParam'), headers: _headers)
+          .timeout(const Duration(seconds: 3));
+      if (response.statusCode == 200) {
+        final List list = jsonDecode(response.body);
+        return list.map((item) => ConfigRevisionModel.fromJson(item as Map<String, dynamic>)).toList();
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  Future<ConfigRevisionModel?> fetchConfigRevisionDetail(String revisionId) async {
+    if (!_isOnline) return null;
+    try {
+      final response = await http
+          .get(Uri.parse('$_currentServerUrl/api/config-history/$revisionId'), headers: _headers)
+          .timeout(const Duration(seconds: 3));
+      if (response.statusCode == 200) {
+        return ConfigRevisionModel.fromJson(jsonDecode(response.body));
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<ApiResponse<ScoutingConfigModel>> restoreConfigRevision(String revisionId, String configKind) async {
+    if (!_isOnline) return const ApiResponse.error(isOffline: true, message: 'Device is offline');
+    try {
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/config-history/$revisionId/restore'),
+        headers: _headers,
+      );
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final data = jsonDecode(response.body);
+        final configJson = data['config'] != null ? jsonEncode(data['config']) : null;
+        if (configJson != null) {
+          final cacheKey = configKind == 'pit'
+              ? 'cache_pit_config'
+              : (configKind == 'qual' || configKind == 'qualitative' ? 'cache_qual_config' : 'cache_config');
+          await _setCache(cacheKey, configJson);
+          return ApiResponse.success(
+            ScoutingConfigModel.fromJson(data['config']),
+            statusCode: response.statusCode,
+            message: 'Revision restored successfully',
+          );
+        }
+        return ApiResponse.success(null, statusCode: response.statusCode);
+      }
+      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to restore revision');
+    } catch (e) {
+      return ApiResponse.error(message: e.toString());
+    }
+  }
+
+  // Config Migration API
+  Future<ConfigSchemaStatusModel?> fetchConfigMigrationStatus(String configKind) async {
+    final kindParam = configKind == 'pit' ? 'pit' : (configKind == 'qual' || configKind == 'qualitative' ? 'qual' : 'game');
+    if (!_isOnline) return null;
+    try {
+      final response = await http
+          .get(Uri.parse('$_currentServerUrl/api/config-migration/status?kind=$kindParam'), headers: _headers)
+          .timeout(const Duration(seconds: 4));
+      if (response.statusCode == 200) {
+        return ConfigSchemaStatusModel.fromJson(jsonDecode(response.body));
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<ConfigMigrationPreviewModel?> previewConfigMigration(
+    String configKind,
+    List<Map<String, dynamic>> mappings,
+    Map<String, dynamic> defaultValues,
+  ) async {
+    final kindParam = configKind == 'pit' ? 'pit' : (configKind == 'qual' || configKind == 'qualitative' ? 'qual' : 'game');
+    if (!_isOnline) return null;
+    try {
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/config-migration/preview'),
+        headers: _headers,
+        body: jsonEncode({
+          'configKind': kindParam,
+          'mappings': mappings,
+          'defaultValues': defaultValues,
+        }),
+      );
+      if (response.statusCode == 200) {
+        return ConfigMigrationPreviewModel.fromJson(jsonDecode(response.body));
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<ApiResponse<ConfigMigrationResultModel>> applyConfigMigration(
+    String configKind,
+    List<Map<String, dynamic>> mappings,
+    Map<String, dynamic> defaultValues,
+  ) async {
+    final kindParam = configKind == 'pit' ? 'pit' : (configKind == 'qual' || configKind == 'qualitative' ? 'qual' : 'game');
+    if (!_isOnline) return const ApiResponse.error(isOffline: true, message: 'Device is offline');
+    try {
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/config-migration/apply'),
+        headers: _headers,
+        body: jsonEncode({
+          'configKind': kindParam,
+          'mappings': mappings,
+          'defaultValues': defaultValues,
+        }),
+      );
+      return ApiResponse.fromHttpResponse(
+        response,
+        parser: (json) => ConfigMigrationResultModel.fromJson(json),
+        defaultErrorMessage: 'Migration failed on server',
+      );
+    } catch (e) {
+      return ApiResponse.error(message: e.toString());
+    }
+  }
+
   // Dropdown Data Fetching
   Future<List<TeamModel>> fetchTeams(String? eventKey) async {
     final cacheKey = "cache_teams_${eventKey ?? 'all'}";
@@ -505,7 +944,12 @@ class ApiService {
     if (cached != null && cached.isNotEmpty) {
       try {
         final List list = jsonDecode(cached);
-        cachedList = list.map((item) => TeamModel.fromJson(item as Map<String, dynamic>)).toList();
+        final Map<int, TeamModel> teamMap = {};
+        for (var item in list) {
+          final t = TeamModel.fromJson(item as Map<String, dynamic>);
+          teamMap[t.teamNumber] = t;
+        }
+        cachedList = teamMap.values.toList()..sort((a, b) => a.teamNumber.compareTo(b.teamNumber));
       } catch (_) {}
     }
 
@@ -519,7 +963,12 @@ class ApiService {
       if (response.statusCode == 200) {
         await _setCache(cacheKey, response.body);
         final List list = jsonDecode(response.body);
-        return list.map((item) => TeamModel.fromJson(item as Map<String, dynamic>)).toList();
+        final Map<int, TeamModel> teamMap = {};
+        for (var item in list) {
+          final t = TeamModel.fromJson(item as Map<String, dynamic>);
+          teamMap[t.teamNumber] = t;
+        }
+        return teamMap.values.toList()..sort((a, b) => a.teamNumber.compareTo(b.teamNumber));
       }
     } catch (_) {
       _updateOnlineState(false);
@@ -535,7 +984,14 @@ class ApiService {
     if (cached != null && cached.isNotEmpty) {
       try {
         final List list = jsonDecode(cached);
-        cachedList = list.map((item) => MatchModel.fromJson(item as Map<String, dynamic>)).toList();
+        final Map<String, MatchModel> matchMap = {};
+        for (var item in list) {
+          final m = MatchModel.fromJson(item as Map<String, dynamic>);
+          if (m.matchKey.isNotEmpty) {
+            matchMap[m.matchKey] = m;
+          }
+        }
+        cachedList = matchMap.values.toList();
       } catch (_) {}
     }
 
@@ -549,7 +1005,14 @@ class ApiService {
       if (response.statusCode == 200) {
         await _setCache(cacheKey, response.body);
         final List list = jsonDecode(response.body);
-        return list.map((item) => MatchModel.fromJson(item as Map<String, dynamic>)).toList();
+        final Map<String, MatchModel> matchMap = {};
+        for (var item in list) {
+          final m = MatchModel.fromJson(item as Map<String, dynamic>);
+          if (m.matchKey.isNotEmpty) {
+            matchMap[m.matchKey] = m;
+          }
+        }
+        return matchMap.values.toList();
       }
     } catch (_) {
       _updateOnlineState(false);
@@ -588,47 +1051,149 @@ class ApiService {
     return cachedEntries;
   }
 
+  Future<List<dynamic>> fetchPitScoutingEntries() async {
+    final cached = await _getCache("cache_pit_scouting");
+    List<dynamic> cachedEntries = [];
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(cached);
+        if (decoded is List) cachedEntries = decoded;
+        if (decoded is Map && decoded['entries'] is List) cachedEntries = decoded['entries'] as List;
+      } catch (_) {}
+    }
+
+    if (!_isOnline) return cachedEntries;
+
+    try {
+      final response = await http
+          .get(Uri.parse('$_currentServerUrl/api/pit-scouting?includePrescout=true'), headers: _headers)
+          .timeout(const Duration(seconds: 2));
+      if (response.statusCode == 200) {
+        await _setCache("cache_pit_scouting", response.body);
+        final decoded = jsonDecode(response.body);
+        if (decoded is List) return decoded;
+        if (decoded is Map && decoded['entries'] is List) return decoded['entries'] as List;
+      }
+    } catch (_) {
+      _updateOnlineState(false);
+    }
+
+    return cachedEntries;
+  }
+
+  Future<List<dynamic>> fetchQualScoutingEntries() async {
+    final cached = await _getCache("cache_qual_scouting");
+    List<dynamic> cachedEntries = [];
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(cached);
+        if (decoded is List) cachedEntries = decoded;
+        if (decoded is Map && decoded['entries'] is List) cachedEntries = decoded['entries'] as List;
+      } catch (_) {}
+    }
+
+    if (!_isOnline) return cachedEntries;
+
+    try {
+      final response = await http
+          .get(Uri.parse('$_currentServerUrl/api/qual-scouting?includePrescout=true'), headers: _headers)
+          .timeout(const Duration(seconds: 2));
+      if (response.statusCode == 200) {
+        await _setCache("cache_qual_scouting", response.body);
+        final decoded = jsonDecode(response.body);
+        if (decoded is List) return decoded;
+        if (decoded is Map && decoded['entries'] is List) return decoded['entries'] as List;
+      }
+    } catch (_) {
+      _updateOnlineState(false);
+    }
+
+    return cachedEntries;
+  }
+
   // Data Submissions
-  Future<bool> submitMatchScouting(Map<String, dynamic> data) async {
+  Future<ApiResponse<void>> submitMatchScouting(Map<String, dynamic> data) async {
+    try {
+      final cached = await _getCache("cache_scouting");
+      List list = [];
+      if (cached != null && cached.isNotEmpty) {
+        final decoded = jsonDecode(cached);
+        if (decoded is List) list = decoded;
+      }
+      list.add(data);
+      await _setCache("cache_scouting", jsonEncode(list));
+    } catch (_) {}
+
+    if (!_isOnline) {
+      return const ApiResponse.error(isOffline: true, message: 'Saved to offline cache. Will synchronize when online.');
+    }
     try {
       final response = await http.post(
         Uri.parse('$_currentServerUrl/api/scouting'),
         headers: _headers,
         body: jsonEncode({'data': data}),
       );
-      return response.statusCode == 200 || response.statusCode == 201;
-    } catch (_) {
-      return false;
+      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to submit match scouting');
+    } catch (e) {
+      return ApiResponse.error(isOffline: true, message: 'Connection error: saved to offline cache.');
     }
   }
 
-  Future<bool> submitPitScouting(Map<String, dynamic> data) async {
+  Future<ApiResponse<void>> submitPitScouting(Map<String, dynamic> data) async {
+    try {
+      final cached = await _getCache("cache_pit_scouting");
+      List list = [];
+      if (cached != null && cached.isNotEmpty) {
+        final decoded = jsonDecode(cached);
+        if (decoded is List) list = decoded;
+      }
+      list.add(data);
+      await _setCache("cache_pit_scouting", jsonEncode(list));
+    } catch (_) {}
+
+    if (!_isOnline) {
+      return const ApiResponse.error(isOffline: true, message: 'Saved to offline cache. Will synchronize when online.');
+    }
     try {
       final response = await http.post(
         Uri.parse('$_currentServerUrl/api/pit-scouting'),
         headers: _headers,
         body: jsonEncode({'data': data}),
       );
-      return response.statusCode == 200 || response.statusCode == 201;
-    } catch (_) {
-      return false;
+      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to submit pit scouting');
+    } catch (e) {
+      return ApiResponse.error(isOffline: true, message: 'Connection error: saved to offline cache.');
     }
   }
 
-  Future<bool> submitQualScouting(Map<String, dynamic> data) async {
+  Future<ApiResponse<void>> submitQualScouting(Map<String, dynamic> data) async {
+    try {
+      final cached = await _getCache("cache_qual_scouting");
+      List list = [];
+      if (cached != null && cached.isNotEmpty) {
+        final decoded = jsonDecode(cached);
+        if (decoded is List) list = decoded;
+      }
+      list.add(data);
+      await _setCache("cache_qual_scouting", jsonEncode(list));
+    } catch (_) {}
+
+    if (!_isOnline) {
+      return const ApiResponse.error(isOffline: true, message: 'Saved to offline cache. Will synchronize when online.');
+    }
     try {
       final response = await http.post(
         Uri.parse('$_currentServerUrl/api/qual-scouting'),
         headers: _headers,
         body: jsonEncode({'data': data}),
       );
-      return response.statusCode == 200 || response.statusCode == 201;
-    } catch (_) {
-      return false;
+      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to submit qualitative scouting');
+    } catch (e) {
+      return ApiResponse.error(isOffline: true, message: 'Connection error: saved to offline cache.');
     }
   }
 
-  Future<bool> submitScannedItem(String type, Map<String, dynamic> data) async {
+  Future<ApiResponse<void>> submitScannedItem(String type, Map<String, dynamic> data) async {
     String endpoint;
     final lowerType = type.toLowerCase().replaceAll('_', '-');
     if (lowerType == 'scout' || lowerType == 'match-scout' || lowerType == 'match-scouting' || lowerType == 'match') {
@@ -647,6 +1212,10 @@ class ApiService {
       endpoint = '/api/scouting';
     }
 
+    if (!_isOnline) {
+      return const ApiResponse.error(isOffline: true, message: 'Device is offline');
+    }
+
     try {
       final innerData = data.containsKey('data') && data['data'] is Map<String, dynamic>
           ? data['data']
@@ -657,9 +1226,9 @@ class ApiService {
         headers: _headers,
         body: jsonEncode({'data': innerData}),
       );
-      return response.statusCode == 200 || response.statusCode == 201;
-    } catch (_) {
-      return false;
+      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to upload scanned item');
+    } catch (e) {
+      return ApiResponse.error(message: e.toString());
     }
   }
 
@@ -856,18 +1425,9 @@ class ApiService {
   }
 
   Future<String?> fetchCurrentUserRole() async {
-    if (!_isOnline) return null;
-    try {
-      final response = await http
-          .get(Uri.parse('$_currentServerUrl/api/auth/me'), headers: _headers)
-          .timeout(const Duration(seconds: 5));
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final user = data['user'] as Map<String, dynamic>?;
-        return (user != null ? user['role'] : data['role'])?.toString().toUpperCase();
-      }
-    } catch (_) {}
-    return null;
+    if (_currentUser != null) return _currentUser!.role;
+    final user = await fetchCurrentUser();
+    return user?.role;
   }
 
   Future<List<ChatMessageModel>> fetchChatMessages(String groupName) async {
@@ -1109,7 +1669,7 @@ class ApiService {
     return null;
   }
 
-  Future<bool> saveAllianceSelection(String eventKey, String selectionJson) async {
+  Future<ApiResponse<void>> saveAllianceSelection(String eventKey, String selectionJson) async {
     final cacheKey = "cache_alliance_selection_$eventKey";
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
@@ -1120,7 +1680,9 @@ class ApiService {
       }),
     );
 
-    if (!_isOnline) return true;
+    if (!_isOnline) {
+      return const ApiResponse.error(isOffline: true, message: 'Saved to offline cache. Will synchronize when online.');
+    }
 
     try {
       final response = await http.post(
@@ -1131,9 +1693,9 @@ class ApiService {
           'selectionJson': selectionJson,
         }),
       );
-      return response.statusCode == 200;
-    } catch (_) {
-      return false;
+      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to save alliance selection');
+    } catch (e) {
+      return ApiResponse.error(message: e.toString());
     }
   }
 

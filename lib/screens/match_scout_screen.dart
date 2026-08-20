@@ -7,6 +7,7 @@ import '../models/team_match_models.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../services/api_service.dart';
 import '../widgets/obsidian_barcode_modal.dart';
+import '../widgets/obsidian_feedback.dart';
 
 class MatchScoutScreen extends StatefulWidget {
   final ApiService apiService;
@@ -33,6 +34,8 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
 
   TeamModel? _selectedTeam;
   MatchModel? _selectedMatch;
+
+  String _activeTab = 'auto'; // 'auto', 'teleop', 'endgame', 'postmatch'
 
   bool _isLoading = true;
   bool _isSubmitting = false;
@@ -63,12 +66,84 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
       _config = config;
       _teams = teams;
       _matches = matches;
+      if (_selectedTeam != null && !_teams.contains(_selectedTeam)) {
+        _selectedTeam = null;
+      }
+      if (_selectedMatch != null && !_matches.contains(_selectedMatch)) {
+        _selectedMatch = null;
+      }
       _isLoading = false;
 
       if (config != null) {
         _resetFormData(config);
       }
     });
+  }
+
+  String _getFieldPhase(ScoutingFieldModel field) {
+    if (field.phase != null && field.phase!.isNotEmpty) {
+      final p = field.phase!.toLowerCase().trim();
+      if (p == 'postmatch' || p == 'post-match' || p == 'post match' || p == 'post') {
+        return 'postmatch';
+      }
+      return p;
+    }
+    final id = field.id.toLowerCase();
+    if (id.startsWith('auto')) return 'auto';
+    if (id.startsWith('teleop')) return 'teleop';
+    if (id.startsWith('endgame')) return 'endgame';
+    return 'postmatch';
+  }
+
+  double _calculateFieldPoints(ScoutingFieldModel field, dynamic value) {
+    if (value == null || value == '') return 0.0;
+    final t = field.type.toLowerCase();
+    if (t == 'checkbox' || t == 'boolean' || t == 'toggle') {
+      if (value == true || value == 'true') {
+        return field.pointsPer ?? 0.0;
+      }
+      return 0.0;
+    }
+    if (t == 'select' || t == 'dropdown' || t == 'radio' || t == 'choice') {
+      final valStr = value.toString();
+      for (final opt in field.options) {
+        if (opt.value == valStr) {
+          return opt.points ?? 0.0;
+        }
+      }
+      return 0.0;
+    }
+    if (t == 'counter' || t == 'number' || t == 'stepper' || t == 'slider' || t == 'range' || t == 'rating' || t == 'stars') {
+      final numVal = double.tryParse(value.toString()) ?? 0.0;
+      final factor = field.pointsPer ?? 0.0;
+      return numVal * factor;
+    }
+    return 0.0;
+  }
+
+  Map<String, double> _calculatePoints() {
+    final totals = <String, double>{
+      'auto': 0.0,
+      'teleop': 0.0,
+      'endgame': 0.0,
+      'total': 0.0,
+    };
+    if (_config == null) return totals;
+
+    for (final field in _config!.fields) {
+      final val = _formData[field.id];
+      final pts = _calculateFieldPoints(field, val);
+      totals['total'] = (totals['total'] ?? 0.0) + pts;
+      final phase = _getFieldPhase(field);
+      if (phase == 'auto') {
+        totals['auto'] = (totals['auto'] ?? 0.0) + pts;
+      } else if (phase == 'teleop') {
+        totals['teleop'] = (totals['teleop'] ?? 0.0) + pts;
+      } else if (phase == 'endgame') {
+        totals['endgame'] = (totals['endgame'] ?? 0.0) + pts;
+      }
+    }
+    return totals;
   }
 
   void _resetFormData(ScoutingConfigModel config) {
@@ -150,58 +225,93 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
   }
 
   void _submitData() async {
-    if (!_validateSelection()) return;
+    if (!_validateSelection()) {
+      ObsidianFeedback.showWarning(
+        context,
+        title: 'Selection Incomplete',
+        message: 'Please select a Match and Team before saving.',
+      );
+      return;
+    }
 
-    if (!_formKey.currentState!.validate()) return;
+    // Check required fields across all phases and auto-switch tab if missing
+    for (final field in _config?.fields ?? <ScoutingFieldModel>[]) {
+      if (field.required) {
+        final val = _formData[field.id];
+        if (val == null || val == '' || (val is List && val.isEmpty)) {
+          final phase = _getFieldPhase(field);
+          setState(() => _activeTab = phase);
+          ObsidianFeedback.showWarning(
+            context,
+            title: 'Missing Required Field',
+            message: 'Please complete "${field.label}" before saving.',
+          );
+          return;
+        }
+      }
+    }
+
+    if (!_formKey.currentState!.validate()) {
+      ObsidianFeedback.showWarning(
+        context,
+        title: 'Validation Error',
+        message: 'Please complete all required fields.',
+      );
+      return;
+    }
     _formKey.currentState!.save();
 
     setState(() => _isSubmitting = true);
 
-    final payload = {
-      'event_key': _eventKey ?? '',
-      'team_number': _selectedTeam!.teamNumber,
-      'match_number': _selectedMatch!.matchNumber,
-      'comp_level': _selectedMatch!.compLevel,
-      'data': _formData,
-      'timestamp': DateTime.now().millisecondsSinceEpoch,
+    final data = <String, dynamic>{
+      'eventKey': _eventKey ?? '',
+      'matchKey': _selectedMatch!.matchKey,
+      'matchNumber': _selectedMatch!.matchNumber,
+      'targetTeamNumber': _selectedTeam!.teamNumber,
+      ..._formData,
     };
 
-    final success = await widget.apiService.submitMatchScouting(payload);
+    final response = await widget.apiService.submitMatchScouting(data);
 
     setState(() => _isSubmitting = false);
 
     if (mounted) {
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.tr('dashboard.sync_complete')),
-            backgroundColor: ObsidianUITheme.successGreen,
-          ),
+      if (response.success) {
+        ObsidianFeedback.showSuccess(
+          context,
+          title: 'Match Scouting Saved',
+          message: 'Match scouting data saved successfully (HTTP ${response.statusCode ?? 200})',
+          statusCode: response.statusCode ?? 200,
         );
-        if (_config != null) {
-          setState(() {
-            _formData.clear();
-            for (var f in _config!.fields) {
-              final t = f.type.toLowerCase();
-              if (t == 'section' || t == 'header' || t == 'divider') continue;
-              if (t == 'counter' || t == 'number' || t == 'stepper') {
-                _formData[f.id] = f.defaultValue ?? f.min ?? 0;
-              } else if (t == 'boolean' || t == 'toggle' || t == 'checkbox') {
-                _formData[f.id] = f.defaultValue == true || f.defaultValue == 'true';
-              } else {
-                _formData[f.id] = f.defaultValue?.toString() ?? '';
-              }
-            }
-          });
-        }
+        _resetForm();
+      } else if (response.isOffline) {
+        ObsidianFeedback.showWarning(
+          context,
+          title: 'Saved to Offline Cache',
+          message: 'Device offline. Saved to offline cache and will sync when online.',
+        );
+        _resetForm();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.tr('connection.offline')),
-            backgroundColor: ObsidianUITheme.warningOrange,
-          ),
+        ObsidianFeedback.showError(
+          context,
+          title: 'Save Failed',
+          message: response.message != null && response.message!.isNotEmpty
+              ? response.message!
+              : 'Failed to submit match scouting data.',
+          statusCode: response.statusCode,
+          isOffline: response.isOffline,
         );
       }
+    }
+  }
+
+  void _resetForm() {
+    if (_config != null) {
+      setState(() {
+        _formData.clear();
+        _resetFormData(_config!);
+        _activeTab = 'auto';
+      });
     }
   }
 
@@ -228,6 +338,195 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
     );
   }
 
+  Widget _buildTabRow() {
+    final autoLabel = context.tr('phase.auto');
+    final teleopLabel = context.tr('phase.teleop');
+    final endgameLabel = context.tr('phase.endgame');
+    final postmatchLabel = context.tr('prescout-scout.post_match');
+
+    final tabs = [
+      {'key': 'auto', 'label': autoLabel == 'phase.auto' ? 'Auto' : autoLabel},
+      {'key': 'teleop', 'label': teleopLabel == 'phase.teleop' ? 'Teleop' : teleopLabel},
+      {'key': 'endgame', 'label': endgameLabel == 'phase.endgame' ? 'Endgame' : endgameLabel},
+      {'key': 'postmatch', 'label': (postmatchLabel == 'prescout-scout.post_match' || postmatchLabel == 'prescout_scout.post_match') ? 'Post Match' : postmatchLabel},
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        children: tabs.map((tab) {
+          final isSelected = _activeTab == tab['key'];
+          return Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3.0),
+              child: InkWell(
+                onTap: () => setState(() => _activeTab = tab['key']!),
+                borderRadius: BorderRadius.circular(12),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding: const EdgeInsets.symmetric(vertical: 10.0),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.25)
+                        : ObsidianUITheme.getSurfaceColor(context),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected
+                          ? ObsidianUITheme.primaryAccent
+                          : ObsidianUITheme.getBorderColor(context),
+                      width: isSelected ? 1.5 : 1.0,
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    tab['label']!,
+                    style: TextStyle(
+                      fontSize: 12.0,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                      color: isSelected
+                          ? ObsidianUITheme.primaryAccent
+                          : ObsidianUITheme.getPrimaryTextColor(context),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildPointsPreview(Map<String, double> points) {
+    final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+    final previewLabel = context.tr('prescout-scout.points_preview');
+    final displayPreviewTitle = (previewLabel == 'prescout-scout.points_preview' || previewLabel == 'prescout_scout.points_preview') ? 'Points Preview' : previewLabel;
+    String formatPt(double val) => val % 1 == 0 ? val.toInt().toString() : val.toStringAsFixed(1);
+
+    return ObsidianGlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                displayPreviewTitle.toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 12.0,
+                  fontWeight: FontWeight.bold,
+                  color: ObsidianUITheme.primaryAccent,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              const Icon(Icons.analytics_outlined, size: 16.0, color: ObsidianUITheme.primaryAccent),
+            ],
+          ),
+          const SizedBox(height: 10.0),
+          Row(
+            children: [
+              Expanded(
+                child: _buildMetricItem('Auto', formatPt(points['auto'] ?? 0.0), ObsidianUITheme.primaryAccent, primaryTextColor, secondaryTextColor),
+              ),
+              Expanded(
+                child: _buildMetricItem('Teleop', formatPt(points['teleop'] ?? 0.0), ObsidianUITheme.secondaryAccent, primaryTextColor, secondaryTextColor),
+              ),
+              Expanded(
+                child: _buildMetricItem('Endgame', formatPt(points['endgame'] ?? 0.0), ObsidianUITheme.successGreen, primaryTextColor, secondaryTextColor),
+              ),
+              Expanded(
+                child: _buildMetricItem('Total', formatPt(points['total'] ?? 0.0), Colors.amberAccent, primaryTextColor, secondaryTextColor),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetricItem(String label, String value, Color accentColor, Color textColor, Color subtextColor) {
+    return Column(
+      children: [
+        Text(
+          label,
+          style: TextStyle(fontSize: 11.0, fontWeight: FontWeight.w500, color: subtextColor),
+        ),
+        const SizedBox(height: 4.0),
+        Text(
+          value,
+          style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold, color: accentColor),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActiveTabFields(List<ScoutingFieldModel> allFields) {
+    final activeFields = allFields.where((f) {
+      final t = f.type.toLowerCase();
+      return _getFieldPhase(f) == _activeTab && t != 'section' && t != 'header' && t != 'divider';
+    }).toList();
+    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+
+    String sectionTitle;
+    Color accentColor;
+    switch (_activeTab) {
+      case 'auto':
+        sectionTitle = 'AUTONOMOUS PERIOD';
+        accentColor = ObsidianUITheme.primaryAccent;
+        break;
+      case 'teleop':
+        sectionTitle = 'TELEOPERATED PERIOD';
+        accentColor = ObsidianUITheme.secondaryAccent;
+        break;
+      case 'endgame':
+        sectionTitle = 'ENDGAME PERIOD';
+        accentColor = ObsidianUITheme.successGreen;
+        break;
+      default:
+        sectionTitle = 'POST-MATCH / GENERAL';
+        accentColor = Colors.white70;
+        break;
+    }
+
+    return ObsidianGlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            sectionTitle,
+            style: TextStyle(
+              fontSize: 12.0,
+              fontWeight: FontWeight.bold,
+              color: accentColor,
+              letterSpacing: 1.0,
+            ),
+          ),
+          const SizedBox(height: 12.0),
+          if (activeFields.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12.0),
+              child: Center(
+                child: Text(
+                  'No fields configured for this phase.',
+                  style: TextStyle(fontSize: 13.0, color: secondaryTextColor),
+                ),
+              ),
+            )
+          else
+            ...activeFields.map((field) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6.0),
+                  child: DynamicFieldWidget(
+                    field: field,
+                    currentValue: _formData[field.id],
+                    onChanged: (val) => setState(() => _formData[field.id] = val),
+                  ),
+                )),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -237,10 +536,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
     }
 
     final fields = _config?.fields ?? [];
-    final autoFields = fields.where((f) => f.phase?.toLowerCase() == 'auto').toList();
-    final teleopFields = fields.where((f) => f.phase?.toLowerCase() == 'teleop').toList();
-    final endgameFields = fields.where((f) => f.phase?.toLowerCase() == 'endgame').toList();
-    final generalFields = fields.where((f) => f.phase == null || (f.phase!.toLowerCase() != 'auto' && f.phase!.toLowerCase() != 'teleop' && f.phase!.toLowerCase() != 'endgame')).toList();
+    final points = _calculatePoints();
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
@@ -262,7 +558,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                   const SizedBox(height: 12.0),
                   DropdownButtonFormField<TeamModel>(
                     isExpanded: true,
-                    initialValue: _selectedTeam,
+                    value: _teams.contains(_selectedTeam) ? _selectedTeam : null,
                     dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                     style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
                     decoration: InputDecoration(
@@ -277,7 +573,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                   const SizedBox(height: 12.0),
                   DropdownButtonFormField<MatchModel>(
                     isExpanded: true,
-                    initialValue: _selectedMatch,
+                    value: _matches.contains(_selectedMatch) ? _selectedMatch : null,
                     dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                     style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
                     decoration: InputDecoration(
@@ -293,97 +589,14 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
               ),
             ),
 
-            // Autonomous Phase
-            if (autoFields.isNotEmpty)
-              ObsidianGlassCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'AUTONOMOUS PERIOD',
-                      style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, letterSpacing: 1.0),
-                    ),
-                    const SizedBox(height: 12.0),
-                    ...autoFields.map((field) => Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6.0),
-                          child: DynamicFieldWidget(
-                            field: field,
-                            currentValue: _formData[field.id],
-                            onChanged: (val) => setState(() => _formData[field.id] = val),
-                          ),
-                        )),
-                  ],
-                ),
-              ),
+            // Tab Row (Auto, Teleop, Endgame, Post Match)
+            _buildTabRow(),
 
-            // Teleoperated Phase
-            if (teleopFields.isNotEmpty)
-              ObsidianGlassCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'TELEOPERATED PERIOD',
-                      style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.secondaryAccent, letterSpacing: 1.0),
-                    ),
-                    const SizedBox(height: 12.0),
-                    ...teleopFields.map((field) => Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6.0),
-                          child: DynamicFieldWidget(
-                            field: field,
-                            currentValue: _formData[field.id],
-                            onChanged: (val) => setState(() => _formData[field.id] = val),
-                          ),
-                        )),
-                  ],
-                ),
-              ),
+            // Active Tab Fields Card
+            _buildActiveTabFields(fields),
 
-            // Endgame Phase
-            if (endgameFields.isNotEmpty)
-              ObsidianGlassCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'ENDGAME PERIOD',
-                      style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.successGreen, letterSpacing: 1.0),
-                    ),
-                    const SizedBox(height: 12.0),
-                    ...endgameFields.map((field) => Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6.0),
-                          child: DynamicFieldWidget(
-                            field: field,
-                            currentValue: _formData[field.id],
-                            onChanged: (val) => setState(() => _formData[field.id] = val),
-                          ),
-                        )),
-                  ],
-                ),
-              ),
-
-            // General Fields
-            if (generalFields.isNotEmpty)
-              ObsidianGlassCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      context.tr('scout.title').toUpperCase(),
-                      style: const TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: Colors.white70, letterSpacing: 1.0),
-                    ),
-                    const SizedBox(height: 12.0),
-                    ...generalFields.map((field) => Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6.0),
-                          child: DynamicFieldWidget(
-                            field: field,
-                            currentValue: _formData[field.id],
-                            onChanged: (val) => setState(() => _formData[field.id] = val),
-                          ),
-                        )),
-                  ],
-                ),
-              ),
+            // Points Preview Card
+            _buildPointsPreview(points),
 
             // Generate QR / JAB Code Button Card
             ObsidianGlassCard(
@@ -408,36 +621,60 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
               builder: (context) {
                 final isOnline = widget.apiService.isOnline;
                 final primaryColor = ObsidianUITheme.getPrimaryTextColor(context);
-                final faintColor = ObsidianUITheme.getFaintTextColor(context);
-                return Opacity(
-                  opacity: isOnline ? 1.0 : 0.45,
-                  child: ObsidianGlassCard(
-                    onTap: (_isSubmitting || !isOnline) ? null : _submitData,
-                    child: Center(
-                      child: _isSubmitting
-                          ? const CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  isOnline ? Icons.send_rounded : Icons.cloud_off_rounded,
-                                  color: isOnline ? primaryColor : faintColor,
+                return ObsidianGlassCard(
+                  onTap: _isSubmitting ? null : _submitData,
+                  child: Center(
+                    child: _isSubmitting
+                        ? const CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                isOnline ? Icons.send_rounded : Icons.save_rounded,
+                                color: isOnline ? ObsidianUITheme.primaryAccent : ObsidianUITheme.warningOrange,
+                              ),
+                              const SizedBox(width: 10.0),
+                              Text(
+                                isOnline ? context.tr('scout.save_entry').toUpperCase() : '${context.tr('scout.save_entry')} (OFFLINE)'.toUpperCase(),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13.0,
+                                  color: primaryColor,
                                 ),
-                                const SizedBox(width: 10.0),
-                                Text(
-                                  isOnline ? context.tr('scout.save_entry').toUpperCase() : context.tr('connection.offline').toUpperCase(),
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13.0,
-                                    color: isOnline ? primaryColor : faintColor,
-                                  ),
-                                ),
-                              ],
-                            ),
-                    ),
+                              ),
+                            ],
+                          ),
                   ),
                 );
               },
+            ),
+
+            // Clear Form Button
+            ObsidianGlassCard(
+              onTap: _resetForm,
+              child: Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.refresh_rounded, size: 18.0, color: ObsidianUITheme.getSecondaryTextColor(context)),
+                    const SizedBox(width: 8.0),
+                    Builder(
+                      builder: (ctx) {
+                        final clearLabel = ctx.tr('scout.clear_form');
+                        final displayClear = (clearLabel == 'scout.clear_form' || clearLabel == 'scout.clear') ? 'Clear form' : clearLabel;
+                        return Text(
+                          displayClear.toUpperCase(),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12.0,
+                            color: ObsidianUITheme.getSecondaryTextColor(ctx),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),

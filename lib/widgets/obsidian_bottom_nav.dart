@@ -1,14 +1,17 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
+import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
 
 class ObsidianBottomNav extends StatelessWidget {
+  final ApiService? apiService;
   final int currentIndex;
   final Function(int) onTap;
 
   const ObsidianBottomNav({
     super.key,
+    this.apiService,
     required this.currentIndex,
     required this.onTap,
   });
@@ -21,14 +24,19 @@ class ObsidianBottomNav extends StatelessWidget {
     final shadowColor = isDark ? Colors.black.withValues(alpha: 0.5) : Colors.black.withValues(alpha: 0.1);
     final inactiveItemColor = isDark ? Colors.white54 : const Color(0xFF64748B);
 
-    final navItems = [
-      {'targetIndex': 0, 'icon': Icons.dashboard_rounded, 'labelKey': 'nav.dashboard'},
-      {'targetIndex': 1, 'icon': Icons.sports_esports_rounded, 'labelKey': 'nav.scout'},
-      {'targetIndex': 7, 'icon': Icons.stars_rounded, 'labelKey': 'nav.alliances'},
-      {'targetIndex': 6, 'icon': Icons.chat_bubble_outline_rounded, 'labelKey': 'nav.team_chat'},
-      {'targetIndex': 4, 'icon': Icons.bar_chart_rounded, 'labelKey': 'nav.graphs'},
-      {'targetIndex': 5, 'icon': Icons.settings_suggest_rounded, 'labelKey': 'nav.settings'},
+    final allNavItems = [
+      {'pageId': 'dashboard', 'targetIndex': 0, 'icon': Icons.dashboard_rounded, 'labelKey': 'nav.dashboard'},
+      {'pageId': 'scout', 'targetIndex': 1, 'icon': Icons.sports_esports_rounded, 'labelKey': 'nav.scout'},
+      {'pageId': 'alliance-selection', 'targetIndex': 7, 'icon': Icons.stars_rounded, 'labelKey': 'nav.alliances'},
+      {'pageId': 'chat', 'targetIndex': 6, 'icon': Icons.chat_bubble_outline_rounded, 'labelKey': 'nav.team_chat'},
+      {'pageId': 'graphs', 'targetIndex': 4, 'icon': Icons.bar_chart_rounded, 'labelKey': 'nav.graphs'},
+      {'pageId': 'settings', 'targetIndex': 5, 'icon': Icons.settings_suggest_rounded, 'labelKey': 'nav.settings'},
     ];
+
+    final navItems = allNavItems.where((item) {
+      final pageId = item['pageId'] as String;
+      return apiService?.hasPageAccess(pageId) ?? true;
+    }).toList();
 
     return Container(
       margin: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 12.0),

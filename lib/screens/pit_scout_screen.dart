@@ -7,6 +7,7 @@ import '../models/team_match_models.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../services/api_service.dart';
 import '../widgets/obsidian_barcode_modal.dart';
+import '../widgets/obsidian_feedback.dart';
 
 class PitScoutScreen extends StatefulWidget {
   final ApiService apiService;
@@ -58,6 +59,9 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
       _eventKey = eventKey;
       _config = config;
       _teams = teams;
+      if (_selectedTeam != null && !_teams.contains(_selectedTeam)) {
+        _selectedTeam = null;
+      }
       _isLoading = false;
 
       if (config != null) {
@@ -134,9 +138,23 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
   }
 
   void _submitPitData() async {
-    if (!_validateSelection()) return;
+    if (!_validateSelection()) {
+      ObsidianFeedback.showWarning(
+        context,
+        title: 'Team Incomplete',
+        message: 'Please select a Team before saving.',
+      );
+      return;
+    }
 
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      ObsidianFeedback.showWarning(
+        context,
+        title: 'Validation Error',
+        message: 'Please complete all required fields.',
+      );
+      return;
+    }
     _formKey.currentState!.save();
 
     setState(() => _isSubmitting = true);
@@ -148,19 +166,35 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
       'timestamp': DateTime.now().toUtc().toIso8601String(),
     };
 
-    final success = await widget.apiService.submitPitScouting(payload);
+    final response = await widget.apiService.submitPitScouting(payload);
 
     setState(() => _isSubmitting = false);
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            success ? context.tr('dashboard.sync_complete') : context.tr('connection.offline'),
-          ),
-          backgroundColor: success ? ObsidianUITheme.successGreen : ObsidianUITheme.warningOrange,
-        ),
-      );
+      if (response.success) {
+        ObsidianFeedback.showSuccess(
+          context,
+          title: 'Pit Scouting Saved',
+          message: 'Pit scouting data saved successfully (HTTP ${response.statusCode ?? 200})',
+          statusCode: response.statusCode ?? 200,
+        );
+      } else if (response.isOffline) {
+        ObsidianFeedback.showWarning(
+          context,
+          title: 'Saved to Offline Cache',
+          message: 'Device offline. Saved to offline cache and will sync when online.',
+        );
+      } else {
+        ObsidianFeedback.showError(
+          context,
+          title: 'Save Failed',
+          message: response.message != null && response.message!.isNotEmpty
+              ? response.message!
+              : 'Failed to submit pit scouting data.',
+          statusCode: response.statusCode,
+          isOffline: response.isOffline,
+        );
+      }
     }
   }
 
@@ -193,7 +227,10 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
       );
     }
 
-    final fields = _config?.fields ?? [];
+    final fields = (_config?.fields ?? []).where((f) {
+      final t = f.type.toLowerCase();
+      return t != 'section' && t != 'header' && t != 'divider';
+    }).toList();
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
@@ -213,7 +250,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
                   const SizedBox(height: 12.0),
                   DropdownButtonFormField<TeamModel>(
                     isExpanded: true,
-                    initialValue: _selectedTeam,
+                    value: _teams.contains(_selectedTeam) ? _selectedTeam : null,
                     dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                     style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
                     decoration: InputDecoration(
@@ -269,33 +306,29 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
               builder: (context) {
                 final isOnline = widget.apiService.isOnline;
                 final primaryColor = ObsidianUITheme.getPrimaryTextColor(context);
-                final faintColor = ObsidianUITheme.getFaintTextColor(context);
-                return Opacity(
-                  opacity: isOnline ? 1.0 : 0.45,
-                  child: ObsidianGlassCard(
-                    onTap: (_isSubmitting || !isOnline) ? null : _submitPitData,
-                    child: Center(
-                      child: _isSubmitting
-                          ? const CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  isOnline ? Icons.save_rounded : Icons.cloud_off_rounded,
-                                  color: isOnline ? primaryColor : faintColor,
+                return ObsidianGlassCard(
+                  onTap: _isSubmitting ? null : _submitPitData,
+                  child: Center(
+                    child: _isSubmitting
+                        ? const CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                isOnline ? Icons.save_rounded : Icons.save_rounded,
+                                color: isOnline ? ObsidianUITheme.primaryAccent : ObsidianUITheme.warningOrange,
+                              ),
+                              const SizedBox(width: 10.0),
+                              Text(
+                                isOnline ? context.tr('scout.save_entry').toUpperCase() : '${context.tr('scout.save_entry')} (OFFLINE)'.toUpperCase(),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13.0,
+                                  color: primaryColor,
                                 ),
-                                const SizedBox(width: 10.0),
-                                Text(
-                                  isOnline ? context.tr('scout.save_entry').toUpperCase() : context.tr('connection.offline').toUpperCase(),
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13.0,
-                                    color: isOnline ? primaryColor : faintColor,
-                                  ),
-                                ),
-                              ],
-                            ),
-                    ),
+                              ),
+                            ],
+                          ),
                   ),
                 );
               },

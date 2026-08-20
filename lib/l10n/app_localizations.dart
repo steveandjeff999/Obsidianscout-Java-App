@@ -64,8 +64,15 @@ class _AppLocalizationsDelegate
 }
 
 extension AppLocalizationsX on BuildContext {
-  String tr(String key, [Map<String, String>? args]) {
+  String tr(String key, [dynamic argsOrFallback]) {
     final loc = AppLocalizations.of(this);
-    return loc?.translate(key, args) ?? key;
+    if (argsOrFallback is Map<String, String>) {
+      return loc?.translate(key, argsOrFallback) ?? key;
+    }
+    final translated = loc?.translate(key);
+    if (translated == null || translated == key) {
+      if (argsOrFallback is String) return argsOrFallback;
+    }
+    return translated ?? (argsOrFallback is String ? argsOrFallback : key);
   }
 }

@@ -51,6 +51,16 @@ class GraphMetric {
     required this.kind,
     this.fieldId,
   });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is GraphMetric &&
+          runtimeType == other.runtimeType &&
+          id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
 }
 
 /// A single data point [label, value] for bar/line charts
