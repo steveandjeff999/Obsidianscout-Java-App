@@ -1,7 +1,11 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../l10n/app_localizations.dart';
 import '../models/config_models.dart';
+import '../services/image_utils.dart';
 import '../theme/obsidian_ui_theme.dart';
+import 'inline_camera_capture_dialog.dart';
 
 class DynamicFieldWidget extends StatelessWidget {
   final ScoutingFieldModel field;
@@ -18,9 +22,7 @@ class DynamicFieldWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final type = field.type.toLowerCase();
-    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
     final tertiaryTextColor = ObsidianUITheme.getTertiaryTextColor(context);
-    final borderColor = ObsidianUITheme.getBorderColor(context);
 
     // 1. SECTION HEADER / DIVIDER - Deprecated / No longer rendered
     if (type == 'section' || type == 'header' || type == 'divider') {
@@ -469,6 +471,12 @@ class DynamicFieldWidget extends StatelessWidget {
           ),
         );
 
+      // 11. IMAGE / PHOTO UPLOAD
+      case 'image':
+      case 'image_upload':
+      case 'photo':
+        return _buildImageUploadField(context);
+
       default:
         String val = currentValue?.toString() ?? '';
         return TextFormField(
@@ -532,6 +540,321 @@ class DynamicFieldWidget extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildImageUploadField(BuildContext context) {
+    final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+    final tertiaryTextColor = ObsidianUITheme.getTertiaryTextColor(context);
+    final surfaceColor = ObsidianUITheme.getGlassSurfaceColor(context);
+    final borderColor = ObsidianUITheme.getGlassBorderColor(context);
+
+    final String? imgStr = currentValue is String && (currentValue as String).isNotEmpty ? currentValue as String : null;
+    final Uint8List? imgBytes = ImageProcessingUtils.dataUrlToBytes(imgStr);
+
+    Future<void> pickPhoto(ImageSource source) async {
+      if (source == ImageSource.camera) {
+        final result = await InlineCameraCaptureDialog.show(context);
+        if (result != null) {
+          onChanged(result.dataUrl);
+        }
+      } else {
+        final result = await ImageProcessingUtils.pickAndProcessImage(source: source);
+        if (result != null) {
+          onChanged(result.dataUrl);
+        }
+      }
+    }
+
+    void showSourceSelector() {
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: surfaceColor,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (ctx) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Text(
+                  context.tr(field.label),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: primaryTextColor,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: const Icon(Icons.camera_alt_outlined, color: ObsidianUITheme.primaryAccent),
+                  title: Text('Take Photo with Camera', style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.w600)),
+                  subtitle: Text('Take a live mechanism snapshot', style: TextStyle(color: secondaryTextColor, fontSize: 12)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  tileColor: Colors.white.withValues(alpha: 0.05),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    pickPhoto(ImageSource.camera);
+                  },
+                ),
+                const SizedBox(height: 10),
+                ListTile(
+                  leading: const Icon(Icons.photo_library_outlined, color: ObsidianUITheme.secondaryAccent),
+                  title: Text('Choose from Gallery', style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.w600)),
+                  subtitle: Text('Pick an existing photo from device', style: TextStyle(color: secondaryTextColor, fontSize: 12)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  tileColor: Colors.white.withValues(alpha: 0.05),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    pickPhoto(ImageSource.gallery);
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    void showImageZoomDialog() {
+      if (imgBytes == null) return;
+      showDialog(
+        context: context,
+        builder: (ctx) => Dialog(
+          backgroundColor: Colors.black.withValues(alpha: 0.92),
+          insetPadding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        context.tr(field.label),
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white70),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+              ),
+              Flexible(
+                child: InteractiveViewer(
+                  panEnabled: true,
+                  minScale: 0.5,
+                  maxScale: 4.0,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.memory(imgBytes, fit: BoxFit.contain),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      key: ValueKey('image_field_${field.id}'),
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(vertical: 4.0),
+      padding: const EdgeInsets.all(12.0),
+      decoration: BoxDecoration(
+        color: surfaceColor.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(12.0),
+        border: Border.all(color: borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                context.tr(field.label),
+                style: TextStyle(
+                  fontSize: 14.5,
+                  color: primaryTextColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (field.required && imgBytes == null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text(
+                    'Required',
+                    style: TextStyle(color: Colors.redAccent, fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8.0),
+          if (imgBytes != null) ...[
+            GestureDetector(
+              onTap: showImageZoomDialog,
+              child: Stack(
+                alignment: Alignment.bottomRight,
+                children: [
+                  Container(
+                    height: 180,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.black38,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.white12),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.memory(
+                        imgBytes,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    margin: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.7),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: Colors.white24),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.zoom_in, size: 14, color: ObsidianUITheme.primaryAccent),
+                        SizedBox(width: 4),
+                        Text(
+                          'Tap to Zoom',
+                          style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8.0),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    'Cleaned & Optimized',
+                    style: TextStyle(color: ObsidianUITheme.primaryAccent, fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                Row(
+                  children: [
+                    TextButton.icon(
+                      onPressed: showSourceSelector,
+                      icon: const Icon(Icons.refresh, size: 16, color: ObsidianUITheme.primaryAccent),
+                      label: const Text('Retake', style: TextStyle(fontSize: 12, color: ObsidianUITheme.primaryAccent)),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    TextButton.icon(
+                      onPressed: () => onChanged(null),
+                      icon: const Icon(Icons.delete_outline, size: 16, color: Colors.redAccent),
+                      label: const Text('Remove', style: TextStyle(fontSize: 12, color: Colors.redAccent)),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ] else ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 12.0),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.02),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: borderColor.withValues(alpha: 0.4)),
+              ),
+              child: Column(
+                children: [
+                  Icon(Icons.add_a_photo_outlined, size: 32, color: tertiaryTextColor),
+                  const SizedBox(height: 6),
+                  Text(
+                    field.placeholder != null ? context.tr(field.placeholder!) : 'Attach robot photo (auto downscaled & cleaned)',
+                    style: TextStyle(color: tertiaryTextColor, fontSize: 12.0),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: () => pickPhoto(ImageSource.camera),
+                        icon: const Icon(Icons.camera_alt, size: 16),
+                        label: const Text('Camera', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: ObsidianUITheme.primaryAccent,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          elevation: 0,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      OutlinedButton.icon(
+                        onPressed: () => pickPhoto(ImageSource.gallery),
+                        icon: const Icon(Icons.photo_library, size: 16),
+                        label: const Text('Gallery', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: primaryTextColor,
+                          side: BorderSide(color: borderColor),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

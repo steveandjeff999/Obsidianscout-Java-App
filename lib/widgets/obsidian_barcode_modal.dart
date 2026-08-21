@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../l10n/app_localizations.dart';
+import '../services/image_utils.dart';
 import '../theme/obsidian_ui_theme.dart';
 import 'obsidian_glass_card.dart';
 
@@ -21,7 +22,7 @@ class BarcodeCompressor {
   }
 
   /// Splits compressed string into multi-part QR payload chunks if data exceeds chunkSize
-  static List<String> compressAndChunkData(String dataStr, {int chunkSize = 450}) {
+  static List<String> compressAndChunkData(String dataStr, {int chunkSize = 550}) {
     final compressed = compressData(dataStr);
     if (compressed.length <= chunkSize) {
       return [compressed];
@@ -97,14 +98,48 @@ class ObsidianBarcodeModal extends StatefulWidget {
 class _ObsidianBarcodeModalState extends State<ObsidianBarcodeModal> {
   late List<String> _qrChunks;
   late String _qrPayloadJson;
-  int _maxChunkSize = 450;
+  int _maxChunkSize = 550;
+
+  Map<String, dynamic> _preparePayloadForQr(Map<String, dynamic> raw) {
+    final copy = jsonDecode(jsonEncode(raw)) as Map<String, dynamic>;
+    void traverse(dynamic obj) {
+      if (obj is Map) {
+        for (final key in obj.keys.toList()) {
+          final val = obj[key];
+          if (val is String && val.startsWith('data:image/')) {
+            final compressed = ImageProcessingUtils.compressDataUrlForTransportation(val, maxDimension: 320, quality: 45);
+            if (compressed != null) {
+              obj[key] = compressed;
+            }
+          } else if (val is Map || val is List) {
+            traverse(val);
+          }
+        }
+      } else if (obj is List) {
+        for (int i = 0; i < obj.length; i++) {
+          final val = obj[i];
+          if (val is String && val.startsWith('data:image/')) {
+            final compressed = ImageProcessingUtils.compressDataUrlForTransportation(val, maxDimension: 320, quality: 45);
+            if (compressed != null) {
+              obj[i] = compressed;
+            }
+          } else if (val is Map || val is List) {
+            traverse(val);
+          }
+        }
+      }
+    }
+    traverse(copy);
+    return copy;
+  }
 
   @override
   void initState() {
     super.initState();
+    final optimizedPayload = _preparePayloadForQr(widget.payload);
     final qrPayload = {
-      'type': widget.payload['type'] ?? widget.typeLabel.toLowerCase().replaceAll(' ', '-'),
-      'data': widget.payload,
+      'type': optimizedPayload['type'] ?? widget.typeLabel.toLowerCase().replaceAll(' ', '-'),
+      'data': optimizedPayload,
     };
     _qrPayloadJson = jsonEncode(qrPayload);
     _qrChunks = BarcodeCompressor.compressAndChunkData(_qrPayloadJson, chunkSize: _maxChunkSize);

@@ -373,6 +373,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                               DropdownMenuItem(value: 'select', child: Text('SELECT')),
                               DropdownMenuItem(value: 'text', child: Text('TEXT (STATIC)')),
                               DropdownMenuItem(value: 'textarea', child: Text('TEXTAREA (INPUT)')),
+                              DropdownMenuItem(value: 'image', child: Text('IMAGE (PHOTO UPLOAD)')),
                             ],
                             onChanged: (val) {
                               if (val != null) {
@@ -2022,6 +2023,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                     DropdownMenuItem(value: 'select', child: Text('SELECT')),
                     DropdownMenuItem(value: 'text', child: Text('TEXT (STATIC)')),
                     DropdownMenuItem(value: 'textarea', child: Text('TEXTAREA (INPUT)')),
+                    DropdownMenuItem(value: 'image', child: Text('IMAGE (PHOTO UPLOAD)')),
                   ],
                   onChanged: (val) {
                     if (val != null) {

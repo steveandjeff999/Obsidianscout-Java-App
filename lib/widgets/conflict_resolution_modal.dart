@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../models/config_models.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
-import 'obsidian_glass_card.dart';
 
 class ConflictResolutionModal extends StatefulWidget {
   final ApiService apiService;

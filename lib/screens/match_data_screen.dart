@@ -5,9 +5,13 @@ import '../l10n/app_localizations.dart';
 import '../models/config_models.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
+import '../services/csv_export_service.dart';
 import '../theme/obsidian_ui_theme.dart';
+import '../widgets/csv_export_modal.dart';
+import '../widgets/obsidian_feedback.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/conflict_resolution_modal.dart';
+import '../widgets/obsidian_image_preview_card.dart';
 
 class MatchScoutingRecord {
   final String id;
@@ -254,26 +258,24 @@ class _MatchDataScreenState extends State<MatchDataScreen> {
   void _exportCsv() {
     final records = _filteredRecords;
     if (records.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No match records to export')),
+      ObsidianFeedback.showWarning(
+        context,
+        title: 'Export Unavailable',
+        message: 'No match records match the current filters to export.',
       );
       return;
     }
 
-    final StringBuffer csv = StringBuffer();
-    csv.writeln('ID,Team,Event,Match,CreatedAt,Scout,Discrepancy,DataJSON');
+    final exportData = CsvExportService.exportMatchData(
+      records: records,
+      config: _matchConfig,
+      eventKey: _selectedEventKey != 'all' ? _selectedEventKey : null,
+    );
 
-    for (final r in records) {
-      final safeData = jsonEncode(r.data).replaceAll('"', '""');
-      csv.writeln('"${r.id}",${r.targetTeamNumber},"${r.eventKey}",${r.matchNumber},"${r.createdAt ?? ""}","${r.scoutUsername ?? ""}",${r.hasDiscrepancy},"$safeData"');
-    }
-
-    Clipboard.setData(ClipboardData(text: csv.toString()));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: Colors.amberAccent,
-        content: Text('Exported ${records.length} match records to clipboard as CSV!'),
-      ),
+    CsvExportModal.show(
+      context,
+      title: 'Export Match Scouting Data',
+      exportData: exportData,
     );
   }
 
@@ -933,6 +935,13 @@ class _MatchDataScreenState extends State<MatchDataScreen> {
         const SizedBox(height: 8),
         ...fields.map((f) {
           final val = data[f.id];
+          if (val is String && val.startsWith('data:image/')) {
+            return ObsidianImagePreviewCard(
+              label: f.label.isNotEmpty ? f.label : f.id,
+              imageSource: val,
+              height: 180,
+            );
+          }
           return Container(
             margin: const EdgeInsets.only(bottom: 6),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -984,6 +993,7 @@ class _MatchDataScreenState extends State<MatchDataScreen> {
     if (val == null) return '--';
     if (val is bool) return val ? 'Yes' : 'No';
     if (val is List) return val.join(', ');
+    if (val is String && val.startsWith('data:image/')) return '📷 [Photo]';
     return val.toString();
   }
 

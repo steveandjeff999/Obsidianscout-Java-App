@@ -263,6 +263,7 @@ void main() {
       expect(find.text('Qual Entries'), findsOneWidget);
       expect(find.text('Teams Ranked'), findsOneWidget);
       expect(find.text('Ranking & Performance Config'), findsOneWidget);
+      expect(find.text('CSV'), findsOneWidget);
       expect(find.text('Team Rankings'), findsOneWidget);
       expect(find.text('Entry List'), findsOneWidget);
       expect(find.text('Team 1234'), findsWidgets);

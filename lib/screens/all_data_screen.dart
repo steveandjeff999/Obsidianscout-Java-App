@@ -5,9 +5,13 @@ import '../l10n/app_localizations.dart';
 import '../models/config_models.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
+import '../services/csv_export_service.dart';
 import '../theme/obsidian_ui_theme.dart';
+import '../widgets/csv_export_modal.dart';
+import '../widgets/obsidian_feedback.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/conflict_resolution_modal.dart';
+import '../widgets/obsidian_image_preview_card.dart';
 
 class UnifiedScoutingEntry {
   final String id;
@@ -318,26 +322,26 @@ class _AllDataScreenState extends State<AllDataScreen> {
   void _exportCsv() {
     final entries = _filteredEntries;
     if (entries.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No entries to export')),
+      ObsidianFeedback.showWarning(
+        context,
+        title: 'Export Unavailable',
+        message: 'No scouting entries match the current filters to export.',
       );
       return;
     }
 
-    final StringBuffer csv = StringBuffer();
-    csv.writeln('ID,Type,Team,Event,Match,CreatedAt,Scout,DataJSON');
+    final exportData = CsvExportService.exportUnifiedData(
+      entries: entries,
+      matchConfig: _matchConfig,
+      pitConfig: _pitConfig,
+      qualConfig: _qualConfig,
+      eventKey: _selectedEventKey != 'all' ? _selectedEventKey : null,
+    );
 
-    for (final e in entries) {
-      final safeData = jsonEncode(e.data).replaceAll('"', '""');
-      csv.writeln('"${e.id}","${e.type}",${e.targetTeamNumber},"${e.eventKey}",${e.matchNumber ?? ""},"${e.createdAt ?? ""}","${e.scoutUsername ?? ""}","$safeData"');
-    }
-
-    Clipboard.setData(ClipboardData(text: csv.toString()));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: ObsidianUITheme.primaryAccent,
-        content: Text('Exported ${entries.length} entries to clipboard as CSV!'),
-      ),
+    CsvExportModal.show(
+      context,
+      title: 'Export All Scouting Data',
+      exportData: exportData,
     );
   }
 
@@ -716,6 +720,7 @@ class _AllDataScreenState extends State<AllDataScreen> {
               final typeColor = _getTypeColor(entry.type);
               final conflicts = _getConflictingEntriesFor(entry);
               final hasConflict = conflicts.length > 1 || entry.hasDiscrepancy;
+              final imageVal = entry.data.values.where((v) => v is String && v.startsWith('data:image/')).firstOrNull?.toString();
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
@@ -743,119 +748,134 @@ class _AllDataScreenState extends State<AllDataScreen> {
                         width: hasConflict || isSelected ? 1.8 : 1.0,
                       ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            // Type Tag
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: typeColor.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: typeColor.withOpacity(0.5)),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
+                        if (imageVal != null) ...[
+                          ObsidianImageThumbnail(
+                            imageSource: imageVal,
+                            size: 46,
+                            title: 'Team ${entry.targetTeamNumber} Photo',
+                          ),
+                          const SizedBox(width: 12),
+                        ],
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  Icon(_getTypeIcon(entry.type), size: 14, color: typeColor),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    entry.type.toUpperCase(),
-                                    style: TextStyle(
-                                      color: typeColor,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 11,
+                                  // Type Tag
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: typeColor.withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: typeColor.withOpacity(0.5)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(_getTypeIcon(entry.type), size: 14, color: typeColor),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          entry.type.toUpperCase(),
+                                          style: TextStyle(
+                                            color: typeColor,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            // Team Badge
-                            Text(
-                              'Team ${entry.targetTeamNumber}',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                                color: primaryTextColor,
-                              ),
-                            ),
-                            if (entry.matchNumber != null) ...[
-                              const SizedBox(width: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.blueAccent.withOpacity(0.15),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  'Match ${entry.matchNumber}',
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.blueAccent,
+                                  const SizedBox(width: 8),
+                                  // Team Badge
+                                  Text(
+                                    'Team ${entry.targetTeamNumber}',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                      color: primaryTextColor,
+                                    ),
                                   ),
-                                ),
-                              ),
-                            ],
-                            const Spacer(),
-                            if (hasConflict) ...[
-                              InkWell(
-                                onTap: () => _openConflictResolver(entry),
-                                borderRadius: BorderRadius.circular(8),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.amberAccent.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: Colors.amberAccent),
-                                  ),
-                                  child: const Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.warning_amber_rounded, size: 14, color: Colors.amberAccent),
-                                      SizedBox(width: 4),
-                                      Text(
-                                        'Resolve',
-                                        style: TextStyle(
+                                  if (entry.matchNumber != null) ...[
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blueAccent.withOpacity(0.15),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        'Match ${entry.matchNumber}',
+                                        style: const TextStyle(
                                           fontSize: 11,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.amberAccent,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.blueAccent,
                                         ),
                                       ),
-                                    ],
+                                    ),
+                                  ],
+                                  const Spacer(),
+                                  if (hasConflict) ...[
+                                    InkWell(
+                                      onTap: () => _openConflictResolver(entry),
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.amberAccent.withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: Colors.amberAccent),
+                                        ),
+                                        child: const Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(Icons.warning_amber_rounded, size: 14, color: Colors.amberAccent),
+                                            SizedBox(width: 4),
+                                            Text(
+                                              'Resolve',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.amberAccent,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                  ],
+                                  const Icon(Icons.chevron_right_rounded, size: 20, color: Colors.white38),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      teamName,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: secondaryTextColor,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                  if (entry.createdAt != null)
+                                    Text(
+                                      _formatDate(entry.createdDateTime),
+                                      style: TextStyle(color: secondaryTextColor.withOpacity(0.7), fontSize: 11),
+                                    ),
+                                ],
                               ),
-                              const SizedBox(width: 6),
                             ],
-                            const Icon(Icons.chevron_right_rounded, size: 20, color: Colors.white38),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                teamName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: secondaryTextColor,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                            if (entry.createdAt != null)
-                              Text(
-                                _formatDate(entry.createdDateTime),
-                                style: TextStyle(color: secondaryTextColor.withOpacity(0.7), fontSize: 11),
-                              ),
-                          ],
+                          ),
                         ),
                       ],
                     ),
@@ -1039,6 +1059,14 @@ class _AllDataScreenState extends State<AllDataScreen> {
                               }
                             }
 
+                            if (fieldVal is String && fieldVal.startsWith('data:image/')) {
+                              return ObsidianImagePreviewCard(
+                                label: displayLabel,
+                                imageSource: fieldVal,
+                                height: 180,
+                              );
+                            }
+
                             return Container(
                               margin: const EdgeInsets.only(bottom: 8),
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -1103,6 +1131,7 @@ class _AllDataScreenState extends State<AllDataScreen> {
     if (val == null) return '--';
     if (val is bool) return val ? 'Yes' : 'No';
     if (val is List) return val.join(', ');
+    if (val is String && val.startsWith('data:image/')) return '📷 [Photo]';
     return val.toString();
   }
 
