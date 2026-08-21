@@ -8,6 +8,7 @@ import '../models/api_response.dart';
 import '../models/config_models.dart';
 import '../models/team_match_models.dart';
 import '../models/chat_models.dart';
+import '../models/validation_models.dart';
 
 class ApiService {
   static const String keyServerUrl = "obsidianscout_server_url";
@@ -2008,5 +2009,47 @@ class ApiService {
       } catch (_) {}
     }
     return [];
+  }
+
+  Future<ValidationSummaryModel?> fetchValidationData({
+    String? eventKey,
+    double threshold = 15.0,
+    bool forcePrescout = false,
+  }) async {
+    final effectiveEventKey = (eventKey != null && eventKey.isNotEmpty)
+        ? eventKey
+        : (await fetchCurrentEventKey() ?? '');
+    if (effectiveEventKey.isEmpty) return null;
+
+    final cacheKey = "cache_validation_${effectiveEventKey}_${threshold}_$forcePrescout";
+    final fallbackCacheKey = "cache_validation_$effectiveEventKey";
+    final prefs = await SharedPreferences.getInstance();
+
+    if (_isOnline) {
+      try {
+        final uri = Uri.parse(
+          '$_currentServerUrl/api/validation?eventKey=${Uri.encodeComponent(effectiveEventKey)}&threshold=$threshold&forcePrescout=$forcePrescout',
+        );
+        final response = await http.get(uri, headers: _headers).timeout(const Duration(seconds: 8));
+        _checkResponseForServerError(response);
+        if (response.statusCode == 200) {
+          final jsonMap = jsonDecode(response.body) as Map<String, dynamic>;
+          await prefs.setString(cacheKey, response.body);
+          await prefs.setString(fallbackCacheKey, response.body);
+          return ValidationSummaryModel.fromJson(jsonMap);
+        }
+      } catch (_) {
+        _updateOnlineState(false);
+      }
+    }
+
+    final cached = prefs.getString(cacheKey) ?? prefs.getString(fallbackCacheKey);
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        final jsonMap = jsonDecode(cached) as Map<String, dynamic>;
+        return ValidationSummaryModel.fromJson(jsonMap);
+      } catch (_) {}
+    }
+    return null;
   }
 }
