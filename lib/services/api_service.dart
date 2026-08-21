@@ -1042,8 +1042,8 @@ class ApiService {
 
     try {
       final response = await http
-          .get(Uri.parse('$_currentServerUrl/api/scouting?includePrescout=true'), headers: _headers)
-          .timeout(const Duration(seconds: 2));
+          .get(Uri.parse('$_currentServerUrl/api/scouting?includePrescout=true&all=true'), headers: _headers)
+          .timeout(const Duration(seconds: 8));
       if (response.statusCode == 200) {
         await _setCache("cache_scouting", response.body);
         final decoded = jsonDecode(response.body);
@@ -1072,8 +1072,8 @@ class ApiService {
 
     try {
       final response = await http
-          .get(Uri.parse('$_currentServerUrl/api/pit-scouting?includePrescout=true'), headers: _headers)
-          .timeout(const Duration(seconds: 2));
+          .get(Uri.parse('$_currentServerUrl/api/pit-scouting?includePrescout=true&all=true'), headers: _headers)
+          .timeout(const Duration(seconds: 8));
       if (response.statusCode == 200) {
         await _setCache("cache_pit_scouting", response.body);
         final decoded = jsonDecode(response.body);
@@ -1102,8 +1102,8 @@ class ApiService {
 
     try {
       final response = await http
-          .get(Uri.parse('$_currentServerUrl/api/qual-scouting?includePrescout=true'), headers: _headers)
-          .timeout(const Duration(seconds: 2));
+          .get(Uri.parse('$_currentServerUrl/api/qual-scouting?includePrescout=true&all=true'), headers: _headers)
+          .timeout(const Duration(seconds: 8));
       if (response.statusCode == 200) {
         await _setCache("cache_qual_scouting", response.body);
         final decoded = jsonDecode(response.body);
@@ -1404,6 +1404,98 @@ class ApiService {
         body: jsonEncode({'data': innerData}),
       );
       return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to upload scanned item');
+    } catch (e) {
+      return ApiResponse.error(message: e.toString());
+    }
+  }
+
+  Future<ApiResponse<void>> deleteScoutingEntry(String id, {String type = 'match'}) async {
+    String cleanId = id;
+    for (final prefix in ['match-', 'pit-', 'qual-', 'qualitative-']) {
+      if (cleanId.toLowerCase().startsWith(prefix)) {
+        cleanId = cleanId.substring(prefix.length);
+        break;
+      }
+    }
+    final lower = type.toLowerCase();
+    final endpoint = (lower == 'pit' || id.toLowerCase().startsWith('pit-'))
+        ? '/api/pit-scouting/$cleanId'
+        : (lower == 'qual' || lower == 'qualitative' || id.toLowerCase().startsWith('qual-') || id.toLowerCase().startsWith('qualitative-'))
+            ? '/api/qual-scouting/$cleanId'
+            : '/api/scouting/$cleanId';
+
+    // Remove from local cache optimistically AND clear hasDiscrepancy on surviving entries
+    try {
+      final cacheKey = (lower == 'pit' || id.toLowerCase().startsWith('pit-'))
+          ? "cache_pit_scouting"
+          : (lower == 'qual' || lower == 'qualitative' || id.toLowerCase().startsWith('qual-') || id.toLowerCase().startsWith('qualitative-'))
+              ? "cache_qual_scouting"
+              : "cache_scouting";
+      final cached = await _getCache(cacheKey);
+      if (cached != null) {
+        final decoded = jsonDecode(cached);
+        if (decoded is List) {
+          final filtered = decoded.where((e) => e is Map && e['id']?.toString() != cleanId).toList();
+          // Clear hasDiscrepancy on all surviving entries (will be recalculated by server on next fetch)
+          for (final e in filtered) {
+            if (e is Map) {
+              e['hasDiscrepancy'] = false;
+            }
+          }
+          await _setCache(cacheKey, jsonEncode(filtered));
+        }
+      }
+    } catch (_) {}
+
+    if (!_isOnline) {
+      return const ApiResponse.success(null, message: 'Removed from local cache (offline).');
+    }
+
+    try {
+      final response = await http.delete(
+        Uri.parse('$_currentServerUrl$endpoint'),
+        headers: _headers,
+      );
+      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to delete scouting entry');
+    } catch (e) {
+      return ApiResponse.error(message: e.toString());
+    }
+  }
+
+  /// Clears all 3 scouting caches so the next fetch goes to the network directly.
+  /// Call this after resolving conflicts to ensure fresh data is loaded.
+  Future<void> clearScoutingCaches() async {
+    await _setCache('cache_scouting', '[]');
+    await _setCache('cache_pit_scouting', '[]');
+    await _setCache('cache_qual_scouting', '[]');
+  }
+
+  Future<ApiResponse<void>> updateScoutingEntry(String id, Map<String, dynamic> data, {String type = 'match'}) async {
+    String cleanId = id;
+    for (final prefix in ['match-', 'pit-', 'qual-', 'qualitative-']) {
+      if (cleanId.toLowerCase().startsWith(prefix)) {
+        cleanId = cleanId.substring(prefix.length);
+        break;
+      }
+    }
+    final lower = type.toLowerCase();
+    final endpoint = (lower == 'pit' || id.toLowerCase().startsWith('pit-'))
+        ? '/api/pit-scouting/$cleanId'
+        : (lower == 'qual' || lower == 'qualitative' || id.toLowerCase().startsWith('qual-') || id.toLowerCase().startsWith('qualitative-'))
+            ? '/api/qual-scouting/$cleanId'
+            : '/api/scouting/$cleanId';
+
+    if (!_isOnline) {
+      return const ApiResponse.error(isOffline: true, message: 'Device is offline');
+    }
+
+    try {
+      final response = await http.put(
+        Uri.parse('$_currentServerUrl$endpoint'),
+        headers: _headers,
+        body: jsonEncode({'data': data}),
+      );
+      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to update scouting entry');
     } catch (e) {
       return ApiResponse.error(message: e.toString());
     }

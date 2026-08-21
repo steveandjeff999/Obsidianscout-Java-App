@@ -22,6 +22,10 @@ import 'screens/teams_list_screen.dart';
 import 'screens/match_list_screen.dart';
 import 'screens/config_editor_screen.dart';
 import 'screens/prescout_screen.dart';
+import 'screens/all_data_screen.dart';
+import 'screens/match_data_screen.dart';
+import 'screens/pit_data_screen.dart';
+import 'screens/qual_data_screen.dart';
 import 'services/api_service.dart';
 import 'services/fcm_helper.dart';
 import 'services/notification_websocket_service.dart';
@@ -231,6 +235,10 @@ class _MainShellState extends State<MainShell> {
     'nav.matches',
     'nav.config_editor',
     'nav.prescout',
+    'nav.all_data',
+    'nav.match_data',
+    'nav.pit_data',
+    'nav.qual_data',
   ];
   final List<String> _subtitleKeys = [
     'subtitle.dashboard',
@@ -245,6 +253,10 @@ class _MainShellState extends State<MainShell> {
     'subtitle.matches',
     'subtitle.config_editor',
     'subtitle.prescout',
+    'subtitle.all_data',
+    'subtitle.match_data',
+    'subtitle.pit_data',
+    'subtitle.qual_data',
   ];
 
   String _getPageIdForIndex(int index) {
@@ -273,6 +285,14 @@ class _MainShellState extends State<MainShell> {
         return 'admin-settings';
       case 11:
         return 'prescout';
+      case 12:
+        return 'all-data';
+      case 13:
+        return 'match-data';
+      case 14:
+        return 'pit-data';
+      case 15:
+        return 'qual-data';
       default:
         return 'dashboard';
     }
@@ -402,6 +422,10 @@ class _MainShellState extends State<MainShell> {
       MatchListScreen(apiService: widget.apiService, isVisible: _currentIndex == 9, isBarsVisible: _isBarsVisible),
       ConfigEditorScreen(apiService: widget.apiService, isVisible: _currentIndex == 10, isBarsVisible: _isBarsVisible),
       PrescoutScreen(apiService: widget.apiService, isVisible: _currentIndex == 11, isBarsVisible: _isBarsVisible),
+      AllDataScreen(apiService: widget.apiService, isVisible: _currentIndex == 12, isBarsVisible: _isBarsVisible),
+      MatchDataScreen(apiService: widget.apiService, isVisible: _currentIndex == 13, isBarsVisible: _isBarsVisible),
+      PitDataScreen(apiService: widget.apiService, isVisible: _currentIndex == 14, isBarsVisible: _isBarsVisible),
+      QualDataScreen(apiService: widget.apiService, isVisible: _currentIndex == 15, isBarsVisible: _isBarsVisible),
     ];
 
     return Scaffold(
