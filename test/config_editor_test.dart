@@ -72,6 +72,27 @@ void main() {
       expect(deserialized.options[2].points, 12.0);
     });
 
+    test('ScoutingFieldModel ensures static text fields do not allow required flag', () {
+      final textField = ScoutingFieldModel(
+        id: 'headerNote',
+        label: 'Important Rule Instructions',
+        type: 'text',
+        required: true,
+      );
+
+      final jsonMap = textField.toJson();
+      expect(jsonMap['type'], 'text');
+      expect(jsonMap.containsKey('required'), false);
+
+      final deserialized = ScoutingFieldModel.fromJson({
+        'id': 'headerNote',
+        'label': 'Important Rule Instructions',
+        'type': 'text',
+        'required': true,
+      });
+      expect(deserialized.required, false);
+    });
+
     test('ScoutingConfigModel round-trips full config with role collection and analytics', () {
       final config = ScoutingConfigModel(
         version: 2,

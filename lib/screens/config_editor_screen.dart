@@ -378,7 +378,9 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                               if (val != null) {
                                 setModalState(() {
                                   selectedType = val;
-                                  if (val == 'rating') {
+                                  if (val == 'text') {
+                                    isRequired = false;
+                                  } else if (val == 'rating') {
                                     minVal = 1;
                                     maxVal = 5;
                                   } else if (val == 'counter') {
@@ -418,15 +420,16 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-
-                    SwitchListTile(
-                      title: Text('Required Field', style: TextStyle(color: primaryTextColor, fontSize: 14)),
-                      value: isRequired,
-                      activeThumbColor: ObsidianUITheme.primaryAccent,
-                      contentPadding: EdgeInsets.zero,
-                      onChanged: (val) => setModalState(() => isRequired = val),
-                    ),
+                    if (selectedType != 'text') ...[
+                      const SizedBox(height: 12),
+                      SwitchListTile(
+                        title: Text('Required Field', style: TextStyle(color: primaryTextColor, fontSize: 14)),
+                        value: isRequired,
+                        activeThumbColor: ObsidianUITheme.primaryAccent,
+                        contentPadding: EdgeInsets.zero,
+                        onChanged: (val) => setModalState(() => isRequired = val),
+                      ),
+                    ],
 
                     const SizedBox(height: 16),
                     SizedBox(
@@ -463,7 +466,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                             label: label,
                             type: selectedType,
                             phase: selectedPhase.isNotEmpty ? (selectedPhase.toLowerCase() == 'general' ? 'teleop' : selectedPhase) : 'teleop',
-                            required: isRequired,
+                            required: selectedType == 'text' ? false : isRequired,
                             min: minVal,
                             max: maxVal,
                             step: stepVal,
@@ -2023,7 +2026,10 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                   onChanged: (val) {
                     if (val != null) {
                       final fields = List<ScoutingFieldModel>.from(_currentConfig.fields);
-                      fields[index] = field.copyWith(type: val);
+                      fields[index] = field.copyWith(
+                        type: val,
+                        required: val == 'text' ? false : field.required,
+                      );
                       setState(() {
                         _currentConfig = _currentConfig.copyWith(fields: fields);
                       });
@@ -2063,25 +2069,27 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
               ),
             ],
           ),
-          const SizedBox(height: 8),
 
-          Row(
-            children: [
-              Checkbox(
-                value: field.required,
-                activeColor: ObsidianUITheme.primaryAccent,
-                onChanged: (val) {
-                  final fields = List<ScoutingFieldModel>.from(_currentConfig.fields);
-                  fields[index] = field.copyWith(required: val ?? false);
-                  setState(() {
-                    _currentConfig = _currentConfig.copyWith(fields: fields);
-                  });
-                  _syncVisualToRaw();
-                },
-              ),
-              Text('Required Field', style: TextStyle(color: primaryTextColor, fontSize: 12)),
-            ],
-          ),
+          if (field.type != 'text') ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Checkbox(
+                  value: field.required,
+                  activeColor: ObsidianUITheme.primaryAccent,
+                  onChanged: (val) {
+                    final fields = List<ScoutingFieldModel>.from(_currentConfig.fields);
+                    fields[index] = field.copyWith(required: val ?? false);
+                    setState(() {
+                      _currentConfig = _currentConfig.copyWith(fields: fields);
+                    });
+                    _syncVisualToRaw();
+                  },
+                ),
+                Text('Required Field', style: TextStyle(color: primaryTextColor, fontSize: 12)),
+              ],
+            ),
+          ],
 
 
         // Numeric bounds for Counter / Number / Rating
