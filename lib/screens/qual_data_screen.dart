@@ -6,9 +6,13 @@ import '../l10n/app_localizations.dart';
 import '../models/config_models.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
+import '../services/csv_export_service.dart';
 import '../theme/obsidian_ui_theme.dart';
+import '../widgets/csv_export_modal.dart';
+import '../widgets/obsidian_feedback.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/conflict_resolution_modal.dart';
+import '../widgets/obsidian_image_preview_card.dart';
 
 class QualScoutingRecord {
   final String id;
@@ -447,6 +451,30 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
     });
   }
 
+  void _exportCsv() {
+    final records = _filteredEntryList;
+    if (records.isEmpty) {
+      ObsidianFeedback.showWarning(
+        context,
+        title: 'Export Unavailable',
+        message: 'No qualitative records match the current filters to export.',
+      );
+      return;
+    }
+
+    final exportData = CsvExportService.exportQualData(
+      records: records,
+      config: _qualConfig,
+      eventKey: _selectedEventKey != 'all' ? _selectedEventKey : null,
+    );
+
+    CsvExportModal.show(
+      context,
+      title: 'Export Qualitative Scouting Data',
+      exportData: exportData,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = ObsidianUITheme.isDark(context);
@@ -714,13 +742,23 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                   ],
                 ),
                 const SizedBox(height: 12),
-                // Reset button
+                // Reset & CSV buttons
                 Row(
                   children: [
                     OutlinedButton.icon(
                       onPressed: _resetFilters,
                       icon: const Icon(Icons.refresh_rounded, size: 16),
                       label: const Text('Reset Config'),
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: _exportCsv,
+                      icon: const Icon(Icons.download_rounded, size: 16),
+                      label: const Text('CSV'),
                       style: OutlinedButton.styleFrom(
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -1341,6 +1379,13 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                         if (_qualConfig != null && _qualConfig!.fields.isNotEmpty)
                           ..._qualConfig!.fields.map((f) {
                             final val = entry.data[f.id];
+                            if (val is String && val.startsWith('data:image/')) {
+                              return ObsidianImagePreviewCard(
+                                label: f.label.isNotEmpty ? f.label : f.id,
+                                imageSource: val,
+                                height: 180,
+                              );
+                            }
                             return Container(
                               margin: const EdgeInsets.only(bottom: 6),
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -1372,6 +1417,13 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                           })
                         else
                           ...entry.data.entries.map((item) {
+                            if (item.value is String && item.value.startsWith('data:image/')) {
+                              return ObsidianImagePreviewCard(
+                                label: item.key,
+                                imageSource: item.value,
+                                height: 180,
+                              );
+                            }
                             return Container(
                               margin: const EdgeInsets.only(bottom: 6),
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -1421,6 +1473,7 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
     if (val == null) return '--';
     if (val is bool) return val ? 'Yes' : 'No';
     if (val is List) return val.join(', ');
+    if (val is String && val.startsWith('data:image/')) return '📷 [Photo]';
     return val.toString();
   }
 

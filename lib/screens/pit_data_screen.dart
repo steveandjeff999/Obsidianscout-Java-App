@@ -1,13 +1,19 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
 import '../models/config_models.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
+import '../services/csv_export_service.dart';
+import '../services/image_utils.dart';
 import '../theme/obsidian_ui_theme.dart';
+import '../widgets/csv_export_modal.dart';
+import '../widgets/obsidian_feedback.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/conflict_resolution_modal.dart';
+import '../widgets/obsidian_image_preview_card.dart';
 
 class TeamPitCoverageItem {
   final int teamNumber;
@@ -256,26 +262,24 @@ class _PitDataScreenState extends State<PitDataScreen> {
   void _exportCsv() {
     final items = _filteredTeams;
     if (items.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No pit data to export')),
+      ObsidianFeedback.showWarning(
+        context,
+        title: 'Export Unavailable',
+        message: 'No team pit records match the current filters to export.',
       );
       return;
     }
 
-    final StringBuffer csv = StringBuffer();
-    csv.writeln('TeamNumber,TeamName,Status,LastUpdated,Scout,PitDataJSON');
+    final exportData = CsvExportService.exportPitData(
+      items: items,
+      config: _pitConfig,
+      eventKey: _selectedEventKey.isNotEmpty ? _selectedEventKey : null,
+    );
 
-    for (final item in items) {
-      final safeData = jsonEncode(item.pitData).replaceAll('"', '""');
-      csv.writeln('${item.teamNumber},"${item.nickname}","${item.hasPitData ? 'Complete' : 'Missing'}","${item.lastUpdated ?? ""}","${item.scoutUsername ?? ""}","$safeData"');
-    }
-
-    Clipboard.setData(ClipboardData(text: csv.toString()));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: Colors.cyanAccent,
-        content: Text('Exported ${items.length} team pit records to clipboard as CSV!'),
-      ),
+    CsvExportModal.show(
+      context,
+      title: 'Export Pit Scouting Data',
+      exportData: exportData,
     );
   }
 
@@ -585,6 +589,7 @@ class _PitDataScreenState extends State<PitDataScreen> {
               final quickFieldLabel = _quickFieldOptions.where((f) => f.id == _selectedQuickFieldId).firstOrNull?.label ?? _selectedQuickFieldId;
               final conflicts = _getConflictingEntriesForTeam(item.teamNumber);
               final hasConflict = conflicts.length > 1;
+              final imageVal = item.pitData.values.where((v) => v is String && v.startsWith('data:image/')).firstOrNull?.toString();
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
@@ -619,101 +624,116 @@ class _PitDataScreenState extends State<PitDataScreen> {
                         width: hasConflict || isSelected ? 1.8 : 1.0,
                       ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Row(
-                          children: [
-                            // Status badge
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: item.hasPitData ? Colors.tealAccent.withOpacity(0.2) : Colors.orangeAccent.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: item.hasPitData ? Colors.tealAccent.withOpacity(0.5) : Colors.orangeAccent.withOpacity(0.5),
-                                ),
-                              ),
-                              child: Text(
-                                item.hasPitData ? 'COMPLETE' : 'MISSING',
-                                style: TextStyle(
-                                  color: item.hasPitData ? Colors.tealAccent : Colors.orangeAccent,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Text(
-                              'Team ${item.teamNumber}',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: primaryTextColor,
-                              ),
-                            ),
-                            const Spacer(),
-                            if (hasConflict) ...[
-                              InkWell(
-                                onTap: () => _openConflictResolver(item),
-                                borderRadius: BorderRadius.circular(8),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.amberAccent.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: Colors.amberAccent),
+                        if (imageVal != null) ...[
+                          ObsidianImageThumbnail(
+                            imageSource: imageVal,
+                            size: 46,
+                            title: 'Team ${item.teamNumber} Photo',
+                          ),
+                          const SizedBox(width: 12),
+                        ],
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  // Status badge
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: item.hasPitData ? Colors.tealAccent.withOpacity(0.2) : Colors.orangeAccent.withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: item.hasPitData ? Colors.tealAccent.withOpacity(0.5) : Colors.orangeAccent.withOpacity(0.5),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      item.hasPitData ? 'COMPLETE' : 'MISSING',
+                                      style: TextStyle(
+                                        color: item.hasPitData ? Colors.tealAccent : Colors.orangeAccent,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 11,
+                                      ),
+                                    ),
                                   ),
-                                  child: const Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.warning_amber_rounded, size: 14, color: Colors.amberAccent),
-                                      SizedBox(width: 4),
-                                      Text(
-                                        'Resolve',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.amberAccent,
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    'Team ${item.teamNumber}',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: primaryTextColor,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  if (hasConflict) ...[
+                                    InkWell(
+                                      onTap: () => _openConflictResolver(item),
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.amberAccent.withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: Colors.amberAccent),
+                                        ),
+                                        child: const Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(Icons.warning_amber_rounded, size: 14, color: Colors.amberAccent),
+                                            SizedBox(width: 4),
+                                            Text(
+                                              'Resolve',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.amberAccent,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                    ],
-                                  ),
-                                ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                  ],
+                                  const Icon(Icons.chevron_right_rounded, size: 20, color: Colors.white38),
+                                ],
                               ),
-                              const SizedBox(width: 6),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      item.nickname,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(color: secondaryTextColor, fontSize: 13, fontWeight: FontWeight.w500),
+                                    ),
+                                  ),
+                                  if (quickFieldVal != null)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.cyanAccent.withOpacity(0.12),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        '$quickFieldLabel: ${_formatVal(quickFieldVal)}',
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.cyanAccent,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
                             ],
-                            const Icon(Icons.chevron_right_rounded, size: 20, color: Colors.white38),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                item.nickname,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(color: secondaryTextColor, fontSize: 13, fontWeight: FontWeight.w500),
-                              ),
-                            ),
-                            if (quickFieldVal != null)
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.cyanAccent.withOpacity(0.12),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  '$quickFieldLabel: ${_formatVal(quickFieldVal)}',
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.cyanAccent,
-                                  ),
-                                ),
-                              ),
-                          ],
+                          ),
                         ),
                       ],
                     ),
@@ -884,6 +904,16 @@ class _PitDataScreenState extends State<PitDataScreen> {
                             }
 
                             final val = item.pitData[f.id];
+                            final isImage = f.type == 'image' || f.type == 'image_upload' || f.type == 'photo' || (val is String && val.startsWith('data:image/'));
+
+                            if (isImage && val != null && val.toString().isNotEmpty) {
+                              return ObsidianImagePreviewCard(
+                                label: f.label.isNotEmpty ? f.label : f.id,
+                                imageSource: val.toString(),
+                                height: 180,
+                              );
+                            }
+
                             return Container(
                               margin: const EdgeInsets.only(bottom: 6),
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -968,6 +998,7 @@ class _PitDataScreenState extends State<PitDataScreen> {
 
   String _formatVal(dynamic val) {
     if (val == null) return '--';
+    if (val is String && val.startsWith('data:image/')) return '📷 [Photo]';
     if (val is bool) return val ? 'Yes' : 'No';
     if (val is List) return val.join(', ');
     return val.toString();
