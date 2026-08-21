@@ -142,6 +142,13 @@ class ObsidianNavigationDrawer extends StatelessWidget {
             'subKey': 'subtitle.qual-data',
           },
           {
+            'pageId': 'data-validation',
+            'index': 16,
+            'icon': Icons.fact_check_rounded,
+            'labelKey': 'nav.data-validation',
+            'subKey': 'subtitle.data-validation',
+          },
+          {
             'pageId': 'teams',
             'index': 8,
             'icon': Icons.groups_rounded,

@@ -26,6 +26,7 @@ import 'screens/all_data_screen.dart';
 import 'screens/match_data_screen.dart';
 import 'screens/pit_data_screen.dart';
 import 'screens/qual_data_screen.dart';
+import 'screens/data_validation_screen.dart';
 import 'services/api_service.dart';
 import 'services/fcm_helper.dart';
 import 'services/notification_websocket_service.dart';
@@ -239,6 +240,7 @@ class _MainShellState extends State<MainShell> {
     'nav.match_data',
     'nav.pit_data',
     'nav.qual_data',
+    'nav.data_validation',
   ];
   final List<String> _subtitleKeys = [
     'subtitle.dashboard',
@@ -257,6 +259,7 @@ class _MainShellState extends State<MainShell> {
     'subtitle.match_data',
     'subtitle.pit_data',
     'subtitle.qual_data',
+    'subtitle.data_validation',
   ];
 
   String _getPageIdForIndex(int index) {
@@ -293,6 +296,8 @@ class _MainShellState extends State<MainShell> {
         return 'pit-data';
       case 15:
         return 'qual-data';
+      case 16:
+        return 'data-validation';
       default:
         return 'dashboard';
     }
@@ -426,6 +431,7 @@ class _MainShellState extends State<MainShell> {
       MatchDataScreen(apiService: widget.apiService, isVisible: _currentIndex == 13, isBarsVisible: _isBarsVisible),
       PitDataScreen(apiService: widget.apiService, isVisible: _currentIndex == 14, isBarsVisible: _isBarsVisible),
       QualDataScreen(apiService: widget.apiService, isVisible: _currentIndex == 15, isBarsVisible: _isBarsVisible),
+      DataValidationScreen(apiService: widget.apiService, isVisible: _currentIndex == 16, isBarsVisible: _isBarsVisible),
     ];
 
     return Scaffold(

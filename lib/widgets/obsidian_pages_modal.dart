@@ -130,6 +130,15 @@ class ObsidianPagesModal extends StatelessWidget {
         'color': Colors.lightGreenAccent,
       },
       {
+        'pageId': 'data-validation',
+        'index': 16,
+        'icon': Icons.fact_check_rounded,
+        'name': 'Data Validation',
+        'desc': 'Score validation & discrepancy anomaly detection',
+        'tag': 'Data',
+        'color': Colors.deepOrangeAccent,
+      },
+      {
         'pageId': 'teams',
         'index': 8,
         'icon': Icons.groups_rounded,
