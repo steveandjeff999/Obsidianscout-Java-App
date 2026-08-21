@@ -100,12 +100,13 @@ class ScoutingFieldModel {
       }).toList();
     }
 
+    final parsedType = json['type']?.toString() ?? json['fieldType']?.toString() ?? 'text';
     return ScoutingFieldModel(
       id: json['id']?.toString() ?? json['key']?.toString() ?? '',
       label: parsedLabel,
       description: parsedDesc,
-      type: json['type']?.toString() ?? json['fieldType']?.toString() ?? 'text',
-      required: json['required'] == true,
+      type: parsedType,
+      required: parsedType == 'text' ? false : (json['required'] == true),
       phase: json['phase']?.toString(),
       placeholder: json['placeholder']?.toString() ?? json['hint']?.toString(),
       defaultValue: json['defaultValue'] ?? json['default'],
@@ -129,7 +130,7 @@ class ScoutingFieldModel {
       if (description != null && description!.isNotEmpty) {
         data['description'] = description;
       }
-      if (required) {
+      if (type != 'text' && required) {
         data['required'] = true;
       }
       if (phase != null && phase!.isNotEmpty) {
