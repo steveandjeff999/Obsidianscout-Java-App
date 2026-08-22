@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'obsidian_page_transitions.dart';
 
 class ObsidianUITheme {
   // Brand colors (Dark)
@@ -27,12 +28,24 @@ class ObsidianUITheme {
   static const Color glassBorderLightMode = Color(0x1F000000);
   static const Color glassInputBackgroundLightMode = Color(0x0D000000);
 
+  static const PageTransitionsTheme _pageTransitionsTheme = PageTransitionsTheme(
+    builders: {
+      TargetPlatform.android: SamsungSlideTransitionsBuilder(),
+      TargetPlatform.iOS: SamsungSlideTransitionsBuilder(),
+      TargetPlatform.fuchsia: SamsungSlideTransitionsBuilder(),
+      TargetPlatform.windows: WindowsSlideUpTransitionsBuilder(),
+      TargetPlatform.macOS: WindowsSlideUpTransitionsBuilder(),
+      TargetPlatform.linux: WindowsSlideUpTransitionsBuilder(),
+    },
+  );
+
   static ThemeData get darkTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
       scaffoldBackgroundColor: background,
       primaryColor: primaryAccent,
+      pageTransitionsTheme: _pageTransitionsTheme,
       colorScheme: const ColorScheme.dark(
         primary: primaryAccent,
         secondary: secondaryAccent,
@@ -76,6 +89,7 @@ class ObsidianUITheme {
       brightness: Brightness.light,
       scaffoldBackgroundColor: backgroundLight,
       primaryColor: primaryAccent,
+      pageTransitionsTheme: _pageTransitionsTheme,
       colorScheme: const ColorScheme.light(
         primary: primaryAccent,
         secondary: secondaryAccent,
