@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
 import 'theme/obsidian_ui_theme.dart';
+import 'theme/obsidian_page_transitions.dart';
 import 'widgets/obsidian_glass_app_bar.dart';
 import 'widgets/obsidian_bottom_nav.dart';
 import 'widgets/obsidian_drawer.dart';
@@ -96,6 +98,10 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final List<int> _screenHistory = [];
+  DateTime? _lastBackPressTime;
+
   late bool _isAuthenticated;
   late bool _isOnline;
   int _currentIndex = 0;
@@ -304,15 +310,16 @@ class _MainShellState extends State<MainShell> {
   }
 
   void _navigateScreen(int index) {
+    if (_currentIndex == index) return;
     final pageId = _getPageIdForIndex(index);
     if (!widget.apiService.hasPageAccess(pageId)) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          duration: const Duration(seconds: 3),
+        const SnackBar(
+          duration: Duration(seconds: 3),
           behavior: SnackBarBehavior.floating,
-          backgroundColor: const Color(0xFFB91C1C),
-          content: const Row(
+          backgroundColor: Color(0xFFB91C1C),
+          content: Row(
             children: [
               Icon(Icons.lock_rounded, color: Colors.white, size: 20),
               SizedBox(width: 10),
@@ -330,9 +337,74 @@ class _MainShellState extends State<MainShell> {
     }
 
     setState(() {
+      if (_screenHistory.isEmpty || _screenHistory.last != _currentIndex) {
+        _screenHistory.add(_currentIndex);
+      }
       _currentIndex = index;
       _isBarsVisible = true;
     });
+  }
+
+  void _handleBackPress() {
+    // 1. If drawer is open, close it
+    if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
+      _scaffoldKey.currentState?.closeDrawer();
+      return;
+    }
+
+    // 2. If there is screen navigation history, pop to previous screen
+    while (_screenHistory.isNotEmpty) {
+      final prevIndex = _screenHistory.removeLast();
+      final pageId = _getPageIdForIndex(prevIndex);
+      if (prevIndex != _currentIndex && widget.apiService.hasPageAccess(pageId)) {
+        setState(() {
+          _currentIndex = prevIndex;
+          _isBarsVisible = true;
+        });
+        return;
+      }
+    }
+
+    // 3. If currently not on Dashboard and history was exhausted, go back to Dashboard
+    if (_currentIndex != 0) {
+      setState(() {
+        _currentIndex = 0;
+        _isBarsVisible = true;
+      });
+      return;
+    }
+
+    // 4. On Dashboard (root screen): require double back press within 2 seconds to exit
+    final now = DateTime.now();
+    if (_lastBackPressTime == null || now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
+      _lastBackPressTime = now;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 2),
+          backgroundColor: ObsidianUITheme.getSurfaceColor(context),
+          content: Row(
+            children: [
+              const Icon(Icons.arrow_back_rounded, color: Colors.cyanAccent, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  context.tr('app.press_back_again_to_exit'),
+                  style: TextStyle(
+                    color: ObsidianUITheme.getPrimaryTextColor(context),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      SystemNavigator.pop();
+    }
   }
 
   void _openQrScanner() {
@@ -434,9 +506,16 @@ class _MainShellState extends State<MainShell> {
       DataValidationScreen(apiService: widget.apiService, isVisible: _currentIndex == 16, isBarsVisible: _isBarsVisible),
     ];
 
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      extendBody: true,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleBackPress();
+      },
+      child: Scaffold(
+        key: _scaffoldKey,
+        extendBodyBehindAppBar: true,
+        extendBody: true,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(90.0),
         child: AnimatedOpacity(
@@ -524,7 +603,7 @@ class _MainShellState extends State<MainShell> {
                 isBarsVisible: _isBarsVisible,
               ),
               Expanded(
-                child: IndexedStack(
+                child: ObsidianAnimatedIndexedStack(
                   index: _currentIndex,
                   children: screens,
                 ),
@@ -556,6 +635,7 @@ class _MainShellState extends State<MainShell> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

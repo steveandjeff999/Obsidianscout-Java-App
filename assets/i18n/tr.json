@@ -1,4 +1,5 @@
 {
+  "app.press_back_again_to_exit": "Çıkmak için tekrar geri basın",
   "nav.dashboard": "Kontrol Paneli",
   "nav.migration": "Veri Göçü",
   "migration.locked_title": "Sadece Site Yöneticisi",

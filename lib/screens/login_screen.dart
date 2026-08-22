@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
@@ -43,6 +44,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isSubmitting = false;
   bool _showServerConfig = false;
   int _activeTabIndex = 0; // 0 = Sign In, 1 = Create Account
+  DateTime? _lastBackPressTime;
 
   @override
   void initState() {
@@ -92,8 +94,8 @@ class _LoginScreenState extends State<LoginScreen> {
         widget.onLoginSuccess();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Login failed. Please check your credentials and server connection.'),
+          const SnackBar(
+            content: Text('Login failed. Please check your credentials and server connection.'),
             backgroundColor: ObsidianUITheme.errorRed,
           ),
         );
@@ -153,12 +155,46 @@ class _LoginScreenState extends State<LoginScreen> {
         widget.onLoginSuccess();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Registration failed. Please check your information and try again.'),
+          const SnackBar(
+            content: Text('Registration failed. Please check your information and try again.'),
             backgroundColor: ObsidianUITheme.errorRed,
           ),
         );
       }
+    }
+  }
+
+  void _handleBackPress() {
+    final now = DateTime.now();
+    if (_lastBackPressTime == null || now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
+      _lastBackPressTime = now;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: ObsidianUITheme.getSurfaceColor(context),
+          content: Row(
+            children: [
+              const Icon(Icons.arrow_back_rounded, color: Colors.cyanAccent, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  context.tr('app.press_back_again_to_exit'),
+                  style: TextStyle(
+                    color: ObsidianUITheme.getPrimaryTextColor(context),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      SystemNavigator.pop();
     }
   }
 
@@ -170,7 +206,13 @@ class _LoginScreenState extends State<LoginScreen> {
     final borderColor = ObsidianUITheme.getBorderColor(context);
     final surfaceColor = ObsidianUITheme.getSurfaceColor(context);
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleBackPress();
+      },
+      child: Scaffold(
       body: Container(
         decoration: BoxDecoration(
           color: Theme.of(context).scaffoldBackgroundColor,
@@ -370,8 +412,9 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildLoginForm(Color primaryTextColor, Color secondaryTextColor, Color borderColor, Color surfaceColor) {
     return Form(

@@ -1,4 +1,5 @@
 {
+  "app.press_back_again_to_exit": "Presiona atrás de nuevo para salir",
   "nav.dashboard": "Tablero",
   "nav.migration": "Migración",
   "migration.locked_title": "Solo Admin de Sitio",
