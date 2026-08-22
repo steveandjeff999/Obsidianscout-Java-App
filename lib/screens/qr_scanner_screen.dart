@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zxing_lib/common.dart' as zxing_common;
 import 'package:zxing_lib/qrcode.dart' as zxing_qr;
@@ -61,9 +62,9 @@ class QrScannerScreen extends StatefulWidget {
   State<QrScannerScreen> createState() => _QrScannerScreenState();
 }
 
-class _QrScannerScreenState extends State<QrScannerScreen> {
+class _QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObserver {
   late final MobileScannerController _scannerController = MobileScannerController(
-    autoStart: !_isDesktopWindows,
+    autoStart: false,
     detectionSpeed: DetectionSpeed.noDuplicates,
     formats: const [BarcodeFormat.all],
   );
@@ -82,14 +83,106 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   bool _isInitializingCamera = false;
   String? _cameraErrorMessage;
 
+  bool _hasCameraPermission = true;
+  bool _isPermanentlyDenied = false;
+  bool _isCheckingPermission = false;
+
   static const String _storageKey = 'obsidianscout:scanned_qr_entries';
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadQueue();
     if (_isDesktopWindows) {
       _initDesktopCamera();
+    } else {
+      _checkAndRequestPermission(directRequest: true);
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_isDesktopWindows) return;
+    if (state == AppLifecycleState.resumed) {
+      _checkAndRequestPermission(directRequest: false);
+    } else if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
+      try {
+        _scannerController.stop();
+      } catch (_) {}
+    }
+  }
+
+  Future<void> _checkAndRequestPermission({bool directRequest = true}) async {
+    if (_isDesktopWindows) return;
+
+    setState(() {
+      _isCheckingPermission = true;
+    });
+
+    try {
+      final status = await Permission.camera.status;
+      if (status.isGranted || status.isLimited) {
+        if (mounted) {
+          setState(() {
+            _hasCameraPermission = true;
+            _isPermanentlyDenied = false;
+            _isCheckingPermission = false;
+          });
+          if (_isScanning) {
+            try {
+              await _scannerController.start();
+            } catch (_) {}
+          }
+        }
+        return;
+      }
+
+      if (directRequest) {
+        final reqResult = await Permission.camera.request();
+        if (reqResult.isGranted || reqResult.isLimited) {
+          if (mounted) {
+            setState(() {
+              _hasCameraPermission = true;
+              _isPermanentlyDenied = false;
+              _isCheckingPermission = false;
+            });
+            if (_isScanning) {
+              try {
+                await _scannerController.start();
+              } catch (_) {}
+            }
+          }
+          return;
+        }
+
+        if (mounted) {
+          setState(() {
+            _hasCameraPermission = false;
+            _isPermanentlyDenied = reqResult.isPermanentlyDenied;
+            _isCheckingPermission = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _hasCameraPermission = status.isGranted || status.isLimited;
+            _isPermanentlyDenied = status.isPermanentlyDenied;
+            _isCheckingPermission = false;
+          });
+          if ((status.isGranted || status.isLimited) && _isScanning) {
+            try {
+              await _scannerController.start();
+            } catch (_) {}
+          }
+        }
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isCheckingPermission = false;
+        });
+      }
     }
   }
 
@@ -337,6 +430,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _desktopScanTimer?.cancel();
     _desktopCameraController?.dispose();
     _scannerController.dispose();
@@ -566,7 +660,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         successCount++;
       } else {
         final errorText = response.statusCode != null
-            ? 'HTTP ${response.statusCode}${response.message != null && response.message!.isNotEmpty ? ": " + response.message! : ""}'
+            ? 'HTTP ${response.statusCode}${response.message != null && response.message!.isNotEmpty ? ": ${response.message!}" : ""}'
             : (response.isOffline ? 'Offline' : (response.message ?? 'Upload failed'));
         setState(() {
           item.status = 'error';
@@ -742,6 +836,72 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     );
   }
 
+  Widget _buildPermissionDeniedCard(Color borderColor, Color primaryTextColor) {
+    return Container(
+      color: Colors.black87,
+      padding: const EdgeInsets.all(20.0),
+      child: Center(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.no_photography_rounded, color: ObsidianUITheme.warningOrange, size: 40),
+              const SizedBox(height: 10),
+              const Text(
+                'Camera Permission Required',
+                style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                _isPermanentlyDenied
+                    ? 'Camera permission is permanently denied. Please enable camera access in device settings to scan QR codes.'
+                    : 'ObsidianScout needs camera permission to scan scouting barcodes.',
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.center,
+                children: [
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: ObsidianUITheme.primaryAccent,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    ),
+                    onPressed: () async {
+                      if (_isPermanentlyDenied) {
+                        await openAppSettings();
+                      } else {
+                        await _checkAndRequestPermission(directRequest: true);
+                      }
+                    },
+                    icon: Icon(_isPermanentlyDenied ? Icons.settings_rounded : Icons.lock_open_rounded, size: 16),
+                    label: Text(
+                      _isPermanentlyDenied ? 'Open App Settings' : 'Grant Camera Access',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: borderColor,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    onPressed: _pasteFromClipboard,
+                    icon: Icon(Icons.assignment_turned_in_rounded, size: 16, color: primaryTextColor),
+                    label: Text('Paste Clipboard', style: TextStyle(fontSize: 12, color: primaryTextColor)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildCameraDeviceSelector() {
     if (_isDesktopWindows && _availableCameras.isNotEmpty) {
       return Container(
@@ -844,10 +1004,13 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
               if (_isDesktopWindows) {
                 await _selectCameraIndex(_selectedCameraIndex);
               } else {
-                try {
-                  await _scannerController.stop();
-                  await _scannerController.start();
-                } catch (_) {}
+                await _checkAndRequestPermission(directRequest: true);
+                if (_hasCameraPermission) {
+                  try {
+                    await _scannerController.stop();
+                    await _scannerController.start();
+                  } catch (_) {}
+                }
               }
               setState(() {
                 _isProcessingScan = false;
@@ -936,10 +1099,17 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                                     ],
                                   ),
                                 ),
-                            ] else if (_isScanning)
+                            ] else if (_isCheckingPermission)
+                              const Center(child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent))
+                            else if (!_hasCameraPermission)
+                              _buildPermissionDeniedCard(borderColor, primaryTextColor)
+                            else if (_isScanning)
                               MobileScanner(
                                 controller: _scannerController,
                                 errorBuilder: (context, error, child) {
+                                  if (error.errorCode == MobileScannerErrorCode.permissionDenied) {
+                                    return _buildPermissionDeniedCard(borderColor, primaryTextColor);
+                                  }
                                   return Container(
                                     color: Colors.black87,
                                     padding: const EdgeInsets.all(16.0),
@@ -954,11 +1124,31 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                                           textAlign: TextAlign.center,
                                         ),
                                         const SizedBox(height: 12),
-                                        ElevatedButton.icon(
-                                          style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.primaryAccent),
-                                          onPressed: _pasteFromClipboard,
-                                          icon: const Icon(Icons.assignment_turned_in_rounded, size: 16),
-                                          label: const Text('Paste Code from Clipboard', style: TextStyle(fontSize: 12)),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            ElevatedButton.icon(
+                                              style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.primaryAccent),
+                                              onPressed: () async {
+                                                await _checkAndRequestPermission(directRequest: true);
+                                                if (_hasCameraPermission) {
+                                                  try {
+                                                    await _scannerController.stop();
+                                                    await _scannerController.start();
+                                                  } catch (_) {}
+                                                }
+                                              },
+                                              icon: const Icon(Icons.refresh_rounded, size: 14),
+                                              label: const Text('Retry Camera', style: TextStyle(fontSize: 11)),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            ElevatedButton.icon(
+                                              style: ElevatedButton.styleFrom(backgroundColor: borderColor),
+                                              onPressed: _pasteFromClipboard,
+                                              icon: Icon(Icons.assignment_turned_in_rounded, size: 14, color: primaryTextColor),
+                                              label: Text('Paste Clipboard', style: TextStyle(fontSize: 11, color: primaryTextColor)),
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     ),
@@ -982,24 +1172,25 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                                 ),
                               ),
                             // Viewfinder Reticle Overlay
-                            Container(
-                              width: 210,
-                              height: 210,
-                              decoration: BoxDecoration(
-                                border: Border.all(color: ObsidianUITheme.primaryAccent, width: 2.5),
-                                borderRadius: BorderRadius.circular(16.0),
-                              ),
-                              child: const Align(
-                                alignment: Alignment.bottomCenter,
-                                child: Padding(
-                                  padding: EdgeInsets.only(bottom: 6.0),
-                                  child: Text(
-                                    'ALIGN QR CODE HERE',
-                                    style: TextStyle(color: ObsidianUITheme.primaryAccent, fontSize: 10.0, fontWeight: FontWeight.bold, letterSpacing: 0.8),
+                            if (_hasCameraPermission || _isDesktopWindows)
+                              Container(
+                                width: 210,
+                                height: 210,
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: ObsidianUITheme.primaryAccent, width: 2.5),
+                                  borderRadius: BorderRadius.circular(16.0),
+                                ),
+                                child: const Align(
+                                  alignment: Alignment.bottomCenter,
+                                  child: Padding(
+                                    padding: EdgeInsets.only(bottom: 6.0),
+                                    child: Text(
+                                      'ALIGN QR CODE HERE',
+                                      style: TextStyle(color: ObsidianUITheme.primaryAccent, fontSize: 10.0, fontWeight: FontWeight.bold, letterSpacing: 0.8),
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
                           ],
                         ),
                       ),
