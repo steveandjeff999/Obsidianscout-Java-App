@@ -212,6 +212,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
   }
 
   bool get _supportsPoints => _activeKind != 'qual';
+  bool get _supportsPhases => _activeKind == 'game';
 
   String _slugify(String text) {
     if (text.isEmpty) return '';
@@ -297,130 +298,174 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
             final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
             final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
 
-            return Container(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 20,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-              ),
-              decoration: BoxDecoration(
-                color: bg,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Add Custom Field', style: TextStyle(color: primaryTextColor, fontSize: 18, fontWeight: FontWeight.bold)),
-                        IconButton(icon: Icon(Icons.close_rounded, color: secondaryTextColor), onPressed: () => Navigator.pop(ctx)),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Label Input
-                    TextField(
-                      controller: labelCtrl,
-                      style: TextStyle(color: primaryTextColor),
-                      decoration: InputDecoration(
-                        labelText: 'Field Label (e.g. Speaker Cycles)',
-                        labelStyle: TextStyle(color: secondaryTextColor),
-                        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
+            return Material(
+              color: bg,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              child: Container(
+                padding: EdgeInsets.only(
+                  left: 20,
+                  right: 20,
+                  top: 20,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Add Custom Field', style: TextStyle(color: primaryTextColor, fontSize: 18, fontWeight: FontWeight.bold)),
+                          IconButton(icon: Icon(Icons.close_rounded, color: secondaryTextColor), onPressed: () => Navigator.pop(ctx)),
+                        ],
                       ),
-                      onChanged: (val) {
-                        if (autoId) {
-                          idCtrl.text = _slugify(val);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 12),
+                      const SizedBox(height: 16),
 
-                    // Field Slug / ID Input
-                    TextField(
-                      controller: idCtrl,
-                      style: TextStyle(color: primaryTextColor),
-                      decoration: InputDecoration(
-                        labelText: 'Field ID / Slug (e.g. speakerCycles)',
-                        labelStyle: TextStyle(color: secondaryTextColor),
-                        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
+                      // Label Input
+                      TextField(
+                        controller: labelCtrl,
+                        style: TextStyle(color: primaryTextColor),
+                        decoration: InputDecoration(
+                          labelText: 'Field Label (e.g. Speaker Cycles)',
+                          labelStyle: TextStyle(color: secondaryTextColor),
+                          enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
+                        ),
+                        onChanged: (val) {
+                          if (autoId) {
+                            idCtrl.text = _slugify(val);
+                          }
+                        },
                       ),
-                      onChanged: (val) => autoId = false,
-                    ),
-                    const SizedBox(height: 12),
+                      const SizedBox(height: 12),
 
-                    // Type & Phase Row
-                    Row(
-                      children: [
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            initialValue: selectedType,
-                            dropdownColor: ObsidianUITheme.getSurfaceColor(context),
-                            style: TextStyle(color: primaryTextColor),
-                            decoration: InputDecoration(
-                              labelText: 'Type',
-                              labelStyle: TextStyle(color: secondaryTextColor),
-                              enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
-                            ),
-                            items: const [
-                              DropdownMenuItem(value: 'counter', child: Text('COUNTER')),
-                              DropdownMenuItem(value: 'number', child: Text('NUMBER')),
-                              DropdownMenuItem(value: 'rating', child: Text('RATING')),
-                              DropdownMenuItem(value: 'checkbox', child: Text('CHECKBOX')),
-                              DropdownMenuItem(value: 'select', child: Text('SELECT')),
-                              DropdownMenuItem(value: 'text', child: Text('TEXT (STATIC)')),
-                              DropdownMenuItem(value: 'textarea', child: Text('TEXTAREA (INPUT)')),
-                              DropdownMenuItem(value: 'image', child: Text('IMAGE (PHOTO UPLOAD)')),
-                            ],
-                            onChanged: (val) {
-                              if (val != null) {
-                                setModalState(() {
-                                  selectedType = val;
-                                  if (val == 'text') {
-                                    isRequired = false;
-                                  } else if (val == 'rating') {
-                                    minVal = 1;
-                                    maxVal = 5;
-                                  } else if (val == 'counter') {
-                                    minVal = 0;
-                                    maxVal = 30;
-                                    stepVal = 1;
-                                  } else if (val == 'number') {
-                                    minVal = 0;
-                                    maxVal = 100;
+                      // Field Slug / ID Input
+                      TextField(
+                        controller: idCtrl,
+                        style: TextStyle(color: primaryTextColor),
+                        decoration: InputDecoration(
+                          labelText: 'Field ID / Slug (e.g. speakerCycles)',
+                          labelStyle: TextStyle(color: secondaryTextColor),
+                          enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
+                        ),
+                        onChanged: (val) => autoId = false,
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Type & Phase Row (or Type only if !_supportsPhases)
+                      if (_supportsPhases)
+                        Row(
+                          children: [
+                            Expanded(
+                              child: DropdownButtonFormField<String>(
+                                isExpanded: true,
+                                initialValue: selectedType,
+                                dropdownColor: ObsidianUITheme.getSurfaceColor(context),
+                                style: TextStyle(color: primaryTextColor),
+                                decoration: InputDecoration(
+                                  labelText: 'Type',
+                                  labelStyle: TextStyle(color: secondaryTextColor),
+                                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
+                                ),
+                                items: const [
+                                  DropdownMenuItem(value: 'counter', child: Text('COUNTER')),
+                                  DropdownMenuItem(value: 'number', child: Text('NUMBER')),
+                                  DropdownMenuItem(value: 'rating', child: Text('RATING')),
+                                  DropdownMenuItem(value: 'checkbox', child: Text('CHECKBOX')),
+                                  DropdownMenuItem(value: 'select', child: Text('SELECT')),
+                                  DropdownMenuItem(value: 'text', child: Text('TEXT (STATIC)')),
+                                  DropdownMenuItem(value: 'textarea', child: Text('TEXTAREA (INPUT)')),
+                                  DropdownMenuItem(value: 'image', child: Text('IMAGE (PHOTO UPLOAD)')),
+                                ],
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    setModalState(() {
+                                      selectedType = val;
+                                      if (val == 'text') {
+                                        isRequired = false;
+                                      } else if (val == 'rating') {
+                                        minVal = 1;
+                                        maxVal = 5;
+                                      } else if (val == 'counter') {
+                                        minVal = 0;
+                                        maxVal = 30;
+                                        stepVal = 1;
+                                      } else if (val == 'number') {
+                                        minVal = 0;
+                                        maxVal = 100;
+                                      }
+                                    });
                                   }
-                                });
-                              }
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            initialValue: const ['auto', 'teleop', 'endgame', 'postmatch'].contains(selectedPhase.toLowerCase())
-                                ? selectedPhase.toLowerCase()
-                                : 'teleop',
-                            dropdownColor: ObsidianUITheme.getSurfaceColor(context),
-                            style: TextStyle(color: primaryTextColor),
-                            decoration: InputDecoration(
-                              labelText: 'Phase',
-                              labelStyle: TextStyle(color: secondaryTextColor),
-                              enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
+                                },
+                              ),
                             ),
-                            items: const [
-                              DropdownMenuItem(value: 'auto', child: Text('Auto')),
-                              DropdownMenuItem(value: 'teleop', child: Text('Teleop')),
-                              DropdownMenuItem(value: 'endgame', child: Text('Endgame')),
-                              DropdownMenuItem(value: 'postmatch', child: Text('Post Match')),
-                            ],
-                            onChanged: (val) => setModalState(() => selectedPhase = val ?? 'teleop'),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: DropdownButtonFormField<String>(
+                                isExpanded: true,
+                                initialValue: const ['auto', 'teleop', 'endgame', 'postmatch'].contains(selectedPhase.toLowerCase())
+                                    ? selectedPhase.toLowerCase()
+                                    : 'teleop',
+                                dropdownColor: ObsidianUITheme.getSurfaceColor(context),
+                                style: TextStyle(color: primaryTextColor),
+                                decoration: InputDecoration(
+                                  labelText: 'Phase',
+                                  labelStyle: TextStyle(color: secondaryTextColor),
+                                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
+                                ),
+                                items: const [
+                                  DropdownMenuItem(value: 'auto', child: Text('Auto')),
+                                  DropdownMenuItem(value: 'teleop', child: Text('Teleop')),
+                                  DropdownMenuItem(value: 'endgame', child: Text('Endgame')),
+                                  DropdownMenuItem(value: 'postmatch', child: Text('Post Match')),
+                                ],
+                                onChanged: (val) => setModalState(() => selectedPhase = val ?? 'teleop'),
+                              ),
+                            ),
+                          ],
+                        )
+                      else
+                        DropdownButtonFormField<String>(
+                          isExpanded: true,
+                          initialValue: selectedType,
+                          dropdownColor: ObsidianUITheme.getSurfaceColor(context),
+                          style: TextStyle(color: primaryTextColor),
+                          decoration: InputDecoration(
+                            labelText: 'Type',
+                            labelStyle: TextStyle(color: secondaryTextColor),
+                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
                           ),
+                          items: const [
+                            DropdownMenuItem(value: 'counter', child: Text('COUNTER')),
+                            DropdownMenuItem(value: 'number', child: Text('NUMBER')),
+                            DropdownMenuItem(value: 'rating', child: Text('RATING')),
+                            DropdownMenuItem(value: 'checkbox', child: Text('CHECKBOX')),
+                            DropdownMenuItem(value: 'select', child: Text('SELECT')),
+                            DropdownMenuItem(value: 'text', child: Text('TEXT (STATIC)')),
+                            DropdownMenuItem(value: 'textarea', child: Text('TEXTAREA (INPUT)')),
+                            DropdownMenuItem(value: 'image', child: Text('IMAGE (PHOTO UPLOAD)')),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) {
+                              setModalState(() {
+                                selectedType = val;
+                                if (val == 'text') {
+                                  isRequired = false;
+                                } else if (val == 'rating') {
+                                  minVal = 1;
+                                  maxVal = 5;
+                                } else if (val == 'counter') {
+                                  minVal = 0;
+                                  maxVal = 30;
+                                  stepVal = 1;
+                                } else if (val == 'number') {
+                                  minVal = 0;
+                                  maxVal = 100;
+                                }
+                              });
+                            }
+                          },
                         ),
-                      ],
-                    ),
                     if (selectedType != 'text') ...[
                       const SizedBox(height: 12),
                       SwitchListTile(
@@ -466,7 +511,9 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                             id: id,
                             label: label,
                             type: selectedType,
-                            phase: selectedPhase.isNotEmpty ? (selectedPhase.toLowerCase() == 'general' ? 'teleop' : selectedPhase) : 'teleop',
+                            phase: _supportsPhases
+                                ? (selectedPhase.isNotEmpty ? (selectedPhase.toLowerCase() == 'general' ? 'teleop' : selectedPhase) : 'teleop')
+                                : null,
                             required: selectedType == 'text' ? false : isRequired,
                             min: minVal,
                             max: maxVal,
@@ -488,11 +535,12 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                   ],
                 ),
               ),
-            );
-          },
-        );
-      },
-    );
+            ),
+          );
+        },
+      );
+    },
+  );
   }
 
   void _showPresetsModal() {
@@ -1909,7 +1957,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: primaryTextColor),
           ),
           subtitle: Text(
-            'ID: ${field.id}${field.phase != null && field.phase!.isNotEmpty ? " • ${field.phase!.toUpperCase()}" : ""}${field.required ? " • Required" : ""}',
+            'ID: ${field.id}${_supportsPhases && field.phase != null && field.phase!.isNotEmpty ? " • ${field.phase!.toUpperCase()}" : ""}${field.required ? " • Required" : ""}',
             style: TextStyle(fontSize: 11, color: secondaryTextColor),
           ),
           trailing: Row(
@@ -1999,11 +2047,13 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
         ),
         const SizedBox(height: 10),
 
-        // Phase, Type & Required Row
-        Row(
+        // Phase, Type & Required Row (or Type only if !_supportsPhases)
+        if (_supportsPhases)
+          Row(
             children: [
               Expanded(
                 child: DropdownButtonFormField<String>(
+                  isExpanded: true,
                   initialValue: const ['counter', 'number', 'rating', 'checkbox', 'select', 'text', 'textarea'].contains(field.type.toLowerCase())
                       ? field.type.toLowerCase()
                       : 'text',
@@ -2043,6 +2093,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
               const SizedBox(width: 8),
               Expanded(
                 child: DropdownButtonFormField<String>(
+                  isExpanded: true,
                   initialValue: const ['auto', 'teleop', 'endgame', 'postmatch'].contains(field.phase?.toLowerCase() ?? '')
                       ? (field.phase?.toLowerCase() ?? 'teleop')
                       : 'teleop',
@@ -2070,6 +2121,44 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                 ),
               ),
             ],
+          )
+        else
+          DropdownButtonFormField<String>(
+            isExpanded: true,
+            initialValue: const ['counter', 'number', 'rating', 'checkbox', 'select', 'text', 'textarea'].contains(field.type.toLowerCase())
+                ? field.type.toLowerCase()
+                : 'text',
+            dropdownColor: ObsidianUITheme.getSurfaceColor(context),
+            style: TextStyle(color: primaryTextColor, fontSize: 12),
+            decoration: InputDecoration(
+              labelText: 'Type',
+              labelStyle: TextStyle(color: secondaryTextColor, fontSize: 11),
+              isDense: true,
+              enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
+            ),
+            items: const [
+              DropdownMenuItem(value: 'counter', child: Text('COUNTER')),
+              DropdownMenuItem(value: 'number', child: Text('NUMBER')),
+              DropdownMenuItem(value: 'rating', child: Text('RATING')),
+              DropdownMenuItem(value: 'checkbox', child: Text('CHECKBOX')),
+              DropdownMenuItem(value: 'select', child: Text('SELECT')),
+              DropdownMenuItem(value: 'text', child: Text('TEXT (STATIC)')),
+              DropdownMenuItem(value: 'textarea', child: Text('TEXTAREA (INPUT)')),
+              DropdownMenuItem(value: 'image', child: Text('IMAGE (PHOTO UPLOAD)')),
+            ],
+            onChanged: (val) {
+              if (val != null) {
+                final fields = List<ScoutingFieldModel>.from(_currentConfig.fields);
+                fields[index] = field.copyWith(
+                  type: val,
+                  required: val == 'text' ? false : field.required,
+                );
+                setState(() {
+                  _currentConfig = _currentConfig.copyWith(fields: fields);
+                });
+                _syncVisualToRaw();
+              }
+            },
           ),
 
           if (field.type != 'text') ...[
