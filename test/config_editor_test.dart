@@ -8,6 +8,38 @@ import 'package:obsidianscout_app/theme/obsidian_ui_theme.dart';
 
 import 'package:obsidianscout_app/widgets/dynamic_field_widget.dart';
 
+class _MockConfigApiService extends ApiService {
+  @override
+  Future<ScoutingConfigModel?> fetchMatchConfig() async => ScoutingConfigModel(
+        version: 1,
+        title: 'ObsidianScout',
+        fields: [
+          ScoutingFieldModel(id: 'speaker', label: 'Speaker Score', type: 'counter', phase: 'teleop'),
+        ],
+      );
+
+  @override
+  Future<ScoutingConfigModel?> fetchPitConfig() async => ScoutingConfigModel(
+        version: 1,
+        title: 'ObsidianScout Pit Scouting',
+        fields: [
+          ScoutingFieldModel(id: 'drivetrain', label: 'Drivetrain', type: 'select'),
+        ],
+      );
+
+  @override
+  Future<ScoutingConfigModel?> fetchQualConfig() async => ScoutingConfigModel(
+        version: 1,
+        title: 'ObsidianScout Qualitative Scouting',
+        fields: [
+          ScoutingFieldModel(id: 'driverSkill', label: 'Driver Skill', type: 'rating'),
+        ],
+      );
+
+  @override
+  Future<List<DefaultConfigPresetModel>> fetchDefaultPresets(String configKind) async => [];
+}
+
 void main() {
   group('ScoutingConfigModel and Field Serialization Tests', () {
     test('ScoutingFieldModel serializes and deserializes counter correctly', () {
@@ -217,7 +249,7 @@ void main() {
 
   group('ConfigEditorScreen Widget Tests', () {
     testWidgets('ConfigEditorScreen renders correctly and shows controls', (WidgetTester tester) async {
-      final apiService = ApiService();
+      final apiService = _MockConfigApiService();
 
       await tester.pumpWidget(
         MaterialApp(
@@ -231,7 +263,8 @@ void main() {
         ),
       );
 
-      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
 
       // Verify Screen, Header, and Kind Selectors render
       expect(find.byType(ConfigEditorScreen), findsOneWidget);
@@ -243,6 +276,114 @@ void main() {
       // Verify Mode Selector Buttons render
       expect(find.text('Visual Form Editor'), findsOneWidget);
       expect(find.text('Raw JSON'), findsOneWidget);
+    });
+
+    testWidgets('ConfigEditorScreen does not show phase selection when editing pit config', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1200, 1600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final apiService = _MockConfigApiService();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ObsidianUITheme.darkTheme,
+          home: Scaffold(
+            body: ConfigEditorScreen(
+              apiService: apiService,
+              initialKind: 'pit',
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      // Ensure Add Field button is visible and tap it
+      await tester.ensureVisible(find.text('Add Field'));
+      await tester.tap(find.text('Add Field'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      // Phase dropdown should NOT be present in pit config add dialog
+      expect(find.text('Phase'), findsNothing);
+      expect(find.text('Type'), findsOneWidget);
+    });
+
+    testWidgets('ConfigEditorScreen does not show phase selection when editing qual config', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1200, 1600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final apiService = _MockConfigApiService();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ObsidianUITheme.darkTheme,
+          home: Scaffold(
+            body: ConfigEditorScreen(
+              apiService: apiService,
+              initialKind: 'qual',
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      // Ensure Add Field button is visible and tap it
+      await tester.ensureVisible(find.text('Add Field'));
+      await tester.tap(find.text('Add Field'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      // Phase dropdown should NOT be present in qual config add dialog
+      expect(find.text('Phase'), findsNothing);
+      expect(find.text('Type'), findsOneWidget);
+    });
+
+    testWidgets('ConfigEditorScreen shows phase selection when editing match (game) config', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1200, 1600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final apiService = _MockConfigApiService();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ObsidianUITheme.darkTheme,
+          home: Scaffold(
+            body: ConfigEditorScreen(
+              apiService: apiService,
+              initialKind: 'game',
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      // Ensure Add Field button is visible and tap it
+      await tester.ensureVisible(find.text('Add Field'));
+      await tester.tap(find.text('Add Field'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      // Phase dropdown SHOULD be present in game config add dialog
+      expect(find.text('Phase'), findsOneWidget);
+      expect(find.text('Type'), findsOneWidget);
     });
   });
 
