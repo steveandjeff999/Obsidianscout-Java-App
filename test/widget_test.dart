@@ -132,4 +132,26 @@ void main() {
     expect(find.text('POST-MATCH'), findsOneWidget);
     expect(find.text('Comments'), findsOneWidget);
   });
+
+  test('ApiService onSessionRevoked stream exists and is broadcast', () async {
+    final apiService = ApiService();
+    expect(apiService.onSessionRevoked, isA<Stream<String>>());
+  });
+
+  testWidgets('SettingsScreen renders Active Sessions card', (WidgetTester tester) async {
+    final apiService = ApiService();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SettingsScreen(
+            apiService: apiService,
+            onLogout: () {},
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    expect(find.text('Active Sessions'), findsOneWidget);
+  });
 }

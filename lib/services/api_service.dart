@@ -33,10 +33,12 @@ class ApiService {
   final ValueNotifier<Locale> localeNotifier = ValueNotifier<Locale>(const Locale('en'));
 
   bool _isOnline = true;
+  bool _handlingRevocation = false;
   Timer? _healthCheckTimer;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
   final StreamController<bool> _onlineStreamController = StreamController<bool>.broadcast();
   final StreamController<int> _serverErrorController = StreamController<int>.broadcast();
+  final StreamController<String> _sessionRevokedController = StreamController<String>.broadcast();
 
   String get serverUrl => _currentServerUrl;
   bool get isLoggedIn => _sessionCookie != null && _sessionCookie!.isNotEmpty;
@@ -49,6 +51,7 @@ class ApiService {
   bool get isOnline => _isOnline;
   Stream<bool> get onOnlineStatusChanged => _onlineStreamController.stream;
   Stream<int> get onServerError => _serverErrorController.stream;
+  Stream<String> get onSessionRevoked => _sessionRevokedController.stream;
   ThemeMode get themeMode => themeNotifier.value;
   Locale get currentLocale => localeNotifier.value;
 
@@ -272,10 +275,32 @@ class ApiService {
         ...?_sessionCookie == null ? null : {'Cookie': _sessionCookie!},
       };
 
-  void _checkResponseForServerError(http.Response response) {
-    if (response.statusCode >= 500) {
+  void _handleUnauthorized([String reason = 'Session has been revoked']) {
+    if (_handlingRevocation || !isLoggedIn) return;
+    _handlingRevocation = true;
+    _syncTimer?.cancel();
+    _sessionCookie = null;
+    _currentUser = null;
+    _keepMeLoggedIn = false;
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.remove(keySessionCookie);
+      prefs.remove("cache_auth_me");
+      prefs.setBool(keyKeepMeLoggedIn, false);
+    });
+    permissionsNotifier.value++;
+    _sessionRevokedController.add(reason);
+  }
+
+  void _checkResponse(http.Response response) {
+    if (response.statusCode == 401) {
+      _handleUnauthorized('Session has been revoked');
+    } else if (response.statusCode >= 500) {
       _serverErrorController.add(response.statusCode);
     }
+  }
+
+  void _checkResponseForServerError(http.Response response) {
+    _checkResponse(response);
   }
 
   void _updateCookiesFromResponse(http.Response response) {
@@ -334,6 +359,7 @@ class ApiService {
       );
 
       if (response.statusCode == 200 || response.statusCode == 302) {
+        _handlingRevocation = false;
         _updateCookiesFromResponse(response);
         _keepMeLoggedIn = keepMeLoggedIn;
         _savedUsername = username;
@@ -382,6 +408,7 @@ class ApiService {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 302) {
+        _handlingRevocation = false;
         _updateCookiesFromResponse(response);
         _keepMeLoggedIn = keepMeLoggedIn;
         _savedUsername = username;
@@ -406,6 +433,7 @@ class ApiService {
   }
 
   Future<void> logout() async {
+    _handlingRevocation = false;
     _syncTimer?.cancel();
     try {
       await http.post(
@@ -440,6 +468,7 @@ class ApiService {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/auth/me'), headers: _headers)
           .timeout(const Duration(seconds: 4));
+      _checkResponse(response);
       if (response.statusCode == 200) {
         await _setCache("cache_auth_me", response.body);
         final jsonMap = jsonDecode(response.body);
@@ -469,6 +498,7 @@ class ApiService {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/settings'), headers: _headers)
           .timeout(const Duration(seconds: 4));
+      _checkResponse(response);
       if (response.statusCode == 200) {
         await _setCache("cache_settings", response.body);
         final jsonMap = jsonDecode(response.body);
@@ -2051,5 +2081,51 @@ class ApiService {
       } catch (_) {}
     }
     return null;
+  }
+
+  // User Session Management
+  Future<List<Map<String, dynamic>>> fetchSessions() async {
+    if (!_isOnline) return [];
+    try {
+      final response = await http
+          .get(Uri.parse('$_currentServerUrl/api/user/sessions'), headers: _headers)
+          .timeout(const Duration(seconds: 4));
+      _checkResponse(response);
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic> && decoded['sessions'] is List) {
+          return List<Map<String, dynamic>>.from(decoded['sessions']);
+        }
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  Future<ApiResponse<void>> revokeSession(String sessionId) async {
+    if (!_isOnline) return const ApiResponse.error(isOffline: true, message: 'Device is offline');
+    try {
+      final response = await http.delete(
+        Uri.parse('$_currentServerUrl/api/user/sessions/$sessionId'),
+        headers: _headers,
+      );
+      _checkResponse(response);
+      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to revoke session');
+    } catch (e) {
+      return ApiResponse.error(message: e.toString());
+    }
+  }
+
+  Future<ApiResponse<void>> revokeAllOtherSessions() async {
+    if (!_isOnline) return const ApiResponse.error(isOffline: true, message: 'Device is offline');
+    try {
+      final response = await http.delete(
+        Uri.parse('$_currentServerUrl/api/user/sessions?othersOnly=true'),
+        headers: _headers,
+      );
+      _checkResponse(response);
+      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to revoke other sessions');
+    } catch (e) {
+      return ApiResponse.error(message: e.toString());
+    }
   }
 }
