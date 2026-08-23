@@ -57,6 +57,23 @@ add_subdirectory("runner")
 
 # Generated plugin build rules, which manage building the plugins and adding
 # them to the application.
+macro(add_subdirectory_custom dir)
+  if("${dir}" MATCHES "firebase_core")
+    add_library(firebase_core_plugin STATIC "${CMAKE_CURRENT_SOURCE_DIR}/firebase_core_stub.cpp")
+    target_include_directories(firebase_core_plugin PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/firebase_core_stub_include")
+    target_link_libraries(firebase_core_plugin PUBLIC flutter flutter_wrapper_plugin)
+    apply_standard_settings(firebase_core_plugin)
+    set_target_properties(firebase_core_plugin PROPERTIES CXX_VISIBILITY_PRESET hidden)
+    target_compile_definitions(firebase_core_plugin PUBLIC FLUTTER_PLUGIN_IMPL)
+  else()
+    _add_subdirectory(${dir} ${ARGN})
+  endif()
+endmacro()
+
+macro(add_subdirectory dir)
+  add_subdirectory_custom(${dir} ${ARGN})
+endmacro()
+
 include(flutter/generated_plugins.cmake)
 
 
