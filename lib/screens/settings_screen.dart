@@ -29,10 +29,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isSyncing = false;
   Map<String, int> _cacheSummary = {};
 
+  List<Map<String, dynamic>> _sessions = [];
+  bool _isLoadingSessions = false;
+  bool _isRevokingSession = false;
+
   @override
   void initState() {
     super.initState();
     _loadCacheSummary();
+    _loadSessions();
   }
 
   @override
@@ -40,6 +45,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.didUpdateWidget(oldWidget);
     if (widget.isVisible && !oldWidget.isVisible) {
       _loadCacheSummary();
+      _loadSessions();
     }
   }
 
@@ -54,10 +60,164 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _loadSessions() async {
+    if (!widget.apiService.isLoggedIn) return;
+    setState(() => _isLoadingSessions = true);
+    final sessions = await widget.apiService.fetchSessions();
+    if (mounted) {
+      setState(() {
+        _sessions = sessions;
+        _isLoadingSessions = false;
+      });
+    }
+  }
+
+  Future<void> _revokeSession(String sessionId, String deviceName) async {
+    final surfaceColor = ObsidianUITheme.getSurfaceColor(context);
+    final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+    final tertiaryTextColor = ObsidianUITheme.getTertiaryTextColor(context);
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: surfaceColor,
+        title: Text('Revoke Session', style: TextStyle(color: primaryTextColor)),
+        content: Text(
+          'Are you sure you want to revoke session for "$deviceName"? This device will be signed out immediately.',
+          style: TextStyle(color: secondaryTextColor),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(context.tr('events.cancel'), style: TextStyle(color: tertiaryTextColor)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.errorRed),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Revoke', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      setState(() => _isRevokingSession = true);
+      final res = await widget.apiService.revokeSession(sessionId);
+      if (mounted) {
+        setState(() => _isRevokingSession = false);
+        if (res.success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Session revoked successfully'),
+              backgroundColor: ObsidianUITheme.primaryAccent,
+              duration: Duration(seconds: 2),
+            ),
+          );
+          _loadSessions();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(res.message ?? 'Failed to revoke session'),
+              backgroundColor: ObsidianUITheme.errorRed,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _revokeAllOtherSessions() async {
+    final surfaceColor = ObsidianUITheme.getSurfaceColor(context);
+    final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+    final tertiaryTextColor = ObsidianUITheme.getTertiaryTextColor(context);
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: surfaceColor,
+        title: Text('Revoke Other Sessions', style: TextStyle(color: primaryTextColor)),
+        content: Text(
+          'Are you sure you want to revoke all other active sessions? All other logged-in devices will be signed out immediately.',
+          style: TextStyle(color: secondaryTextColor),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(context.tr('events.cancel'), style: TextStyle(color: tertiaryTextColor)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.errorRed),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Revoke All Others', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      setState(() => _isRevokingSession = true);
+      final res = await widget.apiService.revokeAllOtherSessions();
+      if (mounted) {
+        setState(() => _isRevokingSession = false);
+        if (res.success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('All other sessions revoked successfully'),
+              backgroundColor: ObsidianUITheme.primaryAccent,
+              duration: Duration(seconds: 2),
+            ),
+          );
+          _loadSessions();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(res.message ?? 'Failed to revoke sessions'),
+              backgroundColor: ObsidianUITheme.errorRed,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  IconData _getDeviceIcon(String clientType, String deviceName) {
+    final name = deviceName.toLowerCase();
+    if (name.contains('android') || name.contains('iphone') || name.contains('ios') || clientType.toLowerCase() == 'mobile') {
+      return Icons.smartphone_rounded;
+    } else if (name.contains('ipad') || name.contains('tablet')) {
+      return Icons.tablet_mac_rounded;
+    } else if (name.contains('mac') || name.contains('windows') || name.contains('linux') || name.contains('pc')) {
+      return Icons.computer_rounded;
+    }
+    return Icons.devices_rounded;
+  }
+
+  String _formatSessionTime(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return 'Unknown';
+    try {
+      final dt = DateTime.tryParse(dateStr)?.toLocal();
+      if (dt == null) return dateStr;
+      final now = DateTime.now();
+      final diff = now.difference(dt);
+      if (diff.inSeconds < 60) return 'Just now';
+      if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+      if (diff.inHours < 24) return '${diff.inHours}h ago';
+      if (diff.inDays < 7) return '${diff.inDays}d ago';
+      return '${dt.month}/${dt.day}/${dt.year}';
+    } catch (_) {
+      return dateStr;
+    }
+  }
+
   Future<void> _handleSyncNow() async {
     setState(() => _isSyncing = true);
     await widget.apiService.syncAllServerDataInBackground();
     await _loadCacheSummary();
+    await _loadSessions();
     if (mounted) {
       setState(() => _isSyncing = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -549,6 +709,182 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ],
                 ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Active Sessions Card
+          ObsidianGlassCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.devices_rounded, color: ObsidianUITheme.primaryAccent),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Active Sessions',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
+                        ),
+                      ],
+                    ),
+                    IconButton(
+                      icon: _isLoadingSessions
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianUITheme.primaryAccent))
+                          : const Icon(Icons.refresh_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
+                      tooltip: 'Refresh Sessions',
+                      onPressed: _isLoadingSessions ? null : _loadSessions,
+                    ),
+                  ],
+                ),
+                Divider(color: borderColor, height: 24),
+                Text(
+                  'Manage devices signed in to your account. You can revoke sessions from other devices at any time.',
+                  style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                ),
+                const SizedBox(height: 12),
+                if (_isLoadingSessions && _sessions.isEmpty)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianUITheme.primaryAccent),
+                    ),
+                  )
+                else if (_sessions.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Text(
+                      'No active sessions found.',
+                      style: TextStyle(fontSize: 13, color: secondaryTextColor, fontStyle: FontStyle.italic),
+                    ),
+                  )
+                else ...[
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _sessions.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final session = _sessions[index];
+                      final isCurrent = session['isCurrent'] == true;
+                      final clientType = session['clientType']?.toString() ?? 'web';
+                      final deviceName = session['deviceName']?.toString() ?? 'Unknown Device';
+                      final ipAddress = session['ipAddress']?.toString() ?? 'Unknown IP';
+                      final lastActiveAt = session['lastActiveAt']?.toString();
+                      final sessionId = session['id']?.toString() ?? '';
+
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: isCurrent
+                              ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.08)
+                              : ObsidianUITheme.getSurfaceColor(context).withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isCurrent
+                                ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.4)
+                                : borderColor,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: isCurrent
+                                    ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.2)
+                                    : Colors.white.withValues(alpha: 0.05),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(
+                                _getDeviceIcon(clientType, deviceName),
+                                color: isCurrent ? ObsidianUITheme.primaryAccent : secondaryTextColor,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          deviceName,
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                            color: primaryTextColor,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      if (isCurrent) ...[
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.greenAccent.withValues(alpha: 0.2),
+                                            borderRadius: BorderRadius.circular(6),
+                                            border: Border.all(color: Colors.greenAccent.withValues(alpha: 0.4)),
+                                          ),
+                                          child: const Text(
+                                            'This Device',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.greenAccent,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    '$ipAddress • Last active ${_formatSessionTime(lastActiveAt)}',
+                                    style: TextStyle(fontSize: 11, color: secondaryTextColor),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (!isCurrent && sessionId.isNotEmpty)
+                              IconButton(
+                                icon: const Icon(Icons.logout_rounded, color: ObsidianUITheme.errorRed, size: 20),
+                                tooltip: 'Revoke this session',
+                                onPressed: _isRevokingSession ? null : () => _revokeSession(sessionId, deviceName),
+                              ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                  if (_sessions.any((s) => s['isCurrent'] != true)) ...[
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: ObsidianUITheme.errorRed),
+                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: _isRevokingSession ? null : _revokeAllOtherSessions,
+                        icon: const Icon(Icons.phonelink_erase_rounded, color: ObsidianUITheme.errorRed, size: 18),
+                        label: const Text(
+                          'Revoke All Other Sessions',
+                          style: TextStyle(color: ObsidianUITheme.errorRed, fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ],
             ),
           ),

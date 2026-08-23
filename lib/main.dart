@@ -108,6 +108,7 @@ class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
   StreamSubscription<bool>? _onlineSub;
   StreamSubscription<int>? _serverErrorSub;
+  StreamSubscription<String>? _sessionRevokedSub;
 
   String? _pendingChatChannel;
   NotificationWebSocketService? _wsNotificationService;
@@ -138,6 +139,36 @@ class _MainShellState extends State<MainShell> {
               Expanded(
                 child: Text(
                   'Server error ($statusCode). Something went wrong — please try again.',
+                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    });
+
+    _sessionRevokedSub = widget.apiService.onSessionRevoked.listen((reason) {
+      if (!mounted) return;
+      _wsNotificationService?.dispose();
+      _wsNotificationService = null;
+      setState(() {
+        _isAuthenticated = false;
+        _currentIndex = 0;
+      });
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 6),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: const Color(0xFFB91C1C),
+          content: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  reason.isNotEmpty ? reason : 'Your session was revoked. Please log in again.',
                   style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
                 ),
               ),
@@ -226,6 +257,7 @@ class _MainShellState extends State<MainShell> {
     widget.apiService.permissionsNotifier.removeListener(_onPermissionsChanged);
     _onlineSub?.cancel();
     _serverErrorSub?.cancel();
+    _sessionRevokedSub?.cancel();
     _wsNotificationService?.dispose();
     super.dispose();
   }
