@@ -8,6 +8,12 @@ class FcmHelper {
   static bool _isFirebaseInitialized = false;
 
   static Future<void> initializeDynamicFcm(ApiService apiService, Function(String groupName) onNavigateToChat) async {
+    // FCM is supported on Android, iOS, macOS, and Web.
+    // Windows and Linux desktop use WebSocket notification service.
+    if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.linux)) {
+      return;
+    }
+
     try {
       final config = await apiService.fetchFcmPublicConfig();
       if (config == null || config['enabled'] != true) {
@@ -101,6 +107,10 @@ class FcmHelper {
   }
 
   static Future<void> unregisterOnLogout(ApiService apiService) async {
+    if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.linux)) {
+      return;
+    }
+
     try {
       if (currentFcmToken != null && currentFcmToken!.isNotEmpty) {
         await apiService.unregisterFcmToken(currentFcmToken!);
