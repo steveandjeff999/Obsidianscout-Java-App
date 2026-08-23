@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
 import '../models/config_models.dart';
 import '../services/api_service.dart';
+import '../services/scout_history_service.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/dynamic_field_widget.dart';
 import '../widgets/obsidian_barcode_modal.dart';
@@ -379,6 +380,13 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
           });
         }
 
+        ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+          type: _currentMode == PrescoutMode.pit ? 'prescout-pit' : (_currentMode == PrescoutMode.qual ? 'prescout-qual' : 'prescout-match'),
+          action: 'offline_cached',
+          status: 'pending',
+          payload: payload,
+        ));
+
         if (mounted) {
           ObsidianFeedback.showWarning(
             context,
@@ -387,9 +395,17 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
           );
         }
       } else {
+        final prescoutType = _currentMode == PrescoutMode.pit ? 'prescout-pit' : (_currentMode == PrescoutMode.qual ? 'prescout-qual' : 'prescout-match');
+
         if (_currentMode == PrescoutMode.match) {
           final res = await widget.apiService.submitPrescoutMatchScouting(payload);
           if (res.success) {
+            ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+              type: prescoutType,
+              action: 'direct_upload',
+              status: 'synced',
+              payload: payload,
+            ));
             _matchEntries.add({
               'eventKey': payload['eventKey'],
               'targetTeamNumber': payload['targetTeamNumber'],
@@ -406,6 +422,12 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
               );
             }
           } else if (res.isOffline) {
+            ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+              type: prescoutType,
+              action: 'offline_cached',
+              status: 'pending',
+              payload: payload,
+            ));
             if (mounted) {
               ObsidianFeedback.showWarning(
                 context,
@@ -414,6 +436,12 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
               );
             }
           } else {
+            ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+              type: prescoutType,
+              action: 'direct_upload',
+              status: 'failed',
+              payload: payload,
+            ));
             if (mounted) {
               ObsidianFeedback.showError(
                 context,
@@ -429,6 +457,12 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
         } else if (_currentMode == PrescoutMode.pit) {
           final res = await widget.apiService.submitPrescoutPitScouting(payload);
           if (res.success) {
+            ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+              type: prescoutType,
+              action: 'direct_upload',
+              status: 'synced',
+              payload: payload,
+            ));
             _pitEntries.add({
               'eventKey': payload['eventKey'],
               'targetTeamNumber': payload['targetTeamNumber'],
@@ -443,6 +477,12 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
               );
             }
           } else if (res.isOffline) {
+            ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+              type: prescoutType,
+              action: 'offline_cached',
+              status: 'pending',
+              payload: payload,
+            ));
             if (mounted) {
               ObsidianFeedback.showWarning(
                 context,
@@ -451,6 +491,12 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
               );
             }
           } else {
+            ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+              type: prescoutType,
+              action: 'direct_upload',
+              status: 'failed',
+              payload: payload,
+            ));
             if (mounted) {
               ObsidianFeedback.showError(
                 context,
@@ -466,6 +512,12 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
         } else if (_currentMode == PrescoutMode.qual) {
           final res = await widget.apiService.submitPrescoutQualScouting(payload);
           if (res.success) {
+            ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+              type: prescoutType,
+              action: 'direct_upload',
+              status: 'synced',
+              payload: payload,
+            ));
             _qualEntries.add({
               'eventKey': payload['eventKey'],
               'targetTeamNumber': payload['targetTeamNumber'],
@@ -482,6 +534,12 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
               );
             }
           } else if (res.isOffline) {
+            ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+              type: prescoutType,
+              action: 'offline_cached',
+              status: 'pending',
+              payload: payload,
+            ));
             if (mounted) {
               ObsidianFeedback.showWarning(
                 context,
@@ -490,6 +548,12 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
               );
             }
           } else {
+            ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+              type: prescoutType,
+              action: 'direct_upload',
+              status: 'failed',
+              payload: payload,
+            ));
             if (mounted) {
               ObsidianFeedback.showError(
                 context,
@@ -533,6 +597,13 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
     final jsonStr = const JsonEncoder.withIndent('  ').convert(payload);
     Clipboard.setData(ClipboardData(text: jsonStr));
 
+    ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+      type: _currentMode == PrescoutMode.pit ? 'prescout-pit' : (_currentMode == PrescoutMode.qual ? 'prescout-qual' : 'prescout-match'),
+      action: 'exported',
+      status: 'synced',
+      payload: payload,
+    ));
+
     ObsidianFeedback.showSuccess(
       context,
       title: 'JSON Exported',
@@ -544,6 +615,7 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
     final payload = _buildPayload();
     if (payload == null) return;
 
+    final prescoutType = _currentMode == PrescoutMode.pit ? 'prescout-pit' : (_currentMode == PrescoutMode.qual ? 'prescout-qual' : 'prescout-match');
     String typeLabel = 'Match Prescouting';
     String? matchKey = payload['matchKey']?.toString();
     if (_currentMode == PrescoutMode.pit) {
@@ -552,6 +624,13 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
     } else if (_currentMode == PrescoutMode.qual) {
       typeLabel = 'Qualitative Prescouting';
     }
+
+    ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+      type: prescoutType,
+      action: 'qr_generated',
+      status: 'pending',
+      payload: payload,
+    ));
 
     ObsidianBarcodeModal.show(
       context,

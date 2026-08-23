@@ -6,6 +6,7 @@ import '../models/config_models.dart';
 import '../models/team_match_models.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../services/api_service.dart';
+import '../services/scout_history_service.dart';
 import '../widgets/obsidian_barcode_modal.dart';
 import '../widgets/obsidian_feedback.dart';
 
@@ -309,6 +310,12 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
 
     if (mounted) {
       if (response.success) {
+        ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+          type: 'qual',
+          action: 'direct_upload',
+          status: 'synced',
+          payload: payload,
+        ));
         ObsidianFeedback.showSuccess(
           context,
           title: 'Qual Scouting Saved',
@@ -317,6 +324,12 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
         );
         _resetForm();
       } else if (response.isOffline) {
+        ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+          type: 'qual',
+          action: 'offline_cached',
+          status: 'pending',
+          payload: payload,
+        ));
         ObsidianFeedback.showWarning(
           context,
           title: 'Saved to Offline Cache',
@@ -324,6 +337,12 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
         );
         _resetForm();
       } else {
+        ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+          type: 'qual',
+          action: 'direct_upload',
+          status: 'failed',
+          payload: payload,
+        ));
         ObsidianFeedback.showError(
           context,
           title: 'Save Failed',
@@ -351,6 +370,13 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
       ..._formData,
       'timestamp': DateTime.now().toUtc().toIso8601String(),
     };
+
+    ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+      type: 'qual',
+      action: 'qr_generated',
+      status: 'pending',
+      payload: payload,
+    ));
 
     ObsidianBarcodeModal.show(
       context,

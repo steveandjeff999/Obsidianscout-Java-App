@@ -436,6 +436,7 @@ const List<String> bypassPages = [
   'settings', 'login', 'index', 'dashboard', 'theme-editor', 'team',
   'cache-manager', 'prescout', 'prescout-scout', 'prescout-pit',
   'prescout-qual', 'reset-password', 'docs', 'contact', 'config-migration', 'schema-history',
+  'scout-history', 'history', 'scouting-history',
 ];
 
 class UserModel {
@@ -504,6 +505,8 @@ class AppSettingsModel {
   final String timezone;
   final String preferredSource;
   final bool chatEnabled;
+  final bool useStatboticsEpa;
+  final bool useTbaOpr;
   final List<String> scoutPages;
   final List<String> analyticsPages;
   final List<String> adminPages;
@@ -517,6 +520,8 @@ class AppSettingsModel {
     this.timezone = 'America/New_York',
     this.preferredSource = 'tba',
     this.chatEnabled = true,
+    this.useStatboticsEpa = false,
+    this.useTbaOpr = false,
     this.scoutPages = defaultScoutPages,
     this.analyticsPages = defaultAnalyticsPages,
     this.adminPages = defaultAdminPages,
@@ -541,6 +546,8 @@ class AppSettingsModel {
       timezone: settingsMap['timezone']?.toString() ?? 'America/New_York',
       preferredSource: settingsMap['preferredSource']?.toString() ?? 'tba',
       chatEnabled: settingsMap['chatEnabled'] != false,
+      useStatboticsEpa: settingsMap['useStatboticsEpa'] == true,
+      useTbaOpr: settingsMap['useTbaOpr'] == true,
       scoutPages: parseList(settingsMap['scoutPages'], defaultScoutPages),
       analyticsPages: parseList(settingsMap['analyticsPages'], defaultAnalyticsPages),
       adminPages: parseList(settingsMap['adminPages'], defaultAdminPages),
@@ -557,6 +564,8 @@ class AppSettingsModel {
       'timezone': timezone,
       'preferredSource': preferredSource,
       'chatEnabled': chatEnabled,
+      'useStatboticsEpa': useStatboticsEpa,
+      'useTbaOpr': useTbaOpr,
       'scoutPages': scoutPages,
       'analyticsPages': analyticsPages,
       'adminPages': adminPages,
