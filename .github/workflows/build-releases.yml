@@ -24,26 +24,25 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Fetch the latest release tag matching vX.X.X.X
-          LATEST_TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null || echo "")
+          git fetch --tags --force
+          LATEST_GIT_TAG=$(git tag -l "v*" --sort=-v:refname | head -n 1 || echo "")
+          LATEST_REL_TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null || echo "")
+          
+          LATEST_TAG="$LATEST_GIT_TAG"
+          if [ -z "$LATEST_TAG" ] || [ "$LATEST_TAG" = "null" ]; then
+            LATEST_TAG="$LATEST_REL_TAG"
+          fi
           
           if [ -z "$LATEST_TAG" ] || [ "$LATEST_TAG" = "null" ]; then
-            # Fallback to starting version if no releases exist
             NEW_TAG="v1.0.0.0"
           else
-            # Strip 'v' prefix
             VERSION_STR="${LATEST_TAG#v}"
-            
-            # Split into components (assuming format vA.B.C.D)
             IFS='.' read -r A B C D <<< "$VERSION_STR"
-            
-            # Default missing components to 0
             A=${A:-1}
             B=${B:-0}
             C=${C:-0}
             D=${D:-0}
             
-            # Increment D and handle rollover
             D=$((D + 1))
             if [ $D -gt 9 ]; then
               D=0
@@ -65,16 +64,10 @@ jobs:
           echo "New tag will be: $NEW_TAG"
           echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
 
-          # Configure git and push new tag safely if it doesn't already exist
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          if git rev-parse "$NEW_TAG" >/dev/null 2>&1; then
-            echo "Tag $NEW_TAG already exists locally. Skipping tag creation."
-          else
-            git tag "$NEW_TAG"
-            git push origin "$NEW_TAG" || echo "Tag might already exist on remote."
-          fi
+          git tag -f "$NEW_TAG"
+          git push -f origin "$NEW_TAG" || echo "Failed to push tag"
 
   build-android:
     name: Build Android APK
@@ -84,8 +77,6 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.auto-tag.outputs.new_tag }}
 
       - name: Set up Java JDK 17
         uses: actions/setup-java@v4
@@ -118,14 +109,11 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.auto-tag.outputs.new_tag }}
 
       - name: Set up Flutter SDK
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-
 
       - name: Install Dependencies
         run: flutter pub get
@@ -186,8 +174,6 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.auto-tag.outputs.new_tag }}
 
       - name: Install Linux Build Dependencies
         run: |
