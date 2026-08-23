@@ -12,6 +12,7 @@ class DashboardScreen extends StatelessWidget {
   final VoidCallback onNavigateQrScanner;
   final VoidCallback? onNavigateAlliance;
   final VoidCallback? onNavigatePrescout;
+  final VoidCallback? onNavigateHistory;
   final bool isVisible;
   final bool isBarsVisible;
 
@@ -24,6 +25,7 @@ class DashboardScreen extends StatelessWidget {
     required this.onNavigateQrScanner,
     this.onNavigateAlliance,
     this.onNavigatePrescout,
+    this.onNavigateHistory,
     this.isVisible = true,
     this.isBarsVisible = true,
   });
@@ -308,6 +310,34 @@ class DashboardScreen extends StatelessWidget {
                                 const SizedBox(height: 2.0),
                                 Text(
                                   context.tr('subtitle.prescout'),
+                                  style: TextStyle(fontSize: 12.0, color: tertiaryTextColor),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(Icons.arrow_forward_ios_rounded, size: 16.0, color: faintTextColor),
+                        ],
+                      ),
+                    ),
+
+                  if (onNavigateHistory != null)
+                    ObsidianGlassCard(
+                      onTap: onNavigateHistory,
+                      child: Row(
+                        children: [
+                          const Icon(Icons.history_rounded, size: 32.0, color: Color(0xFF38BDF8)),
+                          const SizedBox(width: 16.0),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  context.tr('nav.scout_history'),
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0, color: primaryTextColor),
+                                ),
+                                const SizedBox(height: 2.0),
+                                Text(
+                                  context.tr('subtitle.scout_history'),
                                   style: TextStyle(fontSize: 12.0, color: tertiaryTextColor),
                                 ),
                               ],

@@ -29,6 +29,9 @@ class NotificationWebSocketService {
       final wsUrl = '$scheme://${uri.host}$portSuffix/api/ws/notifications';
 
       _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
+      _channel!.ready.catchError((err) {
+        // Suppress unhandled future error in VM; error is handled by stream subscription onError
+      });
 
       _subscription = _channel!.stream.listen(
         (data) {

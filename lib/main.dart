@@ -29,6 +29,7 @@ import 'screens/match_data_screen.dart';
 import 'screens/pit_data_screen.dart';
 import 'screens/qual_data_screen.dart';
 import 'screens/data_validation_screen.dart';
+import 'screens/scout_history_screen.dart';
 import 'services/api_service.dart';
 import 'services/fcm_helper.dart';
 import 'services/notification_websocket_service.dart';
@@ -247,6 +248,7 @@ class _MainShellState extends State<MainShell> {
     'nav.pit_data',
     'nav.qual_data',
     'nav.data_validation',
+    'nav.scout_history',
   ];
   final List<String> _subtitleKeys = [
     'subtitle.dashboard',
@@ -266,6 +268,7 @@ class _MainShellState extends State<MainShell> {
     'subtitle.pit_data',
     'subtitle.qual_data',
     'subtitle.data_validation',
+    'subtitle.scout_history',
   ];
 
   String _getPageIdForIndex(int index) {
@@ -304,6 +307,8 @@ class _MainShellState extends State<MainShell> {
         return 'qual-data';
       case 16:
         return 'data-validation';
+      case 17:
+        return 'scout-history';
       default:
         return 'dashboard';
     }
@@ -474,6 +479,7 @@ class _MainShellState extends State<MainShell> {
         onNavigateQrScanner: _openQrScanner,
         onNavigateAlliance: () => _navigateScreen(7),
         onNavigatePrescout: () => _navigateScreen(11),
+        onNavigateHistory: () => _navigateScreen(17),
         isVisible: _currentIndex == 0,
         isBarsVisible: _isBarsVisible,
       ),
@@ -504,6 +510,7 @@ class _MainShellState extends State<MainShell> {
       PitDataScreen(apiService: widget.apiService, isVisible: _currentIndex == 14, isBarsVisible: _isBarsVisible),
       QualDataScreen(apiService: widget.apiService, isVisible: _currentIndex == 15, isBarsVisible: _isBarsVisible),
       DataValidationScreen(apiService: widget.apiService, isVisible: _currentIndex == 16, isBarsVisible: _isBarsVisible),
+      ScoutHistoryScreen(apiService: widget.apiService, isVisible: _currentIndex == 17, isBarsVisible: _isBarsVisible),
     ];
 
     return PopScope(

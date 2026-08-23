@@ -18,6 +18,7 @@ import '../widgets/obsidian_glass_card.dart';
 import '../widgets/obsidian_barcode_modal.dart';
 import '../widgets/obsidian_feedback.dart';
 import '../services/api_service.dart';
+import '../services/scout_history_service.dart';
 
 class ScannedQueueItem {
   final String id;
@@ -610,6 +611,13 @@ class _QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingOb
       });
       _saveQueue();
 
+      ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+        type: formType.contains('pit') ? 'pit' : (formType.contains('qual') ? 'qual' : (formType.contains('prescout') ? 'prescout-match' : 'match')),
+        action: 'qr_scanned',
+        status: 'pending',
+        payload: payload,
+      ));
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -657,6 +665,12 @@ class _QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingOb
           item.status = 'success';
           item.errorMsg = '';
         });
+        ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+          type: item.type.contains('pit') ? 'pit' : (item.type.contains('qual') ? 'qual' : (item.type.contains('prescout') ? 'prescout-match' : 'match')),
+          action: 'qr_scanned',
+          status: 'synced',
+          payload: item.data,
+        ));
         successCount++;
       } else {
         final errorText = response.statusCode != null

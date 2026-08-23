@@ -6,6 +6,7 @@ import '../models/config_models.dart';
 import '../models/team_match_models.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../services/api_service.dart';
+import '../services/scout_history_service.dart';
 import '../widgets/obsidian_barcode_modal.dart';
 import '../widgets/obsidian_feedback.dart';
 
@@ -244,6 +245,12 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
 
     if (mounted) {
       if (response.success) {
+        ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+          type: 'pit',
+          action: 'direct_upload',
+          status: 'synced',
+          payload: payload,
+        ));
         ObsidianFeedback.showSuccess(
           context,
           title: 'Pit Scouting Saved',
@@ -252,6 +259,12 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
         );
         _resetForm();
       } else if (response.isOffline) {
+        ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+          type: 'pit',
+          action: 'offline_cached',
+          status: 'pending',
+          payload: payload,
+        ));
         ObsidianFeedback.showWarning(
           context,
           title: 'Saved to Offline Cache',
@@ -259,6 +272,12 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
         );
         _resetForm();
       } else {
+        ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+          type: 'pit',
+          action: 'direct_upload',
+          status: 'failed',
+          payload: payload,
+        ));
         ObsidianFeedback.showError(
           context,
           title: 'Save Failed',
@@ -284,6 +303,13 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
       ..._formData,
       'timestamp': DateTime.now().toUtc().toIso8601String(),
     };
+
+    ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+      type: 'pit',
+      action: 'qr_generated',
+      status: 'pending',
+      payload: payload,
+    ));
 
     ObsidianBarcodeModal.show(
       context,

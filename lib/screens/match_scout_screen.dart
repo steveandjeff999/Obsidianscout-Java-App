@@ -6,6 +6,7 @@ import '../models/config_models.dart';
 import '../models/team_match_models.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../services/api_service.dart';
+import '../services/scout_history_service.dart';
 import '../widgets/obsidian_barcode_modal.dart';
 import '../widgets/obsidian_feedback.dart';
 
@@ -285,6 +286,12 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
 
     if (mounted) {
       if (response.success) {
+        ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+          type: 'match',
+          action: 'direct_upload',
+          status: 'synced',
+          payload: data,
+        ));
         ObsidianFeedback.showSuccess(
           context,
           title: 'Match Scouting Saved',
@@ -293,6 +300,12 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
         );
         _resetForm();
       } else if (response.isOffline) {
+        ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+          type: 'match',
+          action: 'offline_cached',
+          status: 'pending',
+          payload: data,
+        ));
         ObsidianFeedback.showWarning(
           context,
           title: 'Saved to Offline Cache',
@@ -300,6 +313,12 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
         );
         _resetForm();
       } else {
+        ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+          type: 'match',
+          action: 'direct_upload',
+          status: 'failed',
+          payload: data,
+        ));
         ObsidianFeedback.showError(
           context,
           title: 'Save Failed',
@@ -394,6 +413,20 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
       'data': _formData,
       'timestamp': DateTime.now().millisecondsSinceEpoch,
     };
+
+    ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+      type: 'match',
+      action: 'qr_generated',
+      status: 'pending',
+      payload: {
+        'eventKey': _eventKey ?? '',
+        'targetTeamNumber': _selectedTeam!.teamNumber,
+        'matchKey': _selectedMatch!.matchKey,
+        'matchNumber': _selectedMatch!.matchNumber,
+        'compLevel': _selectedMatch!.compLevel,
+        ..._formData,
+      },
+    ));
 
     ObsidianBarcodeModal.show(
       context,

@@ -101,6 +101,13 @@ class ObsidianNavigationDrawer extends StatelessWidget {
             'labelKey': 'scanner.title',
             'subKey': 'scanner.scan_qr',
           },
+          {
+            'pageId': 'scout-history',
+            'index': 17,
+            'icon': Icons.history_rounded,
+            'labelKey': 'nav.scout_history',
+            'subKey': 'subtitle.scout_history',
+          },
         ],
       },
       {

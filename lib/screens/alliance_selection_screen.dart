@@ -1065,40 +1065,44 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
 
                       return Container(
                         margin: const EdgeInsets.only(bottom: 6.0),
-                        decoration: BoxDecoration(
+                        child: Material(
                           color: borderColor.withValues(alpha: 0.3),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: borderColor),
-                        ),
-                        child: ListTile(
-                          dense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-                          onTap: () => _showTeamProfile(team),
-                          leading: CircleAvatar(
-                            radius: 14,
-                            backgroundColor: ObsidianUITheme.primaryAccent.withValues(alpha: 0.2),
-                            child: Text(
-                              '${idx + 1}',
-                              style: const TextStyle(fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, fontSize: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            side: BorderSide(color: borderColor),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: ListTile(
+                            dense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                            onTap: () => _showTeamProfile(team),
+                            leading: CircleAvatar(
+                              radius: 14,
+                              backgroundColor: ObsidianUITheme.primaryAccent.withValues(alpha: 0.2),
+                              child: Text(
+                                '${idx + 1}',
+                                style: const TextStyle(fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, fontSize: 10),
+                              ),
                             ),
-                          ),
-                          title: Text(
-                            team.displayName,
-                            style: TextStyle(fontWeight: FontWeight.bold, color: primaryTextColor, fontSize: 12),
-                          ),
-                          subtitle: Text(
-                            'Avg: ${team.averagePoints?.toStringAsFixed(1) ?? '-'} | EPA: ${team.epa?.toStringAsFixed(1) ?? '-'} | OPR: ${team.opr?.toStringAsFixed(1) ?? '-'}',
-                            style: TextStyle(fontSize: 10, color: secondaryTextColor),
-                          ),
-                          trailing: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.cyanAccent.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(6),
+                            title: Text(
+                              team.displayName,
+                              style: TextStyle(fontWeight: FontWeight.bold, color: primaryTextColor, fontSize: 12),
                             ),
-                            child: Text(
-                              scoreDisplay,
-                              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.cyanAccent, fontSize: 11),
+                            subtitle: Text(
+                              'Avg: ${team.averagePoints?.toStringAsFixed(1) ?? '-'} | EPA: ${team.epa?.toStringAsFixed(1) ?? '-'} | OPR: ${team.opr?.toStringAsFixed(1) ?? '-'}',
+                              style: TextStyle(fontSize: 10, color: secondaryTextColor),
+                            ),
+                            trailing: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.cyanAccent.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                scoreDisplay,
+                                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.cyanAccent, fontSize: 11),
+                              ),
                             ),
                           ),
                         ),
