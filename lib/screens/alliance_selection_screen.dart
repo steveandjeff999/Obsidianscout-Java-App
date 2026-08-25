@@ -492,10 +492,14 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                                   ),
                                   title: Text(
                                     team.displayName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: TextStyle(fontWeight: FontWeight.bold, color: ObsidianUITheme.getPrimaryTextColor(context)),
                                   ),
                                   subtitle: Text(
                                     'Avg: ${team.averagePoints?.toStringAsFixed(1) ?? '-'} | EPA: ${team.epa?.toStringAsFixed(1) ?? '-'} | OPR: ${team.opr?.toStringAsFixed(1) ?? '-'}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: TextStyle(fontSize: 11, color: ObsidianUITheme.getTertiaryTextColor(context)),
                                   ),
                                   trailing: Container(
@@ -932,10 +936,11 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                SizedBox(
-                  width: 75,
+                Expanded(
                   child: Text(
                     _formatSlotLabel(context, slotName).toUpperCase(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: accentColor),
                   ),
                 ),
@@ -949,7 +954,9 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
             const SizedBox(height: 4),
             Text(
               isEmpty ? context.tr('scout.select_team') : (teamObj?.displayName ?? 'Team #$teamNumber'),
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
+              softWrap: false,
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
@@ -1067,7 +1074,6 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                         margin: const EdgeInsets.only(bottom: 6.0),
                         child: Material(
                           color: borderColor.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(8),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                             side: BorderSide(color: borderColor),
@@ -1087,10 +1093,14 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                             ),
                             title: Text(
                               team.displayName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(fontWeight: FontWeight.bold, color: primaryTextColor, fontSize: 12),
                             ),
                             subtitle: Text(
                               'Avg: ${team.averagePoints?.toStringAsFixed(1) ?? '-'} | EPA: ${team.epa?.toStringAsFixed(1) ?? '-'} | OPR: ${team.opr?.toStringAsFixed(1) ?? '-'}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(fontSize: 10, color: secondaryTextColor),
                             ),
                             trailing: Container(
