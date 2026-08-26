@@ -17,7 +17,7 @@ class ApiService {
   static const String keySavedUsername = "obsidianscout_saved_username";
   static const String keyThemeMode = "obsidianscout_theme_mode";
   static const String keyLocale = "obsidianscout_locale";
-  static const String defaultUrl = "http://localhost:8080";
+  static const String defaultUrl = "https://kotlin.obsidianscout.com";
 
   String _currentServerUrl = defaultUrl;
   String? _sessionCookie;

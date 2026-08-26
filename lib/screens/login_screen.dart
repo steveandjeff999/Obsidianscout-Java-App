@@ -308,7 +308,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           decoration: InputDecoration(
                             labelText: context.tr('login.server_url'),
                             labelStyle: TextStyle(color: secondaryTextColor),
-                            hintText: 'http://localhost:8080 or https://192.168.1.100:8443',
+                            hintText: 'http(s)://your-ip-or-domain(:port)',
                             hintStyle: TextStyle(color: faintTextColor),
                             prefixIcon: const Icon(Icons.dns_rounded, color: ObsidianUITheme.primaryAccent),
                             enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
