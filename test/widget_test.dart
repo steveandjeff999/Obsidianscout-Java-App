@@ -38,7 +38,7 @@ class _MockScoutingApiService extends ApiService {
 void main() {
   test('ApiService initializes with default server URL', () async {
     final apiService = ApiService();
-    expect(apiService.serverUrl, 'http://localhost:8080');
+    expect(apiService.serverUrl, 'https://kotlin.obsidianscout.com');
   });
 
   test('ObsidianUITheme provides dark mode theme', () {
