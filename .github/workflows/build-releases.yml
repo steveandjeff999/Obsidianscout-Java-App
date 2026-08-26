@@ -129,22 +129,24 @@ jobs:
         run: |
           $winDir = "build/windows/x64/runner/Release"
           $outDir = "windows_out"
+          $msixBundleDir = "$outDir/ObsidianScout-Windows-MSIX-Bundle"
+
           New-Item -ItemType Directory -Path $outDir -Force
+          New-Item -ItemType Directory -Path $msixBundleDir -Force
 
-          # Zip executable bundle
-          Compress-Archive -Path "$winDir/*" -DestinationPath "$outDir/ObsidianScout-Windows.zip" -Force
+          # 1. Zip standalone portable executable bundle
+          Compress-Archive -Path "$winDir/*" -DestinationPath "$outDir/ObsidianScout-Windows-Portable.zip" -Force
 
-          # Move MSIX and extract certificate
+          # 2. Extract MSIX, export certificate, and generate helper script inside the bundle directory
           $msix = Get-ChildItem -Path $winDir -Filter "*.msix" | Select-Object -First 1
           if ($msix) {
-            Copy-Item -Path $msix.FullName -Destination "$outDir/ObsidianScout-Windows-Installer.msix" -Force
+            Copy-Item -Path $msix.FullName -Destination "$msixBundleDir/ObsidianScout-Windows-Installer.msix" -Force
             $sig = Get-AuthenticodeSignature -FilePath $msix.FullName
             if ($sig.SignerCertificate) {
-              [void](Export-Certificate -Cert $sig.SignerCertificate -FilePath "$outDir/ObsidianScout-Windows-Certificate.cer" -Type CERT)
+              [void](Export-Certificate -Cert $sig.SignerCertificate -FilePath "$msixBundleDir/ObsidianScout-Windows-Certificate.cer" -Type CERT)
             }
           }
 
-          # Create Install-Certificate.bat helper
           $batContent = @"
           @echo off
           echo Installing ObsidianScout Security Certificate into Trusted People store...
@@ -158,7 +160,13 @@ jobs:
           )
           pause
           "@
-          Set-Content -Path "$outDir/Install-Certificate.bat" -Value $batContent -Encoding ASCII
+          Set-Content -Path "$msixBundleDir/Install-Certificate.bat" -Value $batContent -Encoding ASCII
+
+          # 3. Zip the MSIX + Cert bundle folder for release download
+          Compress-Archive -Path "$msixBundleDir/*" -DestinationPath "$outDir/ObsidianScout-Windows-MSIX-Bundle.zip" -Force
+
+          # Remove uncompressed staging bundle folder from outDir so it isn't uploaded twice
+          Remove-Item -Recurse -Force $msixBundleDir
 
       - name: Upload Windows Artifacts
         uses: actions/upload-artifact@v4
@@ -198,7 +206,6 @@ jobs:
           tar -czf ../../../../../linux_out/ObsidianScout-Linux.tar.gz .
           cd ../../../../../
 
-          # Build Debian .deb package
           DEB_DIR="/tmp/obsidianscout_deb"
           rm -rf "$DEB_DIR"
           mkdir -p "$DEB_DIR/DEBIAN" "$DEB_DIR/usr/lib/obsidianscout" "$DEB_DIR/usr/bin" "$DEB_DIR/usr/share/applications" "$DEB_DIR/usr/share/pixmaps"
