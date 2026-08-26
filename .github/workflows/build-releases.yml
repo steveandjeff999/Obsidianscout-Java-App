@@ -1,284 +1,289 @@
 name: Build & Package All Release Installers
 
 on:
-  push:
-    branches: [ "main", "master" ]
-  workflow_dispatch:
+push:
+branches: [ "main", "master" ]
+workflow_dispatch:
 
 jobs:
-  auto-tag:
-    name: Generate Next Version & Tag
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    outputs:
-      new_tag: ${{ steps.set_tag.outputs.new_tag }}
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+auto-tag:
+name: Generate Next Version & Tag
+runs-on: ubuntu-latest
+permissions:
+contents: write
+outputs:
+new_tag: ${{ steps.set_tag.outputs.new_tag }}
+steps:
+- name: Checkout Repository
+uses: actions/checkout@v4
+with:
+fetch-depth: 0
 
-      - name: Calculate Next Version
-        id: set_tag
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git fetch --tags --force
-          LATEST_GIT_TAG=$(git tag -l "v*" --sort=-v:refname | head -n 1 || echo "")
-          LATEST_REL_TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null || echo "")
-          
-          LATEST_TAG="$LATEST_GIT_TAG"
-          if [ -z "$LATEST_TAG" ] || [ "$LATEST_TAG" = "null" ]; then
-            LATEST_TAG="$LATEST_REL_TAG"
-          fi
-          
-          if [ -z "$LATEST_TAG" ] || [ "$LATEST_TAG" = "null" ]; then
-            NEW_TAG="v1.0.0.0"
-          else
-            VERSION_STR="${LATEST_TAG#v}"
-            IFS='.' read -r A B C D <<< "$VERSION_STR"
-            A=${A:-1}
-            B=${B:-0}
-            C=${C:-0}
-            D=${D:-0}
-            
-            D=$((D + 1))
-            if [ $D -gt 9 ]; then
-              D=0
-              C=$((C + 1))
-            fi
-            if [ $C -gt 9 ]; then
-              C=0
-              B=$((B + 1))
-            fi
-            if [ $B -gt 9 ]; then
-              B=0
-              A=$((A + 1))
-            fi
-            
-            NEW_TAG="v$A.$B.$C.$D"
-          fi
+  - name: Calculate Next Version
+    id: set_tag
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    run: |
+      git fetch --tags --force
+      LATEST_GIT_TAG=$(git tag -l "v*" --sort=-v:refname | head -n 1 || echo "")
+      LATEST_REL_TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' 2>/devnull || echo "")
+      
+      LATEST_TAG="$LATEST_GIT_TAG"
+      if [ -z "$LATEST_TAG" ] \vert{}\vert{} [ "$LATEST_TAG" = "null" ]; then
+        LATEST_TAG="$LATEST_REL_TAG"
+      fi
+      
+      if [ -z "$LATEST_TAG" ] \vert{}\vert{} [ "$LATEST_TAG" = "null" ]; then
+        NEW_TAG="v1.0.0.0"
+      else
+        VERSION_STR="${LATEST_TAG#v}"
+        IFS='.' read -r A B C D <<< "$VERSION_STR"
+        A=${A:-1}
+        B=${B:-0}
+        C=${C:-0}
+        D=${D:-0}
+        
+        D=$((D + 1))
+        if [ $D -gt 9 ]; then
+          D=0
+          C=$((C + 1))
+        fi
+        if [ $C -gt 9 ]; then
+          C=0
+          B=$((B + 1))
+        fi
+        if [ $B -gt 9 ]; then
+          B=0
+          A=$((A + 1))
+        fi
+        
+        NEW_TAG="v$A.$B.$C.$D"
+      fi
 
-          echo "Latest tag was: $LATEST_TAG"
-          echo "New tag will be: $NEW_TAG"
-          echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
+      echo "Latest tag was: $LATEST_TAG"
+      echo "New tag will be: $NEW_TAG"
+      echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
 
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -f "$NEW_TAG"
-          git push -f origin "$NEW_TAG" || echo "Failed to push tag"
+      git config user.name "github-actions[bot]"
+      git config user.email "github-actions[bot]@users.noreply.github.com"
+      git tag -f "$NEW_TAG"
+      git push -f origin "$NEW_TAG" || echo "Failed to push tag"
 
-  build-android:
-    name: Build Android APK
-    needs: [auto-tag]
-    runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+build-android:
+name: Build Android APK
+needs: [auto-tag]
+runs-on: ubuntu-latest
 
-      - name: Set up Java JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
+steps:
+  - name: Checkout Repository
+    uses: actions/checkout@v4
 
-      - name: Set up Flutter SDK
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
+  - name: Set up Java JDK 17
+    uses: actions/setup-java@v4
+    with:
+      distribution: 'temurin'
+      java-version: '17'
 
-      - name: Install Dependencies
-        run: flutter pub get
+  - name: Set up Flutter SDK
+    uses: subosito/flutter-action@v2
+    with:
+      channel: 'stable'
 
-      - name: Build Android Release APK
-        run: flutter build apk --release
+  - name: Install Dependencies
+    run: flutter pub get
 
-      - name: Upload Android APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-release
-          path: build/app/outputs/flutter-apk/app-release.apk
+  - name: Build Android Release APK
+    run: flutter build apk --release
 
-  build-windows:
-    name: Build Windows App & MSIX
-    needs: [auto-tag]
-    runs-on: windows-latest
+  - name: Upload Android APK Artifact
+    uses: actions/upload-artifact@v4
+    with:
+      name: android-release
+      path: build/app/outputs/flutter-apk/app-release.apk
 
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
 
-      - name: Set up Flutter SDK
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
+build-windows:
+name: Build Windows App & MSIX
+needs: [auto-tag]
+runs-on: windows-latest
 
-      - name: Install Dependencies
-        run: flutter pub get
+steps:
+  - name: Checkout Repository
+    uses: actions/checkout@v4
 
-      - name: Build Windows Desktop Executable
-        run: flutter build windows --release
+  - name: Set up Flutter SDK
+    uses: subosito/flutter-action@v2
+    with:
+      channel: 'stable'
 
-      - name: Generate MSIX Package
-        run: flutter pub run msix:create
+  - name: Install Dependencies
+    run: flutter pub get
 
-      - name: Package Windows Zip & Extract Certificate
-        shell: powershell
-        run: |
-          $winDir = "build/windows/x64/runner/Release"
-          $outDir = "windows_out"
-          New-Item -ItemType Directory -Path $outDir -Force
+  - name: Build Windows Desktop Executable
+    run: flutter build windows --release
 
-          # Zip executable bundle
-          Compress-Archive -Path "$winDir/*" -DestinationPath "$outDir/ObsidianScout-Windows.zip" -Force
+  - name: Generate MSIX Package
+    run: flutter pub run msix:create
 
-          # Move MSIX and extract certificate
-          $msix = Get-ChildItem -Path $winDir -Filter "*.msix" | Select-Object -First 1
-          if ($msix) {
-            Copy-Item -Path $msix.FullName -Destination "$outDir/ObsidianScout-Windows-Installer.msix" -Force
-            $sig = Get-AuthenticodeSignature -FilePath $msix.FullName
-            if ($sig.SignerCertificate) {
-              [void](Export-Certificate -Cert $sig.SignerCertificate -FilePath "$outDir/ObsidianScout-Windows-Certificate.cer" -Type CERT)
-            }
-          }
+  - name: Package Windows Zip & Extract Certificate
+    shell: powershell
+    run: |
+      $winDir = "build/windows/x64/runner/Release"
+      $outDir = "windows_out"
+      New-Item -ItemType Directory -Path $outDir -Force
 
-          # Create Install-Certificate.bat helper
-          $batContent = @"
-          @echo off
-          echo Installing ObsidianScout Security Certificate into Trusted People store...
-          certutil -addstore "TrustedPeople" "%~dp0ObsidianScout-Windows-Certificate.cer"
-          if %errorlevel% equ 0 (
-              echo.
-              echo Certificate successfully installed! You can now double-click the .msix file to install ObsidianScout.
-          ) else (
-              echo.
-              echo Certificate installation failed. Please right-click this script and select 'Run as administrator'.
-          )
-          pause
-          "@
-          Set-Content -Path "$outDir/Install-Certificate.bat" -Value $batContent -Encoding ASCII
+      # Zip executable bundle
+      Compress-Archive -Path "$winDir/*" -DestinationPath "$outDir/ObsidianScout-Windows.zip" -Force
 
-      - name: Upload Windows Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-release
-          path: windows_out/*
+      # Move MSIX and extract certificate
+      $msix = Get-ChildItem -Path$winDir -Filter "*.msix" | Select-Object -First 1
+      if ($msix) {
+        Copy-Item -Path $msix.FullName -Destination "$outDir/ObsidianScout-Windows-Installer.msix" -Force
+        $sig = Get-AuthenticodeSignature -FilePath$msix.FullName
+        if ($sig.SignerCertificate) {
+          [void](Export-Certificate -Cert $sig.SignerCertificate -FilePath "$outDir/ObsidianScout-Windows-Certificate.cer" -Type CERT)
+        }
+      }
 
-  build-linux:
-    name: Build Linux App & .deb Installer
-    needs: [auto-tag]
-    runs-on: ubuntu-latest
+      # Create Install-Certificate.bat helper
+      $batContent = @"
+      @echo off
+      echo Installing ObsidianScout Security Certificate into Trusted People store...
+      certutil -addstore "TrustedPeople" "%~dp0ObsidianScout-Windows-Certificate.cer"
+      if %errorlevel% equ 0 (
+          echo.
+          echo Certificate successfully installed! You can now double-click the .msix file to install ObsidianScout.
+      ) else (
+          echo.
+          echo Certificate installation failed. Please right-click this script and select 'Run as administrator'.
+      )
+      pause
+      "@
+      Set-Content -Path "$outDir/Install-Certificate.bat" -Value $batContent -Encoding ASCII
 
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+  - name: Upload Windows Artifacts
+    uses: actions/upload-artifact@v4
+    with:
+      name: windows-release
+      path: windows_out/*
 
-      - name: Install Linux Build Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
 
-      - name: Set up Flutter SDK
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
+build-linux:
+name: Build Linux App & .deb Installer
+needs: [auto-tag]
+runs-on: ubuntu-latest
 
-      - name: Install Dependencies
-        run: flutter pub get
+steps:
+  - name: Checkout Repository
+    uses: actions/checkout@v4
 
-      - name: Build Linux Desktop Application
-        run: flutter build linux --release
+  - name: Install Linux Build Dependencies
+    run: |
+      sudo apt-get update
+      sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
 
-      - name: Package Linux .tar.gz and .deb Package
-        run: |
-          mkdir -p linux_out
-          cd build/linux/x64/release/bundle
-          tar -czf ../../../../../linux_out/ObsidianScout-Linux.tar.gz .
-          cd ../../../../../
+  - name: Set up Flutter SDK
+    uses: subosito/flutter-action@v2
+    with:
+      channel: 'stable'
 
-          # Build Debian .deb package
-          DEB_DIR="/tmp/obsidianscout_deb"
-          rm -rf "$DEB_DIR"
-          mkdir -p "$DEB_DIR/DEBIAN" "$DEB_DIR/usr/lib/obsidianscout" "$DEB_DIR/usr/bin" "$DEB_DIR/usr/share/applications" "$DEB_DIR/usr/share/pixmaps"
-          cp -r build/linux/x64/release/bundle/* "$DEB_DIR/usr/lib/obsidianscout/"
-          ln -sf /usr/lib/obsidianscout/obsidianscout_app "$DEB_DIR/usr/bin/obsidianscout"
-          cp assets/images/obsidian-512.png "$DEB_DIR/usr/share/pixmaps/obsidianscout.png"
+  - name: Install Dependencies
+    run: flutter pub get
 
-          cat << 'EOF' > "$DEB_DIR/DEBIAN/control"
-          Package: obsidianscout
-          Version: 1.0.0
-          Architecture: amd64
-          Maintainer: ObsidianScout Team
-          Description: ObsidianScout Scouting Companion App
-          EOF
+  - name: Build Linux Desktop Application
+    run: flutter build linux --release
 
-          cat << 'EOF' > "$DEB_DIR/usr/share/applications/obsidianscout.desktop"
-          [Desktop Entry]
-          Name=ObsidianScout
-          Comment=ObsidianScout Scouting App
-          Exec=/usr/bin/obsidianscout
-          Icon=obsidianscout
-          Terminal=false
-          Type=Application
-          Categories=Utility;Sports;
-          EOF
+  - name: Package Linux .tar.gz and .deb Package
+    run: |
+      mkdir -p linux_out
+      cd build/linux/x64/release/bundle
+      tar -czf ../../../../../linux_out/ObsidianScout-Linux.tar.gz .
+      cd ../../../../../
 
-          dpkg-deb --build "$DEB_DIR" "linux_out/ObsidianScout-Linux.deb"
+      # Build Debian .deb package
+      DEB_DIR="/tmp/obsidianscout_deb"
+      rm -rf "$DEB_DIR"
+      mkdir -p "$DEB_DIR/DEBIAN" "$DEB_DIR/usr/lib/obsidianscout" "$DEB_DIR/usr/bin" "$DEB_DIR/usr/share/applications" "$DEB_DIR/usr/share/pixmaps"
+      cp -r build/linux/x64/release/bundle/* "$DEB_DIR/usr/lib/obsidianscout/"
+      ln -sf /usr/lib/obsidianscout/obsidianscout_app "$DEB_DIR/usr/bin/obsidianscout"
+      cp assets/images/obsidian-512.png "$DEB_DIR/usr/share/pixmaps/obsidianscout.png"
 
-      - name: Upload Linux Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-release
-          path: linux_out/*
+      cat << 'EOF' > "$DEB_DIR/DEBIAN/control"
+      Package: obsidianscout
+      Version: 1.0.0
+      Architecture: amd64
+      Maintainer: ObsidianScout Team
+      Description: ObsidianScout Scouting Companion App
+      EOF
 
-  package-master-release:
-    name: Generate Checksums & Stage Installers
-    runs-on: ubuntu-latest
-    needs: [build-android, build-windows, build-linux]
+      cat << 'EOF' > "$DEB_DIR/usr/share/applications/obsidianscout.desktop"
+      [Desktop Entry]
+      Name=ObsidianScout
+      Comment=ObsidianScout Scouting App
+      Exec=/usr/bin/obsidianscout
+      Icon=obsidianscout
+      Terminal=false
+      Type=Application
+      Categories=Utility;Sports;
+      EOF
 
-    steps:
-      - name: Download All Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: release_staging
-          merge-multiple: true
+      dpkg-deb --build "$DEB_DIR" "linux_out/ObsidianScout-Linux.deb"
 
-      - name: Generate SHA-256 Checksums
-        run: |
-          cd release_staging
-          sha256sum * > checksums.txt
+  - name: Upload Linux Artifacts
+    uses: actions/upload-artifact@v4
+    with:
+      name: linux-release
+      path: linux_out/*
 
-      - name: Upload Staged Release Bundle
-        uses: actions/upload-artifact@v4
-        with:
-          name: ObsidianScout-IndividualInstallers
-          path: release_staging/*
 
-  create-release:
-    name: Create GitHub Release & Upload Assets
-    runs-on: ubuntu-latest
-    needs: [auto-tag, package-master-release]
-    permissions:
-      contents: write
+package-master-release:
+name: Generate Checksums & Stage Installers
+runs-on: ubuntu-latest
+needs: [build-android, build-windows, build-linux]
 
-    steps:
-      - name: Download All Release Files
-        uses: actions/download-artifact@v4
-        with:
-          name: ObsidianScout-IndividualInstallers
-          path: final_release
+steps:
+  - name: Download All Artifacts
+    uses: actions/download-artifact@v4
+    with:
+      path: release_staging
+      merge-multiple: true
 
-      - name: Create GitHub Release and Upload Assets
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ needs.auto-tag.outputs.new_tag }}
-          name: "Release ${{ needs.auto-tag.outputs.new_tag }}"
-          files: |
-            final_release/*
-          generate_release_notes: true
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  - name: Generate SHA-256 Checksums
+    run: |
+      cd release_staging
+      sha256sum * > checksums.txt
+
+  - name: Upload Staged Release Bundle
+    uses: actions/upload-artifact@v4
+    with:
+      name: ObsidianScout-IndividualInstallers
+      path: release_staging/*
+
+
+create-release:
+name: Create GitHub Release & Upload Assets
+runs-on: ubuntu-latest
+needs: [auto-tag, package-master-release]
+permissions:
+contents: write
+
+steps:
+  - name: Download All Release Files
+    uses: actions/download-artifact@v4
+    with:
+      name: ObsidianScout-IndividualInstallers
+      path: final_release
+
+  - name: Create GitHub Release and Upload Assets
+    uses: softprops/action-gh-release@v2
+    with:
+      tag_name: ${{ needs.auto-tag.outputs.new_tag }}
+      name: "Release ${{ needs.auto-tag.outputs.new_tag }}"
+      files: |
+        final_release/*
+      generate_release_notes: true
+      draft: false
+      prerelease: false
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
