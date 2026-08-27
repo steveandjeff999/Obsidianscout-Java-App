@@ -28,7 +28,7 @@ class ConfigEditorScreen extends StatefulWidget {
 }
 
 class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTickerProviderStateMixin {
-  late String _activeKind; // "game", "pit", "qual"
+  late String _activeKind; // "game", "pit", "qual", "api"
   bool _isRawMode = false;
   bool _isLoading = true;
   bool _isSaving = false;
@@ -38,6 +38,28 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
   final TextEditingController _rawJsonController = TextEditingController();
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _versionController = TextEditingController();
+
+  // API Settings State
+  AppSettingsModel _currentSettings = AppSettingsModel();
+  final TextEditingController _yearController = TextEditingController();
+  final TextEditingController _eventCodeController = TextEditingController();
+  final TextEditingController _timezoneController = TextEditingController();
+  final TextEditingController _tbaKeyController = TextEditingController();
+  final TextEditingController _firstUsernameController = TextEditingController();
+  final TextEditingController _firstKeyController = TextEditingController();
+  final TextEditingController _statboticsUrlController = TextEditingController();
+
+  String _preferredSource = 'tba';
+  bool _useStatboticsEpa = false;
+  bool _useTbaOpr = false;
+  bool _chatEnabled = true;
+
+  bool _obscureTbaKey = true;
+  bool _obscureFirstKey = true;
+  bool _isTestingTba = false;
+  bool _isTestingFirst = false;
+  bool _isTestingStatbotics = false;
+  bool _isSavingSettings = false;
 
   List<DefaultConfigPresetModel> _presets = [];
   bool _isLoadingPresets = false;
@@ -62,6 +84,13 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     _rawJsonController.dispose();
     _titleController.dispose();
     _versionController.dispose();
+    _yearController.dispose();
+    _eventCodeController.dispose();
+    _timezoneController.dispose();
+    _tbaKeyController.dispose();
+    _firstUsernameController.dispose();
+    _firstKeyController.dispose();
+    _statboticsUrlController.dispose();
     super.dispose();
   }
 
@@ -70,6 +99,30 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       _isLoading = true;
       _rawJsonError = null;
     });
+
+    if (kind == 'api') {
+      final settings = await widget.apiService.fetchSettings();
+      if (mounted) {
+        if (settings != null) {
+          _currentSettings = settings;
+        }
+        _yearController.text = _currentSettings.year.toString();
+        _eventCodeController.text = _currentSettings.eventCode;
+        _timezoneController.text = _currentSettings.timezone;
+        _preferredSource = _currentSettings.preferredSource.isNotEmpty ? _currentSettings.preferredSource : 'tba';
+        _useStatboticsEpa = _currentSettings.useStatboticsEpa;
+        _useTbaOpr = _currentSettings.useTbaOpr;
+        _chatEnabled = _currentSettings.chatEnabled;
+        _tbaKeyController.text = _currentSettings.apiKeys.tbaKey;
+        _firstUsernameController.text = _currentSettings.apiKeys.firstUsername;
+        _firstKeyController.text = _currentSettings.apiKeys.firstKey;
+        _statboticsUrlController.text = _currentSettings.statboticsBaseUrl;
+        setState(() {
+          _isLoading = false;
+        });
+      }
+      return;
+    }
 
     ScoutingConfigModel? config;
     if (kind == 'pit') {
@@ -200,12 +253,150 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     }
   }
 
+  Future<void> _handleTestTba() async {
+    final isFtc = widget.apiService.currentProgram == 'FTC';
+    final apiTarget = isFtc ? 'ftcscout' : 'tba';
+    final label = isFtc ? 'FTC Scout API' : 'The Blue Alliance';
+
+    setState(() => _isTestingTba = true);
+    final response = await widget.apiService.testApiKey(
+      api: apiTarget,
+      tbaKey: _tbaKeyController.text.trim(),
+    );
+
+    if (mounted) {
+      setState(() => _isTestingTba = false);
+      if (response.success) {
+        ObsidianFeedback.showSuccess(
+          context,
+          title: '$label Connection Successful',
+          message: response.message ?? '$label credentials tested successfully!',
+        );
+      } else {
+        ObsidianFeedback.showError(
+          context,
+          title: '$label Connection Failed',
+          message: response.message ?? 'Failed to connect to $label.',
+        );
+      }
+    }
+  }
+
+  Future<void> _handleTestFirst() async {
+    final isFtc = widget.apiService.currentProgram == 'FTC';
+    final label = isFtc ? 'FIRST FTC API' : 'FIRST API';
+
+    setState(() => _isTestingFirst = true);
+    final response = await widget.apiService.testApiKey(
+      api: 'first',
+      firstUsername: _firstUsernameController.text.trim(),
+      firstKey: _firstKeyController.text.trim(),
+    );
+
+    if (mounted) {
+      setState(() => _isTestingFirst = false);
+      if (response.success) {
+        ObsidianFeedback.showSuccess(
+          context,
+          title: '$label Connection Successful',
+          message: response.message ?? '$label credentials verified successfully!',
+        );
+      } else {
+        ObsidianFeedback.showError(
+          context,
+          title: '$label Connection Failed',
+          message: response.message ?? 'Failed to authenticate with $label.',
+        );
+      }
+    }
+  }
+
+  Future<void> _handleTestStatbotics() async {
+    setState(() => _isTestingStatbotics = true);
+    final response = await widget.apiService.testApiKey(
+      api: 'statbotics',
+      statboticsBaseUrl: _statboticsUrlController.text.trim().isNotEmpty
+          ? _statboticsUrlController.text.trim()
+          : 'https://api.statbotics.io',
+    );
+
+    if (mounted) {
+      setState(() => _isTestingStatbotics = false);
+      if (response.success) {
+        ObsidianFeedback.showSuccess(
+          context,
+          title: 'Statbotics API Successful',
+          message: response.message ?? 'Statbotics API reachable and verified!',
+        );
+      } else {
+        ObsidianFeedback.showError(
+          context,
+          title: 'Statbotics API Failed',
+          message: response.message ?? 'Failed to reach Statbotics API.',
+        );
+      }
+    }
+  }
+
+  Future<void> _handleSaveSettings() async {
+    setState(() => _isSavingSettings = true);
+
+    final updated = _currentSettings.copyWith(
+      year: int.tryParse(_yearController.text.trim()) ?? _currentSettings.year,
+      eventCode: _eventCodeController.text.trim(),
+      timezone: _timezoneController.text.trim().isNotEmpty ? _timezoneController.text.trim() : 'America/New_York',
+      preferredSource: _preferredSource,
+      useStatboticsEpa: _useStatboticsEpa,
+      useTbaOpr: _useTbaOpr,
+      chatEnabled: _chatEnabled,
+      apiKeys: _currentSettings.apiKeys.copyWith(
+        tbaKey: _tbaKeyController.text.trim(),
+        firstUsername: _firstUsernameController.text.trim(),
+        firstKey: _firstKeyController.text.trim(),
+      ),
+      statboticsBaseUrl: _statboticsUrlController.text.trim().isNotEmpty
+          ? _statboticsUrlController.text.trim()
+          : 'https://api.statbotics.io',
+    );
+
+    final response = await widget.apiService.updateSettings(updated);
+
+    if (mounted) {
+      setState(() => _isSavingSettings = false);
+      if (response.success) {
+        _currentSettings = response.data ?? updated;
+        ObsidianFeedback.showSuccess(
+          context,
+          title: 'API Settings Saved',
+          message: 'Season, event code, and API keys updated successfully.',
+          statusCode: response.statusCode ?? 200,
+        );
+      } else if (response.isOffline) {
+        ObsidianFeedback.showWarning(
+          context,
+          title: 'Saved to Offline Cache',
+          message: 'Saved to offline cache. Will synchronize when online.',
+        );
+      } else {
+        ObsidianFeedback.showError(
+          context,
+          title: 'Save Failed',
+          message: response.message ?? 'Failed to save API settings.',
+          statusCode: response.statusCode,
+          isOffline: response.isOffline,
+        );
+      }
+    }
+  }
+
   String _getKindLabel(String kind) {
     switch (kind) {
       case 'pit':
         return 'Pit Form';
       case 'qual':
         return 'Qualitative Form';
+      case 'api':
+        return 'API Settings';
       default:
         return 'Match Form';
     }
@@ -1628,85 +1819,89 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
             Row(
               children: [
                 _buildKindTab('game', 'Match', _activeKind == 'game'),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 _buildKindTab('pit', 'Pit', _activeKind == 'pit'),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 _buildKindTab('qual', 'Qualitative', _activeKind == 'qual'),
+                const SizedBox(width: 6),
+                _buildKindTab('api', 'API Settings', _activeKind == 'api'),
               ],
             ),
             const SizedBox(height: 12),
 
-            // Editor Mode Switcher (Visual vs Raw JSON)
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: borderColor),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        if (_isRawMode) {
-                          if (_syncRawToVisual()) {
-                            setState(() => _isRawMode = false);
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Fix syntax error before switching: $_rawJsonError'), backgroundColor: ObsidianUITheme.errorRed),
-                            );
+            if (_activeKind != 'api') ...[
+              // Editor Mode Switcher (Visual vs Raw JSON)
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: borderColor),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          if (_isRawMode) {
+                            if (_syncRawToVisual()) {
+                              setState(() => _isRawMode = false);
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Fix syntax error before switching: $_rawJsonError'), backgroundColor: ObsidianUITheme.errorRed),
+                              );
+                            }
                           }
-                        }
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        decoration: BoxDecoration(
-                          color: !_isRawMode ? ObsidianUITheme.primaryAccent : Colors.transparent,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        alignment: Alignment.center,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.widgets_rounded, size: 16, color: !_isRawMode ? Colors.white : secondaryTextColor),
-                            const SizedBox(width: 6),
-                            Text('Visual Form Editor', style: TextStyle(color: !_isRawMode ? Colors.white : secondaryTextColor, fontWeight: FontWeight.bold, fontSize: 13)),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        if (!_isRawMode) {
-                          _syncVisualToRaw();
-                          setState(() => _isRawMode = true);
-                        }
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        decoration: BoxDecoration(
-                          color: _isRawMode ? ObsidianUITheme.primaryAccent : Colors.transparent,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        alignment: Alignment.center,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.code_rounded, size: 16, color: _isRawMode ? Colors.white : secondaryTextColor),
-                            const SizedBox(width: 6),
-                            Text('Raw JSON', style: TextStyle(color: _isRawMode ? Colors.white : secondaryTextColor, fontWeight: FontWeight.bold, fontSize: 13)),
-                          ],
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          decoration: BoxDecoration(
+                            color: !_isRawMode ? ObsidianUITheme.primaryAccent : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          alignment: Alignment.center,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.widgets_rounded, size: 16, color: !_isRawMode ? Colors.white : secondaryTextColor),
+                              const SizedBox(width: 6),
+                              Text('Visual Form Editor', style: TextStyle(color: !_isRawMode ? Colors.white : secondaryTextColor, fontWeight: FontWeight.bold, fontSize: 13)),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          if (!_isRawMode) {
+                            _syncVisualToRaw();
+                            setState(() => _isRawMode = true);
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          decoration: BoxDecoration(
+                            color: _isRawMode ? ObsidianUITheme.primaryAccent : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          alignment: Alignment.center,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.code_rounded, size: 16, color: _isRawMode ? Colors.white : secondaryTextColor),
+                              const SizedBox(width: 6),
+                              Text('Raw JSON', style: TextStyle(color: _isRawMode ? Colors.white : secondaryTextColor, fontWeight: FontWeight.bold, fontSize: 13)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 14),
+              const SizedBox(height: 14),
+            ],
 
             if (_isLoading)
               const Center(
@@ -1715,15 +1910,18 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                   child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent),
                 ),
               )
+            else if (_activeKind == 'api')
+              _buildApiSettingsEditor()
             else if (_isRawMode)
               _buildRawEditor()
             else
               _buildVisualEditor(),
 
-            const SizedBox(height: 14),
-
-            // Bottom Actions & Toolbar
-            _buildBottomActionBar(),
+            if (_activeKind != 'api') ...[
+              const SizedBox(height: 14),
+              // Bottom Actions & Toolbar
+              _buildBottomActionBar(),
+            ],
           ],
         ),
       );
@@ -1760,6 +1958,402 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildApiSettingsEditor() {
+    final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+    final borderColor = ObsidianUITheme.getBorderColor(context);
+    final isFtc = widget.apiService.currentProgram == 'FTC';
+
+    final enteredYear = _yearController.text.trim().isNotEmpty ? _yearController.text.trim() : '2026';
+    final enteredCode = _eventCodeController.text.trim();
+    final computedEventKey = enteredCode.isNotEmpty ? '$enteredYear$enteredCode' : '$enteredYear(event_code)';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Informational intro banner
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.api_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Configure season year, event code, and API credentials. When both TBA and FIRST keys are set, sync automatically merges teams and matches.',
+                  style: TextStyle(color: primaryTextColor, fontSize: 12.5, height: 1.4),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+
+        // Season & Event Details Card
+        ObsidianGlassCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.event_note_rounded, size: 18, color: ObsidianUITheme.primaryAccent),
+                  const SizedBox(width: 8),
+                  Text('Event & Season Configuration', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primaryTextColor)),
+                ],
+              ),
+              Divider(color: borderColor, height: 20),
+
+              // Season Year
+              TextField(
+                controller: _yearController,
+                keyboardType: TextInputType.number,
+                style: TextStyle(color: primaryTextColor, fontSize: 14),
+                decoration: InputDecoration(
+                  labelText: 'Season Year',
+                  labelStyle: TextStyle(color: secondaryTextColor, fontSize: 12),
+                  hintText: 'e.g. 2026',
+                  hintStyle: TextStyle(color: secondaryTextColor.withValues(alpha: 0.5), fontSize: 13),
+                  isDense: true,
+                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
+                  focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+              if (isFtc) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'The season year is typically the year the season started in (e.g. the 2025-2026 season is 2025).',
+                  style: TextStyle(color: secondaryTextColor, fontSize: 11),
+                ),
+              ],
+              const SizedBox(height: 14),
+
+              // Event Code
+              TextField(
+                controller: _eventCodeController,
+                style: TextStyle(color: primaryTextColor, fontSize: 14),
+                decoration: InputDecoration(
+                  labelText: 'Event Code',
+                  labelStyle: TextStyle(color: secondaryTextColor, fontSize: 12),
+                  hintText: 'e.g. okok or 2026nytr',
+                  hintStyle: TextStyle(color: secondaryTextColor.withValues(alpha: 0.5), fontSize: 13),
+                  isDense: true,
+                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
+                  focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Event key is year + code (e.g. $enteredYear + ${enteredCode.isNotEmpty ? enteredCode : 'okok'} -> $computedEventKey).',
+                style: TextStyle(color: secondaryTextColor, fontSize: 11),
+              ),
+              const SizedBox(height: 14),
+
+              // Timezone
+              TextField(
+                controller: _timezoneController,
+                style: TextStyle(color: primaryTextColor, fontSize: 14),
+                decoration: InputDecoration(
+                  labelText: 'Timezone',
+                  labelStyle: TextStyle(color: secondaryTextColor, fontSize: 12),
+                  hintText: 'e.g. America/New_York',
+                  hintStyle: TextStyle(color: secondaryTextColor.withValues(alpha: 0.5), fontSize: 13),
+                  isDense: true,
+                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
+                  focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              // Preferred Source Dropdown
+              DropdownButtonFormField<String>(
+                value: _preferredSource,
+                dropdownColor: ObsidianUITheme.getSurfaceColor(context),
+                style: TextStyle(color: primaryTextColor, fontSize: 14),
+                decoration: InputDecoration(
+                  labelText: 'Preferred Data Source',
+                  labelStyle: TextStyle(color: secondaryTextColor, fontSize: 12),
+                  isDense: true,
+                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
+                  focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+                ),
+                items: [
+                  DropdownMenuItem(
+                    value: 'tba',
+                    child: Text(isFtc ? 'FTC Scout' : 'The Blue Alliance'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'first',
+                    child: Text(isFtc ? 'FIRST FTC API' : 'FIRST API'),
+                  ),
+                ],
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() => _preferredSource = val);
+                  }
+                },
+              ),
+              const SizedBox(height: 14),
+
+              // Optional Stats
+              Text('Optional Stats & Features', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: primaryTextColor)),
+              const SizedBox(height: 6),
+              if (!isFtc) ...[
+                CheckboxListTile(
+                  title: Text('Use Statbotics EPA', style: TextStyle(color: primaryTextColor, fontSize: 13)),
+                  subtitle: Text('Pull expected points added (EPA) metrics for FRC teams', style: TextStyle(color: secondaryTextColor, fontSize: 11)),
+                  value: _useStatboticsEpa,
+                  activeColor: ObsidianUITheme.primaryAccent,
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  onChanged: (val) => setState(() => _useStatboticsEpa = val ?? false),
+                ),
+              ],
+              CheckboxListTile(
+                title: Text(isFtc ? 'Use FTC Scout OPR' : 'Use TBA OPR', style: TextStyle(color: primaryTextColor, fontSize: 13)),
+                subtitle: Text('Pull offensive power rating (OPR) from match results', style: TextStyle(color: secondaryTextColor, fontSize: 11)),
+                value: _useTbaOpr,
+                activeColor: ObsidianUITheme.primaryAccent,
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                onChanged: (val) => setState(() => _useTbaOpr = val ?? false),
+              ),
+              SwitchListTile(
+                title: Text('Enable Team Chat', style: TextStyle(color: primaryTextColor, fontSize: 13, fontWeight: FontWeight.w600)),
+                subtitle: Text('Allow scouters to use real-time messaging channels', style: TextStyle(color: secondaryTextColor, fontSize: 11)),
+                value: _chatEnabled,
+                activeThumbColor: ObsidianUITheme.primaryAccent,
+                contentPadding: EdgeInsets.zero,
+                onChanged: (val) => setState(() => _chatEnabled = val),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+
+        // TBA / FTC Scout Card
+        ObsidianGlassCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.hub_rounded, size: 18, color: Colors.cyanAccent),
+                  const SizedBox(width: 8),
+                  Text(isFtc ? 'FTC Scout' : 'The Blue Alliance (TBA)', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primaryTextColor)),
+                ],
+              ),
+              Divider(color: borderColor, height: 20),
+
+              if (!isFtc) ...[
+                TextField(
+                  controller: _tbaKeyController,
+                  obscureText: _obscureTbaKey,
+                  style: TextStyle(color: primaryTextColor, fontSize: 14),
+                  decoration: InputDecoration(
+                    labelText: 'TBA API Key (Read Key)',
+                    labelStyle: TextStyle(color: secondaryTextColor, fontSize: 12),
+                    hintText: 'e.g. Enter TBA Read Key or ********',
+                    hintStyle: TextStyle(color: secondaryTextColor.withValues(alpha: 0.5), fontSize: 13),
+                    isDense: true,
+                    enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
+                    focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscureTbaKey ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 18, color: secondaryTextColor),
+                      onPressed: () => setState(() => _obscureTbaKey = !_obscureTbaKey),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ] else ...[
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: ObsidianUITheme.getSurfaceColor(context),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: borderColor),
+                  ),
+                  child: Text(
+                    'FTC Scout is a public API providing event, team, match, and OPR data. No authentication key required.',
+                    style: TextStyle(color: secondaryTextColor, fontSize: 12),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    side: BorderSide(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.6)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  icon: _isTestingTba
+                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent, strokeWidth: 2))
+                      : const Icon(Icons.check_circle_outline_rounded, size: 16, color: ObsidianUITheme.primaryAccent),
+                  label: Text(_isTestingTba ? 'Testing...' : 'Test Connection', style: const TextStyle(color: ObsidianUITheme.primaryAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+                  onPressed: _isTestingTba ? null : _handleTestTba,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+
+        // FIRST API Card
+        ObsidianGlassCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.token_rounded, size: 18, color: Colors.amberAccent),
+                  const SizedBox(width: 8),
+                  Text(isFtc ? 'FIRST FTC API' : 'FIRST API', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primaryTextColor)),
+                ],
+              ),
+              Divider(color: borderColor, height: 20),
+
+              TextField(
+                controller: _firstUsernameController,
+                style: TextStyle(color: primaryTextColor, fontSize: 14),
+                decoration: InputDecoration(
+                  labelText: 'FIRST API Username',
+                  labelStyle: TextStyle(color: secondaryTextColor, fontSize: 12),
+                  isDense: true,
+                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
+                  focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              TextField(
+                controller: _firstKeyController,
+                obscureText: _obscureFirstKey,
+                style: TextStyle(color: primaryTextColor, fontSize: 14),
+                decoration: InputDecoration(
+                  labelText: 'FIRST API Key / Token',
+                  labelStyle: TextStyle(color: secondaryTextColor, fontSize: 12),
+                  hintText: 'e.g. Enter FIRST Auth Token or ********',
+                  hintStyle: TextStyle(color: secondaryTextColor.withValues(alpha: 0.5), fontSize: 13),
+                  isDense: true,
+                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
+                  focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+                  suffixIcon: IconButton(
+                    icon: Icon(_obscureFirstKey ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 18, color: secondaryTextColor),
+                    onPressed: () => setState(() => _obscureFirstKey = !_obscureFirstKey),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    side: BorderSide(color: Colors.amberAccent.withValues(alpha: 0.6)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  icon: _isTestingFirst
+                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(color: Colors.amberAccent, strokeWidth: 2))
+                      : const Icon(Icons.check_circle_outline_rounded, size: 16, color: Colors.amberAccent),
+                  label: Text(_isTestingFirst ? 'Testing...' : 'Test FIRST API', style: const TextStyle(color: Colors.amberAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+                  onPressed: _isTestingFirst ? null : _handleTestFirst,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+
+        // Statbotics Card (FRC only)
+        if (!isFtc) ...[
+          ObsidianGlassCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.analytics_rounded, size: 18, color: Colors.purpleAccent),
+                    const SizedBox(width: 8),
+                    Text('Statbotics API', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primaryTextColor)),
+                  ],
+                ),
+                Divider(color: borderColor, height: 20),
+
+                TextField(
+                  controller: _statboticsUrlController,
+                  style: TextStyle(color: primaryTextColor, fontSize: 14),
+                  decoration: InputDecoration(
+                    labelText: 'Statbotics Base URL',
+                    labelStyle: TextStyle(color: secondaryTextColor, fontSize: 12),
+                    hintText: 'https://api.statbotics.io',
+                    hintStyle: TextStyle(color: secondaryTextColor.withValues(alpha: 0.5), fontSize: 13),
+                    isDense: true,
+                    enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
+                    focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      side: BorderSide(color: Colors.purpleAccent.withValues(alpha: 0.6)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    icon: _isTestingStatbotics
+                        ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(color: Colors.purpleAccent, strokeWidth: 2))
+                        : const Icon(Icons.check_circle_outline_rounded, size: 16, color: Colors.purpleAccent),
+                    label: Text(_isTestingStatbotics ? 'Testing...' : 'Test Statbotics API', style: const TextStyle(color: Colors.purpleAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+                    onPressed: _isTestingStatbotics ? null : _handleTestStatbotics,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+        ],
+
+        // Save Action Button
+        ObsidianGlassCard(
+          child: Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: ObsidianUITheme.primaryAccent,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: _isSavingSettings
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : const Icon(Icons.save_rounded, color: Colors.white, size: 20),
+                  label: Text(
+                    _isSavingSettings ? 'Saving Settings...' : 'Save API Settings',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  onPressed: _isSavingSettings ? null : _handleSaveSettings,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
