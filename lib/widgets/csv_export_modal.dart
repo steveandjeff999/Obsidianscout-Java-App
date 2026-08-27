@@ -80,6 +80,7 @@ class _CsvExportModalState extends State<CsvExportModal> {
     } catch (e) {
       if (!mounted) return;
       await Clipboard.setData(ClipboardData(text: widget.exportData.csvContent));
+      if (!mounted) return;
       ObsidianFeedback.showWarning(
         context,
         title: 'Export Fallback',

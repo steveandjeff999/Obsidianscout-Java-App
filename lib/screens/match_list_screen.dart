@@ -42,14 +42,44 @@ class _MatchListScreenState extends State<MatchListScreen> {
   }
 
   Future<void> _loadMatches() async {
-    setState(() => _isLoading = true);
-    final eventKey = await widget.apiService.fetchCurrentEventKey();
-    final matches = await widget.apiService.fetchMatches(eventKey);
-    if (mounted) {
+    // 1. Instant Cache Hydration
+    final cachedEventKey = widget.apiService.currentSettings?.eventKey ?? await widget.apiService.getCachedEventKey();
+    final cachedMatches = await widget.apiService.getCachedMatches(cachedEventKey);
+    if (mounted && cachedMatches.isNotEmpty) {
       setState(() {
-        _matches = matches;
+        _matches = cachedMatches;
         _isLoading = false;
       });
+    }
+
+    if (!widget.apiService.isOnline) {
+      if (mounted && _isLoading) setState(() => _isLoading = false);
+      return;
+    }
+
+    // 2. Background Revalidation
+    try {
+      final eventKey = widget.apiService.currentSettings?.eventKey ?? await widget.apiService.fetchCurrentEventKey();
+      final matches = await widget.apiService.fetchMatches(eventKey);
+      if (mounted) {
+        setState(() {
+          if (matches.isNotEmpty) {
+            _matches = matches;
+          } else if (_matches.isEmpty && cachedMatches.isNotEmpty) {
+            _matches = cachedMatches;
+          }
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted && _isLoading) {
+        setState(() {
+          if (_matches.isEmpty && cachedMatches.isNotEmpty) {
+            _matches = cachedMatches;
+          }
+          _isLoading = false;
+        });
+      }
     }
   }
 

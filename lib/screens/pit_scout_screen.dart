@@ -52,23 +52,56 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
   }
 
   void _loadPitData() async {
-    final eventKey = await widget.apiService.fetchCurrentEventKey();
-    final config = await widget.apiService.fetchPitConfig(); // Dedicated /api/pit-config
-    final teams = await widget.apiService.fetchTeams(eventKey);
+    // 1. Instant Cache Hydration (0ms! Zero spinner when data exists locally)
+    final cachedEventKey = await widget.apiService.getCachedEventKey();
+    final cachedConfig = await widget.apiService.getCachedPitConfig();
+    final cachedTeams = await widget.apiService.getCachedTeams(cachedEventKey);
 
-    setState(() {
-      _eventKey = eventKey;
-      _config = config;
-      _teams = teams;
-      if (_selectedTeam != null && !_teams.contains(_selectedTeam)) {
-        _selectedTeam = null;
-      }
-      _isLoading = false;
+    if (mounted && (cachedConfig != null || cachedTeams.isNotEmpty)) {
+      setState(() {
+        _eventKey = cachedEventKey;
+        _config = cachedConfig;
+        _teams = cachedTeams;
+        _isLoading = false;
+        if (cachedConfig != null && _formData.isEmpty) {
+          _resetFormData(cachedConfig);
+        }
+      });
+    }
 
-      if (config != null) {
-        _resetFormData(config);
-      }
-    });
+    // If offline, stop immediately - don't wait for network timeouts
+    if (!widget.apiService.isOnline) {
+      if (mounted && _isLoading) setState(() => _isLoading = false);
+      return;
+    }
+
+    // 2. Background Revalidation
+    try {
+      final eventKeyFuture = widget.apiService.fetchCurrentEventKey();
+      final configFuture = widget.apiService.fetchPitConfig();
+
+      final eventKey = await eventKeyFuture;
+      final config = await configFuture;
+      final teams = await widget.apiService.fetchTeams(eventKey);
+
+      if (!mounted) return;
+
+      setState(() {
+        _eventKey = eventKey;
+        _config = config ?? _config;
+        if (teams.isNotEmpty) _teams = teams;
+        if (_selectedTeam != null && !_teams.contains(_selectedTeam)) {
+          _selectedTeam = null;
+        }
+        _isLoading = false;
+
+        if (_config != null && _formData.isEmpty) {
+          _resetFormData(_config!);
+        }
+      });
+    } catch (_) {
+      if (mounted && _isLoading) setState(() => _isLoading = false);
+    }
   }
 
   void _resetFormData(ScoutingConfigModel config) {
@@ -241,53 +274,53 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
 
     final response = await widget.apiService.submitPitScouting(payload);
 
+    if (!mounted) return;
+
     setState(() => _isSubmitting = false);
 
-    if (mounted) {
-      if (response.success) {
-        ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
-          type: 'pit',
-          action: 'direct_upload',
-          status: 'synced',
-          payload: payload,
-        ));
-        ObsidianFeedback.showSuccess(
-          context,
-          title: 'Pit Scouting Saved',
-          message: 'Pit scouting data saved successfully (HTTP ${response.statusCode ?? 200})',
-          statusCode: response.statusCode ?? 200,
-        );
-        _resetForm();
-      } else if (response.isOffline) {
-        ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
-          type: 'pit',
-          action: 'offline_cached',
-          status: 'pending',
-          payload: payload,
-        ));
-        ObsidianFeedback.showWarning(
-          context,
-          title: 'Saved to Offline Cache',
-          message: 'Device offline. Saved to offline cache and will sync when online.',
-        );
-        _resetForm();
-      } else {
-        ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
-          type: 'pit',
-          action: 'direct_upload',
-          status: 'failed',
-          payload: payload,
-        ));
-        ObsidianFeedback.showError(
-          context,
-          title: 'Save Failed',
-          message: response.message != null && response.message!.isNotEmpty
-              ? response.message!
-              : 'Failed to submit pit scouting data.',
-          statusCode: response.statusCode,
-          isOffline: response.isOffline,
-        );
-      }
+    if (response.success) {
+      ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+        type: 'pit',
+        action: 'direct_upload',
+        status: 'synced',
+        payload: payload,
+      ));
+      ObsidianFeedback.showSuccess(
+        context,
+        title: 'Pit Scouting Saved',
+        message: 'Pit scouting data saved successfully (HTTP ${response.statusCode ?? 200})',
+        statusCode: response.statusCode ?? 200,
+      );
+      _resetForm();
+    } else if (response.isOffline) {
+      ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+        type: 'pit',
+        action: 'offline_cached',
+        status: 'pending',
+        payload: payload,
+      ));
+      ObsidianFeedback.showWarning(
+        context,
+        title: 'Saved to Offline Cache',
+        message: 'Device offline. Saved to offline cache and will sync when online.',
+      );
+      _resetForm();
+    } else {
+      ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+        type: 'pit',
+        action: 'direct_upload',
+        status: 'failed',
+        payload: payload,
+      ));
+      ObsidianFeedback.showError(
+        context,
+        title: 'Save Failed',
+        message: response.message != null && response.message!.isNotEmpty
+            ? response.message!
+            : 'Failed to submit pit scouting data.',
+        statusCode: response.statusCode,
+        isOffline: response.isOffline,
+      );
     }
   }
 

@@ -27,7 +27,7 @@ class ObsidianFeedback {
     String? errorMessage,
     Duration duration = const Duration(seconds: 4),
   }) {
-    final title = actionName != null ? actionName : (response.success ? 'Success' : 'Operation Failed');
+    final title = actionName ?? (response.success ? 'Success' : 'Operation Failed');
 
     if (response.success) {
       final codeStr = response.statusCode != null ? ' (HTTP ${response.statusCode})' : '';
@@ -170,7 +170,6 @@ class ObsidianFeedback {
         defaultTitle = 'Offline / Notice';
         break;
       case _FeedbackType.error:
-      default:
         accentColor = ObsidianUITheme.errorRed;
         icon = Icons.error_outline_rounded;
         defaultTitle = statusCode != null ? 'Failed (HTTP $statusCode)' : 'Failed';
@@ -261,7 +260,6 @@ class ObsidianFeedback {
         defaultTitle = 'Offline / Notice';
         break;
       case _FeedbackType.error:
-      default:
         accentColor = ObsidianUITheme.errorRed;
         icon = Icons.error_outline_rounded;
         defaultTitle = statusCode != null ? 'Failed (HTTP $statusCode)' : 'Failed';

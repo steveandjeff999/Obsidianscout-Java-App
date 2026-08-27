@@ -10,16 +10,25 @@ class NotificationWebSocketService {
 
   WebSocketChannel? _channel;
   StreamSubscription? _subscription;
+  StreamSubscription? _onlineSubscription;
   Timer? _reconnectTimer;
   bool _isDisposed = false;
+  int _reconnectDelaySeconds = 10;
 
   NotificationWebSocketService({
     required this.apiService,
     required this.onNotificationReceived,
-  });
+  }) {
+    _onlineSubscription = apiService.onOnlineStatusChanged.listen((isOnline) {
+      if (isOnline && !_isDisposed && apiService.isLoggedIn && _channel == null) {
+        _reconnectDelaySeconds = 10;
+        connect();
+      }
+    });
+  }
 
   void connect() {
-    if (_isDisposed || !apiService.isLoggedIn) return;
+    if (_isDisposed || !apiService.isLoggedIn || !apiService.isOnline) return;
 
     try {
       final serverUrl = apiService.serverUrl;
@@ -35,21 +44,29 @@ class NotificationWebSocketService {
 
       _subscription = _channel!.stream.listen(
         (data) {
+          _reconnectDelaySeconds = 10;
           _handleMessage(data);
         },
         onError: (err) {
-          debugPrint('[WS-Notification] Connection error: $err');
+          _cleanChannel();
           _scheduleReconnect();
         },
         onDone: () {
-          debugPrint('[WS-Notification] Connection closed.');
+          _cleanChannel();
           _scheduleReconnect();
         },
       );
     } catch (e) {
-      debugPrint('[WS-Notification] Failed to connect: $e');
+      _cleanChannel();
       _scheduleReconnect();
     }
+  }
+
+  void _cleanChannel() {
+    _subscription?.cancel();
+    _subscription = null;
+    _channel?.sink.close();
+    _channel = null;
   }
 
   void _handleMessage(dynamic rawData) {
@@ -69,17 +86,20 @@ class NotificationWebSocketService {
   }
 
   void _scheduleReconnect() {
-    if (_isDisposed || !apiService.isLoggedIn) return;
+    if (_isDisposed || !apiService.isLoggedIn || !apiService.isOnline) return;
     _reconnectTimer?.cancel();
-    _reconnectTimer = Timer(const Duration(seconds: 10), () {
-      connect();
+    _reconnectTimer = Timer(Duration(seconds: _reconnectDelaySeconds), () {
+      if (!_isDisposed && apiService.isLoggedIn && apiService.isOnline) {
+        connect();
+      }
     });
+    _reconnectDelaySeconds = (_reconnectDelaySeconds * 2).clamp(10, 120);
   }
 
   void dispose() {
     _isDisposed = true;
     _reconnectTimer?.cancel();
-    _subscription?.cancel();
-    _channel?.sink.close();
+    _onlineSubscription?.cancel();
+    _cleanChannel();
   }
 }

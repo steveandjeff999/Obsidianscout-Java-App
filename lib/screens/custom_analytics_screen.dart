@@ -222,8 +222,8 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
     }
     final sorted = scores.entries.toList()
       ..sort((a, b) {
-        final avgA = a.value.reduce((x, y) => x + y) / a.value.length;
-        final avgB = b.value.reduce((x, y) => x + y) / b.value.length;
+        final avgA = a.value.isEmpty ? 0.0 : (a.value.fold<double>(0.0, (x, y) => x + y) / a.value.length);
+        final avgB = b.value.isEmpty ? 0.0 : (b.value.fold<double>(0.0, (x, y) => x + y) / b.value.length);
         return avgB.compareTo(avgA);
       });
     return sorted.take(8).map((e) => e.key).toList();
@@ -1047,12 +1047,15 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
                               }
 
                               final updatedReports = await widget.apiService.fetchCustomAnalyticsReports();
+                              if (!mounted) return;
+
                               setState(() {
                                 _savedReports = updatedReports;
                               });
 
+                              final messenger = ScaffoldMessenger.of(context);
                               Navigator.of(ctx).pop();
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              messenger.showSnackBar(
                                 const SnackBar(content: Text('Report saved successfully!'), backgroundColor: ObsidianUITheme.successGreen),
                               );
                             },
@@ -1942,9 +1945,14 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
     final minVal = values.reduce(min);
     final maxVal = values.reduce(max);
     const binsCount = 6;
-    final binWidth = (maxVal > minVal) ? (maxVal - minVal) / binsCount : 1.0;
+    final range = maxVal - minVal;
+    final binWidth = (range > 0) ? range / binsCount : 1.0;
 
     final bins = List.generate(binsCount, (i) {
+      if (range == 0) {
+        final count = i == 0 ? values.length : 0;
+        return {'label': i == 0 ? minVal.toStringAsFixed(0) : '-', 'count': count};
+      }
       final start = minVal + i * binWidth;
       final end = start + binWidth;
       final count = values.where((v) => i == binsCount - 1 ? (v >= start && v <= end) : (v >= start && v < end)).length;

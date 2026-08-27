@@ -219,13 +219,11 @@ class ObsidianNavigationDrawer extends StatelessWidget {
     ];
 
     return Drawer(
-      backgroundColor: Colors.transparent,
+      backgroundColor: drawerBg,
       child: ClipRRect(
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
-          child: Container(
-            color: drawerBg,
-            child: Column(
+          child: Column(
               children: [
                 // Drawer Header
                 Container(
@@ -516,7 +514,6 @@ class ObsidianNavigationDrawer extends StatelessWidget {
             ),
           ),
         ),
-      ),
     );
   }
 }

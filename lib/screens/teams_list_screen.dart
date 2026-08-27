@@ -43,14 +43,44 @@ class _TeamsListScreenState extends State<TeamsListScreen> {
   }
 
   Future<void> _loadTeams() async {
-    setState(() => _isLoading = true);
-    final eventKey = await widget.apiService.fetchCurrentEventKey();
-    final teams = await widget.apiService.fetchTeams(eventKey);
-    if (mounted) {
+    // 1. Instant Cache Hydration
+    final cachedEventKey = widget.apiService.currentSettings?.eventKey ?? await widget.apiService.getCachedEventKey();
+    final cachedTeams = await widget.apiService.getCachedTeams(cachedEventKey);
+    if (mounted && cachedTeams.isNotEmpty) {
       setState(() {
-        _teams = teams;
+        _teams = cachedTeams;
         _isLoading = false;
       });
+    }
+
+    if (!widget.apiService.isOnline) {
+      if (mounted && _isLoading) setState(() => _isLoading = false);
+      return;
+    }
+
+    // 2. Background Revalidation
+    try {
+      final eventKey = widget.apiService.currentSettings?.eventKey ?? await widget.apiService.fetchCurrentEventKey();
+      final teams = await widget.apiService.fetchTeams(eventKey);
+      if (mounted) {
+        setState(() {
+          if (teams.isNotEmpty) {
+            _teams = teams;
+          } else if (_teams.isEmpty && cachedTeams.isNotEmpty) {
+            _teams = cachedTeams;
+          }
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted && _isLoading) {
+        setState(() {
+          if (_teams.isEmpty && cachedTeams.isNotEmpty) {
+            _teams = cachedTeams;
+          }
+          _isLoading = false;
+        });
+      }
     }
   }
 

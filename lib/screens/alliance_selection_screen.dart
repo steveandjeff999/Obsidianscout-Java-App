@@ -93,9 +93,9 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
 
   void _startRealtimeSyncTimer() {
     _realtimeSyncTimer?.cancel();
-    // Poll server every 2 seconds for real-time synchronization with server & other scouts
+    // Poll server every 2 seconds for real-time synchronization with server & other scouts when screen is visible
     _realtimeSyncTimer = Timer.periodic(const Duration(seconds: 2), (_) {
-      if (mounted && widget.apiService.isOnline && !_isLoading && !_isSaving && _selectedEventKey != null) {
+      if (mounted && widget.apiService.isOnline && !_isLoading && !_isSaving && _selectedEventKey != null && widget.isVisible) {
         _catchUpAndSyncWithServer();
       }
     });
@@ -112,7 +112,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
 
       // 2. Fetch all events for the year
       final events = await widget.apiService.fetchEvents();
-      _events = events;
+      _events = List.from(events);
 
       // 3. Default dropdown value to current configured event key
       if (currentEventKey != null && currentEventKey.isNotEmpty) {
@@ -124,7 +124,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
       }
 
       // Ensure _selectedEventKey is present in _events list, or create dummy EventModel
-      if (!_events.any((e) => e.eventKey == _selectedEventKey)) {
+      if (_selectedEventKey != null && !_events.any((e) => e.eventKey == _selectedEventKey)) {
         _events.insert(0, EventModel(eventKey: _selectedEventKey!, name: 'Configured Event (${_selectedEventKey!.toUpperCase()})'));
       }
 

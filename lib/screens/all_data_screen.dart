@@ -1,7 +1,4 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import '../l10n/app_localizations.dart';
 import '../models/config_models.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
@@ -149,11 +146,101 @@ class _AllDataScreenState extends State<AllDataScreen> {
   }
 
   Future<void> _loadData() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    // 1. Instant Cache Hydration
+    final cachedSettings = await widget.apiService.getCachedSettings();
+    final cachedMatchCfg = await widget.apiService.getCachedMatchConfig();
+    final cachedPitCfg = await widget.apiService.getCachedPitConfig();
+    final cachedQualCfg = await widget.apiService.getCachedQualConfig();
+    final cachedMatchRaw = await widget.apiService.getCachedScoutingEntries();
+    final cachedPitRaw = await widget.apiService.getCachedPitScoutingEntries();
+    final cachedQualRaw = await widget.apiService.getCachedQualScoutingEntries();
+    final cachedEvents = await widget.apiService.getCachedEvents(year: cachedSettings?.year);
+    final cachedTeams = await widget.apiService.getCachedTeams(cachedSettings?.eventKey);
 
+    if (mounted && (cachedMatchRaw.isNotEmpty || cachedPitRaw.isNotEmpty || cachedQualRaw.isNotEmpty || cachedTeams.isNotEmpty)) {
+      final Map<int, TeamModel> teamMap = {};
+      for (final t in cachedTeams) {
+        teamMap[t.teamNumber] = t;
+      }
+
+      final List<UnifiedScoutingEntry> combined = [];
+      for (final e in cachedMatchRaw) {
+        if (e is Map<String, dynamic>) {
+          final isPrescout = e['isPrescout'] == true;
+          combined.add(UnifiedScoutingEntry(
+            id: 'match-${e['id']}',
+            originalId: e['id']?.toString() ?? '',
+            type: 'Match',
+            targetTeamNumber: (e['targetTeamNumber'] as num?)?.toInt() ?? 0,
+            eventKey: isPrescout ? 'prescout' : (e['eventKey']?.toString() ?? ''),
+            isPrescout: isPrescout,
+            matchNumber: (e['matchNumber'] as num?)?.toInt(),
+            matchKey: e['matchKey']?.toString(),
+            createdAt: e['createdAt']?.toString(),
+            data: e['data'] is Map ? Map<String, dynamic>.from(e['data'] as Map) : {},
+            hasDiscrepancy: e['hasDiscrepancy'] == true,
+            conflictingTeams: (e['conflictingTeams'] as List?)?.map((c) => c.toString()).toList() ?? [],
+            scoutUsername: e['scoutUsername']?.toString() ?? e['username']?.toString(),
+          ));
+        }
+      }
+
+      for (final e in cachedPitRaw) {
+        if (e is Map<String, dynamic>) {
+          final isPrescout = e['isPrescout'] == true;
+          combined.add(UnifiedScoutingEntry(
+            id: 'pit-${e['id']}',
+            originalId: e['id']?.toString() ?? '',
+            type: 'Pit',
+            targetTeamNumber: (e['targetTeamNumber'] as num?)?.toInt() ?? 0,
+            eventKey: isPrescout ? 'prescout' : (e['eventKey']?.toString() ?? ''),
+            isPrescout: isPrescout,
+            createdAt: e['createdAt']?.toString(),
+            data: e['data'] is Map ? Map<String, dynamic>.from(e['data'] as Map) : {},
+            scoutUsername: e['scoutUsername']?.toString() ?? e['username']?.toString(),
+          ));
+        }
+      }
+
+      for (final e in cachedQualRaw) {
+        if (e is Map<String, dynamic>) {
+          final isPrescout = e['isPrescout'] == true;
+          combined.add(UnifiedScoutingEntry(
+            id: 'qual-${e['id']}',
+            originalId: e['id']?.toString() ?? '',
+            type: 'Qualitative',
+            targetTeamNumber: (e['targetTeamNumber'] as num?)?.toInt() ?? 0,
+            eventKey: isPrescout ? 'prescout' : (e['eventKey']?.toString() ?? ''),
+            isPrescout: isPrescout,
+            matchNumber: (e['matchNumber'] as num?)?.toInt(),
+            matchKey: e['matchKey']?.toString(),
+            createdAt: e['createdAt']?.toString(),
+            data: e['data'] is Map ? Map<String, dynamic>.from(e['data'] as Map) : {},
+            scoutUsername: e['scoutUsername']?.toString() ?? e['username']?.toString(),
+          ));
+        }
+      }
+
+      setState(() {
+        _matchConfig = cachedMatchCfg;
+        _pitConfig = cachedPitCfg;
+        _qualConfig = cachedQualCfg;
+        _allEntries = combined;
+        _events = cachedEvents;
+        _teamsByNumber = teamMap;
+        if (_selectedEventKey == 'all' && cachedSettings?.eventKey != null && cachedSettings!.eventKey.isNotEmpty) {
+          _selectedEventKey = cachedSettings.eventKey;
+        }
+        _isLoading = false;
+      });
+    }
+
+    if (!widget.apiService.isOnline) {
+      if (mounted && _isLoading) setState(() => _isLoading = false);
+      return;
+    }
+
+    // 2. Background Revalidation
     try {
       final settings = await widget.apiService.fetchSettings();
       final currentYear = settings?.year ?? DateTime.now().year;
@@ -244,12 +331,12 @@ class _AllDataScreenState extends State<AllDataScreen> {
 
       if (mounted) {
         setState(() {
-          _matchConfig = matchCfg;
-          _pitConfig = pitCfg;
-          _qualConfig = qualCfg;
-          _allEntries = combined;
-          _events = events;
-          _teamsByNumber = teamMap;
+          _matchConfig = matchCfg ?? _matchConfig;
+          _pitConfig = pitCfg ?? _pitConfig;
+          _qualConfig = qualCfg ?? _qualConfig;
+          if (combined.isNotEmpty) _allEntries = combined;
+          if (events.isNotEmpty) _events = events;
+          if (teamMap.isNotEmpty) _teamsByNumber = teamMap;
           if (_selectedEventKey == 'all' && settings?.eventKey != null && settings!.eventKey.isNotEmpty) {
             _selectedEventKey = settings.eventKey;
           }
@@ -257,11 +344,8 @@ class _AllDataScreenState extends State<AllDataScreen> {
         });
       }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = e.toString();
-          _isLoading = false;
-        });
+      if (mounted && _isLoading) {
+        setState(() => _isLoading = false);
       }
     }
   }

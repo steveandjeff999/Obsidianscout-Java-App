@@ -92,11 +92,9 @@ class _ObsidianGlassCardState extends State<ObsidianGlassCard> {
 
     if (widget.onTap != null) {
       return GestureDetector(
+        onTap: widget.onTap,
         onTapDown: (_) => setState(() => _isPressed = true),
-        onTapUp: (_) {
-          setState(() => _isPressed = false);
-          widget.onTap!();
-        },
+        onTapUp: (_) => setState(() => _isPressed = false),
         onTapCancel: () => setState(() => _isPressed = false),
         child: cardContent,
       );
