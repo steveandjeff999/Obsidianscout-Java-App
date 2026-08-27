@@ -85,31 +85,75 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
   }
 
   Future<void> _loadInitialData() async {
-    setState(() => _isLoading = true);
-    final settings = widget.apiService.currentSettings;
-    final defaultEvent = await widget.apiService.fetchCurrentEventKey();
+    // 1. Instant Cache Hydration
+    final cachedSettings = await widget.apiService.getCachedSettings();
+    final cachedDefaultEvent = await widget.apiService.getCachedEventKey();
+    final cachedMatchConfig = await widget.apiService.getCachedMatchConfig();
+    final cachedPitConfig = await widget.apiService.getCachedPitConfig();
+    final cachedQualConfig = await widget.apiService.getCachedQualConfig();
+    final cachedMatchEntries = await widget.apiService.getCachedPrescoutScoutingEntries();
+    final cachedPitEntries = await widget.apiService.getCachedPrescoutPitScoutingEntries();
+    final cachedQualEntries = await widget.apiService.getCachedPrescoutQualScoutingEntries();
 
-    final matchConfig = await widget.apiService.fetchMatchConfig();
-    final pitConfig = await widget.apiService.fetchPitConfig();
-    final qualConfig = await widget.apiService.fetchQualConfig();
-
-    final matchEntries = await widget.apiService.fetchPrescoutScoutingEntries();
-    final pitEntries = await widget.apiService.fetchPrescoutPitScoutingEntries();
-    final qualEntries = await widget.apiService.fetchPrescoutQualScoutingEntries();
-
-    if (mounted) {
+    if (mounted && (cachedMatchConfig != null || cachedPitConfig != null || cachedQualConfig != null || cachedMatchEntries.isNotEmpty)) {
       setState(() {
-        _eventCode = (defaultEvent != null && defaultEvent.isNotEmpty) ? defaultEvent : 'prescout';
-        _timezone = settings?.timezone ?? 'UTC';
+        _eventCode = (cachedDefaultEvent != null && cachedDefaultEvent.isNotEmpty) ? cachedDefaultEvent : 'prescout';
+        _timezone = cachedSettings?.timezone ?? 'UTC';
         _eventCodeController.text = _eventCode;
-        _matchConfig = matchConfig;
-        _pitConfig = pitConfig;
-        _qualConfig = qualConfig;
-        _matchEntries = matchEntries;
-        _pitEntries = pitEntries;
-        _qualEntries = qualEntries;
+        _matchConfig = cachedMatchConfig;
+        _pitConfig = cachedPitConfig;
+        _qualConfig = cachedQualConfig;
+        _matchEntries = cachedMatchEntries;
+        _pitEntries = cachedPitEntries;
+        _qualEntries = cachedQualEntries;
         _isLoading = false;
       });
+    }
+
+    if (!widget.apiService.isOnline) {
+      if (mounted && _isLoading) setState(() => _isLoading = false);
+      return;
+    }
+
+    // 2. Background Revalidation
+    try {
+      final settings = widget.apiService.currentSettings ?? cachedSettings;
+      final results = await Future.wait([
+        widget.apiService.fetchCurrentEventKey(),
+        widget.apiService.fetchMatchConfig(),
+        widget.apiService.fetchPitConfig(),
+        widget.apiService.fetchQualConfig(),
+        widget.apiService.fetchPrescoutScoutingEntries(),
+        widget.apiService.fetchPrescoutPitScoutingEntries(),
+        widget.apiService.fetchPrescoutQualScoutingEntries(),
+      ]);
+
+      final defaultEvent = results[0] as String?;
+      final matchConfig = results[1] as ScoutingConfigModel?;
+      final pitConfig = results[2] as ScoutingConfigModel?;
+      final qualConfig = results[3] as ScoutingConfigModel?;
+      final matchEntries = results[4] as List<dynamic>;
+      final pitEntries = results[5] as List<dynamic>;
+      final qualEntries = results[6] as List<dynamic>;
+
+      if (mounted) {
+        setState(() {
+          _eventCode = (defaultEvent != null && defaultEvent.isNotEmpty) ? defaultEvent : 'prescout';
+          _timezone = settings?.timezone ?? 'UTC';
+          if (_eventCodeController.text.isEmpty || _eventCodeController.text == 'prescout') {
+            _eventCodeController.text = _eventCode;
+          }
+          _matchConfig = matchConfig ?? _matchConfig;
+          _pitConfig = pitConfig ?? _pitConfig;
+          _qualConfig = qualConfig ?? _qualConfig;
+          if (matchEntries.isNotEmpty) _matchEntries = matchEntries;
+          if (pitEntries.isNotEmpty) _pitEntries = pitEntries;
+          if (qualEntries.isNotEmpty) _qualEntries = qualEntries;
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted && _isLoading) setState(() => _isLoading = false);
     }
   }
 

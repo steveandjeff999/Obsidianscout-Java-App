@@ -75,6 +75,8 @@ class _GraphsScreenState extends State<GraphsScreen> {
   int _totalEvents = 0;
   int _totalMatches = 0;
 
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
@@ -89,49 +91,133 @@ class _GraphsScreenState extends State<GraphsScreen> {
     }
   }
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadData() async {
-    setState(() => _isLoading = true);
+    // 1. Instant Cache Hydration
+    final cachedSettings = await widget.apiService.getCachedSettings();
+    final cachedEventKey = await widget.apiService.getCachedEventKey();
+    final cachedConfig = await widget.apiService.getCachedMatchConfig();
+    final cachedEntriesRaw = await widget.apiService.getCachedScoutingEntries();
+    final cachedEvents = await widget.apiService.getCachedEvents(year: cachedSettings?.year);
+    final cachedTeams = await widget.apiService.getCachedTeams(cachedEventKey);
 
-    final settings = await widget.apiService.fetchSettings();
-    final events = await widget.apiService.fetchEvents(year: settings?.year);
-    final eventKey = await widget.apiService.fetchCurrentEventKey();
-    final config = await widget.apiService.fetchMatchConfig();
-    final rawEntries = await widget.apiService.fetchScoutingEntries();
-    final teams = await widget.apiService.fetchTeams(eventKey);
+    if (mounted && (cachedEntriesRaw.isNotEmpty || cachedTeams.isNotEmpty || cachedConfig != null)) {
+      final entries = cachedEntriesRaw
+          .map((e) => ScoutingEntryModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+      final metrics = _buildMetrics(cachedConfig);
+      final teamSet = entries.map((e) => e.targetTeamNumber).whereType<int>().toSet();
+      final matchSet = entries.map((e) => e.matchKey).whereType<String>().toSet();
+      final eventSet = entries.map((e) => e.eventKey).whereType<String>().toSet();
+      final teamMap = <int, TeamModel>{};
+      for (final t in cachedTeams) {
+        teamMap[t.teamNumber] = t;
+      }
 
-    final entries = rawEntries
-        .map((e) => ScoutingEntryModel.fromJson(e as Map<String, dynamic>))
-        .toList();
-
-    // Build metrics list from config matching web graphs.js
-    final metrics = _buildMetrics(config);
-
-    // Summary stats
-    final teamSet = entries.map((e) => e.targetTeamNumber).whereType<int>().toSet();
-    final matchSet = entries.map((e) => e.matchKey).whereType<String>().toSet();
-    final eventSet = entries.map((e) => e.eventKey).whereType<String>().toSet();
-
-    final teamMap = <int, TeamModel>{};
-    for (final t in teams) {
-      teamMap[t.teamNumber] = t;
+      setState(() {
+        _settings = cachedSettings;
+        _events = cachedEvents;
+        _eventKey = (cachedEventKey != null && cachedEventKey.isNotEmpty) ? cachedEventKey : (cachedSettings?.eventKey ?? '');
+        _config = cachedConfig;
+        _entries = entries;
+        _teams = cachedTeams;
+        _teamMap = teamMap;
+        _metrics = metrics;
+        if (_selectedMetric == null && metrics.isNotEmpty) _selectedMetric = metrics.first;
+        if (_selectedTeams.isEmpty) {
+          if (cachedTeams.isNotEmpty) {
+            _selectedTeams = cachedTeams.map((t) => t.teamNumber).toSet();
+          } else if (teamSet.isNotEmpty) {
+            _selectedTeams = teamSet;
+          }
+        }
+        _totalEntries = entries.length;
+        _totalTeams = teamSet.length;
+        _totalMatches = matchSet.length;
+        _totalEvents = eventSet.length;
+        _isLoading = false;
+      });
     }
 
-    setState(() {
-      _settings = settings;
-      _events = events;
-      _eventKey = (eventKey != null && eventKey.isNotEmpty) ? eventKey : (settings?.eventKey ?? '');
-      _config = config;
-      _entries = entries;
-      _teams = teams;
-      _teamMap = teamMap;
-      _metrics = metrics;
-      _selectedMetric = metrics.isNotEmpty ? metrics.first : null;
-      _totalEntries = entries.length;
-      _totalTeams = teamSet.length;
-      _totalMatches = matchSet.length;
-      _totalEvents = eventSet.length;
-      _isLoading = false;
-    });
+    if (!widget.apiService.isOnline) {
+      if (mounted && _isLoading) setState(() => _isLoading = false);
+      return;
+    }
+
+    // 2. Background Revalidation
+    try {
+      final results = await Future.wait([
+        widget.apiService.fetchSettings(),
+        widget.apiService.fetchCurrentEventKey(),
+        widget.apiService.fetchMatchConfig(),
+        widget.apiService.fetchScoutingEntries(),
+      ]);
+
+      final settings = results[0] as AppSettingsModel?;
+      final eventKey = results[1] as String?;
+      final config = results[2] as ScoutingConfigModel?;
+      final rawEntries = results[3] as List<dynamic>;
+
+      final eventsAndTeams = await Future.wait([
+        widget.apiService.fetchEvents(year: settings?.year),
+        widget.apiService.fetchTeams(eventKey),
+      ]);
+
+      final events = eventsAndTeams[0] as List<EventModel>;
+      final teams = eventsAndTeams[1] as List<TeamModel>;
+
+      final entries = rawEntries
+          .map((e) => ScoutingEntryModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+
+      // Build metrics list from config matching web graphs.js
+      final metrics = _buildMetrics(config);
+
+      // Summary stats
+      final teamSet = entries.map((e) => e.targetTeamNumber).whereType<int>().toSet();
+      final matchSet = entries.map((e) => e.matchKey).whereType<String>().toSet();
+      final eventSet = entries.map((e) => e.eventKey).whereType<String>().toSet();
+
+      final teamMap = <int, TeamModel>{};
+      for (final t in teams) {
+        teamMap[t.teamNumber] = t;
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _settings = settings;
+        _events = events;
+        _eventKey = (eventKey != null && eventKey.isNotEmpty) ? eventKey : (settings?.eventKey ?? '');
+        _config = config;
+        _entries = entries;
+        _teams = teams;
+        _teamMap = teamMap;
+        _metrics = metrics;
+        if (_selectedMetric == null || !metrics.any((m) => m.id == _selectedMetric?.id)) {
+          _selectedMetric = metrics.isNotEmpty ? metrics.first : null;
+        }
+        if (_selectedTeams.isEmpty) {
+          if (teams.isNotEmpty) {
+            _selectedTeams = teams.map((t) => t.teamNumber).toSet();
+          } else if (teamSet.isNotEmpty) {
+            _selectedTeams = teamSet;
+          }
+        }
+        _totalEntries = entries.length;
+        _totalTeams = teamSet.length;
+        _totalMatches = matchSet.length;
+        _totalEvents = eventSet.length;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (mounted && _isLoading) setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _onEventChanged(String? newEventKey) async {
@@ -146,6 +232,8 @@ class _GraphsScreenState extends State<GraphsScreen> {
     for (final t in teams) {
       teamMap[t.teamNumber] = t;
     }
+
+    if (!mounted) return;
 
     setState(() {
       _teams = teams;
@@ -263,10 +351,15 @@ class _GraphsScreenState extends State<GraphsScreen> {
     final result = <ScoutingEntryModel>[];
 
     for (final teamNum in selectedTeams) {
-      final currentEventEntries = _entries.where((entry) =>
-          entry.targetTeamNumber == teamNum &&
-          (_eventKey == null || _eventKey!.isEmpty || entry.eventKey == _eventKey) &&
-          !entry.isPrescout).toList();
+      final currentEventEntries = _entries.where((entry) {
+        if (entry.targetTeamNumber != teamNum) return false;
+        if (entry.isPrescout) return false;
+        if (_eventKey == null || _eventKey!.isEmpty) return true;
+        final entryKey = entry.eventKey?.trim().toLowerCase() ?? '';
+        final targetKey = _eventKey!.trim().toLowerCase();
+        return entryKey == targetKey ||
+            entryKey.replaceAll(RegExp(r'^[0-9]+'), '') == targetKey.replaceAll(RegExp(r'^[0-9]+'), '');
+      }).toList();
 
       final prescoutEntries = _entries.where((entry) =>
           entry.targetTeamNumber == teamNum &&
@@ -278,6 +371,12 @@ class _GraphsScreenState extends State<GraphsScreen> {
       } else {
         result.addAll(currentEventEntries);
       }
+
+      // Fallback: if no entries matched for this event, grab all entries for this team
+      if (result.where((e) => e.targetTeamNumber == teamNum).isEmpty) {
+        final anyEntries = _entries.where((entry) => entry.targetTeamNumber == teamNum).toList();
+        result.addAll(anyEntries);
+      }
     }
     return result;
   }
@@ -288,10 +387,14 @@ class _GraphsScreenState extends State<GraphsScreen> {
     final result = <ScoutingEntryModel>[];
 
     for (final teamNum in teamNums) {
-      final currentEventEntries = _entries.where((entry) =>
-          entry.targetTeamNumber == teamNum &&
-          entry.eventKey == _eventKey &&
-          !entry.isPrescout).toList();
+      final currentEventEntries = _entries.where((entry) {
+        if (entry.targetTeamNumber != teamNum) return false;
+        if (entry.isPrescout) return false;
+        final entryKey = entry.eventKey?.trim().toLowerCase() ?? '';
+        final targetKey = _eventKey!.trim().toLowerCase();
+        return entryKey == targetKey ||
+            entryKey.replaceAll(RegExp(r'^[0-9]+'), '') == targetKey.replaceAll(RegExp(r'^[0-9]+'), '');
+      }).toList();
 
       final prescoutEntries = _entries.where((entry) =>
           entry.targetTeamNumber == teamNum &&
@@ -302,6 +405,11 @@ class _GraphsScreenState extends State<GraphsScreen> {
         result.addAll(prescoutEntries);
       } else {
         result.addAll(currentEventEntries);
+      }
+
+      if (result.where((e) => e.targetTeamNumber == teamNum).isEmpty) {
+        final anyEntries = _entries.where((entry) => entry.targetTeamNumber == teamNum).toList();
+        result.addAll(anyEntries);
       }
     }
     return result;
@@ -515,30 +623,27 @@ class _GraphsScreenState extends State<GraphsScreen> {
 
   void _generateGraphs() {
     if (_selectedTeams.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select at least one team to generate graphs'), backgroundColor: ObsidianUITheme.warningOrange),
-      );
-      return;
+      if (_teams.isNotEmpty) {
+        _selectedTeams = _teams.map((t) => t.teamNumber).toSet();
+      } else if (_entries.isNotEmpty) {
+        _selectedTeams = _entries.map((e) => e.targetTeamNumber).whereType<int>().toSet();
+      }
     }
 
     if (_selectedGraphTypes.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select at least one graph type'), backgroundColor: ObsidianUITheme.warningOrange),
-      );
-      return;
+      _selectedGraphTypes = {'bar'};
     }
 
-    if (_datasource == 'scouted' && _selectedMetric == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select a metric'), backgroundColor: ObsidianUITheme.warningOrange),
-      );
-      return;
+    if (_datasource == 'scouted' && _selectedMetric == null && _metrics.isNotEmpty) {
+      _selectedMetric = _metrics.first;
     }
 
-    final entries = _getFilteredEntriesForTeams();
-    if (_datasource == 'scouted' && entries.isEmpty) {
+    if (_selectedTeams.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No scouting entries found for selected teams'), backgroundColor: ObsidianUITheme.warningOrange),
+        const SnackBar(
+          content: Text('No teams available to generate graphs'),
+          backgroundColor: ObsidianUITheme.warningOrange,
+        ),
       );
       return;
     }
@@ -546,6 +651,24 @@ class _GraphsScreenState extends State<GraphsScreen> {
     setState(() {
       _graphGenerated = true;
     });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Generated ${_selectedGraphTypes.length} graph(s) for ${_selectedTeams.length} teams'),
+        backgroundColor: ObsidianUITheme.primaryAccent,
+        duration: const Duration(seconds: 1),
+      ),
+    );
   }
 
   void _selectTopN(int n) {
@@ -592,6 +715,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
     final showDatasource = hasStatbotics || hasTbaOpr;
 
     return SingleChildScrollView(
+      controller: _scrollController,
       physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
       padding: EdgeInsets.only(top: 4.0, bottom: widget.isBarsVisible ? 120.0 : 20.0),
       child: Column(
@@ -953,17 +1077,50 @@ class _GraphsScreenState extends State<GraphsScreen> {
           ),
 
           // === Generate Button ===
-          ObsidianGlassCard(
-            onTap: _generateGraphs,
-            child: Center(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.auto_graph_rounded, color: ObsidianUITheme.primaryAccent),
-                  const SizedBox(width: 10),
-                  Text(context.tr('graphs.generate').toUpperCase(),
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15.0, color: ObsidianUITheme.getPrimaryTextColor(context))),
-                ],
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
+              child: InkWell(
+                onTap: _generateGraphs,
+                borderRadius: BorderRadius.circular(16),
+                child: Ink(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [ObsidianUITheme.primaryAccent, Color(0xFF6366F1)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.35),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  child: Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.auto_graph_rounded, color: Colors.white, size: 20),
+                        const SizedBox(width: 10),
+                        Text(
+                          context.tr('graphs.generate').toUpperCase(),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15.0,
+                            color: Colors.white,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
@@ -1102,11 +1259,11 @@ class _GraphsScreenState extends State<GraphsScreen> {
 
   Widget _renderNonScoutedGraph(String graphType) {
     final selectedNums = _selectedTeams.toList();
-    final data = selectedNums.map((num) {
-      final team = _teamMap[num];
+    final data = selectedNums.map((teamNum) {
+      final team = _teamMap[teamNum];
       return (
-        num: num,
-        label: 'Team $num',
+        num: teamNum,
+        label: 'Team $teamNum',
         epa: team?.epa ?? 0.0,
         opr: team?.opr ?? 0.0,
         scouted: team?.averagePoints ?? 0.0,

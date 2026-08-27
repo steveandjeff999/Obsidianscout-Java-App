@@ -1,7 +1,4 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import '../l10n/app_localizations.dart';
 import '../models/config_models.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
@@ -94,11 +91,59 @@ class _MatchDataScreenState extends State<MatchDataScreen> {
   }
 
   Future<void> _loadData() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    // 1. Instant Cache Hydration
+    final cachedSettings = await widget.apiService.getCachedSettings();
+    final cachedMatchCfg = await widget.apiService.getCachedMatchConfig();
+    final cachedRawEntries = await widget.apiService.getCachedScoutingEntries();
+    final cachedEvents = await widget.apiService.getCachedEvents(year: cachedSettings?.year);
+    final cachedTeams = await widget.apiService.getCachedTeams(cachedSettings?.eventKey);
 
+    if (mounted && (cachedRawEntries.isNotEmpty || cachedTeams.isNotEmpty)) {
+      final Map<int, TeamModel> teamMap = {};
+      for (final t in cachedTeams) {
+        teamMap[t.teamNumber] = t;
+      }
+      final List<MatchScoutingRecord> parsed = [];
+      for (final e in cachedRawEntries) {
+        if (e is Map<String, dynamic>) {
+          final isPrescout = e['isPrescout'] == true;
+          final matchNum = (e['matchNumber'] as num?)?.toInt() ?? 0;
+          if (matchNum > 0 || isPrescout) {
+            parsed.add(MatchScoutingRecord(
+              id: e['id']?.toString() ?? '',
+              targetTeamNumber: (e['targetTeamNumber'] as num?)?.toInt() ?? 0,
+              eventKey: isPrescout ? 'prescout' : (e['eventKey']?.toString() ?? ''),
+              isPrescout: isPrescout,
+              matchNumber: matchNum,
+              matchKey: e['matchKey']?.toString(),
+              createdAt: e['createdAt']?.toString(),
+              data: e['data'] is Map ? Map<String, dynamic>.from(e['data'] as Map) : {},
+              hasDiscrepancy: e['hasDiscrepancy'] == true,
+              conflictingTeams: (e['conflictingTeams'] as List?)?.map((t) => t.toString()).toList() ?? [],
+              scoutUsername: e['scoutUsername']?.toString() ?? e['username']?.toString(),
+            ));
+          }
+        }
+      }
+
+      setState(() {
+        _matchConfig = cachedMatchCfg;
+        _records = parsed;
+        _events = cachedEvents;
+        _teamsByNumber = teamMap;
+        if (_selectedEventKey == 'all' && cachedSettings?.eventKey != null && cachedSettings!.eventKey.isNotEmpty) {
+          _selectedEventKey = cachedSettings.eventKey;
+        }
+        _isLoading = false;
+      });
+    }
+
+    if (!widget.apiService.isOnline) {
+      if (mounted && _isLoading) setState(() => _isLoading = false);
+      return;
+    }
+
+    // 2. Background Revalidation
     try {
       final settings = await widget.apiService.fetchSettings();
       final currentYear = settings?.year ?? DateTime.now().year;
@@ -145,10 +190,10 @@ class _MatchDataScreenState extends State<MatchDataScreen> {
 
       if (mounted) {
         setState(() {
-          _matchConfig = matchCfg;
-          _records = parsed;
-          _events = events;
-          _teamsByNumber = teamMap;
+          _matchConfig = matchCfg ?? _matchConfig;
+          if (parsed.isNotEmpty) _records = parsed;
+          if (events.isNotEmpty) _events = events;
+          if (teamMap.isNotEmpty) _teamsByNumber = teamMap;
           if (_selectedEventKey == 'all' && settings?.eventKey != null && settings!.eventKey.isNotEmpty) {
             _selectedEventKey = settings.eventKey;
           }
@@ -156,11 +201,8 @@ class _MatchDataScreenState extends State<MatchDataScreen> {
         });
       }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = e.toString();
-          _isLoading = false;
-        });
+      if (mounted && _isLoading) {
+        setState(() => _isLoading = false);
       }
     }
   }

@@ -50,6 +50,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _loadCacheSummary() async {
+    if (!mounted) return;
     setState(() => _isLoadingCache = true);
     final summary = await widget.apiService.getCacheSummary();
     if (mounted) {
@@ -61,7 +62,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _loadSessions() async {
-    if (!widget.apiService.isLoggedIn) return;
+    if (!widget.apiService.isLoggedIn || !mounted) return;
     setState(() => _isLoadingSessions = true);
     final sessions = await widget.apiService.fetchSessions();
     if (mounted) {
@@ -214,9 +215,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _handleSyncNow() async {
+    if (!mounted) return;
     setState(() => _isSyncing = true);
     await widget.apiService.syncAllServerDataInBackground();
+    if (!mounted) return;
     await _loadCacheSummary();
+    if (!mounted) return;
     await _loadSessions();
     if (mounted) {
       setState(() => _isSyncing = false);
@@ -446,6 +450,85 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           ),
+          const SizedBox(height: 16),
+
+          // Network Request Timeout Card
+          ObsidianGlassCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.timer_outlined, color: ObsidianUITheme.primaryAccent),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Network Request Timeout',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
+                    ),
+                  ],
+                ),
+                Divider(color: borderColor, height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('HTTP & Sync Timeout', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: primaryTextColor)),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Duration before requests abort and fall back to offline cache.',
+                            style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    ValueListenableBuilder<int>(
+                      valueListenable: widget.apiService.timeoutNotifier,
+                      builder: (context, currentTimeout, _) {
+                        final allowedTimeouts = [3, 6, 10, 15, 20, 30];
+                        final effectiveValue = allowedTimeouts.contains(currentTimeout) ? currentTimeout : 6;
+
+                        return DropdownButton<int>(
+                          value: effectiveValue,
+                          dropdownColor: ObsidianUITheme.getSurfaceColor(context),
+                          style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.bold),
+                          underline: Container(height: 2, color: ObsidianUITheme.primaryAccent),
+                          items: const [
+                            DropdownMenuItem(value: 3, child: Text('3s (Fast / Local)')),
+                            DropdownMenuItem(value: 6, child: Text('6s (Standard)')),
+                            DropdownMenuItem(value: 10, child: Text('10s (Crowded Wi-Fi)')),
+                            DropdownMenuItem(value: 15, child: Text('15s (Slow Arena LTE)')),
+                            DropdownMenuItem(value: 20, child: Text('20s (High Latency)')),
+                            DropdownMenuItem(value: 30, child: Text('30s (Maximum)')),
+                          ],
+                          onChanged: (newTimeout) async {
+                            if (newTimeout != null) {
+                              await widget.apiService.setRequestTimeoutSeconds(newTimeout);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Request timeout set to ${newTimeout}s'),
+                                    backgroundColor: ObsidianUITheme.primaryAccent,
+                                    duration: const Duration(seconds: 2),
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
           // Form Configuration Editor Card
           ObsidianGlassCard(
             child: Column(

@@ -177,10 +177,11 @@ class _ConflictResolutionModalState extends State<ConflictResolutionModal> {
       }
 
       if (mounted) {
+        final messenger = ScaffoldMessenger.of(context);
         Navigator.of(context).pop();
         await widget.apiService.clearScoutingCaches();
         widget.onResolved();
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(
             content: Row(
               children: [
@@ -272,10 +273,11 @@ class _ConflictResolutionModalState extends State<ConflictResolutionModal> {
       }
 
       if (mounted) {
+        final messenger = ScaffoldMessenger.of(context);
         Navigator.of(context).pop();
         await widget.apiService.clearScoutingCaches();
         widget.onResolved();
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(
             content: Row(
               children: [
@@ -332,10 +334,11 @@ class _ConflictResolutionModalState extends State<ConflictResolutionModal> {
         throw Exception(res.message ?? 'Failed to delete entry ($id)');
       }
       if (mounted) {
+        final messenger = ScaffoldMessenger.of(context);
         Navigator.of(context).pop();
         await widget.apiService.clearScoutingCaches();
         widget.onResolved();
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(
             content: Text('Submission deleted'),
             backgroundColor: Color(0xFF1E293B),

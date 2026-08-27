@@ -141,7 +141,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     }
 
     if (mounted) {
-      final sanitizedFields = config!.fields.where((f) => f.type.toLowerCase() != 'section').toList();
+      final sanitizedFields = config.fields.where((f) => f.type.toLowerCase() != 'section').toList();
       final sanitizedConfig = config.copyWith(fields: sanitizedFields);
       setState(() {
         _currentConfig = sanitizedConfig;
@@ -790,7 +790,6 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                 title: Text('Reset to Official Program Default', style: TextStyle(fontWeight: FontWeight.bold, color: primaryTextColor, fontSize: 14)),
                 subtitle: Text('Restores default ${_activeKind.toUpperCase()} form preset', style: TextStyle(color: secondaryTextColor, fontSize: 11)),
                 onTap: () async {
-                  final messenger = ScaffoldMessenger.of(context);
                   Navigator.of(ctx).pop();
                   final confirm = await showDialog<bool>(
                     context: context,
@@ -1622,7 +1621,6 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                           onPressed: isMigrating
                               ? null
                               : () async {
-                                  final messenger = ScaffoldMessenger.of(context);
                                   setModalState(() => isMigrating = true);
 
                                   final mappings = status.dataKeys.map((k) {
@@ -1636,6 +1634,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                                   final response = await widget.apiService.applyConfigMigration(_activeKind, mappings, defaultVals);
                                   setModalState(() => isMigrating = false);
 
+                                  if (!mounted) return;
                                   if (response.success && response.data != null && response.data!.success) {
                                     Navigator.of(ctx).pop();
                                     ObsidianFeedback.showSuccess(

@@ -201,20 +201,22 @@ class ObsidianPagesModal extends StatelessWidget {
 
     final canAccessQr = apiService?.hasPageAccess('qr-scanner') ?? true;
 
-    return Container(
-      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.82),
-      decoration: BoxDecoration(
-        color: const Color(0xF00C0F14),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28.0)),
-        border: Border.all(color: ObsidianUITheme.glassBorderLight, width: 1.2),
-      ),
-      child: ClipRRect(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28.0)),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20.0, 12.0, 20.0, 24.0),
-            child: Column(
+    return Material(
+      color: const Color(0xF00C0F14),
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28.0)),
+      child: Container(
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.82),
+        decoration: BoxDecoration(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28.0)),
+          border: Border.all(color: ObsidianUITheme.glassBorderLight, width: 1.2),
+        ),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28.0)),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20.0, 12.0, 20.0, 24.0),
+              child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

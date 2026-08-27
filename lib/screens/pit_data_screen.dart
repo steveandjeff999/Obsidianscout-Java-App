@@ -1,13 +1,8 @@
-import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import '../l10n/app_localizations.dart';
 import '../models/config_models.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
 import '../services/csv_export_service.dart';
-import '../services/image_utils.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/csv_export_modal.dart';
 import '../widgets/obsidian_feedback.dart';
@@ -89,21 +84,102 @@ class _PitDataScreenState extends State<PitDataScreen> {
   }
 
   Future<void> _loadData() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    // 1. Instant Cache Hydration
+    final cachedSettings = await widget.apiService.getCachedSettings();
+    final cachedPitCfg = await widget.apiService.getCachedPitConfig();
+    final cachedPitRaw = await widget.apiService.getCachedPitScoutingEntries();
+    final cachedEvents = await widget.apiService.getCachedEvents(year: cachedSettings?.year);
+    final targetEventKey = _selectedEventKey.isNotEmpty ? _selectedEventKey : (cachedSettings?.eventKey ?? '');
+    final cachedTeams = await widget.apiService.getCachedTeams(targetEventKey);
 
+    if (mounted && (cachedPitRaw.isNotEmpty || cachedTeams.isNotEmpty)) {
+      final rawList = <Map<String, dynamic>>[];
+      final Map<int, Map<String, dynamic>> pitMap = {};
+      final Map<int, String?> updateTimeMap = {};
+      final Map<int, String?> scoutUserMap = {};
+      final Map<int, String?> entryIdMap = {};
+
+      for (final e in cachedPitRaw) {
+        if (e is Map<String, dynamic>) {
+          final tNum = (e['targetTeamNumber'] as num?)?.toInt() ?? 0;
+          final entryEvent = e['isPrescout'] == true ? 'prescout' : (e['eventKey']?.toString() ?? '');
+          if (targetEventKey.isEmpty || entryEvent == targetEventKey || entryEvent == 'prescout') {
+            if (tNum > 0) {
+              rawList.add(e);
+              pitMap[tNum] = e['data'] is Map ? Map<String, dynamic>.from(e['data'] as Map) : {};
+              updateTimeMap[tNum] = e['createdAt']?.toString();
+              scoutUserMap[tNum] = e['scoutUsername']?.toString() ?? e['username']?.toString();
+              entryIdMap[tNum] = e['id']?.toString();
+            }
+          }
+        }
+      }
+
+      final List<TeamPitCoverageItem> items = [];
+      for (final t in cachedTeams) {
+        final hasData = pitMap.containsKey(t.teamNumber);
+        items.add(TeamPitCoverageItem(
+          teamNumber: t.teamNumber,
+          nickname: t.nickname ?? 'Team ${t.teamNumber}',
+          hasPitData: hasData,
+          lastUpdated: updateTimeMap[t.teamNumber],
+          scoutUsername: scoutUserMap[t.teamNumber],
+          pitData: pitMap[t.teamNumber] ?? {},
+          entryId: entryIdMap[t.teamNumber],
+        ));
+      }
+
+      for (final entry in pitMap.entries) {
+        if (!items.any((i) => i.teamNumber == entry.key)) {
+          items.add(TeamPitCoverageItem(
+            teamNumber: entry.key,
+            nickname: 'Team ${entry.key}',
+            hasPitData: true,
+            lastUpdated: updateTimeMap[entry.key],
+            scoutUsername: scoutUserMap[entry.key],
+            pitData: entry.value,
+            entryId: entryIdMap[entry.key],
+          ));
+        }
+      }
+
+      final fields = cachedPitCfg?.fields.where((f) => f.type != 'section').toList() ?? [];
+      String defaultQuickField = '';
+      if (fields.isNotEmpty) {
+        defaultQuickField = fields.firstWhere(
+          (f) => f.id.toLowerCase().contains('drivetrain') || f.id.toLowerCase().contains('drive'),
+          orElse: () => fields.first,
+        ).id;
+      }
+
+      setState(() {
+        _pitConfig = cachedPitCfg;
+        _rawPitEntries = rawList;
+        _quickFieldOptions = fields;
+        _coverageList = items;
+        _events = cachedEvents;
+        if (_selectedEventKey.isEmpty) _selectedEventKey = targetEventKey;
+        if (_selectedQuickFieldId.isEmpty) _selectedQuickFieldId = defaultQuickField;
+        _isLoading = false;
+      });
+    }
+
+    if (!widget.apiService.isOnline) {
+      if (mounted && _isLoading) setState(() => _isLoading = false);
+      return;
+    }
+
+    // 2. Background Revalidation
     try {
       final settings = await widget.apiService.fetchSettings();
       final currentYear = settings?.year ?? DateTime.now().year;
-      final targetEventKey = _selectedEventKey.isNotEmpty ? _selectedEventKey : (settings?.eventKey ?? '');
+      final onlineTargetKey = _selectedEventKey.isNotEmpty ? _selectedEventKey : (settings?.eventKey ?? '');
 
       final results = await Future.wait([
         widget.apiService.fetchPitConfig(),
         widget.apiService.fetchPitScoutingEntries(),
         widget.apiService.fetchEvents(year: currentYear),
-        widget.apiService.fetchTeams(targetEventKey),
+        widget.apiService.fetchTeams(onlineTargetKey),
       ]);
 
       final pitCfg = results[0] as ScoutingConfigModel?;
@@ -122,7 +198,7 @@ class _PitDataScreenState extends State<PitDataScreen> {
           final tNum = (e['targetTeamNumber'] as num?)?.toInt() ?? 0;
           final entryEvent = e['isPrescout'] == true ? 'prescout' : (e['eventKey']?.toString() ?? '');
           
-          if (targetEventKey.isEmpty || entryEvent == targetEventKey || entryEvent == 'prescout') {
+          if (onlineTargetKey.isEmpty || entryEvent == onlineTargetKey || entryEvent == 'prescout') {
             if (tNum > 0) {
               rawList.add(e);
               pitMap[tNum] = e['data'] is Map ? Map<String, dynamic>.from(e['data'] as Map) : {};
@@ -176,13 +252,13 @@ class _PitDataScreenState extends State<PitDataScreen> {
 
       if (mounted) {
         setState(() {
-          _pitConfig = pitCfg;
-          _rawPitEntries = rawList;
-          _quickFieldOptions = fields;
-          _coverageList = items;
-          _events = events;
+          _pitConfig = pitCfg ?? _pitConfig;
+          if (rawList.isNotEmpty) _rawPitEntries = rawList;
+          if (fields.isNotEmpty) _quickFieldOptions = fields;
+          if (items.isNotEmpty) _coverageList = items;
+          if (events.isNotEmpty) _events = events;
           if (_selectedEventKey.isEmpty) {
-            _selectedEventKey = targetEventKey;
+            _selectedEventKey = onlineTargetKey;
           }
           if (_selectedQuickFieldId.isEmpty) {
             _selectedQuickFieldId = defaultQuickField;
@@ -191,11 +267,8 @@ class _PitDataScreenState extends State<PitDataScreen> {
         });
       }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = e.toString();
-          _isLoading = false;
-        });
+      if (mounted && _isLoading) {
+        setState(() => _isLoading = false);
       }
     }
   }

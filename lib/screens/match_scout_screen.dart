@@ -57,28 +57,69 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
   }
 
   void _loadPageData() async {
-    final eventKey = await widget.apiService.fetchCurrentEventKey();
-    final config = await widget.apiService.fetchMatchConfig();
-    final teams = await widget.apiService.fetchTeams(eventKey);
-    final matches = await widget.apiService.fetchMatches(eventKey);
+    // 1. Instant Cache Hydration (0ms! Zero spinner when data exists locally)
+    final cachedEventKey = await widget.apiService.getCachedEventKey();
+    final cachedConfig = await widget.apiService.getCachedMatchConfig();
+    final cachedTeams = await widget.apiService.getCachedTeams(cachedEventKey);
+    final cachedMatches = await widget.apiService.getCachedMatches(cachedEventKey);
 
-    setState(() {
-      _eventKey = eventKey;
-      _config = config;
-      _teams = teams;
-      _matches = matches;
-      if (_selectedTeam != null && !_teams.contains(_selectedTeam)) {
-        _selectedTeam = null;
-      }
-      if (_selectedMatch != null && !_matches.contains(_selectedMatch)) {
-        _selectedMatch = null;
-      }
-      _isLoading = false;
+    if (mounted && (cachedConfig != null || cachedTeams.isNotEmpty || cachedMatches.isNotEmpty)) {
+      setState(() {
+        _eventKey = cachedEventKey;
+        _config = cachedConfig;
+        _teams = cachedTeams;
+        _matches = cachedMatches;
+        _isLoading = false;
+        if (cachedConfig != null && _formData.isEmpty) {
+          _resetFormData(cachedConfig);
+        }
+      });
+    }
 
-      if (config != null) {
-        _resetFormData(config);
-      }
-    });
+    // If offline, stop immediately - don't wait for any network timeouts
+    if (!widget.apiService.isOnline) {
+      if (mounted && _isLoading) setState(() => _isLoading = false);
+      return;
+    }
+
+    // 2. Background Revalidation (fetch fresh updates without blocking UI)
+    try {
+      final eventKeyFuture = widget.apiService.fetchCurrentEventKey();
+      final configFuture = widget.apiService.fetchMatchConfig();
+
+      final eventKey = await eventKeyFuture;
+      final config = await configFuture;
+
+      final results = await Future.wait([
+        widget.apiService.fetchTeams(eventKey),
+        widget.apiService.fetchMatches(eventKey),
+      ]);
+
+      final teams = results[0] as List<TeamModel>;
+      final matches = results[1] as List<MatchModel>;
+
+      if (!mounted) return;
+
+      setState(() {
+        _eventKey = eventKey;
+        _config = config ?? _config;
+        if (teams.isNotEmpty) _teams = teams;
+        if (matches.isNotEmpty) _matches = matches;
+        if (_selectedTeam != null && !_teams.contains(_selectedTeam)) {
+          _selectedTeam = null;
+        }
+        if (_selectedMatch != null && !_matches.contains(_selectedMatch)) {
+          _selectedMatch = null;
+        }
+        _isLoading = false;
+
+        if (_config != null && _formData.isEmpty) {
+          _resetFormData(_config!);
+        }
+      });
+    } catch (_) {
+      if (mounted && _isLoading) setState(() => _isLoading = false);
+    }
   }
 
   String _getFieldPhase(ScoutingFieldModel field) {
@@ -113,7 +154,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
       final valStr = value.toString();
       for (final opt in field.options) {
         if (opt.value == valStr) {
-          return opt.points ?? 0.0;
+          return opt.points;
         }
       }
       return 0.0;
@@ -282,53 +323,53 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
 
     final response = await widget.apiService.submitMatchScouting(data);
 
+    if (!mounted) return;
+
     setState(() => _isSubmitting = false);
 
-    if (mounted) {
-      if (response.success) {
-        ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
-          type: 'match',
-          action: 'direct_upload',
-          status: 'synced',
-          payload: data,
-        ));
-        ObsidianFeedback.showSuccess(
-          context,
-          title: 'Match Scouting Saved',
-          message: 'Match scouting data saved successfully (HTTP ${response.statusCode ?? 200})',
-          statusCode: response.statusCode ?? 200,
-        );
-        _resetForm();
-      } else if (response.isOffline) {
-        ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
-          type: 'match',
-          action: 'offline_cached',
-          status: 'pending',
-          payload: data,
-        ));
-        ObsidianFeedback.showWarning(
-          context,
-          title: 'Saved to Offline Cache',
-          message: 'Device offline. Saved to offline cache and will sync when online.',
-        );
-        _resetForm();
-      } else {
-        ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
-          type: 'match',
-          action: 'direct_upload',
-          status: 'failed',
-          payload: data,
-        ));
-        ObsidianFeedback.showError(
-          context,
-          title: 'Save Failed',
-          message: response.message != null && response.message!.isNotEmpty
-              ? response.message!
-              : 'Failed to submit match scouting data.',
-          statusCode: response.statusCode,
-          isOffline: response.isOffline,
-        );
-      }
+    if (response.success) {
+      ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+        type: 'match',
+        action: 'direct_upload',
+        status: 'synced',
+        payload: data,
+      ));
+      ObsidianFeedback.showSuccess(
+        context,
+        title: 'Match Scouting Saved',
+        message: 'Match scouting data saved successfully (HTTP ${response.statusCode ?? 200})',
+        statusCode: response.statusCode ?? 200,
+      );
+      _resetForm();
+    } else if (response.isOffline) {
+      ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+        type: 'match',
+        action: 'offline_cached',
+        status: 'pending',
+        payload: data,
+      ));
+      ObsidianFeedback.showWarning(
+        context,
+        title: 'Saved to Offline Cache',
+        message: 'Device offline. Saved to offline cache and will sync when online.',
+      );
+      _resetForm();
+    } else {
+      ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+        type: 'match',
+        action: 'direct_upload',
+        status: 'failed',
+        payload: data,
+      ));
+      ObsidianFeedback.showError(
+        context,
+        title: 'Save Failed',
+        message: response.message != null && response.message!.isNotEmpty
+            ? response.message!
+            : 'Failed to submit match scouting data.',
+        statusCode: response.statusCode,
+        isOffline: response.isOffline,
+      );
     }
   }
 

@@ -55,75 +55,136 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
   }
 
   void _loadQualData() async {
-    final eventKey = await widget.apiService.fetchCurrentEventKey();
-    var config = await widget.apiService.fetchQualConfig();
-    final teams = await widget.apiService.fetchTeams(eventKey);
-    final matches = await widget.apiService.fetchMatches(eventKey);
+    // 1. Instant Cache Hydration (0ms! Zero spinner when data exists locally)
+    final cachedEventKey = await widget.apiService.getCachedEventKey();
+    var cachedConfig = await widget.apiService.getCachedQualConfig();
+    final cachedTeams = await widget.apiService.getCachedTeams(cachedEventKey);
+    final cachedMatches = await widget.apiService.getCachedMatches(cachedEventKey);
 
-    if (config == null || config.fields.isEmpty) {
-      config = ScoutingConfigModel(
-        title: 'Qualitative Scouting',
-        fields: [
-          ScoutingFieldModel(
-            id: 'driver_skill',
-            label: 'Driver Skill (1-5)',
-            type: 'counter',
-            min: 1,
-            max: 5,
-            step: 1,
-          ),
-          ScoutingFieldModel(
-            id: 'defense_rating',
-            label: 'Defense Rating (1-5)',
-            type: 'counter',
-            min: 1,
-            max: 5,
-            step: 1,
-          ),
-          ScoutingFieldModel(
-            id: 'speed_rating',
-            label: 'Speed & Agility (1-5)',
-            type: 'counter',
-            min: 1,
-            max: 5,
-            step: 1,
-          ),
-          ScoutingFieldModel(
-            id: 'robot_durability',
-            label: 'Robot Durability',
-            type: 'select',
-            options: [
-              ScoutingOptionModel(label: 'Sturdy / Solid', value: 'sturdy'),
-              ScoutingOptionModel(label: 'Average', value: 'average'),
-              ScoutingOptionModel(label: 'Fragile / Breakdowns', value: 'fragile'),
-            ],
-          ),
-          ScoutingFieldModel(
-            id: 'qualitative_notes',
-            label: 'Qualitative Notes / Strategy Comments',
-            type: 'text',
-          ),
-        ],
-      );
+    if (cachedConfig == null || cachedConfig.fields.isEmpty) {
+      cachedConfig = _buildFallbackQualConfig();
     }
 
-    setState(() {
-      _eventKey = eventKey;
-      _config = config;
-      _teams = teams;
-      _matches = matches;
-      if (_selectedTeam != null && !_teams.contains(_selectedTeam)) {
-        _selectedTeam = null;
-      }
-      if (_selectedMatch != null && !_matches.contains(_selectedMatch)) {
-        _selectedMatch = null;
-      }
-      _isLoading = false;
+    if (mounted && (cachedConfig.fields.isNotEmpty || cachedTeams.isNotEmpty || cachedMatches.isNotEmpty)) {
+      setState(() {
+        _eventKey = cachedEventKey;
+        _config = cachedConfig;
+        _teams = cachedTeams;
+        _matches = cachedMatches;
+        _isLoading = false;
+        if (_formData.isEmpty) {
+          _resetFormData(cachedConfig!);
+        }
+      });
+    }
 
-      if (config != null) {
-        _resetFormData(config);
+    // If offline, stop immediately
+    if (!widget.apiService.isOnline) {
+      if (mounted && _isLoading) setState(() => _isLoading = false);
+      return;
+    }
+
+    // 2. Background Revalidation
+    try {
+      final eventKeyFuture = widget.apiService.fetchCurrentEventKey();
+      final configFuture = widget.apiService.fetchQualConfig();
+
+      final eventKey = await eventKeyFuture;
+      ScoutingConfigModel? config = await configFuture;
+
+      final results = await Future.wait([
+        widget.apiService.fetchTeams(eventKey),
+        widget.apiService.fetchMatches(eventKey),
+      ]);
+
+      final teams = results[0] as List<TeamModel>;
+      final matches = results[1] as List<MatchModel>;
+
+      if (config == null || config.fields.isEmpty) {
+        config = _config ?? _buildFallbackQualConfig();
       }
-    });
+
+      if (!mounted) return;
+
+      setState(() {
+        _eventKey = eventKey;
+        _config = config ?? _config;
+        if (teams.isNotEmpty) _teams = teams;
+        if (matches.isNotEmpty) _matches = matches;
+        if (_selectedTeam != null && !_teams.contains(_selectedTeam)) {
+          _selectedTeam = null;
+        }
+        if (_selectedMatch != null && !_matches.contains(_selectedMatch)) {
+          _selectedMatch = null;
+        }
+        _isLoading = false;
+
+        if (_config != null && _formData.isEmpty) {
+          _resetFormData(_config!);
+        }
+      });
+    } catch (_) {
+      if (mounted && _isLoading) setState(() => _isLoading = false);
+    }
+  }
+
+  ScoutingConfigModel _buildFallbackQualConfig() {
+    return ScoutingConfigModel(
+      title: 'FRC Qualitative Scouting',
+      fields: [
+        ScoutingFieldModel(
+          id: 'driver_skill',
+          label: 'Driver Skill & Field Awareness',
+          type: 'rating',
+          min: 1,
+          max: 5,
+          defaultValue: 3,
+        ),
+        ScoutingFieldModel(
+          id: 'defense_rating',
+          label: 'Defense Rating / Resistance',
+          type: 'rating',
+          min: 1,
+          max: 5,
+          defaultValue: 1,
+        ),
+        ScoutingFieldModel(
+          id: 'robot_speed',
+          label: 'Robot Speed & Agility',
+          type: 'select',
+          options: [
+            ScoutingOptionModel(label: 'Very Fast', value: 'very_fast'),
+            ScoutingOptionModel(label: 'Moderate / Normal', value: 'moderate'),
+            ScoutingOptionModel(label: 'Slow / Struggling', value: 'slow'),
+          ],
+        ),
+        ScoutingFieldModel(
+          id: 'intake_consistency',
+          label: 'Intake & Feed Reliability',
+          type: 'select',
+          options: [
+            ScoutingOptionModel(label: 'Flawless', value: 'flawless'),
+            ScoutingOptionModel(label: 'Consistent', value: 'consistent'),
+            ScoutingOptionModel(label: 'Prone to Jams', value: 'jams'),
+          ],
+        ),
+        ScoutingFieldModel(
+          id: 'robustness',
+          label: 'Mechanical Robustness',
+          type: 'select',
+          options: [
+            ScoutingOptionModel(label: 'Sturdy / Solid', value: 'sturdy'),
+            ScoutingOptionModel(label: 'Average', value: 'average'),
+            ScoutingOptionModel(label: 'Fragile / Breakdowns', value: 'fragile'),
+          ],
+        ),
+        ScoutingFieldModel(
+          id: 'qualitative_notes',
+          label: 'Qualitative Notes / Strategy Comments',
+          type: 'text',
+        ),
+      ],
+    );
   }
 
   void _resetFormData(ScoutingConfigModel config) {
@@ -306,53 +367,53 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
 
     final response = await widget.apiService.submitQualScouting(payload);
 
+    if (!mounted) return;
+
     setState(() => _isSubmitting = false);
 
-    if (mounted) {
-      if (response.success) {
-        ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
-          type: 'qual',
-          action: 'direct_upload',
-          status: 'synced',
-          payload: payload,
-        ));
-        ObsidianFeedback.showSuccess(
-          context,
-          title: 'Qual Scouting Saved',
-          message: 'Qualitative scouting data saved successfully (HTTP ${response.statusCode ?? 200})',
-          statusCode: response.statusCode ?? 200,
-        );
-        _resetForm();
-      } else if (response.isOffline) {
-        ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
-          type: 'qual',
-          action: 'offline_cached',
-          status: 'pending',
-          payload: payload,
-        ));
-        ObsidianFeedback.showWarning(
-          context,
-          title: 'Saved to Offline Cache',
-          message: 'Device offline. Saved to offline cache and will sync when online.',
-        );
-        _resetForm();
-      } else {
-        ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
-          type: 'qual',
-          action: 'direct_upload',
-          status: 'failed',
-          payload: payload,
-        ));
-        ObsidianFeedback.showError(
-          context,
-          title: 'Save Failed',
-          message: response.message != null && response.message!.isNotEmpty
-              ? response.message!
-              : 'Failed to submit qualitative scouting data.',
-          statusCode: response.statusCode,
-          isOffline: response.isOffline,
-        );
-      }
+    if (response.success) {
+      ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+        type: 'qual',
+        action: 'direct_upload',
+        status: 'synced',
+        payload: payload,
+      ));
+      ObsidianFeedback.showSuccess(
+        context,
+        title: 'Qual Scouting Saved',
+        message: 'Qualitative scouting data saved successfully (HTTP ${response.statusCode ?? 200})',
+        statusCode: response.statusCode ?? 200,
+      );
+      _resetForm();
+    } else if (response.isOffline) {
+      ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+        type: 'qual',
+        action: 'offline_cached',
+        status: 'pending',
+        payload: payload,
+      ));
+      ObsidianFeedback.showWarning(
+        context,
+        title: 'Saved to Offline Cache',
+        message: 'Device offline. Saved to offline cache and will sync when online.',
+      );
+      _resetForm();
+    } else {
+      ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+        type: 'qual',
+        action: 'direct_upload',
+        status: 'failed',
+        payload: payload,
+      ));
+      ObsidianFeedback.showError(
+        context,
+        title: 'Save Failed',
+        message: response.message != null && response.message!.isNotEmpty
+            ? response.message!
+            : 'Failed to submit qualitative scouting data.',
+        statusCode: response.statusCode,
+        isOffline: response.isOffline,
+      );
     }
   }
 

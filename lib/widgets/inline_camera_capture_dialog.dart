@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -189,7 +188,6 @@ class _InlineCameraCaptureDialogState extends State<InlineCameraCaptureDialog> {
   Widget build(BuildContext context) {
     final isDark = ObsidianUITheme.isDark(context);
     final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
-    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
     final surfaceColor = isDark ? const Color(0xFF0F172A) : Colors.white;
     final borderColor = ObsidianUITheme.getBorderColor(context);
 

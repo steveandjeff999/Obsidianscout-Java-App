@@ -160,7 +160,7 @@ class CsvExportService {
     final now = DateTime.now();
     final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     final eventPrefix = (eventKey != null && eventKey.isNotEmpty) ? '${eventKey}_' : '';
-    final filename = 'obsidian_match_scouting_${eventPrefix}$dateStr.csv';
+    final filename = 'obsidian_match_scouting_$eventPrefix$dateStr.csv';
 
     return CsvExportData(
       csvContent: buffer.toString(),
@@ -232,7 +232,7 @@ class CsvExportService {
     final now = DateTime.now();
     final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     final eventPrefix = (eventKey != null && eventKey.isNotEmpty) ? '${eventKey}_' : '';
-    final filename = 'obsidian_pit_scouting_${eventPrefix}$dateStr.csv';
+    final filename = 'obsidian_pit_scouting_$eventPrefix$dateStr.csv';
 
     return CsvExportData(
       csvContent: buffer.toString(),
@@ -307,7 +307,7 @@ class CsvExportService {
     final now = DateTime.now();
     final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     final eventPrefix = (eventKey != null && eventKey.isNotEmpty) ? '${eventKey}_' : '';
-    final filename = 'obsidian_qualitative_scouting_${eventPrefix}$dateStr.csv';
+    final filename = 'obsidian_qualitative_scouting_$eventPrefix$dateStr.csv';
 
     return CsvExportData(
       csvContent: buffer.toString(),
@@ -421,7 +421,7 @@ class CsvExportService {
     final now = DateTime.now();
     final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     final eventPrefix = (eventKey != null && eventKey.isNotEmpty) ? '${eventKey}_' : '';
-    final filename = 'obsidian_all_scouting_${eventPrefix}$dateStr.csv';
+    final filename = 'obsidian_all_scouting_$eventPrefix$dateStr.csv';
 
     return CsvExportData(
       csvContent: buffer.toString(),

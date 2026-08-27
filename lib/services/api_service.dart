@@ -18,12 +18,15 @@ class ApiService {
   static const String keySavedUsername = "obsidianscout_saved_username";
   static const String keyThemeMode = "obsidianscout_theme_mode";
   static const String keyLocale = "obsidianscout_locale";
+  static const String keyRequestTimeoutSeconds = "obsidianscout_request_timeout_seconds";
+  static const int defaultRequestTimeoutSeconds = 6;
   static const String defaultUrl = "https://kotlin.obsidianscout.com";
 
   String _currentServerUrl = defaultUrl;
   String? _sessionCookie;
   bool _keepMeLoggedIn = false;
   String _savedUsername = '';
+  int _requestTimeoutSeconds = defaultRequestTimeoutSeconds;
   Timer? _syncTimer;
 
   UserModel? _currentUser;
@@ -32,6 +35,7 @@ class ApiService {
 
   final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier<ThemeMode>(ThemeMode.dark);
   final ValueNotifier<Locale> localeNotifier = ValueNotifier<Locale>(const Locale('en'));
+  final ValueNotifier<int> timeoutNotifier = ValueNotifier<int>(defaultRequestTimeoutSeconds);
 
   bool _isOnline = true;
   bool _handlingRevocation = false;
@@ -55,6 +59,9 @@ class ApiService {
   Stream<String> get onSessionRevoked => _sessionRevokedController.stream;
   ThemeMode get themeMode => themeNotifier.value;
   Locale get currentLocale => localeNotifier.value;
+  int get requestTimeoutSeconds => _requestTimeoutSeconds;
+  Duration get requestTimeout => Duration(seconds: _requestTimeoutSeconds);
+  Duration get heavyRequestTimeout => Duration(seconds: (_requestTimeoutSeconds * 2).clamp(8, 60));
 
   Future<void> setThemeMode(ThemeMode mode) async {
     themeNotifier.value = mode;
@@ -66,6 +73,13 @@ class ApiService {
     localeNotifier.value = locale;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(keyLocale, locale.languageCode);
+  }
+
+  Future<void> setRequestTimeoutSeconds(int seconds) async {
+    _requestTimeoutSeconds = seconds.clamp(2, 60);
+    timeoutNotifier.value = _requestTimeoutSeconds;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(keyRequestTimeoutSeconds, _requestTimeoutSeconds);
   }
 
   @visibleForTesting
@@ -101,6 +115,9 @@ class ApiService {
     } else {
       localeNotifier.value = const Locale('en');
     }
+
+    _requestTimeoutSeconds = prefs.getInt(keyRequestTimeoutSeconds) ?? defaultRequestTimeoutSeconds;
+    timeoutNotifier.value = _requestTimeoutSeconds;
 
     // Restore cached user and settings
     final cachedUser = await _getCache("cache_auth_me");
@@ -165,8 +182,8 @@ class ApiService {
     try {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/auth/status'), headers: _headers)
-          .timeout(const Duration(milliseconds: 1200));
-      final online = response.statusCode == 200;
+          .timeout(requestTimeout);
+      final online = response.statusCode == 200 || response.statusCode == 401;
       _updateOnlineState(online);
       return online;
     } catch (_) {
@@ -197,31 +214,24 @@ class ApiService {
     if (!isLoggedIn || !_isOnline || _isSyncing) return;
     _isSyncing = true;
     try {
-      await fetchCurrentUser();
-      await Future.delayed(const Duration(milliseconds: 100));
-      await fetchSettings();
-      await Future.delayed(const Duration(milliseconds: 100));
-      final eventKey = await fetchCurrentEventKey();
-      await Future.delayed(const Duration(milliseconds: 150));
-      await fetchMatchConfig();
-      await Future.delayed(const Duration(milliseconds: 150));
-      await fetchPitConfig();
-      await Future.delayed(const Duration(milliseconds: 150));
-      await fetchQualConfig();
-      await Future.delayed(const Duration(milliseconds: 150));
-      await fetchTeams(eventKey);
-      await Future.delayed(const Duration(milliseconds: 150));
-      await fetchMatches(eventKey);
-      await Future.delayed(const Duration(milliseconds: 150));
-      await fetchScoutingEntries();
-      await Future.delayed(const Duration(milliseconds: 150));
-      await fetchPrescoutScoutingEntries();
-      await Future.delayed(const Duration(milliseconds: 150));
-      await fetchPrescoutPitScoutingEntries();
-      await Future.delayed(const Duration(milliseconds: 150));
-      await fetchPrescoutQualScoutingEntries();
-      await Future.delayed(const Duration(milliseconds: 150));
-      await fetchAnalyticsWidgets();
+      await Future.wait([
+        fetchCurrentUser(),
+        fetchSettings(),
+      ]);
+      final eventKey = _currentSettings?.eventKey;
+      await Future.wait([
+        fetchMatchConfig(),
+        fetchPitConfig(),
+        fetchQualConfig(),
+        fetchTeams(eventKey),
+        fetchMatches(eventKey),
+        fetchScoutingEntries(),
+        fetchPrescoutScoutingEntries(),
+        fetchPrescoutPitScoutingEntries(),
+        fetchPrescoutQualScoutingEntries(),
+        fetchAnalyticsWidgets(),
+        fetchBanners(),
+      ]);
     } catch (_) {
     } finally {
       _isSyncing = false;
@@ -244,6 +254,264 @@ class ApiService {
     }
   }
 
+  // Instant Stale-While-Revalidate Synchronous & Async Cache Accessors
+  Future<String?> getCachedEventKey() async {
+    final cached = await _getCache("cache_settings");
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        final jsonMap = jsonDecode(cached);
+        final settings = jsonMap['settings'] ?? jsonMap;
+        return settings['eventKey']?.toString() ?? settings['eventCode']?.toString();
+      } catch (_) {}
+    }
+    return _currentSettings?.eventKey;
+  }
+
+  Future<AppSettingsModel?> getCachedSettings() async {
+    if (_currentSettings != null) return _currentSettings;
+    final cached = await _getCache("cache_settings");
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        final jsonMap = jsonDecode(cached);
+        _currentSettings = AppSettingsModel.fromJson(jsonMap);
+        return _currentSettings;
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  Future<ScoutingConfigModel?> getCachedMatchConfig() async {
+    final cached = await _getCache("cache_config");
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        return ScoutingConfigModel.fromJson(jsonDecode(cached));
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  Future<ScoutingConfigModel?> getCachedPitConfig() async {
+    final cached = await _getCache("cache_pit_config");
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        return ScoutingConfigModel.fromJson(jsonDecode(cached));
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  Future<ScoutingConfigModel?> getCachedQualConfig() async {
+    final cached = await _getCache("cache_qual_config");
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        return ScoutingConfigModel.fromJson(jsonDecode(cached));
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  Future<List<TeamModel>> getCachedTeams(String? eventKey) async {
+    final candidateKeys = [
+      if (eventKey != null && eventKey.isNotEmpty) "cache_teams_$eventKey",
+      "cache_teams_all",
+      "cache_teams_",
+      "cache_teams_current",
+    ];
+    for (final key in candidateKeys) {
+      final cached = await _getCache(key);
+      if (cached != null && cached.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(cached);
+          final List list = decoded is List
+              ? decoded
+              : (decoded is Map && decoded['teams'] is List ? decoded['teams'] as List : []);
+          if (list.isNotEmpty) {
+            final Map<int, TeamModel> teamMap = {};
+            for (var item in list) {
+              final t = TeamModel.fromJson(item as Map<String, dynamic>);
+              teamMap[t.teamNumber] = t;
+            }
+            if (teamMap.isNotEmpty) {
+              return teamMap.values.toList()..sort((a, b) => a.teamNumber.compareTo(b.teamNumber));
+            }
+          }
+        } catch (_) {}
+      }
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      for (final key in prefs.getKeys()) {
+        if (key.startsWith('cache_teams_')) {
+          final val = prefs.getString(key);
+          if (val != null && val.isNotEmpty) {
+            final decoded = jsonDecode(val);
+            final List list = decoded is List
+                ? decoded
+                : (decoded is Map && decoded['teams'] is List ? decoded['teams'] as List : []);
+            if (list.isNotEmpty) {
+              final Map<int, TeamModel> teamMap = {};
+              for (var item in list) {
+                final t = TeamModel.fromJson(item as Map<String, dynamic>);
+                teamMap[t.teamNumber] = t;
+              }
+              if (teamMap.isNotEmpty) {
+                return teamMap.values.toList()..sort((a, b) => a.teamNumber.compareTo(b.teamNumber));
+              }
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
+    return [];
+  }
+
+  Future<List<MatchModel>> getCachedMatches(String? eventKey) async {
+    final candidateKeys = [
+      if (eventKey != null && eventKey.isNotEmpty) "cache_matches_$eventKey",
+      "cache_matches_all",
+      "cache_matches_",
+      "cache_matches_current",
+    ];
+    for (final key in candidateKeys) {
+      final cached = await _getCache(key);
+      if (cached != null && cached.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(cached);
+          final List list = decoded is List
+              ? decoded
+              : (decoded is Map && decoded['matches'] is List ? decoded['matches'] as List : []);
+          if (list.isNotEmpty) {
+            final Map<String, MatchModel> matchMap = {};
+            for (var item in list) {
+              final m = MatchModel.fromJson(item as Map<String, dynamic>);
+              if (m.matchKey.isNotEmpty) {
+                matchMap[m.matchKey] = m;
+              }
+            }
+            if (matchMap.isNotEmpty) {
+              return matchMap.values.toList();
+            }
+          }
+        } catch (_) {}
+      }
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      for (final key in prefs.getKeys()) {
+        if (key.startsWith('cache_matches_')) {
+          final val = prefs.getString(key);
+          if (val != null && val.isNotEmpty) {
+            final decoded = jsonDecode(val);
+            final List list = decoded is List
+                ? decoded
+                : (decoded is Map && decoded['matches'] is List ? decoded['matches'] as List : []);
+            if (list.isNotEmpty) {
+              final Map<String, MatchModel> matchMap = {};
+              for (var item in list) {
+                final m = MatchModel.fromJson(item as Map<String, dynamic>);
+                if (m.matchKey.isNotEmpty) {
+                  matchMap[m.matchKey] = m;
+                }
+              }
+              if (matchMap.isNotEmpty) {
+                return matchMap.values.toList();
+              }
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
+    return [];
+  }
+
+  Future<List<dynamic>> getCachedScoutingEntries() async {
+    final cached = await _getCache("cache_scouting");
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(cached);
+        if (decoded is List) return decoded;
+        if (decoded is Map && decoded['entries'] is List) return decoded['entries'] as List;
+      } catch (_) {}
+    }
+    return [];
+  }
+
+  Future<List<dynamic>> getCachedPitScoutingEntries() async {
+    final cached = await _getCache("cache_pit_scouting");
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(cached);
+        if (decoded is List) return decoded;
+        if (decoded is Map && decoded['entries'] is List) return decoded['entries'] as List;
+      } catch (_) {}
+    }
+    return [];
+  }
+
+  Future<List<dynamic>> getCachedQualScoutingEntries() async {
+    final cached = await _getCache("cache_qual_scouting");
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(cached);
+        if (decoded is List) return decoded;
+        if (decoded is Map && decoded['entries'] is List) return decoded['entries'] as List;
+      } catch (_) {}
+    }
+    return [];
+  }
+
+  Future<List<dynamic>> getCachedPrescoutScoutingEntries() async {
+    final cached = await _getCache("cache_prescout_scouting");
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(cached);
+        if (decoded is List) return decoded;
+        if (decoded is Map && decoded['entries'] is List) return decoded['entries'] as List;
+      } catch (_) {}
+    }
+    return [];
+  }
+
+  Future<List<dynamic>> getCachedPrescoutPitScoutingEntries() async {
+    final cached = await _getCache("cache_prescout_pit_scouting");
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(cached);
+        if (decoded is List) return decoded;
+        if (decoded is Map && decoded['entries'] is List) return decoded['entries'] as List;
+      } catch (_) {}
+    }
+    return [];
+  }
+
+  Future<List<dynamic>> getCachedPrescoutQualScoutingEntries() async {
+    final cached = await _getCache("cache_prescout_qual_scouting");
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(cached);
+        if (decoded is List) return decoded;
+        if (decoded is Map && decoded['entries'] is List) return decoded['entries'] as List;
+      } catch (_) {}
+    }
+    return [];
+  }
+
+  Future<List<EventModel>> getCachedEvents({int? year}) async {
+    final targetYear = year ?? _currentSettings?.year ?? DateTime.now().year;
+    final cached = await _getCache("cache_events_$targetYear");
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        final List list = jsonDecode(cached);
+        return list.map((item) => EventModel.fromJson(item as Map<String, dynamic>)).toList();
+      } catch (_) {}
+    }
+    return [];
+  }
+
   Future<bool> _verifySession() async {
     try {
       final response = await http
@@ -251,7 +519,7 @@ class ApiService {
             Uri.parse('$_currentServerUrl/api/auth/status'),
             headers: _headers,
           )
-          .timeout(const Duration(seconds: 3));
+          .timeout(requestTimeout);
       if (response.statusCode == 200) {
         _updateCookiesFromResponse(response);
         return true;
@@ -468,7 +736,7 @@ class ApiService {
     try {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/auth/me'), headers: _headers)
-          .timeout(const Duration(seconds: 4));
+          .timeout(requestTimeout);
       _checkResponse(response);
       if (response.statusCode == 200) {
         await _setCache("cache_auth_me", response.body);
@@ -478,9 +746,7 @@ class ApiService {
         permissionsNotifier.value++;
         return _currentUser;
       }
-    } catch (_) {
-      _updateOnlineState(false);
-    }
+    } catch (_) {}
     return _currentUser;
   }
 
@@ -498,7 +764,7 @@ class ApiService {
     try {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/settings'), headers: _headers)
-          .timeout(const Duration(seconds: 4));
+          .timeout(requestTimeout);
       _checkResponse(response);
       if (response.statusCode == 200) {
         await _setCache("cache_settings", response.body);
@@ -507,9 +773,7 @@ class ApiService {
         permissionsNotifier.value++;
         return _currentSettings;
       }
-    } catch (_) {
-      _updateOnlineState(false);
-    }
+    } catch (_) {}
     return _currentSettings;
   }
 
@@ -649,6 +913,9 @@ class ApiService {
 
   // Settings & Event resolution
   Future<String?> fetchCurrentEventKey() async {
+    if (_currentSettings != null && _currentSettings!.eventKey.isNotEmpty) {
+      return _currentSettings!.eventKey;
+    }
     final cached = await _getCache("cache_settings");
     String? cachedEventKey;
     if (cached != null && cached.isNotEmpty) {
@@ -656,6 +923,9 @@ class ApiService {
         final jsonMap = jsonDecode(cached);
         final settings = jsonMap['settings'] ?? jsonMap;
         cachedEventKey = settings['eventKey']?.toString() ?? settings['eventCode']?.toString();
+        if (cachedEventKey != null && cachedEventKey.isNotEmpty) {
+          return cachedEventKey;
+        }
       } catch (_) {}
     }
 
@@ -664,7 +934,7 @@ class ApiService {
     try {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/settings'), headers: _headers)
-          .timeout(const Duration(seconds: 2));
+          .timeout(requestTimeout);
       if (response.statusCode == 200) {
         await _setCache("cache_settings", response.body);
         final jsonMap = jsonDecode(response.body);
@@ -672,9 +942,7 @@ class ApiService {
         final settings = jsonMap['settings'] ?? jsonMap;
         return settings['eventKey']?.toString() ?? settings['eventCode']?.toString();
       }
-    } catch (_) {
-      _updateOnlineState(false);
-    }
+    } catch (_) {}
     return cachedEventKey;
   }
 
@@ -693,15 +961,13 @@ class ApiService {
     try {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/banners'), headers: _headers)
-          .timeout(const Duration(seconds: 3));
+          .timeout(requestTimeout);
       if (response.statusCode == 200) {
         await _setCache("cache_banners", response.body);
         final List list = jsonDecode(response.body);
         return list.cast<Map<String, dynamic>>();
       }
-    } catch (_) {
-      _updateOnlineState(false);
-    }
+    } catch (_) {}
     return cachedList;
   }
 
@@ -720,14 +986,12 @@ class ApiService {
     try {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/config'), headers: _headers)
-          .timeout(const Duration(seconds: 2));
+          .timeout(requestTimeout);
       if (response.statusCode == 200) {
         await _setCache("cache_config", response.body);
         return ScoutingConfigModel.fromJson(jsonDecode(response.body));
       }
-    } catch (_) {
-      _updateOnlineState(false);
-    }
+    } catch (_) {}
 
     return cachedModel;
   }
@@ -746,14 +1010,12 @@ class ApiService {
     try {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/pit-config'), headers: _headers)
-          .timeout(const Duration(seconds: 2));
+          .timeout(requestTimeout);
       if (response.statusCode == 200) {
         await _setCache("cache_pit_config", response.body);
         return ScoutingConfigModel.fromJson(jsonDecode(response.body));
       }
-    } catch (_) {
-      _updateOnlineState(false);
-    }
+    } catch (_) {}
 
     return cachedModel;
   }
@@ -772,14 +1034,12 @@ class ApiService {
     try {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/qual-config'), headers: _headers)
-          .timeout(const Duration(seconds: 2));
+          .timeout(requestTimeout);
       if (response.statusCode == 200) {
         await _setCache("cache_qual_config", response.body);
         return ScoutingConfigModel.fromJson(jsonDecode(response.body));
       }
-    } catch (_) {
-      _updateOnlineState(false);
-    }
+    } catch (_) {}
 
     return cachedModel;
   }
@@ -846,7 +1106,7 @@ class ApiService {
 
     if (_isOnline) {
       try {
-        final response = await http.get(Uri.parse('$_currentServerUrl$apiPath'), headers: _headers).timeout(const Duration(seconds: 2));
+        final response = await http.get(Uri.parse('$_currentServerUrl$apiPath'), headers: _headers).timeout(requestTimeout);
         if (response.statusCode == 200) {
           await _setCache(cacheKey, response.body);
           return response.body;
@@ -862,7 +1122,7 @@ class ApiService {
     try {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/config/defaults?type=$typeParam'), headers: _headers)
-          .timeout(const Duration(seconds: 3));
+          .timeout(requestTimeout);
       if (response.statusCode == 200) {
         final List list = jsonDecode(response.body);
         return list.map((item) => DefaultConfigPresetModel.fromJson(item as Map<String, dynamic>)).toList();
@@ -935,7 +1195,7 @@ class ApiService {
     try {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/config-history?kind=$kindParam'), headers: _headers)
-          .timeout(const Duration(seconds: 3));
+          .timeout(requestTimeout);
       if (response.statusCode == 200) {
         final List list = jsonDecode(response.body);
         return list.map((item) => ConfigRevisionModel.fromJson(item as Map<String, dynamic>)).toList();
@@ -949,7 +1209,7 @@ class ApiService {
     try {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/config-history/$revisionId'), headers: _headers)
-          .timeout(const Duration(seconds: 3));
+          .timeout(requestTimeout);
       if (response.statusCode == 200) {
         return ConfigRevisionModel.fromJson(jsonDecode(response.body));
       }
@@ -993,7 +1253,7 @@ class ApiService {
     try {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/config-migration/status?kind=$kindParam'), headers: _headers)
-          .timeout(const Duration(seconds: 4));
+          .timeout(requestTimeout);
       if (response.statusCode == 200) {
         return ConfigSchemaStatusModel.fromJson(jsonDecode(response.body));
       }
@@ -1054,73 +1314,67 @@ class ApiService {
 
   // Dropdown Data Fetching
   Future<List<TeamModel>> fetchTeams(String? eventKey) async {
-    final cacheKey = "cache_teams_${eventKey ?? 'all'}";
-    final cached = await _getCache(cacheKey);
-    List<TeamModel> cachedList = [];
-    if (cached != null && cached.isNotEmpty) {
-      try {
-        final List list = jsonDecode(cached);
-        final Map<int, TeamModel> teamMap = {};
-        for (var item in list) {
-          final t = TeamModel.fromJson(item as Map<String, dynamic>);
-          teamMap[t.teamNumber] = t;
-        }
-        cachedList = teamMap.values.toList()..sort((a, b) => a.teamNumber.compareTo(b.teamNumber));
-      } catch (_) {}
-    }
+    final effectiveKey = (eventKey != null && eventKey.isNotEmpty)
+        ? eventKey
+        : (_currentSettings?.eventKey ?? '');
+    final cacheKey = "cache_teams_${effectiveKey.isNotEmpty ? effectiveKey : 'all'}";
+    final cachedList = await getCachedTeams(effectiveKey);
 
     if (!_isOnline) return cachedList;
 
     try {
-      final url = eventKey != null && eventKey.isNotEmpty
-          ? '$_currentServerUrl/api/teams?eventKey=$eventKey'
+      final url = effectiveKey.isNotEmpty
+          ? '$_currentServerUrl/api/teams?eventKey=$effectiveKey'
           : '$_currentServerUrl/api/teams';
-      final response = await http.get(Uri.parse(url), headers: _headers).timeout(const Duration(seconds: 2));
+      final response = await http.get(Uri.parse(url), headers: _headers).timeout(heavyRequestTimeout);
       if (response.statusCode == 200) {
         await _setCache(cacheKey, response.body);
-        final List list = jsonDecode(response.body);
+        await _setCache("cache_teams_all", response.body);
+        if (effectiveKey.isNotEmpty) {
+          await _setCache("cache_teams_$effectiveKey", response.body);
+        }
+        final decoded = jsonDecode(response.body);
+        final List list = decoded is List
+            ? decoded
+            : (decoded is Map && decoded['teams'] is List ? decoded['teams'] as List : []);
         final Map<int, TeamModel> teamMap = {};
         for (var item in list) {
           final t = TeamModel.fromJson(item as Map<String, dynamic>);
           teamMap[t.teamNumber] = t;
         }
-        return teamMap.values.toList()..sort((a, b) => a.teamNumber.compareTo(b.teamNumber));
+        if (teamMap.isNotEmpty) {
+          return teamMap.values.toList()..sort((a, b) => a.teamNumber.compareTo(b.teamNumber));
+        }
       }
-    } catch (_) {
-      _updateOnlineState(false);
-    }
+    } catch (_) {}
 
     return cachedList;
   }
 
   Future<List<MatchModel>> fetchMatches(String? eventKey) async {
-    final cacheKey = "cache_matches_${eventKey ?? 'all'}";
-    final cached = await _getCache(cacheKey);
-    List<MatchModel> cachedList = [];
-    if (cached != null && cached.isNotEmpty) {
-      try {
-        final List list = jsonDecode(cached);
-        final Map<String, MatchModel> matchMap = {};
-        for (var item in list) {
-          final m = MatchModel.fromJson(item as Map<String, dynamic>);
-          if (m.matchKey.isNotEmpty) {
-            matchMap[m.matchKey] = m;
-          }
-        }
-        cachedList = matchMap.values.toList();
-      } catch (_) {}
-    }
+    final effectiveKey = (eventKey != null && eventKey.isNotEmpty)
+        ? eventKey
+        : (_currentSettings?.eventKey ?? '');
+    final cacheKey = "cache_matches_${effectiveKey.isNotEmpty ? effectiveKey : 'all'}";
+    final cachedList = await getCachedMatches(effectiveKey);
 
     if (!_isOnline) return cachedList;
 
     try {
-      final url = eventKey != null && eventKey.isNotEmpty
-          ? '$_currentServerUrl/api/matches?eventKey=$eventKey'
+      final url = effectiveKey.isNotEmpty
+          ? '$_currentServerUrl/api/matches?eventKey=$effectiveKey'
           : '$_currentServerUrl/api/matches';
-      final response = await http.get(Uri.parse(url), headers: _headers).timeout(const Duration(seconds: 2));
+      final response = await http.get(Uri.parse(url), headers: _headers).timeout(heavyRequestTimeout);
       if (response.statusCode == 200) {
         await _setCache(cacheKey, response.body);
-        final List list = jsonDecode(response.body);
+        await _setCache("cache_matches_all", response.body);
+        if (effectiveKey.isNotEmpty) {
+          await _setCache("cache_matches_$effectiveKey", response.body);
+        }
+        final decoded = jsonDecode(response.body);
+        final List list = decoded is List
+            ? decoded
+            : (decoded is Map && decoded['matches'] is List ? decoded['matches'] as List : []);
         final Map<String, MatchModel> matchMap = {};
         for (var item in list) {
           final m = MatchModel.fromJson(item as Map<String, dynamic>);
@@ -1128,11 +1382,11 @@ class ApiService {
             matchMap[m.matchKey] = m;
           }
         }
-        return matchMap.values.toList();
+        if (matchMap.isNotEmpty) {
+          return matchMap.values.toList();
+        }
       }
-    } catch (_) {
-      _updateOnlineState(false);
-    }
+    } catch (_) {}
 
     return cachedList;
   }
@@ -1153,16 +1407,14 @@ class ApiService {
     try {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/scouting?includePrescout=true&all=true'), headers: _headers)
-          .timeout(const Duration(seconds: 8));
+          .timeout(heavyRequestTimeout);
       if (response.statusCode == 200) {
         await _setCache("cache_scouting", response.body);
         final decoded = jsonDecode(response.body);
         if (decoded is List) return decoded;
         if (decoded is Map && decoded['entries'] is List) return decoded['entries'] as List;
       }
-    } catch (_) {
-      _updateOnlineState(false);
-    }
+    } catch (_) {}
 
     return cachedEntries;
   }
@@ -1183,16 +1435,14 @@ class ApiService {
     try {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/pit-scouting?includePrescout=true&all=true'), headers: _headers)
-          .timeout(const Duration(seconds: 8));
+          .timeout(heavyRequestTimeout);
       if (response.statusCode == 200) {
         await _setCache("cache_pit_scouting", response.body);
         final decoded = jsonDecode(response.body);
         if (decoded is List) return decoded;
         if (decoded is Map && decoded['entries'] is List) return decoded['entries'] as List;
       }
-    } catch (_) {
-      _updateOnlineState(false);
-    }
+    } catch (_) {}
 
     return cachedEntries;
   }
@@ -1213,16 +1463,14 @@ class ApiService {
     try {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/qual-scouting?includePrescout=true&all=true'), headers: _headers)
-          .timeout(const Duration(seconds: 8));
+          .timeout(heavyRequestTimeout);
       if (response.statusCode == 200) {
         await _setCache("cache_qual_scouting", response.body);
         final decoded = jsonDecode(response.body);
         if (decoded is List) return decoded;
         if (decoded is Map && decoded['entries'] is List) return decoded['entries'] as List;
       }
-    } catch (_) {
-      _updateOnlineState(false);
-    }
+    } catch (_) {}
 
     return cachedEntries;
   }
@@ -1243,16 +1491,14 @@ class ApiService {
     try {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/prescout/scouting'), headers: _headers)
-          .timeout(const Duration(seconds: 2));
+          .timeout(requestTimeout);
       if (response.statusCode == 200) {
         await _setCache("cache_prescout_scouting", response.body);
         final decoded = jsonDecode(response.body);
         if (decoded is List) return decoded;
         if (decoded is Map && decoded['entries'] is List) return decoded['entries'] as List;
       }
-    } catch (_) {
-      _updateOnlineState(false);
-    }
+    } catch (_) {}
 
     return cachedEntries;
   }
@@ -1273,16 +1519,14 @@ class ApiService {
     try {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/prescout/pit-scouting'), headers: _headers)
-          .timeout(const Duration(seconds: 2));
+          .timeout(requestTimeout);
       if (response.statusCode == 200) {
         await _setCache("cache_prescout_pit_scouting", response.body);
         final decoded = jsonDecode(response.body);
         if (decoded is List) return decoded;
         if (decoded is Map && decoded['entries'] is List) return decoded['entries'] as List;
       }
-    } catch (_) {
-      _updateOnlineState(false);
-    }
+    } catch (_) {}
 
     return cachedEntries;
   }
@@ -1303,16 +1547,14 @@ class ApiService {
     try {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/prescout/qual-scouting'), headers: _headers)
-          .timeout(const Duration(seconds: 2));
+          .timeout(requestTimeout);
       if (response.statusCode == 200) {
         await _setCache("cache_prescout_qual_scouting", response.body);
         final decoded = jsonDecode(response.body);
         if (decoded is List) return decoded;
         if (decoded is Map && decoded['entries'] is List) return decoded['entries'] as List;
       }
-    } catch (_) {
-      _updateOnlineState(false);
-    }
+    } catch (_) {}
 
     return cachedEntries;
   }
@@ -1631,7 +1873,7 @@ class ApiService {
     try {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/analytics'), headers: _headers)
-          .timeout(const Duration(seconds: 2));
+          .timeout(requestTimeout);
       if (response.statusCode == 200) {
         await _setCache("cache_analytics", response.body);
         final Map<String, dynamic> jsonMap = jsonDecode(response.body);
@@ -1641,9 +1883,7 @@ class ApiService {
               .toList();
         }
       }
-    } catch (_) {
-      _updateOnlineState(false);
-    }
+    } catch (_) {}
 
     return cachedWidgets;
   }
@@ -1664,16 +1904,14 @@ class ApiService {
     try {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/custom-analytics/reports'), headers: _headers)
-          .timeout(const Duration(seconds: 4));
+          .timeout(requestTimeout);
       _checkResponse(response);
       if (response.statusCode == 200) {
         await _setCache("cache_custom_analytics_reports", response.body);
         final List list = jsonDecode(response.body);
         return list.map((e) => CustomAnalyticsReportRecord.fromJson(e as Map<String, dynamic>)).toList();
       }
-    } catch (_) {
-      _updateOnlineState(false);
-    }
+    } catch (_) {}
 
     return cachedReports;
   }
@@ -1691,14 +1929,12 @@ class ApiService {
     try {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/custom-analytics/reports/$id'), headers: _headers)
-          .timeout(const Duration(seconds: 4));
+          .timeout(requestTimeout);
       _checkResponse(response);
       if (response.statusCode == 200) {
         return CustomAnalyticsReportRecord.fromJson(jsonDecode(response.body));
       }
-    } catch (_) {
-      _updateOnlineState(false);
-    }
+    } catch (_) {}
     return null;
   }
 
@@ -1734,9 +1970,7 @@ class ApiService {
         await _setCache("cache_custom_analytics_reports", jsonEncode(reports.map((r) => r.toJson()).toList()));
         return created;
       }
-    } catch (_) {
-      _updateOnlineState(false);
-    }
+    } catch (_) {}
     return null;
   }
 
@@ -1770,9 +2004,7 @@ class ApiService {
         final updated = CustomAnalyticsReportRecord.fromJson(jsonDecode(response.body));
         return updated;
       }
-    } catch (_) {
-      _updateOnlineState(false);
-    }
+    } catch (_) {}
     return null;
   }
 
@@ -1804,9 +2036,7 @@ class ApiService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         return CustomAnalyticsReportRecord.fromJson(jsonDecode(response.body));
       }
-    } catch (_) {
-      _updateOnlineState(false);
-    }
+    } catch (_) {}
     return null;
   }
 
@@ -1831,15 +2061,13 @@ class ApiService {
         url += '&eventKey=${Uri.encodeComponent(eventKey)}';
       }
 
-      final response = await http.get(Uri.parse(url), headers: _headers).timeout(const Duration(seconds: 8));
+      final response = await http.get(Uri.parse(url), headers: _headers).timeout(heavyRequestTimeout);
       _checkResponse(response);
       if (response.statusCode == 200) {
         await _setCache(cacheKey, response.body);
         return CustomAnalyticsDataset.fromJson(jsonDecode(response.body));
       }
-    } catch (_) {
-      _updateOnlineState(false);
-    }
+    } catch (_) {}
 
     return cachedDataset;
   }
@@ -1856,7 +2084,7 @@ class ApiService {
     try {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/settings?local=true'), headers: _headers)
-          .timeout(const Duration(seconds: 2));
+          .timeout(requestTimeout);
       if (response.statusCode == 200) {
         final jsonMap = jsonDecode(response.body);
         final settings = jsonMap['settings'] ?? jsonMap;
@@ -1864,9 +2092,7 @@ class ApiService {
         await _setCache("cache_chat_enabled", enabled ? "true" : "false");
         return enabled;
       }
-    } catch (_) {
-      _updateOnlineState(false);
-    }
+    } catch (_) {}
     return true;
   }
 
@@ -1888,7 +2114,7 @@ class ApiService {
     try {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/chat/groups'), headers: _headers)
-          .timeout(const Duration(seconds: 2));
+          .timeout(requestTimeout);
       _checkResponseForServerError(response);
       if (response.statusCode == 200) {
         await _setCache("cache_chat_groups", response.body);
@@ -1896,9 +2122,7 @@ class ApiService {
         final set = <String>{"general", ...list.map((e) => e.toString())};
         return set.toList();
       }
-    } catch (_) {
-      _updateOnlineState(false);
-    }
+    } catch (_) {}
 
     return cachedGroups;
   }
@@ -2021,16 +2245,14 @@ class ApiService {
     try {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/chat/messages?group=${Uri.encodeComponent(groupName)}'), headers: _headers)
-          .timeout(const Duration(seconds: 2));
+          .timeout(requestTimeout);
       _checkResponseForServerError(response);
       if (response.statusCode == 200) {
         await _setCache(cacheKey, response.body);
         final List list = jsonDecode(response.body);
         return list.map((e) => ChatMessageModel.fromJson(e as Map<String, dynamic>)).toList();
       }
-    } catch (_) {
-      _updateOnlineState(false);
-    }
+    } catch (_) {}
 
     return cachedList;
   }
@@ -2128,7 +2350,7 @@ class ApiService {
     try {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/chat/team-users'), headers: _headers)
-          .timeout(const Duration(seconds: 2));
+          .timeout(requestTimeout);
       if (response.statusCode == 200) {
         await _setCache("cache_chat_team_users", response.body);
         final List list = jsonDecode(response.body);
@@ -2136,9 +2358,7 @@ class ApiService {
         final set = <String>{"everyone", "channel", ...filtered};
         return set.toList();
       }
-    } catch (_) {
-      _updateOnlineState(false);
-    }
+    } catch (_) {}
 
     return cachedUsers;
   }
@@ -2148,7 +2368,7 @@ class ApiService {
     try {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/chat/unread-status'), headers: _headers)
-          .timeout(const Duration(seconds: 2));
+          .timeout(requestTimeout);
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final Map<String, ChatGroupUnreadModel> result = {};
@@ -2178,7 +2398,7 @@ class ApiService {
     try {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/config/fcm-public'))
-          .timeout(const Duration(seconds: 3));
+          .timeout(requestTimeout);
       if (response.statusCode == 200) {
         return jsonDecode(response.body) as Map<String, dynamic>;
       }
@@ -2226,7 +2446,7 @@ class ApiService {
       try {
         final response = await http
             .get(Uri.parse('$_currentServerUrl/api/alliance-selection?eventKey=$eventKey'), headers: _headers)
-            .timeout(const Duration(seconds: 4));
+            .timeout(requestTimeout);
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body) as Map<String, dynamic>;
           await prefs.setString(cacheKey, response.body);
@@ -2297,7 +2517,7 @@ class ApiService {
       try {
         final response = await http
             .get(Uri.parse('$_currentServerUrl/api/events?year=$targetYear&cached=1'), headers: _headers)
-            .timeout(const Duration(seconds: 4));
+            .timeout(requestTimeout);
         if (response.statusCode == 200) {
           final List data = jsonDecode(response.body);
           await prefs.setString(cacheKey, response.body);
@@ -2335,7 +2555,7 @@ class ApiService {
         final uri = Uri.parse(
           '$_currentServerUrl/api/validation?eventKey=${Uri.encodeComponent(effectiveEventKey)}&threshold=$threshold&forcePrescout=$forcePrescout',
         );
-        final response = await http.get(uri, headers: _headers).timeout(const Duration(seconds: 8));
+        final response = await http.get(uri, headers: _headers).timeout(heavyRequestTimeout);
         _checkResponseForServerError(response);
         if (response.statusCode == 200) {
           final jsonMap = jsonDecode(response.body) as Map<String, dynamic>;
@@ -2364,7 +2584,7 @@ class ApiService {
     try {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/user/sessions'), headers: _headers)
-          .timeout(const Duration(seconds: 4));
+          .timeout(requestTimeout);
       _checkResponse(response);
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);

@@ -136,7 +136,7 @@ class _ChatScreenState extends State<ChatScreen> {
   void _startPolling() {
     _pollTimer?.cancel();
     _pollTimer = Timer.periodic(const Duration(milliseconds: 2500), (_) {
-      if (mounted && _isChatEnabled && widget.apiService.isOnline) {
+      if (mounted && _isChatEnabled && widget.apiService.isOnline && widget.isVisible) {
         _loadMessagesAndUnreads(scrollToBottom: false);
       }
     });

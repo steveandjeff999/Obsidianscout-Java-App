@@ -1,8 +1,5 @@
-import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import '../l10n/app_localizations.dart';
 import '../models/config_models.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
@@ -127,11 +124,65 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
   }
 
   Future<void> _loadData() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    // 1. Instant Cache Hydration
+    final cachedSettings = await widget.apiService.getCachedSettings();
+    final cachedQualCfg = await widget.apiService.getCachedQualConfig();
+    final cachedQualRaw = await widget.apiService.getCachedQualScoutingEntries();
+    final cachedEvents = await widget.apiService.getCachedEvents(year: cachedSettings?.year);
+    final cachedTeams = await widget.apiService.getCachedTeams(cachedSettings?.eventKey);
 
+    if (mounted && (cachedQualRaw.isNotEmpty || cachedTeams.isNotEmpty)) {
+      final Map<int, TeamModel> teamMap = {};
+      for (final t in cachedTeams) {
+        teamMap[t.teamNumber] = t;
+      }
+
+      final List<QualScoutingRecord> parsed = [];
+      for (final e in cachedQualRaw) {
+        if (e is Map<String, dynamic>) {
+          final isPrescout = e['isPrescout'] == true;
+          parsed.add(QualScoutingRecord(
+            id: e['id']?.toString() ?? '',
+            targetTeamNumber: (e['targetTeamNumber'] as num?)?.toInt() ?? 0,
+            eventKey: isPrescout ? 'prescout' : (e['eventKey']?.toString() ?? ''),
+            isPrescout: isPrescout,
+            matchNumber: (e['matchNumber'] as num?)?.toInt(),
+            matchKey: e['matchKey']?.toString(),
+            createdAt: e['createdAt']?.toString(),
+            data: e['data'] is Map ? Map<String, dynamic>.from(e['data'] as Map) : {},
+            scoutUsername: e['scoutUsername']?.toString() ?? e['username']?.toString(),
+          ));
+        }
+      }
+
+      final metricCandidates = <ScoutingFieldModel>[];
+      if (cachedQualCfg != null) {
+        for (final f in cachedQualCfg.fields) {
+          if (['number', 'counter', 'slider', 'range', 'rating'].contains(f.type.toLowerCase())) {
+            metricCandidates.add(f);
+          }
+        }
+      }
+
+      setState(() {
+        _qualConfig = cachedQualCfg;
+        _metricFields = metricCandidates;
+        _rawEntries = parsed;
+        _events = cachedEvents;
+        _teamsByNumber = teamMap;
+        if (_selectedEventKey == 'all' && cachedSettings?.eventKey != null && cachedSettings!.eventKey.isNotEmpty) {
+          _selectedEventKey = cachedSettings.eventKey;
+        }
+        _isLoading = false;
+      });
+    }
+
+    if (!widget.apiService.isOnline) {
+      if (mounted && _isLoading) setState(() => _isLoading = false);
+      return;
+    }
+
+    // 2. Background Revalidation
     try {
       final settings = await widget.apiService.fetchSettings();
       final currentYear = settings?.year ?? DateTime.now().year;
@@ -183,11 +234,11 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
 
       if (mounted) {
         setState(() {
-          _qualConfig = qualCfg;
-          _metricFields = metricCandidates;
-          _rawEntries = parsed;
-          _events = events;
-          _teamsByNumber = teamMap;
+          _qualConfig = qualCfg ?? _qualConfig;
+          _metricFields = metricCandidates.isNotEmpty ? metricCandidates : _metricFields;
+          if (parsed.isNotEmpty) _rawEntries = parsed;
+          if (events.isNotEmpty) _events = events;
+          if (teamMap.isNotEmpty) _teamsByNumber = teamMap;
           if (_selectedEventKey == 'all' && settings?.eventKey != null && settings!.eventKey.isNotEmpty) {
             _selectedEventKey = settings.eventKey;
           }
@@ -195,11 +246,8 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
         });
       }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = e.toString();
-          _isLoading = false;
-        });
+      if (mounted && _isLoading) {
+        setState(() => _isLoading = false);
       }
     }
   }

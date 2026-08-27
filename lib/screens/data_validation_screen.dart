@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
-import '../models/config_models.dart';
 import '../models/team_match_models.dart';
 import '../models/validation_models.dart';
 import '../services/api_service.dart';
