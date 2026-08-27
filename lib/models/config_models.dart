@@ -412,14 +412,14 @@ const List<String> defaultScoutPages = [
 
 const List<String> defaultAnalyticsPages = [
   'dashboard', 'events', 'scout', 'pit-scout', 'qual-scout', 'qr-scanner',
-  'all-data', 'match-data', 'qual-data', 'pit-data', 'analytics', 'graphs', 'data-validation',
+  'all-data', 'match-data', 'qual-data', 'pit-data', 'analytics', 'custom-analytics', 'graphs', 'data-validation',
   'teams', 'rankings', 'qual-rankings', 'matches', 'predictor',
   'event-predictor', 'alliances', 'alliance-selection', 'chat', 'backup', 'docs', 'contact',
 ];
 
 const List<String> defaultAdminPages = [
   'dashboard', 'admin-settings', 'default-configs', 'config-editor', 'users', 'banners', 'scout', 'pit-scout', 'qual-scout', 'qr-scanner',
-  'all-data', 'match-data', 'qual-data', 'pit-data', 'analytics', 'graphs', 'data-validation',
+  'all-data', 'match-data', 'qual-data', 'pit-data', 'analytics', 'custom-analytics', 'graphs', 'data-validation',
   'events', 'teams', 'rankings', 'qual-rankings', 'matches', 'predictor',
   'event-predictor', 'alliances', 'alliance-selection', 'chat', 'backup', 'docs', 'contact',
 ];

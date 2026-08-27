@@ -121,6 +121,13 @@ class ObsidianNavigationDrawer extends StatelessWidget {
             'subKey': 'subtitle.graphs',
           },
           {
+            'pageId': 'custom-analytics',
+            'index': 18,
+            'icon': Icons.auto_graph_rounded,
+            'labelKey': 'nav.custom_analytics',
+            'subKey': 'subtitle.custom_analytics',
+          },
+          {
             'pageId': 'all-data',
             'index': 12,
             'icon': Icons.dataset_rounded,

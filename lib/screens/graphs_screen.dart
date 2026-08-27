@@ -1745,12 +1745,14 @@ class ObsidianDistributionChart extends StatefulWidget {
   final List<DistributionStats> statsList;
   final bool isViolin;
   final List<Color> palette;
+  final double canvasHeight;
 
   const ObsidianDistributionChart({
     super.key,
     required this.statsList,
     required this.isViolin,
     required this.palette,
+    this.canvasHeight = 260.0,
   });
 
   @override
@@ -1772,7 +1774,6 @@ class _ObsidianDistributionChartState extends State<ObsidianDistributionChart> {
     final maxY = allMax + pad;
 
     final count = widget.statsList.length;
-    final minChartWidth = count <= 4 ? double.infinity : (count * 80.0 + 60.0);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1794,7 +1795,7 @@ class _ObsidianDistributionChartState extends State<ObsidianDistributionChart> {
               physics: const BouncingScrollPhysics(),
               child: SizedBox(
                 width: chartWidth,
-                height: 270,
+                height: widget.canvasHeight,
                 child: GestureDetector(
                   onTapDown: (details) {
                     _handleTouch(details.localPosition, chartWidth);
@@ -1803,7 +1804,7 @@ class _ObsidianDistributionChartState extends State<ObsidianDistributionChart> {
                     _handleTouch(details.localPosition, chartWidth);
                   },
                   child: CustomPaint(
-                    size: Size(chartWidth, 270),
+                    size: Size(chartWidth, widget.canvasHeight),
                     painter: _DistributionPainter(
                       statsList: widget.statsList,
                       isViolin: widget.isViolin,

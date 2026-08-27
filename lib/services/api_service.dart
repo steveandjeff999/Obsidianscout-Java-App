@@ -9,6 +9,7 @@ import '../models/config_models.dart';
 import '../models/team_match_models.dart';
 import '../models/chat_models.dart';
 import '../models/validation_models.dart';
+import '../models/custom_analytics_models.dart';
 
 class ApiService {
   static const String keyServerUrl = "obsidianscout_server_url";
@@ -1567,6 +1568,202 @@ class ApiService {
     }
 
     return cachedWidgets;
+  }
+
+  // Custom Analytics (BI Studio) API Methods
+  Future<List<CustomAnalyticsReportRecord>> fetchCustomAnalyticsReports() async {
+    final cached = await _getCache("cache_custom_analytics_reports");
+    List<CustomAnalyticsReportRecord> cachedReports = [];
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        final List list = jsonDecode(cached);
+        cachedReports = list.map((e) => CustomAnalyticsReportRecord.fromJson(e as Map<String, dynamic>)).toList();
+      } catch (_) {}
+    }
+
+    if (!_isOnline) return cachedReports;
+
+    try {
+      final response = await http
+          .get(Uri.parse('$_currentServerUrl/api/custom-analytics/reports'), headers: _headers)
+          .timeout(const Duration(seconds: 4));
+      _checkResponse(response);
+      if (response.statusCode == 200) {
+        await _setCache("cache_custom_analytics_reports", response.body);
+        final List list = jsonDecode(response.body);
+        return list.map((e) => CustomAnalyticsReportRecord.fromJson(e as Map<String, dynamic>)).toList();
+      }
+    } catch (_) {
+      _updateOnlineState(false);
+    }
+
+    return cachedReports;
+  }
+
+  Future<CustomAnalyticsReportRecord?> fetchCustomAnalyticsReport(String id) async {
+    if (!_isOnline) {
+      final reports = await fetchCustomAnalyticsReports();
+      try {
+        return reports.firstWhere((r) => r.id == id);
+      } catch (_) {
+        return null;
+      }
+    }
+
+    try {
+      final response = await http
+          .get(Uri.parse('$_currentServerUrl/api/custom-analytics/reports/$id'), headers: _headers)
+          .timeout(const Duration(seconds: 4));
+      _checkResponse(response);
+      if (response.statusCode == 200) {
+        return CustomAnalyticsReportRecord.fromJson(jsonDecode(response.body));
+      }
+    } catch (_) {
+      _updateOnlineState(false);
+    }
+    return null;
+  }
+
+  Future<CustomAnalyticsReportRecord?> createCustomAnalyticsReport({
+    required String title,
+    String category = 'General',
+    String? description,
+    required String configJson,
+    bool isShared = false,
+    bool isDefault = false,
+  }) async {
+    if (!_isOnline) return null;
+
+    try {
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/custom-analytics/reports'),
+        headers: _headers,
+        body: jsonEncode({
+          'title': title,
+          'category': category,
+          if (description != null) 'description': description,
+          'configJson': configJson,
+          'isShared': isShared,
+          'isDefault': isDefault,
+        }),
+      );
+      _checkResponse(response);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final created = CustomAnalyticsReportRecord.fromJson(jsonDecode(response.body));
+        // Update local cache
+        final reports = await fetchCustomAnalyticsReports();
+        reports.insert(0, created);
+        await _setCache("cache_custom_analytics_reports", jsonEncode(reports.map((r) => r.toJson()).toList()));
+        return created;
+      }
+    } catch (_) {
+      _updateOnlineState(false);
+    }
+    return null;
+  }
+
+  Future<CustomAnalyticsReportRecord?> updateCustomAnalyticsReport(
+    String id, {
+    String? title,
+    String? category,
+    String? description,
+    String? configJson,
+    bool? isShared,
+    bool? isDefault,
+  }) async {
+    if (!_isOnline) return null;
+
+    try {
+      final Map<String, dynamic> body = {};
+      if (title != null) body['title'] = title;
+      if (category != null) body['category'] = category;
+      if (description != null) body['description'] = description;
+      if (configJson != null) body['configJson'] = configJson;
+      if (isShared != null) body['isShared'] = isShared;
+      if (isDefault != null) body['isDefault'] = isDefault;
+
+      final response = await http.put(
+        Uri.parse('$_currentServerUrl/api/custom-analytics/reports/$id'),
+        headers: _headers,
+        body: jsonEncode(body),
+      );
+      _checkResponse(response);
+      if (response.statusCode == 200) {
+        final updated = CustomAnalyticsReportRecord.fromJson(jsonDecode(response.body));
+        return updated;
+      }
+    } catch (_) {
+      _updateOnlineState(false);
+    }
+    return null;
+  }
+
+  Future<bool> deleteCustomAnalyticsReport(String id) async {
+    if (!_isOnline) return false;
+
+    try {
+      final response = await http.delete(
+        Uri.parse('$_currentServerUrl/api/custom-analytics/reports/$id'),
+        headers: _headers,
+      );
+      _checkResponse(response);
+      return response.statusCode == 200 || response.statusCode == 204;
+    } catch (_) {
+      _updateOnlineState(false);
+      return false;
+    }
+  }
+
+  Future<CustomAnalyticsReportRecord?> duplicateCustomAnalyticsReport(String id) async {
+    if (!_isOnline) return null;
+
+    try {
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/custom-analytics/reports/$id/duplicate'),
+        headers: _headers,
+      );
+      _checkResponse(response);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return CustomAnalyticsReportRecord.fromJson(jsonDecode(response.body));
+      }
+    } catch (_) {
+      _updateOnlineState(false);
+    }
+    return null;
+  }
+
+  Future<CustomAnalyticsDataset?> fetchCustomAnalyticsDataset({
+    String? eventKey,
+    bool includePrescout = true,
+  }) async {
+    final cacheKey = "cache_custom_analytics_dataset_${eventKey ?? 'all'}_$includePrescout";
+    final cached = await _getCache(cacheKey);
+    CustomAnalyticsDataset? cachedDataset;
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        cachedDataset = CustomAnalyticsDataset.fromJson(jsonDecode(cached));
+      } catch (_) {}
+    }
+
+    if (!_isOnline) return cachedDataset;
+
+    try {
+      String url = '$_currentServerUrl/api/custom-analytics/dataset?includePrescout=$includePrescout';
+      if (eventKey != null && eventKey.isNotEmpty) {
+        url += '&eventKey=${Uri.encodeComponent(eventKey)}';
+      }
+
+      final response = await http.get(Uri.parse(url), headers: _headers).timeout(const Duration(seconds: 8));
+      _checkResponse(response);
+      if (response.statusCode == 200) {
+        await _setCache(cacheKey, response.body);
+        return CustomAnalyticsDataset.fromJson(jsonDecode(response.body));
+      }
+    } catch (_) {
+      _updateOnlineState(false);
+    }
+
+    return cachedDataset;
   }
 
   // Chat API Methods
