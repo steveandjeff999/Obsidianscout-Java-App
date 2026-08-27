@@ -513,6 +513,84 @@ class ApiService {
     return _currentSettings;
   }
 
+  Future<ApiResponse<AppSettingsModel>> updateSettings(AppSettingsModel settings) async {
+    final payload = settings.toJson();
+    final jsonStr = jsonEncode(payload);
+    await _setCache("cache_settings", jsonStr);
+    _currentSettings = settings;
+    permissionsNotifier.value++;
+
+    if (!_isOnline) {
+      return const ApiResponse.error(isOffline: true, message: 'Saved to offline cache. Will synchronize when online.');
+    }
+
+    try {
+      final response = await http.put(
+        Uri.parse('$_currentServerUrl/api/settings'),
+        headers: _headers,
+        body: jsonStr,
+      );
+      _checkResponse(response);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        await _setCache("cache_settings", response.body);
+        final jsonMap = jsonDecode(response.body);
+        _currentSettings = AppSettingsModel.fromJson(jsonMap);
+        permissionsNotifier.value++;
+        return ApiResponse.success(
+          _currentSettings!,
+          statusCode: response.statusCode,
+          message: 'API settings saved successfully',
+        );
+      }
+      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to update settings');
+    } catch (e) {
+      return ApiResponse.error(message: e.toString());
+    }
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> testApiKey({
+    required String api,
+    String? tbaKey,
+    String? firstUsername,
+    String? firstKey,
+    String? statboticsBaseUrl,
+  }) async {
+    if (!_isOnline) {
+      return const ApiResponse.error(isOffline: true, message: 'Cannot test API while offline');
+    }
+
+    try {
+      final Map<String, dynamic> body = {'api': api};
+      if (tbaKey != null) body['tbaKey'] = tbaKey;
+      if (firstUsername != null) body['firstUsername'] = firstUsername;
+      if (firstKey != null) body['firstKey'] = firstKey;
+      if (statboticsBaseUrl != null) body['statboticsBaseUrl'] = statboticsBaseUrl;
+
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/settings/test-api'),
+        headers: _headers,
+        body: jsonEncode(body),
+      );
+      _checkResponse(response);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          final isSuccess = decoded['success'] == true;
+          final msg = decoded['message']?.toString() ?? (isSuccess ? 'API test succeeded' : 'API test failed');
+          if (isSuccess) {
+            return ApiResponse.success(decoded, statusCode: response.statusCode, message: msg);
+          } else {
+            return ApiResponse.error(statusCode: response.statusCode, message: msg);
+          }
+        }
+      }
+      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'API test failed');
+    } catch (e) {
+      return ApiResponse.error(message: e.toString());
+    }
+  }
+
   bool hasPageAccess(String pageId) {
     final role = (_currentUser?.role ?? 'SCOUT').toUpperCase();
 

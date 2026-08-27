@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:obsidianscout_app/models/api_response.dart';
 import 'package:obsidianscout_app/models/config_models.dart';
 import 'package:obsidianscout_app/screens/config_editor_screen.dart';
 import 'package:obsidianscout_app/services/api_service.dart';
@@ -35,6 +36,34 @@ class _MockConfigApiService extends ApiService {
           ScoutingFieldModel(id: 'driverSkill', label: 'Driver Skill', type: 'rating'),
         ],
       );
+
+  AppSettingsModel mockSettings = AppSettingsModel(
+    year: 2026,
+    eventCode: 'nytr',
+    timezone: 'America/New_York',
+    preferredSource: 'tba',
+    apiKeys: ApiKeysModel(tbaKey: 'sample_tba_key', firstUsername: 'user1', firstKey: 'key1'),
+  );
+
+  @override
+  Future<AppSettingsModel?> fetchSettings() async => mockSettings;
+
+  @override
+  Future<ApiResponse<AppSettingsModel>> updateSettings(AppSettingsModel settings) async {
+    mockSettings = settings;
+    return ApiResponse.success(settings, statusCode: 200, message: 'Settings saved');
+  }
+
+  @override
+  Future<ApiResponse<Map<String, dynamic>>> testApiKey({
+    required String api,
+    String? tbaKey,
+    String? firstUsername,
+    String? firstKey,
+    String? statboticsBaseUrl,
+  }) async {
+    return ApiResponse.success({'success': true, 'message': '$api tested successfully'});
+  }
 
   @override
   Future<List<DefaultConfigPresetModel>> fetchDefaultPresets(String configKind) async => [];
@@ -272,6 +301,7 @@ void main() {
       expect(find.text('Match'), findsOneWidget);
       expect(find.text('Pit'), findsOneWidget);
       expect(find.text('Qualitative'), findsOneWidget);
+      expect(find.text('API Settings'), findsOneWidget);
 
       // Verify Mode Selector Buttons render
       expect(find.text('Visual Form Editor'), findsOneWidget);
@@ -607,6 +637,103 @@ void main() {
 
       await tester.enterText(find.byKey(const ValueKey('textarea_robotNotes')), 'Great defense and intake');
       expect(updatedTextarea, 'Great defense and intake');
+    });
+  });
+
+  group('API Settings Model and UI Tests', () {
+    test('AppSettingsModel and ApiKeysModel serialize and deserialize accurately', () {
+      final settings = AppSettingsModel(
+        year: 2026,
+        eventCode: 'nytr',
+        eventKey: '2026nytr',
+        timezone: 'America/New_York',
+        preferredSource: 'tba',
+        chatEnabled: true,
+        useStatboticsEpa: true,
+        useTbaOpr: true,
+        apiKeys: ApiKeysModel(
+          tbaKey: 'sample_tba_key_123',
+          firstUsername: 'sample_user',
+          firstKey: 'sample_first_key_456',
+        ),
+        statboticsBaseUrl: 'https://api.statbotics.io',
+      );
+
+      final json = settings.toJson();
+      expect(json['year'], 2026);
+      expect(json['eventCode'], 'nytr');
+      expect(json['eventKey'], '2026nytr');
+      expect(json['preferredSource'], 'tba');
+      expect(json['useStatboticsEpa'], true);
+      expect(json['useTbaOpr'], true);
+      expect(json['statboticsBaseUrl'], 'https://api.statbotics.io');
+      expect(json['apiKeys']['tbaKey'], 'sample_tba_key_123');
+      expect(json['apiKeys']['firstUsername'], 'sample_user');
+      expect(json['apiKeys']['firstKey'], 'sample_first_key_456');
+
+      final deserialized = AppSettingsModel.fromJson(json);
+      expect(deserialized.year, 2026);
+      expect(deserialized.eventCode, 'nytr');
+      expect(deserialized.eventKey, '2026nytr');
+      expect(deserialized.apiKeys.tbaKey, 'sample_tba_key_123');
+      expect(deserialized.apiKeys.firstUsername, 'sample_user');
+      expect(deserialized.apiKeys.firstKey, 'sample_first_key_456');
+    });
+
+    testWidgets('ConfigEditorScreen renders API Settings tab and allows editing and saving', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1200, 2000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final apiService = _MockConfigApiService();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ObsidianUITheme.darkTheme,
+          home: Scaffold(
+            body: ConfigEditorScreen(
+              apiService: apiService,
+              initialKind: 'api',
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Check API Settings UI elements
+      expect(find.text('Event & Season Configuration'), findsOneWidget);
+      expect(find.text('The Blue Alliance (TBA)'), findsOneWidget);
+      expect(find.text('FIRST API'), findsOneWidget);
+      expect(find.text('Statbotics API'), findsOneWidget);
+      expect(find.text('Save API Settings'), findsOneWidget);
+
+      // Verify initial values
+      expect(find.text('2026'), findsOneWidget);
+      expect(find.text('nytr'), findsOneWidget);
+
+      // Test connection button
+      expect(find.text('Test Connection'), findsOneWidget);
+      await tester.tap(find.text('Test Connection'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Test FIRST API button
+      expect(find.text('Test FIRST API'), findsOneWidget);
+      await tester.tap(find.text('Test FIRST API'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Save settings
+      await tester.tap(find.text('Save API Settings'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(apiService.mockSettings.eventCode, 'nytr');
     });
   });
 }

@@ -498,6 +498,46 @@ class UserModel {
   }
 }
 
+class ApiKeysModel {
+  final String tbaKey;
+  final String firstUsername;
+  final String firstKey;
+
+  ApiKeysModel({
+    this.tbaKey = '',
+    this.firstUsername = '',
+    this.firstKey = '',
+  });
+
+  factory ApiKeysModel.fromJson(Map<String, dynamic> json) {
+    return ApiKeysModel(
+      tbaKey: json['tbaKey']?.toString() ?? json['tba_key']?.toString() ?? '',
+      firstUsername: json['firstUsername']?.toString() ?? json['first_username']?.toString() ?? '',
+      firstKey: json['firstKey']?.toString() ?? json['first_key']?.toString() ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'tbaKey': tbaKey,
+      'firstUsername': firstUsername,
+      'firstKey': firstKey,
+    };
+  }
+
+  ApiKeysModel copyWith({
+    String? tbaKey,
+    String? firstUsername,
+    String? firstKey,
+  }) {
+    return ApiKeysModel(
+      tbaKey: tbaKey ?? this.tbaKey,
+      firstUsername: firstUsername ?? this.firstUsername,
+      firstKey: firstKey ?? this.firstKey,
+    );
+  }
+}
+
 class AppSettingsModel {
   final int year;
   final String eventCode;
@@ -512,6 +552,8 @@ class AppSettingsModel {
   final List<String> adminPages;
   final String program;
   final String serverVersion;
+  final ApiKeysModel apiKeys;
+  final String statboticsBaseUrl;
 
   AppSettingsModel({
     this.year = 2026,
@@ -527,7 +569,9 @@ class AppSettingsModel {
     this.adminPages = defaultAdminPages,
     this.program = 'FRC',
     this.serverVersion = '',
-  });
+    ApiKeysModel? apiKeys,
+    this.statboticsBaseUrl = 'https://api.statbotics.io',
+  }) : apiKeys = apiKeys ?? ApiKeysModel();
 
   factory AppSettingsModel.fromJson(Map<String, dynamic> json) {
     final settingsMap = json['settings'] is Map ? (json['settings'] as Map<String, dynamic>) : json;
@@ -537,6 +581,13 @@ class AppSettingsModel {
         return raw.map((e) => e.toString()).toList();
       }
       return fallback;
+    }
+
+    ApiKeysModel parseApiKeys(dynamic raw) {
+      if (raw is Map<String, dynamic>) {
+        return ApiKeysModel.fromJson(raw);
+      }
+      return ApiKeysModel();
     }
 
     return AppSettingsModel(
@@ -553,6 +604,8 @@ class AppSettingsModel {
       adminPages: parseList(settingsMap['adminPages'], defaultAdminPages),
       program: settingsMap['program']?.toString() ?? json['program']?.toString() ?? 'FRC',
       serverVersion: json['version']?.toString() ?? json['serverVersion']?.toString() ?? '',
+      apiKeys: parseApiKeys(settingsMap['apiKeys']),
+      statboticsBaseUrl: settingsMap['statboticsBaseUrl']?.toString() ?? 'https://api.statbotics.io',
     );
   }
 
@@ -571,7 +624,45 @@ class AppSettingsModel {
       'adminPages': adminPages,
       'program': program,
       'serverVersion': serverVersion,
+      'apiKeys': apiKeys.toJson(),
+      'statboticsBaseUrl': statboticsBaseUrl,
     };
+  }
+
+  AppSettingsModel copyWith({
+    int? year,
+    String? eventCode,
+    String? eventKey,
+    String? timezone,
+    String? preferredSource,
+    bool? chatEnabled,
+    bool? useStatboticsEpa,
+    bool? useTbaOpr,
+    List<String>? scoutPages,
+    List<String>? analyticsPages,
+    List<String>? adminPages,
+    String? program,
+    String? serverVersion,
+    ApiKeysModel? apiKeys,
+    String? statboticsBaseUrl,
+  }) {
+    return AppSettingsModel(
+      year: year ?? this.year,
+      eventCode: eventCode ?? this.eventCode,
+      eventKey: eventKey ?? this.eventKey,
+      timezone: timezone ?? this.timezone,
+      preferredSource: preferredSource ?? this.preferredSource,
+      chatEnabled: chatEnabled ?? this.chatEnabled,
+      useStatboticsEpa: useStatboticsEpa ?? this.useStatboticsEpa,
+      useTbaOpr: useTbaOpr ?? this.useTbaOpr,
+      scoutPages: scoutPages ?? this.scoutPages,
+      analyticsPages: analyticsPages ?? this.analyticsPages,
+      adminPages: adminPages ?? this.adminPages,
+      program: program ?? this.program,
+      serverVersion: serverVersion ?? this.serverVersion,
+      apiKeys: apiKeys ?? this.apiKeys,
+      statboticsBaseUrl: statboticsBaseUrl ?? this.statboticsBaseUrl,
+    );
   }
 }
 
