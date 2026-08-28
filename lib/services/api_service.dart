@@ -720,6 +720,101 @@ class ApiService {
     permissionsNotifier.value++;
   }
 
+  Future<ApiResponse<Map<String, dynamic>>> forgotPassword({
+    String? email,
+    String? username,
+    int? teamNumber,
+    bool isApp = true,
+  }) async {
+    try {
+      final Map<String, dynamic> body = {'isApp': isApp};
+      if (email != null && email.trim().isNotEmpty) {
+        body['email'] = email.trim();
+      } else {
+        if (username != null && username.trim().isNotEmpty) {
+          body['username'] = username.trim();
+        }
+        if (teamNumber != null) {
+          body['teamNumber'] = teamNumber;
+        }
+      }
+
+      final response = await http
+          .post(
+            Uri.parse('$_currentServerUrl/api/auth/forgot-password'),
+            headers: _headers,
+            body: jsonEncode(body),
+          )
+          .timeout(requestTimeout);
+
+      return ApiResponse.fromHttpResponse(
+        response,
+        parser: (json) => (json is Map<String, dynamic>) ? json : <String, dynamic>{},
+        defaultErrorMessage: 'Failed to request password reset',
+      );
+    } catch (e) {
+      return ApiResponse.error(
+        message: e.toString(),
+        isOffline: true,
+      );
+    }
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> verifyResetToken(String token) async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse('$_currentServerUrl/api/auth/verify-reset-token?token=${Uri.encodeComponent(token)}'),
+            headers: _headers,
+          )
+          .timeout(requestTimeout);
+
+      return ApiResponse.fromHttpResponse(
+        response,
+        parser: (json) => (json is Map<String, dynamic>) ? json : <String, dynamic>{},
+        defaultErrorMessage: 'Invalid or expired reset token',
+      );
+    } catch (e) {
+      return ApiResponse.error(
+        message: e.toString(),
+        isOffline: true,
+      );
+    }
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> resetPassword({
+    required String token,
+    String? userId,
+    String? newUsername,
+    required String newPassword,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$_currentServerUrl/api/auth/reset-password'),
+            headers: _headers,
+            body: jsonEncode({
+              'token': token,
+              if (userId != null && userId.isNotEmpty) 'userId': userId,
+              if (newUsername != null && newUsername.isNotEmpty) 'newUsername': newUsername,
+              'newPassword': newPassword,
+            }),
+          )
+          .timeout(requestTimeout);
+
+      return ApiResponse.fromHttpResponse(
+        response,
+        parser: (json) => (json is Map<String, dynamic>) ? json : <String, dynamic>{},
+        defaultErrorMessage: 'Failed to reset credentials',
+      );
+    } catch (e) {
+      return ApiResponse.error(
+        message: e.toString(),
+        isOffline: true,
+      );
+    }
+  }
+
   // User Profile & Settings
   Future<UserModel?> fetchCurrentUser() async {
     final cached = await _getCache("cache_auth_me");
