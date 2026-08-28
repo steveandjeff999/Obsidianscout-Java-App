@@ -10,7 +10,13 @@ import 'package:obsidianscout_app/screens/match_scout_screen.dart';
 
 class _MockScoutingApiService extends ApiService {
   @override
+  bool get isOnline => true;
+
+  @override
   Future<String?> fetchCurrentEventKey() async => '2026test';
+
+  @override
+  Future<String?> getCachedEventKey() async => '2026test';
 
   @override
   Future<ScoutingConfigModel?> fetchMatchConfig() async => ScoutingConfigModel(
@@ -25,14 +31,23 @@ class _MockScoutingApiService extends ApiService {
       );
 
   @override
+  Future<ScoutingConfigModel?> getCachedMatchConfig() async => fetchMatchConfig();
+
+  @override
   Future<List<TeamModel>> fetchTeams(String? eventKey) async => [
         TeamModel(eventKey: '2026test', teamKey: 'frc1234', teamNumber: 1234, nickname: 'Test Team'),
       ];
 
   @override
+  Future<List<TeamModel>> getCachedTeams(String? eventKey) async => fetchTeams(eventKey);
+
+  @override
   Future<List<MatchModel>> fetchMatches(String? eventKey) async => [
         MatchModel(eventKey: '2026test', matchKey: '2026test_qm1', matchNumber: 1, compLevel: 'qm', label: 'Quals 1'),
       ];
+
+  @override
+  Future<List<MatchModel>> getCachedMatches(String? eventKey) async => fetchMatches(eventKey);
 }
 
 void main() {
@@ -90,6 +105,7 @@ void main() {
       ),
     );
 
+    await tester.pump();
     await tester.pumpAndSettle();
     expect(find.byType(MatchScoutScreen), findsOneWidget);
     expect(find.text('Select a team and match to start scouting.'), findsOneWidget);

@@ -2623,4 +2623,35 @@ class ApiService {
       return ApiResponse.error(message: e.toString());
     }
   }
+
+  // Contact Form Submission
+  Future<ApiResponse<void>> sendContactMessage({
+    required String type,
+    required String name,
+    String? replyToEmail,
+    required String message,
+  }) async {
+    if (!_isOnline) {
+      return const ApiResponse.error(isOffline: true, message: 'Device is offline');
+    }
+    try {
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/contact'),
+        headers: _headers,
+        body: jsonEncode({
+          'type': type,
+          'name': name,
+          'replyToEmail': (replyToEmail != null && replyToEmail.isNotEmpty) ? replyToEmail : null,
+          'message': message,
+        }),
+      ).timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      return ApiResponse.fromHttpResponse(
+        response,
+        defaultErrorMessage: 'Failed to send contact message',
+      );
+    } catch (e) {
+      return ApiResponse.error(message: e.toString());
+    }
+  }
 }

@@ -1120,7 +1120,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingOb
                             else if (_isScanning)
                               MobileScanner(
                                 controller: _scannerController,
-                                errorBuilder: (context, error, child) {
+                                errorBuilder: (context, error) {
                                   if (error.errorCode == MobileScannerErrorCode.permissionDenied) {
                                     return _buildPermissionDeniedCard(borderColor, primaryTextColor);
                                   }

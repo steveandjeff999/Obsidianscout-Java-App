@@ -214,6 +214,13 @@ class ObsidianNavigationDrawer extends StatelessWidget {
             'labelKey': 'nav.settings_cache',
             'subKey': 'subtitle.settings',
           },
+          {
+            'pageId': 'contact',
+            'index': 19,
+            'icon': Icons.contact_support_rounded,
+            'labelKey': 'nav.contact',
+            'subKey': 'subtitle.contact',
+          },
         ],
       },
     ];
