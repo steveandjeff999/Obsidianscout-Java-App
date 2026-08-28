@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
+import '../widgets/reset_password_modal.dart';
 import '../services/api_service.dart';
+import '../models/api_response.dart';
 
 class LoginScreen extends StatefulWidget {
   final ApiService apiService;
@@ -22,6 +24,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _loginFormKey = GlobalKey<FormState>();
   final _registerFormKey = GlobalKey<FormState>();
+  final _forgotFormKey = GlobalKey<FormState>();
 
   late TextEditingController _serverUrlController;
   final TextEditingController _usernameController = TextEditingController();
@@ -35,6 +38,11 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _regPasswordController = TextEditingController();
   final TextEditingController _regConfirmPasswordController = TextEditingController();
 
+  // Forgot Password Controllers
+  final TextEditingController _forgotEmailController = TextEditingController();
+  final TextEditingController _forgotUsernameController = TextEditingController();
+  final TextEditingController _forgotTeamNumberController = TextEditingController();
+
   String _selectedProgram = 'FRC';
   String _regProgram = 'FRC';
   String _regRole = 'SCOUT';
@@ -42,8 +50,10 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _regKeepMeLoggedIn = true;
 
   bool _isSubmitting = false;
+  bool _isSendingForgot = false;
   bool _showServerConfig = false;
-  int _activeTabIndex = 0; // 0 = Sign In, 1 = Create Account
+  int _activeTabIndex = 0; // 0 = Sign In, 1 = Create Account, 2 = Recover Password
+  int _forgotTabIndex = 0; // 0 = Email, 1 = Username & Team
   DateTime? _lastBackPressTime;
 
   @override
@@ -68,6 +78,9 @@ class _LoginScreenState extends State<LoginScreen> {
     _regTeamNumberController.dispose();
     _regPasswordController.dispose();
     _regConfirmPasswordController.dispose();
+    _forgotEmailController.dispose();
+    _forgotUsernameController.dispose();
+    _forgotTeamNumberController.dispose();
     super.dispose();
   }
 
@@ -162,6 +175,65 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     }
+  }
+
+  void _handleForgotPassword() async {
+    if (!_forgotFormKey.currentState!.validate()) return;
+    _forgotFormKey.currentState!.save();
+
+    setState(() => _isSendingForgot = true);
+
+    await widget.apiService.setServerUrl(_serverUrlController.text.trim());
+
+    final ApiResponse<Map<String, dynamic>> response;
+    if (_forgotTabIndex == 0) {
+      response = await widget.apiService.forgotPassword(
+        email: _forgotEmailController.text.trim(),
+        isApp: true,
+      );
+    } else {
+      final teamNum = int.tryParse(_forgotTeamNumberController.text.trim()) ?? 0;
+      response = await widget.apiService.forgotPassword(
+        username: _forgotUsernameController.text.trim(),
+        teamNumber: teamNum,
+        isApp: true,
+      );
+    }
+
+    setState(() => _isSendingForgot = false);
+
+    if (mounted) {
+      if (response.success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.message ?? 'Password reset token sent to registered email.'),
+            backgroundColor: ObsidianUITheme.successGreen,
+          ),
+        );
+        _openResetPasswordModal();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.message ?? 'Failed to request password reset.'),
+            backgroundColor: ObsidianUITheme.errorRed,
+          ),
+        );
+      }
+    }
+  }
+
+  void _openResetPasswordModal([String? token]) {
+    ResetPasswordModal.show(
+      context,
+      apiService: widget.apiService,
+      initialToken: token,
+      onResetSuccess: (updatedUsername) {
+        setState(() {
+          _usernameController.text = updatedUsername;
+          _activeTabIndex = 0;
+        });
+      },
+    );
   }
 
   void _handleBackPress() {
@@ -319,94 +391,103 @@ class _LoginScreenState extends State<LoginScreen> {
                       Divider(color: borderColor),
                       const SizedBox(height: 12.0),
 
-                      // Auth Tab Selector (Sign In vs Create Account)
-                      Container(
-                        decoration: BoxDecoration(
-                          color: borderColor,
-                          borderRadius: BorderRadius.circular(16.0),
-                          border: Border.all(color: borderColor),
-                        ),
-                        padding: const EdgeInsets.all(4.0),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () => setState(() => _activeTabIndex = 0),
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 200),
-                                  padding: const EdgeInsets.symmetric(vertical: 10.0),
-                                  decoration: BoxDecoration(
-                                    color: _activeTabIndex == 0 ? ObsidianUITheme.primaryAccent : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(12.0),
-                                  ),
-                                  child: Text(
-                                    context.tr('login.sign_in'),
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14.0,
-                                      color: _activeTabIndex == 0 ? Colors.white : secondaryTextColor,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () => setState(() => _activeTabIndex = 1),
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 200),
-                                  padding: const EdgeInsets.symmetric(vertical: 10.0),
-                                  decoration: BoxDecoration(
-                                    color: _activeTabIndex == 1 ? ObsidianUITheme.secondaryAccent : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(12.0),
-                                  ),
-                                  child: Text(
-                                    context.tr('login.create_account'),
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14.0,
-                                      color: _activeTabIndex == 1 ? Colors.white : secondaryTextColor,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16.0),
-
-                      // Render Login Form or Register Form
-                      _activeTabIndex == 0 ? _buildLoginForm(primaryTextColor, secondaryTextColor, borderColor, surfaceColor) : _buildRegisterForm(primaryTextColor, secondaryTextColor, borderColor, surfaceColor),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16.0),
-
-                // Submit Button Card
-                ObsidianGlassCard(
-                  onTap: _isSubmitting ? null : (_activeTabIndex == 0 ? _handleLogin : _handleRegister),
-                  child: Center(
-                    child: _isSubmitting
-                        ? const CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)
-                        : Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                      // Auth Tab Selector (Sign In vs Create Account) - Hidden in Recovery Mode
+                      if (_activeTabIndex != 2) ...[
+                        Container(
+                          decoration: BoxDecoration(
+                            color: borderColor,
+                            borderRadius: BorderRadius.circular(16.0),
+                            border: Border.all(color: borderColor),
+                          ),
+                          padding: const EdgeInsets.all(4.0),
+                          child: Row(
                             children: [
-                              Icon(
-                                _activeTabIndex == 0 ? Icons.login_rounded : Icons.person_add_rounded,
-                                color: primaryTextColor,
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => setState(() => _activeTabIndex = 0),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    padding: const EdgeInsets.symmetric(vertical: 10.0),
+                                    decoration: BoxDecoration(
+                                      color: _activeTabIndex == 0 ? ObsidianUITheme.primaryAccent : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(12.0),
+                                    ),
+                                    child: Text(
+                                      context.tr('login.sign_in', 'Sign In'),
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14.0,
+                                        color: _activeTabIndex == 0 ? Colors.white : secondaryTextColor,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
-                              const SizedBox(width: 10.0),
-                              Text(
-                                _activeTabIndex == 0 ? context.tr('login.connect_login') : context.tr('login.create_register'),
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15.0, color: primaryTextColor),
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => setState(() => _activeTabIndex = 1),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    padding: const EdgeInsets.symmetric(vertical: 10.0),
+                                    decoration: BoxDecoration(
+                                      color: _activeTabIndex == 1 ? ObsidianUITheme.secondaryAccent : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(12.0),
+                                    ),
+                                    child: Text(
+                                      context.tr('login.create_account', 'Create Account'),
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14.0,
+                                        color: _activeTabIndex == 1 ? Colors.white : secondaryTextColor,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
                             ],
                           ),
+                        ),
+                        const SizedBox(height: 16.0),
+                      ],
+
+                      // Render Login Form, Register Form, or Recover Password Form
+                      if (_activeTabIndex == 0)
+                        _buildLoginForm(primaryTextColor, secondaryTextColor, borderColor, surfaceColor)
+                      else if (_activeTabIndex == 1)
+                        _buildRegisterForm(primaryTextColor, secondaryTextColor, borderColor, surfaceColor)
+                      else
+                        _buildRecoverForm(primaryTextColor, secondaryTextColor, borderColor, surfaceColor),
+                    ],
                   ),
                 ),
+                if (_activeTabIndex != 2) ...[
+                  const SizedBox(height: 16.0),
+
+                  // Submit Button Card
+                  ObsidianGlassCard(
+                    onTap: _isSubmitting ? null : (_activeTabIndex == 0 ? _handleLogin : _handleRegister),
+                    child: Center(
+                      child: _isSubmitting
+                          ? const CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  _activeTabIndex == 0 ? Icons.login_rounded : Icons.person_add_rounded,
+                                  color: primaryTextColor,
+                                ),
+                                const SizedBox(width: 10.0),
+                                Text(
+                                  _activeTabIndex == 0 ? context.tr('login.connect_login', 'Sign In') : context.tr('login.create_register', 'Create Account'),
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15.0, color: primaryTextColor),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -425,12 +506,12 @@ class _LoginScreenState extends State<LoginScreen> {
             controller: _usernameController,
             style: TextStyle(color: primaryTextColor),
             decoration: InputDecoration(
-              labelText: context.tr('login.username'),
+              labelText: context.tr('login.username', 'Username'),
               labelStyle: TextStyle(color: secondaryTextColor),
               prefixIcon: Icon(Icons.person_outline, color: secondaryTextColor),
               enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
             ),
-            validator: (val) => val == null || val.trim().isEmpty ? context.tr('login.username') : null,
+            validator: (val) => val == null || val.trim().isEmpty ? context.tr('login.username', 'Username is required') : null,
           ),
           const SizedBox(height: 12.0),
           TextFormField(
@@ -438,12 +519,12 @@ class _LoginScreenState extends State<LoginScreen> {
             obscureText: true,
             style: TextStyle(color: primaryTextColor),
             decoration: InputDecoration(
-              labelText: context.tr('login.password'),
+              labelText: context.tr('login.password', 'Password'),
               labelStyle: TextStyle(color: secondaryTextColor),
               prefixIcon: Icon(Icons.lock_outline, color: secondaryTextColor),
               enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
             ),
-            validator: (val) => val == null || val.isEmpty ? context.tr('login.password') : null,
+            validator: (val) => val == null || val.isEmpty ? context.tr('login.password', 'Password is required') : null,
           ),
           const SizedBox(height: 12.0),
           TextFormField(
@@ -451,7 +532,7 @@ class _LoginScreenState extends State<LoginScreen> {
             keyboardType: TextInputType.number,
             style: TextStyle(color: primaryTextColor),
             decoration: InputDecoration(
-              labelText: context.tr('login.team_number'),
+              labelText: context.tr('login.team_number', 'Team Number'),
               labelStyle: TextStyle(color: secondaryTextColor),
               prefixIcon: Icon(Icons.group_outlined, color: secondaryTextColor),
               enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
@@ -464,7 +545,7 @@ class _LoginScreenState extends State<LoginScreen> {
             dropdownColor: surfaceColor,
             style: TextStyle(color: primaryTextColor),
             decoration: InputDecoration(
-              labelText: context.tr('login.program'),
+              labelText: context.tr('login.program', 'Program'),
               labelStyle: TextStyle(color: secondaryTextColor),
               prefixIcon: Icon(Icons.category_outlined, color: secondaryTextColor),
               enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
@@ -490,10 +571,32 @@ class _LoginScreenState extends State<LoginScreen> {
             color: Colors.transparent,
             child: CheckboxListTile(
               contentPadding: EdgeInsets.zero,
-              title: Text(context.tr('login.keep_logged_in'), style: TextStyle(color: secondaryTextColor, fontSize: 14.0)),
+              title: Text(context.tr('login.keep_logged_in', 'Keep me logged in'), style: TextStyle(color: secondaryTextColor, fontSize: 14.0)),
               value: _keepMeLoggedIn,
               activeColor: ObsidianUITheme.primaryAccent,
               onChanged: (val) => setState(() => _keepMeLoggedIn = val ?? true),
+            ),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: () => setState(() {
+                _activeTabIndex = 2;
+                _forgotTabIndex = 0;
+              }),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(
+                context.tr('index.forgot_usernamepassword', 'Forgot username/password?'),
+                style: const TextStyle(
+                  color: ObsidianUITheme.primaryAccent,
+                  fontSize: 13.0,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ),
         ],
@@ -638,6 +741,194 @@ class _LoginScreenState extends State<LoginScreen> {
               activeColor: ObsidianUITheme.secondaryAccent,
               onChanged: (val) => setState(() => _regKeepMeLoggedIn = val ?? true),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecoverForm(Color primaryTextColor, Color secondaryTextColor, Color borderColor, Color surfaceColor) {
+    return Form(
+      key: _forgotFormKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                color: secondaryTextColor,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: () => setState(() => _activeTabIndex = 0),
+              ),
+              const SizedBox(width: 8.0),
+              Text(
+                context.tr('index.recover_password', 'Recover Password'),
+                style: TextStyle(
+                  fontSize: 16.0,
+                  fontWeight: FontWeight.bold,
+                  color: primaryTextColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12.0),
+          Container(
+            decoration: BoxDecoration(
+              color: borderColor,
+              borderRadius: BorderRadius.circular(12.0),
+              border: Border.all(color: borderColor),
+            ),
+            padding: const EdgeInsets.all(3.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _forgotTabIndex = 0),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      decoration: BoxDecoration(
+                        color: _forgotTabIndex == 0 ? ObsidianUITheme.primaryAccent : Colors.transparent,
+                        borderRadius: BorderRadius.circular(10.0),
+                      ),
+                      child: Text(
+                        context.tr('index.email', 'Email'),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13.0,
+                          color: _forgotTabIndex == 0 ? Colors.white : secondaryTextColor,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _forgotTabIndex = 1),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      decoration: BoxDecoration(
+                        color: _forgotTabIndex == 1 ? ObsidianUITheme.primaryAccent : Colors.transparent,
+                        borderRadius: BorderRadius.circular(10.0),
+                      ),
+                      child: Text(
+                        context.tr('index.username_team', 'Username & Team'),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13.0,
+                          color: _forgotTabIndex == 1 ? Colors.white : secondaryTextColor,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12.0),
+          Text(
+            _forgotTabIndex == 0
+                ? context.tr(
+                    'index.enter_your_registered_email_ad',
+                    'Enter your registered email address. We will send you a reset token and link.',
+                  )
+                : context.tr(
+                    'login.enter_username_team',
+                    'Enter your username and team number. If your account has a registered email, we will send you a reset token.',
+                  ),
+            style: TextStyle(fontSize: 13.0, color: secondaryTextColor),
+          ),
+          const SizedBox(height: 14.0),
+          if (_forgotTabIndex == 0) ...[
+            TextFormField(
+              controller: _forgotEmailController,
+              keyboardType: TextInputType.emailAddress,
+              style: TextStyle(color: primaryTextColor),
+              decoration: InputDecoration(
+                labelText: context.tr('index.email', 'Email Address'),
+                labelStyle: TextStyle(color: secondaryTextColor),
+                prefixIcon: Icon(Icons.email_outlined, color: secondaryTextColor),
+                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
+              ),
+              validator: (val) => val == null || val.trim().isEmpty ? 'Email is required' : null,
+            ),
+          ] else ...[
+            TextFormField(
+              controller: _forgotUsernameController,
+              style: TextStyle(color: primaryTextColor),
+              decoration: InputDecoration(
+                labelText: context.tr('login.username', 'Username'),
+                labelStyle: TextStyle(color: secondaryTextColor),
+                prefixIcon: Icon(Icons.person_outline, color: secondaryTextColor),
+                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
+              ),
+              validator: (val) => val == null || val.trim().isEmpty ? 'Username is required' : null,
+            ),
+            const SizedBox(height: 12.0),
+            TextFormField(
+              controller: _forgotTeamNumberController,
+              keyboardType: TextInputType.number,
+              style: TextStyle(color: primaryTextColor),
+              decoration: InputDecoration(
+                labelText: context.tr('login.team_number', 'Team Number'),
+                labelStyle: TextStyle(color: secondaryTextColor),
+                prefixIcon: Icon(Icons.group_outlined, color: secondaryTextColor),
+                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
+              ),
+              validator: (val) {
+                if (val == null || val.trim().isEmpty) return 'Team number is required';
+                final n = int.tryParse(val.trim());
+                if (n == null || n <= 0) return 'Enter a valid team number';
+                return null;
+              },
+            ),
+          ],
+          const SizedBox(height: 16.0),
+          ElevatedButton.icon(
+            onPressed: _isSendingForgot ? null : _handleForgotPassword,
+            icon: _isSendingForgot
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
+                : const Icon(Icons.send_rounded, size: 18),
+            label: Text(
+              _isSendingForgot ? 'Sending...' : context.tr('index.send_reset_link', 'Send reset link'),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.0),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: ObsidianUITheme.primaryAccent,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12.0),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+            ),
+          ),
+          const SizedBox(height: 12.0),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              TextButton(
+                onPressed: () => setState(() => _activeTabIndex = 0),
+                child: Text(
+                  context.tr('index.back_to_sign_in', 'Back to sign in'),
+                  style: TextStyle(color: secondaryTextColor, fontSize: 13.0),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () => _openResetPasswordModal(),
+                icon: const Icon(Icons.vpn_key_outlined, size: 16, color: ObsidianUITheme.primaryAccent),
+                label: const Text(
+                  'Have a token?',
+                  style: TextStyle(color: ObsidianUITheme.primaryAccent, fontSize: 13.0, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
           ),
         ],
       ),
