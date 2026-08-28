@@ -3,6 +3,7 @@ import '../l10n/app_localizations.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
+import '../theme/obsidian_responsive.dart';
 import '../widgets/obsidian_glass_card.dart';
 import 'team_details_screen.dart';
 
@@ -256,103 +257,129 @@ class _TeamsListScreenState extends State<TeamsListScreen> {
                         ],
                       ),
                     )
-                  : ListView.builder(
-                      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
-                      padding: EdgeInsets.fromLTRB(16, 4, 16, widget.isBarsVisible ? 100.0 : 20.0),
-                      itemCount: _filteredSorted.length,
-                      itemBuilder: (context, i) {
-                        final team = _filteredSorted[i];
-                        final hasStats = team.epa != null || team.opr != null || team.averagePoints != null;
-                        return ObsidianGlassCard(
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => TeamDetailsScreen(
-                                  team: team,
-                                  apiService: widget.apiService,
-                                ),
-                              ),
-                            );
-                          },
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 52,
-                                height: 52,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      ObsidianUITheme.primaryAccent.withValues(alpha: 0.3),
-                                      ObsidianUITheme.secondaryAccent.withValues(alpha: 0.2),
-                                    ],
-                                  ),
-                                  border: Border.all(
-                                    color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.5),
-                                  ),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    '${team.teamNumber}',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
-                                      color: ObsidianUITheme.primaryAccent,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      team.nickname ?? team.name ?? 'Team ${team.teamNumber}',
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.bold,
-                                        color: primaryTextColor,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    if (team.name != null && team.nickname != null)
-                                      Text(
-                                        team.name!,
-                                        style: TextStyle(fontSize: 11, color: secondaryTextColor),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    if (hasStats) ...[
-                                      const SizedBox(height: 6),
-                                      Wrap(
-                                        spacing: 8,
-                                        children: [
-                                          if (team.epa != null)
-                                            _statBadge(context, 'EPA', team.epa!.toStringAsFixed(1), Colors.amber),
-                                          if (team.opr != null)
-                                            _statBadge(context, 'OPR', team.opr!.toStringAsFixed(1), ObsidianUITheme.primaryAccent),
-                                          if (team.averagePoints != null)
-                                            _statBadge(context, 'AVG', team.averagePoints!.toStringAsFixed(1), ObsidianUITheme.secondaryAccent),
-                                        ],
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                              Icon(
-                                Icons.arrow_forward_ios_rounded,
-                                size: 14,
-                                color: secondaryTextColor.withValues(alpha: 0.5),
-                              ),
-                            ],
-                          ),
+                  : Builder(
+                      builder: (context) {
+                        final isDesktop = ObsidianResponsive.isDesktop(context, overrideMode: widget.apiService.uiMode);
+                        if (isDesktop) {
+                          return GridView.builder(
+                            physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+                            padding: EdgeInsets.fromLTRB(16, 4, 16, widget.isBarsVisible ? 100.0 : 20.0),
+                            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                              maxCrossAxisExtent: 420.0,
+                              mainAxisExtent: 120.0,
+                              crossAxisSpacing: 12.0,
+                              mainAxisSpacing: 12.0,
+                            ),
+                            itemCount: _filteredSorted.length,
+                            itemBuilder: (context, i) => _buildTeamCard(context, _filteredSorted[i]),
+                          );
+                        }
+                        return ListView.builder(
+                          physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+                          padding: EdgeInsets.fromLTRB(16, 4, 16, widget.isBarsVisible ? 100.0 : 20.0),
+                          itemCount: _filteredSorted.length,
+                          itemBuilder: (context, i) => _buildTeamCard(context, _filteredSorted[i]),
                         );
                       },
                     ),
         ),
       ],
+    );
+  }
+
+  Widget _buildTeamCard(BuildContext context, TeamModel team) {
+    final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+    final hasStats = team.epa != null || team.opr != null || team.averagePoints != null;
+
+    return ObsidianGlassCard(
+      margin: EdgeInsets.zero,
+      padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => TeamDetailsScreen(
+              team: team,
+              apiService: widget.apiService,
+            ),
+          ),
+        );
+      },
+      child: Row(
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [
+                  ObsidianUITheme.primaryAccent.withValues(alpha: 0.3),
+                  ObsidianUITheme.secondaryAccent.withValues(alpha: 0.2),
+                ],
+              ),
+              border: Border.all(
+                color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.5),
+              ),
+            ),
+            child: Center(
+              child: Text(
+                '${team.teamNumber}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: ObsidianUITheme.primaryAccent,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  team.nickname ?? team.name ?? 'Team ${team.teamNumber}',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: primaryTextColor,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (team.name != null && team.nickname != null)
+                  Text(
+                    team.name!,
+                    style: TextStyle(fontSize: 11, color: secondaryTextColor),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                if (hasStats) ...[
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      if (team.epa != null)
+                        _statBadge(context, 'EPA', team.epa!.toStringAsFixed(1), Colors.amber),
+                      if (team.opr != null)
+                        _statBadge(context, 'OPR', team.opr!.toStringAsFixed(1), ObsidianUITheme.primaryAccent),
+                      if (team.averagePoints != null)
+                        _statBadge(context, 'AVG', team.averagePoints!.toStringAsFixed(1), ObsidianUITheme.secondaryAccent),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Icon(
+            Icons.arrow_forward_ios_rounded,
+            size: 14,
+            color: secondaryTextColor.withValues(alpha: 0.5),
+          ),
+        ],
+      ),
     );
   }
 

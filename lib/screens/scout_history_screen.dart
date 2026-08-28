@@ -4,6 +4,7 @@ import '../models/scout_history_models.dart';
 import '../services/api_service.dart';
 import '../services/scout_history_service.dart';
 import '../theme/obsidian_ui_theme.dart';
+import '../theme/obsidian_responsive.dart';
 import '../widgets/obsidian_barcode_modal.dart';
 import '../widgets/obsidian_feedback.dart';
 import '../widgets/obsidian_glass_card.dart';
@@ -545,16 +546,40 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
               : RefreshIndicator(
                   onRefresh: () => _syncWithServer(showFeedback: true),
                   color: ObsidianUITheme.primaryAccent,
-                  child: ListView.builder(
-                    physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
-                    padding: EdgeInsets.only(
-                      top: 8,
-                      left: 12,
-                      right: 12,
-                      bottom: widget.isBarsVisible ? 120 : 24,
-                    ),
-                    itemCount: filtered.length,
-                    itemBuilder: (ctx, i) => _buildCard(filtered[i]),
+                  child: Builder(
+                    builder: (context) {
+                      final isDesktop = ObsidianResponsive.isDesktop(context, overrideMode: widget.apiService.uiMode);
+                      if (isDesktop) {
+                        return GridView.builder(
+                          physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+                          padding: EdgeInsets.only(
+                            top: 8,
+                            left: 12,
+                            right: 12,
+                            bottom: widget.isBarsVisible ? 120 : 24,
+                          ),
+                          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 460.0,
+                            mainAxisExtent: 140.0,
+                            crossAxisSpacing: 12.0,
+                            mainAxisSpacing: 12.0,
+                          ),
+                          itemCount: filtered.length,
+                          itemBuilder: (ctx, i) => _buildCard(filtered[i]),
+                        );
+                      }
+                      return ListView.builder(
+                        physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+                        padding: EdgeInsets.only(
+                          top: 8,
+                          left: 12,
+                          right: 12,
+                          bottom: widget.isBarsVisible ? 120 : 24,
+                        ),
+                        itemCount: filtered.length,
+                        itemBuilder: (ctx, i) => _buildCard(filtered[i]),
+                      );
+                    },
                   ),
                 ),
         ),

@@ -17,6 +17,7 @@ class ApiService {
   static const String keyKeepMeLoggedIn = "obsidianscout_keep_me_logged_in";
   static const String keySavedUsername = "obsidianscout_saved_username";
   static const String keyThemeMode = "obsidianscout_theme_mode";
+  static const String keyUiMode = "obsidianscout_ui_mode";
   static const String keyLocale = "obsidianscout_locale";
   static const String keyRequestTimeoutSeconds = "obsidianscout_request_timeout_seconds";
   static const int defaultRequestTimeoutSeconds = 6;
@@ -34,6 +35,7 @@ class ApiService {
   final ValueNotifier<int> permissionsNotifier = ValueNotifier<int>(0);
 
   final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier<ThemeMode>(ThemeMode.dark);
+  final ValueNotifier<String> uiModeNotifier = ValueNotifier<String>('auto'); // 'auto', 'mobile', 'desktop'
   final ValueNotifier<Locale> localeNotifier = ValueNotifier<Locale>(const Locale('en'));
   final ValueNotifier<int> timeoutNotifier = ValueNotifier<int>(defaultRequestTimeoutSeconds);
 
@@ -58,6 +60,7 @@ class ApiService {
   Stream<int> get onServerError => _serverErrorController.stream;
   Stream<String> get onSessionRevoked => _sessionRevokedController.stream;
   ThemeMode get themeMode => themeNotifier.value;
+  String get uiMode => uiModeNotifier.value;
   Locale get currentLocale => localeNotifier.value;
   int get requestTimeoutSeconds => _requestTimeoutSeconds;
   Duration get requestTimeout => Duration(seconds: _requestTimeoutSeconds);
@@ -67,6 +70,12 @@ class ApiService {
     themeNotifier.value = mode;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(keyThemeMode, mode.name);
+  }
+
+  Future<void> setUiMode(String mode) async {
+    uiModeNotifier.value = mode;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(keyUiMode, mode);
   }
 
   Future<void> setLocale(Locale locale) async {
@@ -115,6 +124,9 @@ class ApiService {
     } else {
       localeNotifier.value = const Locale('en');
     }
+
+    final savedUiMode = prefs.getString(keyUiMode) ?? 'auto';
+    uiModeNotifier.value = savedUiMode;
 
     _requestTimeoutSeconds = prefs.getInt(keyRequestTimeoutSeconds) ?? defaultRequestTimeoutSeconds;
     timeoutNotifier.value = _requestTimeoutSeconds;

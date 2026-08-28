@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
@@ -227,10 +226,7 @@ class ObsidianNavigationDrawer extends StatelessWidget {
 
     return Drawer(
       backgroundColor: drawerBg,
-      child: ClipRRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
-          child: Column(
+      child: Column(
               children: [
                 // Drawer Header
                 Container(
@@ -519,8 +515,6 @@ class ObsidianNavigationDrawer extends StatelessWidget {
                 ),
               ],
             ),
-          ),
-        ),
     );
   }
 }

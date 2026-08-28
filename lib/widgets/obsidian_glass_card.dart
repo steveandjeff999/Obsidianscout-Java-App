@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../theme/obsidian_ui_theme.dart';
 
@@ -38,67 +37,86 @@ class _ObsidianGlassCardState extends State<ObsidianGlassCard> {
         ? const [Color(0x22FFFFFF), Color(0x06FFFFFF)]
         : const [Color(0xFFFFFFFF), Color(0xF0F8FAFC)];
 
-    Widget cardContent = AnimatedScale(
-      scale: _isPressed ? 0.97 : 1.0,
-      duration: const Duration(milliseconds: 150),
-      curve: Curves.easeOutBack,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        margin: widget.margin,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(widget.borderRadius),
-          boxShadow: [
-            BoxShadow(
-              color: _isPressed ? shadowColor.withValues(alpha: 0.15) : shadowColor,
-              blurRadius: _isPressed ? 8 : (isDark ? 16 : 12),
-              offset: _isPressed ? const Offset(0, 2) : const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(widget.borderRadius),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
-            child: Container(
-              padding: widget.padding,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(widget.borderRadius),
-                color: cardBgColor,
-                border: Border.all(
-                  color: _isPressed ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.6) : borderColor,
-                  width: 1.2,
-                ),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: gradientColors,
-                ),
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: DefaultTextStyle.merge(
-                  style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
-                  child: IconTheme.merge(
-                    data: IconThemeData(color: ObsidianUITheme.getPrimaryTextColor(context)),
-                    child: widget.child,
-                  ),
-                ),
-              ),
-            ),
-          ),
+    final content = Material(
+      color: Colors.transparent,
+      child: DefaultTextStyle.merge(
+        style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
+        child: IconTheme.merge(
+          data: IconThemeData(color: ObsidianUITheme.getPrimaryTextColor(context)),
+          child: widget.child,
         ),
       ),
     );
 
-    if (widget.onTap != null) {
-      return GestureDetector(
-        onTap: widget.onTap,
-        onTapDown: (_) => setState(() => _isPressed = true),
-        onTapUp: (_) => setState(() => _isPressed = false),
-        onTapCancel: () => setState(() => _isPressed = false),
-        child: cardContent,
+    // Static card optimization (no onTap): Render pure container without animation overhead
+    if (widget.onTap == null) {
+      return Container(
+        margin: widget.margin,
+        width: double.infinity,
+        padding: widget.padding,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(widget.borderRadius),
+          color: cardBgColor,
+          border: Border.all(
+            color: borderColor,
+            width: 1.2,
+          ),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: gradientColors,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: shadowColor,
+              blurRadius: isDark ? 16 : 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: content,
       );
     }
-    return cardContent;
+
+    // Interactive card: Smooth press feedback
+    return GestureDetector(
+      onTap: widget.onTap,
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) => setState(() => _isPressed = false),
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedScale(
+        scale: _isPressed ? 0.98 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOutCubic,
+        child: Container(
+          margin: widget.margin,
+          width: double.infinity,
+          padding: widget.padding,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(widget.borderRadius),
+            color: cardBgColor,
+            border: Border.all(
+              color: _isPressed
+                  ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.6)
+                  : borderColor,
+              width: 1.2,
+            ),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: gradientColors,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: _isPressed ? shadowColor.withValues(alpha: 0.15) : shadowColor,
+                blurRadius: _isPressed ? 8 : (isDark ? 16 : 12),
+                offset: _isPressed ? const Offset(0, 2) : const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: content,
+        ),
+      ),
+    );
   }
 }

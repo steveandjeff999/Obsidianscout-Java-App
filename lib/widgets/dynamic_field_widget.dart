@@ -5,6 +5,7 @@ import '../l10n/app_localizations.dart';
 import '../models/config_models.dart';
 import '../services/image_utils.dart';
 import '../theme/obsidian_ui_theme.dart';
+import '../theme/obsidian_responsive.dart';
 import 'inline_camera_capture_dialog.dart';
 
 class DynamicFieldWidget extends StatelessWidget {
@@ -23,6 +24,7 @@ class DynamicFieldWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final type = field.type.toLowerCase();
     final tertiaryTextColor = ObsidianUITheme.getTertiaryTextColor(context);
+    final isDesktop = ObsidianResponsive.isDesktop(context);
 
     // 1. SECTION HEADER / DIVIDER - Deprecated / No longer rendered
     if (type == 'section' || type == 'header' || type == 'divider') {
@@ -30,17 +32,17 @@ class DynamicFieldWidget extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: EdgeInsets.symmetric(vertical: isDesktop ? 4.0 : 8.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildFieldControl(context, type),
+          _buildFieldControl(context, type, isDesktop),
           if (field.description != null && field.description!.isNotEmpty && type != 'section')
             Padding(
-              padding: const EdgeInsets.only(top: 4.0, left: 2.0),
+              padding: const EdgeInsets.only(top: 3.0, left: 2.0),
               child: Text(
                 field.description!,
-                style: TextStyle(fontSize: 11.5, color: tertiaryTextColor),
+                style: TextStyle(fontSize: isDesktop ? 10.5 : 11.5, color: tertiaryTextColor),
               ),
             ),
         ],
@@ -48,13 +50,15 @@ class DynamicFieldWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildFieldControl(BuildContext context, String type) {
+  Widget _buildFieldControl(BuildContext context, String type, bool isDesktop) {
     final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
     final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
     final tertiaryTextColor = ObsidianUITheme.getTertiaryTextColor(context);
     final faintTextColor = ObsidianUITheme.getFaintTextColor(context);
     final borderColor = ObsidianUITheme.getBorderColor(context);
     final surfaceColor = ObsidianUITheme.getSurfaceColor(context);
+
+    final labelFontSize = isDesktop ? 13.0 : 14.5;
 
     switch (type) {
       // 2. COUNTER / NUMBER
@@ -75,7 +79,7 @@ class DynamicFieldWidget extends StatelessWidget {
               Expanded(
                 child: Text(
                   context.tr(field.label),
-                  style: TextStyle(fontSize: 14.5, color: primaryTextColor, fontWeight: FontWeight.w500),
+                  style: TextStyle(fontSize: labelFontSize, color: primaryTextColor, fontWeight: FontWeight.w500),
                 ),
               ),
               const SizedBox(width: 8.0),
@@ -87,6 +91,7 @@ class DynamicFieldWidget extends StatelessWidget {
                     label: '-$doubleStep',
                     onPressed: val > minVal ? () => onChanged((val - doubleStep).clamp(minVal, maxVal)) : null,
                     isAccent: false,
+                    isDesktop: isDesktop,
                   ),
                   const SizedBox(width: 4.0),
                   _buildStepButton(
@@ -94,20 +99,21 @@ class DynamicFieldWidget extends StatelessWidget {
                     label: '-$stepVal',
                     onPressed: val > minVal ? () => onChanged((val - stepVal).clamp(minVal, maxVal)) : null,
                     isAccent: false,
+                    isDesktop: isDesktop,
                   ),
                   const SizedBox(width: 6.0),
                   Container(
-                    constraints: const BoxConstraints(minWidth: 40.0),
+                    constraints: BoxConstraints(minWidth: isDesktop ? 34.0 : 40.0),
                     alignment: Alignment.center,
-                    padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+                    padding: EdgeInsets.symmetric(horizontal: isDesktop ? 8.0 : 10.0, vertical: isDesktop ? 4.0 : 8.0),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10.0),
+                      borderRadius: BorderRadius.circular(isDesktop ? 8.0 : 10.0),
                       color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.25),
                       border: Border.all(color: ObsidianUITheme.getGlassBorderColor(context)),
                     ),
                     child: Text(
                       '$val',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0, color: primaryTextColor),
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: isDesktop ? 14.0 : 16.0, color: primaryTextColor),
                     ),
                   ),
                   const SizedBox(width: 6.0),
@@ -116,6 +122,7 @@ class DynamicFieldWidget extends StatelessWidget {
                     label: '+$stepVal',
                     onPressed: val < maxVal ? () => onChanged((val + stepVal).clamp(minVal, maxVal)) : null,
                     isAccent: true,
+                    isDesktop: isDesktop,
                   ),
                   const SizedBox(width: 4.0),
                   _buildStepButton(
@@ -123,6 +130,50 @@ class DynamicFieldWidget extends StatelessWidget {
                     label: '+$doubleStep',
                     onPressed: val < maxVal ? () => onChanged((val + doubleStep).clamp(minVal, maxVal)) : null,
                     isAccent: true,
+                    isDesktop: isDesktop,
+                  ),
+                ],
+              ),
+            ],
+          );
+        }
+
+        if (isDesktop) {
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  context.tr(field.label),
+                  style: TextStyle(fontSize: labelFontSize, color: primaryTextColor, fontWeight: FontWeight.w500),
+                ),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    onPressed: val > minVal ? () => onChanged((val - stepVal).clamp(minVal, maxVal)) : null,
+                    icon: Icon(Icons.remove_circle_outline, color: secondaryTextColor, size: 20.0),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 32.0, minHeight: 32.0),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8.0),
+                      color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.25),
+                      border: Border.all(color: ObsidianUITheme.getGlassBorderColor(context)),
+                    ),
+                    child: Text(
+                      '$val',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.0, color: primaryTextColor),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: val < maxVal ? () => onChanged((val + stepVal).clamp(minVal, maxVal)) : null,
+                    icon: const Icon(Icons.add_circle_outline, color: ObsidianUITheme.primaryAccent, size: 20.0),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 32.0, minHeight: 32.0),
                   ),
                 ],
               ),
@@ -192,18 +243,18 @@ class DynamicFieldWidget extends StatelessWidget {
               children: [
                 Text(
                   field.label,
-                  style: TextStyle(fontSize: 14.5, color: primaryTextColor, fontWeight: FontWeight.w500),
+                  style: TextStyle(fontSize: labelFontSize, color: primaryTextColor, fontWeight: FontWeight.w500),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 2.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
                   decoration: BoxDecoration(
                     color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(8.0),
+                    borderRadius: BorderRadius.circular(6.0),
                     border: Border.all(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.4)),
                   ),
                   child: Text(
                     stepVal < 1 ? current.toStringAsFixed(1) : current.toInt().toString(),
-                    style: const TextStyle(fontSize: 13.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent),
+                    style: TextStyle(fontSize: isDesktop ? 11.5 : 13.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent),
                   ),
                 ),
               ],
@@ -240,21 +291,24 @@ class DynamicFieldWidget extends StatelessWidget {
           children: [
             Text(
               field.label,
-              style: TextStyle(fontSize: 14.5, color: primaryTextColor, fontWeight: FontWeight.w500),
+              style: TextStyle(fontSize: labelFontSize, color: primaryTextColor, fontWeight: FontWeight.w500),
             ),
-            const SizedBox(height: 6.0),
+            const SizedBox(height: 4.0),
             Wrap(
               spacing: 2.0,
               children: List.generate(maxRating, (idx) {
                 final starNum = idx + 1;
                 final isSelected = starNum <= currentRating;
                 return IconButton(
-                  padding: const EdgeInsets.all(10.0),
-                  constraints: const BoxConstraints(minWidth: 48.0, minHeight: 48.0),
+                  padding: EdgeInsets.all(isDesktop ? 4.0 : 10.0),
+                  constraints: BoxConstraints(
+                    minWidth: isDesktop ? 32.0 : 48.0,
+                    minHeight: isDesktop ? 32.0 : 48.0,
+                  ),
                   icon: Icon(
                     isSelected ? Icons.star_rounded : Icons.star_border_rounded,
                     color: isSelected ? Colors.amber : faintTextColor,
-                    size: 32.0,
+                    size: isDesktop ? 22.0 : 32.0,
                   ),
                   onPressed: () => onChanged(starNum),
                 );
@@ -270,7 +324,8 @@ class DynamicFieldWidget extends StatelessWidget {
         bool val = currentValue == true || currentValue == 1 || currentValue == 'true';
         return SwitchListTile(
           contentPadding: EdgeInsets.zero,
-          title: Text(field.label, style: TextStyle(color: primaryTextColor, fontSize: 14.5)),
+          dense: isDesktop,
+          title: Text(field.label, style: TextStyle(color: primaryTextColor, fontSize: labelFontSize)),
           value: val,
           activeThumbColor: ObsidianUITheme.primaryAccent,
           activeTrackColor: ObsidianUITheme.primaryAccent.withValues(alpha: 0.4),
@@ -286,25 +341,25 @@ class DynamicFieldWidget extends StatelessWidget {
           children: [
             Text(
               field.label,
-              style: TextStyle(fontSize: 14.5, color: primaryTextColor, fontWeight: FontWeight.w500),
+              style: TextStyle(fontSize: labelFontSize, color: primaryTextColor, fontWeight: FontWeight.w500),
             ),
-            const SizedBox(height: 8.0),
+            const SizedBox(height: 6.0),
             Wrap(
-              spacing: 8.0,
-              runSpacing: 8.0,
+              spacing: isDesktop ? 6.0 : 8.0,
+              runSpacing: isDesktop ? 6.0 : 8.0,
               children: field.options.map((opt) {
                 final isSelected = selectedVal == opt.value;
                 return ChoiceChip(
                   label: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 4.0),
-                    child: Text(opt.label, style: const TextStyle(fontSize: 14.0)),
+                    padding: EdgeInsets.symmetric(horizontal: isDesktop ? 4.0 : 6.0, vertical: isDesktop ? 2.0 : 4.0),
+                    child: Text(opt.label, style: TextStyle(fontSize: isDesktop ? 12.0 : 14.0)),
                   ),
                   selected: isSelected,
                   selectedColor: ObsidianUITheme.primaryAccent,
                   backgroundColor: ObsidianUITheme.isDark(context) ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
-                  materialTapTargetSize: MaterialTapTargetSize.padded,
+                  materialTapTargetSize: isDesktop ? MaterialTapTargetSize.shrinkWrap : MaterialTapTargetSize.padded,
                   labelPadding: EdgeInsets.zero,
-                  padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+                  padding: EdgeInsets.symmetric(horizontal: isDesktop ? 6.0 : 10.0, vertical: isDesktop ? 4.0 : 8.0),
                   labelStyle: TextStyle(
                     color: isSelected ? Colors.white : secondaryTextColor,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
@@ -501,6 +556,7 @@ class DynamicFieldWidget extends StatelessWidget {
     required String label,
     required VoidCallback? onPressed,
     required bool isAccent,
+    bool isDesktop = false,
   }) {
     final borderColor = ObsidianUITheme.getBorderColor(context);
     final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
@@ -511,13 +567,19 @@ class DynamicFieldWidget extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onPressed,
-        borderRadius: BorderRadius.circular(8.0),
+        borderRadius: BorderRadius.circular(isDesktop ? 6.0 : 8.0),
         child: Container(
-          constraints: const BoxConstraints(minWidth: 40.0, minHeight: 38.0),
-          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
+          constraints: BoxConstraints(
+            minWidth: isDesktop ? 32.0 : 40.0,
+            minHeight: isDesktop ? 28.0 : 38.0,
+          ),
+          padding: EdgeInsets.symmetric(
+            horizontal: isDesktop ? 6.0 : 8.0,
+            vertical: isDesktop ? 3.0 : 6.0,
+          ),
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8.0),
+            borderRadius: BorderRadius.circular(isDesktop ? 6.0 : 8.0),
             color: isEnabled
                 ? (isAccent
                     ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.18)
@@ -532,7 +594,7 @@ class DynamicFieldWidget extends StatelessWidget {
           child: Text(
             label,
             style: TextStyle(
-              fontSize: 13.0,
+              fontSize: isDesktop ? 11.5 : 13.0,
               fontWeight: FontWeight.bold,
               color: isEnabled
                   ? (isAccent ? ObsidianUITheme.primaryAccent : primaryTextColor)

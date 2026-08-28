@@ -3,6 +3,7 @@ import '../l10n/app_localizations.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
+import '../theme/obsidian_responsive.dart';
 import '../widgets/obsidian_glass_card.dart';
 
 class MatchListScreen extends StatefulWidget {
@@ -277,133 +278,159 @@ class _MatchListScreenState extends State<MatchListScreen> {
                         ],
                       ),
                     )
-                  : ListView.builder(
-                      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
-                      padding: EdgeInsets.fromLTRB(16, 4, 16, widget.isBarsVisible ? 100.0 : 20.0),
-                      itemCount: filtered.length,
-                      itemBuilder: (context, i) {
-                        final match = filtered[i];
-                        final levelColor = _levelColor(match.compLevel);
-
-                        return ObsidianGlassCard(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Match label + level badge
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: levelColor.withValues(alpha: 0.15),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: levelColor.withValues(alpha: 0.5)),
-                                    ),
-                                    child: Text(
-                                      _levelLabel(match.compLevel),
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                        color: levelColor,
-                                        letterSpacing: 0.8,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      match.displayLabel,
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: primaryTextColor,
-                                      ),
-                                    ),
-                                  ),
-                                  Text(
-                                    '#${match.matchNumber ?? '–'}',
-                                    style: TextStyle(fontSize: 13, color: secondaryTextColor),
-                                  ),
-                                ],
-                              ),
-                              if (match.redTeams.isNotEmpty || match.blueTeams.isNotEmpty) ...[
-                                const SizedBox(height: 10),
-                                Row(
-                                  children: [
-                                    // Red alliance
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Container(width: 8, height: 8, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.redAccent)),
-                                              const SizedBox(width: 4),
-                                              Text('Red Alliance', style: TextStyle(fontSize: 10, color: Colors.redAccent.withValues(alpha: 0.8), fontWeight: FontWeight.bold)),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Wrap(
-                                            spacing: 4,
-                                            runSpacing: 4,
-                                            children: match.redTeams
-                                                .map((t) => Container(
-                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                                      decoration: BoxDecoration(
-                                                        color: Colors.red.withValues(alpha: 0.15),
-                                                        borderRadius: BorderRadius.circular(6),
-                                                        border: Border.all(color: Colors.red.withValues(alpha: 0.4)),
-                                                      ),
-                                                      child: Text(t, style: const TextStyle(fontSize: 12, color: Colors.redAccent, fontWeight: FontWeight.bold)),
-                                                    ))
-                                                .toList(),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Container(width: 1, height: 36, color: ObsidianUITheme.getBorderColor(context)),
-                                    const SizedBox(width: 12),
-                                    // Blue alliance
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Container(width: 8, height: 8, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.blueAccent)),
-                                              const SizedBox(width: 4),
-                                              Text('Blue Alliance', style: TextStyle(fontSize: 10, color: Colors.blueAccent.withValues(alpha: 0.8), fontWeight: FontWeight.bold)),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Wrap(
-                                            spacing: 4,
-                                            runSpacing: 4,
-                                            children: match.blueTeams
-                                                .map((t) => Container(
-                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                                      decoration: BoxDecoration(
-                                                        color: Colors.blue.withValues(alpha: 0.15),
-                                                        borderRadius: BorderRadius.circular(6),
-                                                        border: Border.all(color: Colors.blue.withValues(alpha: 0.4)),
-                                                      ),
-                                                      child: Text(t, style: const TextStyle(fontSize: 12, color: Colors.blueAccent, fontWeight: FontWeight.bold)),
-                                                    ))
-                                                .toList(),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ],
-                          ),
+                  : Builder(
+                      builder: (context) {
+                        final isDesktop = ObsidianResponsive.isDesktop(context, overrideMode: widget.apiService.uiMode);
+                        if (isDesktop) {
+                          return GridView.builder(
+                            physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+                            padding: EdgeInsets.fromLTRB(16, 4, 16, widget.isBarsVisible ? 100.0 : 20.0),
+                            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                              maxCrossAxisExtent: 460.0,
+                              mainAxisExtent: 150.0,
+                              crossAxisSpacing: 12.0,
+                              mainAxisSpacing: 12.0,
+                            ),
+                            itemCount: filtered.length,
+                            itemBuilder: (context, i) => _buildMatchCard(context, filtered[i]),
+                          );
+                        }
+                        return ListView.builder(
+                          physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+                          padding: EdgeInsets.fromLTRB(16, 4, 16, widget.isBarsVisible ? 100.0 : 20.0),
+                          itemCount: filtered.length,
+                          itemBuilder: (context, i) => _buildMatchCard(context, filtered[i]),
                         );
                       },
                     ),
         ),
       ],
+    );
+  }
+
+  Widget _buildMatchCard(BuildContext context, MatchModel match) {
+    final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+    final levelColor = _levelColor(match.compLevel);
+
+    return ObsidianGlassCard(
+      margin: EdgeInsets.zero,
+      padding: const EdgeInsets.all(14.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Match label + level badge
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: levelColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: levelColor.withValues(alpha: 0.5)),
+                ),
+                child: Text(
+                  _levelLabel(match.compLevel),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: levelColor,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  match.displayLabel,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: primaryTextColor,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Text(
+                '#${match.matchNumber ?? '–'}',
+                style: TextStyle(fontSize: 13, color: secondaryTextColor),
+              ),
+            ],
+          ),
+          if (match.redTeams.isNotEmpty || match.blueTeams.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                // Red alliance
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(width: 8, height: 8, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.redAccent)),
+                          const SizedBox(width: 4),
+                          Text('Red Alliance', style: TextStyle(fontSize: 10, color: Colors.redAccent.withValues(alpha: 0.8), fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Wrap(
+                        spacing: 4,
+                        runSpacing: 4,
+                        children: match.redTeams
+                            .map((t) => Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(color: Colors.red.withValues(alpha: 0.4)),
+                                  ),
+                                  child: Text(t, style: const TextStyle(fontSize: 12, color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                                ))
+                            .toList(),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(width: 1, height: 36, color: ObsidianUITheme.getBorderColor(context)),
+                const SizedBox(width: 12),
+                // Blue alliance
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(width: 8, height: 8, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.blueAccent)),
+                          const SizedBox(width: 4),
+                          Text('Blue Alliance', style: TextStyle(fontSize: 10, color: Colors.blueAccent.withValues(alpha: 0.8), fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Wrap(
+                        spacing: 4,
+                        runSpacing: 4,
+                        children: match.blueTeams
+                            .map((t) => Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(color: Colors.blue.withValues(alpha: 0.4)),
+                                  ),
+                                  child: Text(t, style: const TextStyle(fontSize: 12, color: Colors.blueAccent, fontWeight: FontWeight.bold)),
+                                ))
+                            .toList(),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

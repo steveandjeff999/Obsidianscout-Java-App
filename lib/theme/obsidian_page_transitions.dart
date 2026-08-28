@@ -128,7 +128,7 @@ class WindowsSlideUpTransitionsBuilder extends PageTransitionsBuilder {
 
 /// A state-preserving AnimatedIndexedStack that smoothly transitions between
 /// children using Samsung-style horizontal slide-over on mobile and Windows-style
-/// vertical slide-up on desktop/computer.
+/// vertical slide-up on desktop/computer with lazy child activation.
 class ObsidianAnimatedIndexedStack extends StatefulWidget {
   final int index;
   final List<Widget> children;
@@ -138,7 +138,7 @@ class ObsidianAnimatedIndexedStack extends StatefulWidget {
     super.key,
     required this.index,
     required this.children,
-    this.duration = const Duration(milliseconds: 280),
+    this.duration = const Duration(milliseconds: 260),
   });
 
   @override
@@ -148,20 +148,24 @@ class ObsidianAnimatedIndexedStack extends StatefulWidget {
 class _ObsidianAnimatedIndexedStackState extends State<ObsidianAnimatedIndexedStack>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _animation;
+  late Animation<double> _curvedAnimation;
+  final Set<int> _activatedIndices = {};
   int _currentIndex = 0;
   int _previousIndex = 0;
+  bool _isMovingForward = true;
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.index;
     _previousIndex = widget.index;
+    _activatedIndices.add(widget.index);
+
     _controller = AnimationController(
       vsync: this,
       duration: widget.duration,
     );
-    _animation = CurvedAnimation(
+    _curvedAnimation = CurvedAnimation(
       parent: _controller,
       curve: const Cubic(0.22, 1.0, 0.36, 1.0),
     );
@@ -175,6 +179,8 @@ class _ObsidianAnimatedIndexedStackState extends State<ObsidianAnimatedIndexedSt
       setState(() {
         _previousIndex = _currentIndex;
         _currentIndex = widget.index;
+        _isMovingForward = _currentIndex >= _previousIndex;
+        _activatedIndices.add(widget.index);
       });
       _controller.forward(from: 0.0);
     }
@@ -194,120 +200,122 @@ class _ObsidianAnimatedIndexedStackState extends State<ObsidianAnimatedIndexedSt
   @override
   Widget build(BuildContext context) {
     final isMobile = _isMobile(context);
-    final isMovingForward = _currentIndex >= _previousIndex;
 
-    return AnimatedBuilder(
-      animation: _animation,
-      builder: (context, child) {
-        final animValue = _animation.value;
-        final isAnimating = _controller.isAnimating && _currentIndex != _previousIndex;
+    // Transitions configuration
+    final Animation<Offset> currentSlide;
+    final Animation<double> currentFade;
+    final Animation<Offset> previousSlide;
+    final Animation<double> previousFade;
 
-        return Stack(
-          fit: StackFit.expand,
-          children: List.generate(widget.children.length, (index) {
-            final isCurrent = index == _currentIndex;
-            final isPrevious = index == _previousIndex;
+    if (isMobile) {
+      final startOffset = _isMovingForward ? const Offset(0.3, 0.0) : const Offset(-0.3, 0.0);
+      currentSlide = Tween<Offset>(
+        begin: startOffset,
+        end: Offset.zero,
+      ).animate(_curvedAnimation);
 
-            if (!isCurrent && !isPrevious) {
-              return Offstage(
-                offstage: true,
-                child: TickerMode(
-                  enabled: false,
-                  child: widget.children[index],
-                ),
-              );
-            }
+      currentFade = Tween<double>(
+        begin: 0.0,
+        end: 1.0,
+      ).animate(_curvedAnimation);
 
-            if (!isAnimating) {
-              if (isCurrent) {
-                return TickerMode(
-                  enabled: true,
-                  child: widget.children[index],
-                );
-              } else {
-                return Offstage(
-                  offstage: true,
-                  child: TickerMode(
-                    enabled: false,
-                    child: widget.children[index],
-                  ),
-                );
-              }
-            }
+      final endOffset = _isMovingForward ? const Offset(-0.2, 0.0) : const Offset(0.2, 0.0);
+      previousSlide = Tween<Offset>(
+        begin: Offset.zero,
+        end: endOffset,
+      ).animate(_curvedAnimation);
 
-            // During animation:
-            if (isMobile) {
-              // Samsung One UI slide-over
-              if (isCurrent) {
-                final startOffset = isMovingForward ? const Offset(1.0, 0.0) : const Offset(-0.35, 0.0);
-                final offset = Offset.lerp(startOffset, Offset.zero, animValue)!;
-                final opacity = (0.2 + 0.8 * animValue).clamp(0.0, 1.0);
-                return FractionalTranslation(
-                  translation: offset,
-                  child: Opacity(
-                    opacity: opacity,
-                    child: TickerMode(
-                      enabled: true,
-                      child: widget.children[index],
-                    ),
-                  ),
-                );
-              } else if (isPrevious) {
-                final endOffset = isMovingForward ? const Offset(-0.25, 0.0) : const Offset(1.0, 0.0);
-                final offset = Offset.lerp(Offset.zero, endOffset, animValue)!;
-                final opacity = (1.0 - 0.3 * animValue).clamp(0.0, 1.0);
-                return FractionalTranslation(
-                  translation: offset,
-                  child: Opacity(
-                    opacity: opacity,
-                    child: TickerMode(
-                      enabled: false,
-                      child: widget.children[index],
-                    ),
-                  ),
-                );
-              }
-            } else {
-              // Windows Fluent UI slide-up + fade
-              if (isCurrent) {
-                final offset = Offset.lerp(const Offset(0.0, 0.05), Offset.zero, animValue)!;
-                final opacity = animValue.clamp(0.0, 1.0);
-                return FractionalTranslation(
-                  translation: offset,
-                  child: Opacity(
-                    opacity: opacity,
-                    child: TickerMode(
-                      enabled: true,
-                      child: widget.children[index],
-                    ),
-                  ),
-                );
-              } else if (isPrevious) {
-                final offset = Offset.lerp(Offset.zero, const Offset(0.0, -0.02), animValue)!;
-                final opacity = (1.0 - animValue).clamp(0.0, 1.0);
-                return FractionalTranslation(
-                  translation: offset,
-                  child: Opacity(
-                    opacity: opacity,
-                    child: TickerMode(
-                      enabled: false,
-                      child: widget.children[index],
-                    ),
-                  ),
-                );
-              }
-            }
+      previousFade = Tween<double>(
+        begin: 1.0,
+        end: 0.0,
+      ).animate(_curvedAnimation);
+    } else {
+      currentSlide = Tween<Offset>(
+        begin: const Offset(0.0, 0.04),
+        end: Offset.zero,
+      ).animate(_curvedAnimation);
 
-            return Offstage(
-              offstage: true,
+      currentFade = Tween<double>(
+        begin: 0.0,
+        end: 1.0,
+      ).animate(_curvedAnimation);
+
+      previousSlide = Tween<Offset>(
+        begin: Offset.zero,
+        end: const Offset(0.0, -0.02),
+      ).animate(_curvedAnimation);
+
+      previousFade = Tween<double>(
+        begin: 1.0,
+        end: 0.0,
+      ).animate(_curvedAnimation);
+    }
+
+    final isAnimating = _controller.isAnimating && _currentIndex != _previousIndex;
+
+    return Stack(
+      fit: StackFit.expand,
+      children: List.generate(widget.children.length, (index) {
+        // Lazy activation: unvisited screens are not built or mounted
+        if (!_activatedIndices.contains(index)) {
+          return const SizedBox.shrink();
+        }
+
+        final isCurrent = index == _currentIndex;
+        final isPrevious = index == _previousIndex;
+
+        // Static non-transitioning state
+        if (!isAnimating) {
+          if (isCurrent) {
+            return TickerMode(
+              enabled: true,
+              child: widget.children[index],
+            );
+          }
+          return Offstage(
+            offstage: true,
+            child: TickerMode(
+              enabled: false,
+              child: widget.children[index],
+            ),
+          );
+        }
+
+        // Active animation state
+        if (isCurrent) {
+          return SlideTransition(
+            position: currentSlide,
+            child: FadeTransition(
+              opacity: currentFade,
+              child: TickerMode(
+                enabled: true,
+                child: widget.children[index],
+              ),
+            ),
+          );
+        }
+
+        if (isPrevious) {
+          return SlideTransition(
+            position: previousSlide,
+            child: FadeTransition(
+              opacity: previousFade,
               child: TickerMode(
                 enabled: false,
                 child: widget.children[index],
               ),
-            );
-          }),
+            ),
+          );
+        }
+
+        return Offstage(
+          offstage: true,
+          child: TickerMode(
+            enabled: false,
+            child: widget.children[index],
+          ),
         );
-      },
+      }),
     );
   }
 }

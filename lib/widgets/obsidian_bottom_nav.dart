@@ -54,7 +54,7 @@ class ObsidianBottomNav extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(32.0),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 18.0, sigmaY: 18.0),
+          filter: ImageFilter.blur(sigmaX: 8.0, sigmaY: 8.0),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 8.0),
             decoration: BoxDecoration(

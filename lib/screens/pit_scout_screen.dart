@@ -5,6 +5,7 @@ import '../widgets/dynamic_field_widget.dart';
 import '../models/config_models.dart';
 import '../models/team_match_models.dart';
 import '../theme/obsidian_ui_theme.dart';
+import '../theme/obsidian_responsive.dart';
 import '../services/api_service.dart';
 import '../services/scout_history_service.dart';
 import '../widgets/obsidian_barcode_modal.dart';
@@ -360,10 +361,195 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
       );
     }
 
+    final isDesktop = ObsidianResponsive.isDesktop(context, overrideMode: widget.apiService.uiMode);
     final fields = (_config?.fields ?? []).where((f) {
       final t = f.type.toLowerCase();
       return t != 'section' && t != 'header' && t != 'divider';
     }).toList();
+
+    if (isDesktop) {
+      return SingleChildScrollView(
+        physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+        padding: const EdgeInsets.fromLTRB(20.0, 12.0, 20.0, 24.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ObsidianGlassCard(
+                child: DropdownButtonFormField<TeamModel>(
+                  isExpanded: true,
+                  value: _teams.contains(_selectedTeam) ? _selectedTeam : null,
+                  dropdownColor: ObsidianUITheme.getSurfaceColor(context),
+                  style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
+                  decoration: InputDecoration(
+                    labelText: context.tr('scout.select_team'),
+                    labelStyle: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context)),
+                    prefixIcon: const Icon(Icons.build_circle_outlined, color: ObsidianUITheme.secondaryAccent),
+                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
+                  ),
+                  items: _teams.map((t) => DropdownMenuItem(value: t, child: Text(t.displayName, overflow: TextOverflow.ellipsis))).toList(),
+                  onChanged: (team) => setState(() => _selectedTeam = team),
+                ),
+              ),
+
+              const SizedBox(height: 10.0),
+
+              if (_selectedTeam == null)
+                ObsidianGlassCard(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 36.0, horizontal: 16.0),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.info_outline_rounded, color: ObsidianUITheme.secondaryAccent, size: 36.0),
+                          const SizedBox(height: 12.0),
+                          Text(
+                            'Select a team above to start entering pit scouting data.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 14.5,
+                              color: ObsidianUITheme.getSecondaryTextColor(context),
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                )
+              else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Left Column (300px): Actions & QR
+                    SizedBox(
+                      width: 300.0,
+                      child: Column(
+                        children: [
+                          ObsidianGlassCard(
+                            onTap: _generateBarcode,
+                            child: Center(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.qr_code_2_rounded, color: ObsidianUITheme.secondaryAccent, size: 20.0),
+                                  const SizedBox(width: 8.0),
+                                  Text(
+                                    context.tr('qr.button_label').toUpperCase(),
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.0, color: ObsidianUITheme.getPrimaryTextColor(context)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10.0),
+                          Builder(
+                            builder: (context) {
+                              final isOnline = widget.apiService.isOnline;
+                              final primaryColor = ObsidianUITheme.getPrimaryTextColor(context);
+                              return ObsidianGlassCard(
+                                onTap: _isSubmitting ? null : _submitPitData,
+                                child: Center(
+                                  child: _isSubmitting
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianUITheme.primaryAccent),
+                                        )
+                                      : Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              isOnline ? Icons.save_rounded : Icons.save_rounded,
+                                              color: isOnline ? ObsidianUITheme.primaryAccent : ObsidianUITheme.warningOrange,
+                                              size: 18.0,
+                                            ),
+                                            const SizedBox(width: 8.0),
+                                            Text(
+                                              isOnline ? context.tr('scout.save_entry').toUpperCase() : '${context.tr('scout.save_entry')} (OFFLINE)'.toUpperCase(),
+                                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.0, color: primaryColor),
+                                            ),
+                                          ],
+                                        ),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 10.0),
+                          ObsidianGlassCard(
+                            onTap: _confirmAndResetForm,
+                            child: Center(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.refresh_rounded, size: 16.0, color: ObsidianUITheme.getSecondaryTextColor(context)),
+                                  const SizedBox(width: 6.0),
+                                  Text(
+                                    'CLEAR FORM',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12.0,
+                                      color: ObsidianUITheme.getSecondaryTextColor(context),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(width: 14.0),
+
+                    // Right Column (Expanded): Multi-column Form Fields
+                    Expanded(
+                      child: ObsidianGlassCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              context.tr('subtitle.pit_scout').toUpperCase(),
+                              style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.getSecondaryTextColor(context), letterSpacing: 1.0),
+                            ),
+                            const SizedBox(height: 12.0),
+                            LayoutBuilder(
+                              builder: (ctx, constraints) {
+                                final cols = constraints.maxWidth > 700 ? 2 : 1;
+                                final spacing = 12.0;
+                                final itemWidth = cols > 1 ? (constraints.maxWidth - spacing) / 2 : constraints.maxWidth;
+
+                                return Wrap(
+                                  spacing: spacing,
+                                  runSpacing: 4.0,
+                                  children: fields.map((field) {
+                                    final t = field.type.toLowerCase();
+                                    final isFullWidth = t == 'textarea' || t == 'notes' || t == 'image' || t == 'image_upload' || t == 'photo';
+                                    return SizedBox(
+                                      width: isFullWidth ? constraints.maxWidth : itemWidth,
+                                      child: DynamicFieldWidget(
+                                        field: field,
+                                        currentValue: _formData[field.id],
+                                        onChanged: (val) => setState(() => _formData[field.id] = val),
+                                      ),
+                                    );
+                                  }).toList(),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),

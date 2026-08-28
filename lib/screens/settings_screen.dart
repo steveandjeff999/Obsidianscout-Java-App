@@ -452,6 +452,77 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 16),
 
+          // UI Mode & Interface Density Card
+          ObsidianGlassCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.devices_rounded, color: ObsidianUITheme.primaryAccent),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Interface & Layout Mode',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
+                    ),
+                  ],
+                ),
+                Divider(color: borderColor, height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Layout Experience', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: primaryTextColor)),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Choose between compact data-focused PC layout and large-button touch UI.',
+                            style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    ValueListenableBuilder<String>(
+                      valueListenable: widget.apiService.uiModeNotifier,
+                      builder: (context, currentMode, _) {
+                        return DropdownButton<String>(
+                          value: currentMode,
+                          dropdownColor: ObsidianUITheme.getSurfaceColor(context),
+                          style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.bold),
+                          underline: Container(height: 2, color: ObsidianUITheme.primaryAccent),
+                          items: const [
+                            DropdownMenuItem(value: 'auto', child: Text('Auto (Window Width)')),
+                            DropdownMenuItem(value: 'mobile', child: Text('Mobile Touch UI')),
+                            DropdownMenuItem(value: 'desktop', child: Text('PC Desktop Data-Dense')),
+                          ],
+                          onChanged: (newMode) async {
+                            if (newMode != null) {
+                              await widget.apiService.setUiMode(newMode);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Interface layout set to: ${newMode.toUpperCase()}'),
+                                    backgroundColor: ObsidianUITheme.primaryAccent,
+                                    duration: const Duration(seconds: 2),
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
           // Network Request Timeout Card
           ObsidianGlassCard(
             child: Column(

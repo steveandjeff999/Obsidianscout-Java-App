@@ -5,9 +5,12 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
 import 'theme/obsidian_ui_theme.dart';
 import 'theme/obsidian_page_transitions.dart';
+import 'theme/obsidian_responsive.dart';
 import 'widgets/obsidian_glass_app_bar.dart';
 import 'widgets/obsidian_bottom_nav.dart';
 import 'widgets/obsidian_drawer.dart';
+import 'widgets/obsidian_desktop_sidebar.dart';
+import 'widgets/obsidian_desktop_app_bar.dart';
 import 'widgets/obsidian_banner_widget.dart';
 import 'widgets/obsidian_feedback.dart';
 import 'screens/login_screen.dart';
@@ -51,7 +54,7 @@ class ObsidianscoutApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([apiService.themeNotifier, apiService.localeNotifier]),
+      listenable: Listenable.merge([apiService.themeNotifier, apiService.localeNotifier, apiService.uiModeNotifier]),
       builder: (context, child) {
         return MaterialApp(
           navigatorKey: ObsidianFeedback.navigatorKey,
@@ -557,6 +560,79 @@ class _MainShellState extends State<MainShell> {
       ContactScreen(apiService: widget.apiService, isVisible: _currentIndex == 19, isBarsVisible: _isBarsVisible),
     ];
 
+    final isDesktop = ObsidianResponsive.isDesktop(context, overrideMode: widget.apiService.uiMode);
+
+    if (isDesktop) {
+      return CallbackShortcuts(
+        bindings: <ShortcutActivator, VoidCallback>{
+          const SingleActivator(LogicalKeyboardKey.digit1, control: true): () => _navigateScreen(0),
+          const SingleActivator(LogicalKeyboardKey.digit2, control: true): () => _navigateScreen(1),
+          const SingleActivator(LogicalKeyboardKey.digit3, control: true): () => _navigateScreen(2),
+          const SingleActivator(LogicalKeyboardKey.digit4, control: true): () => _navigateScreen(4),
+          const SingleActivator(LogicalKeyboardKey.digit5, control: true): () => _navigateScreen(18),
+          const SingleActivator(LogicalKeyboardKey.digit6, control: true): () => _navigateScreen(12),
+          const SingleActivator(LogicalKeyboardKey.digit7, control: true): () => _navigateScreen(8),
+          const SingleActivator(LogicalKeyboardKey.digit8, control: true): () => _navigateScreen(9),
+          const SingleActivator(LogicalKeyboardKey.digit9, control: true): () => _navigateScreen(5),
+          const SingleActivator(LogicalKeyboardKey.keyT, control: true): () {
+            final next = widget.apiService.themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+            widget.apiService.setThemeMode(next);
+          },
+          const SingleActivator(LogicalKeyboardKey.keyQ, control: true): _openQrScanner,
+        },
+        child: Focus(
+          autofocus: true,
+          child: PopScope(
+            canPop: false,
+            onPopInvokedWithResult: (didPop, result) {
+              if (didPop) return;
+              _handleBackPress();
+            },
+            child: Scaffold(
+              key: _scaffoldKey,
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+              body: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ObsidianDesktopSidebar(
+                    apiService: widget.apiService,
+                    currentIndex: _currentIndex,
+                    onSelectScreen: _navigateScreen,
+                    onOpenQrScanner: _openQrScanner,
+                    onLogout: _handleLogout,
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        ObsidianDesktopAppBar(
+                          title: context.tr(_titleKeys[_currentIndex]),
+                          subtitle: context.tr(_subtitleKeys[_currentIndex]),
+                          isOnline: _isOnline,
+                          apiService: widget.apiService,
+                          onOpenQrScanner: _openQrScanner,
+                        ),
+                        ObsidianBannerWidget(
+                          apiService: widget.apiService,
+                          isBarsVisible: true,
+                        ),
+                        Expanded(
+                          child: ObsidianAnimatedIndexedStack(
+                            index: _currentIndex,
+                            children: screens,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -644,11 +720,7 @@ class _MainShellState extends State<MainShell> {
           ),
           child: Column(
             children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
-                curve: Curves.easeInOutCubic,
-                height: _isBarsVisible ? 95.0 : 16.0,
-              ),
+              const SizedBox(height: 95.0),
               ObsidianBannerWidget(
                 apiService: widget.apiService,
                 isBarsVisible: _isBarsVisible,

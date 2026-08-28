@@ -28,7 +28,7 @@ class ObsidianGlassAppBar extends StatelessWidget implements PreferredSizeWidget
 
     return ClipRRect(
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0),
+        filter: ImageFilter.blur(sigmaX: 8.0, sigmaY: 8.0),
         child: Container(
           padding: EdgeInsets.only(
             top: MediaQuery.of(context).padding.top + 8.0,
