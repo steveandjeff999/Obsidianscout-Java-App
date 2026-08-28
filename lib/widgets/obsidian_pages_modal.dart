@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
@@ -210,13 +209,9 @@ class ObsidianPagesModal extends StatelessWidget {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28.0)),
           border: Border.all(color: ObsidianUITheme.glassBorderLight, width: 1.2),
         ),
-        child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28.0)),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20.0, 12.0, 20.0, 24.0),
-              child: Column(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20.0, 12.0, 20.0, 24.0),
+          child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -377,9 +372,7 @@ class ObsidianPagesModal extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    ),
-  );
+      );
   }
 }
 

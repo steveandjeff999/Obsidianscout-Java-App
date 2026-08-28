@@ -834,187 +834,210 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
           ),
         ),
 
-        // 1. Match Prescout Card
-        ObsidianGlassCard(
-          margin: const EdgeInsets.only(bottom: 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.amberAccent.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.sports_esports_rounded, color: Colors.amberAccent, size: 26),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          context.tr('prescout.match_prescout'),
-                          style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: primaryTextColor),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '${_matchEntries.length} entries saved',
-                          style: TextStyle(fontSize: 11.5, color: tertiaryTextColor),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                context.tr('prescout.scout_match_play_for_teams_at_'),
-                style: TextStyle(fontSize: 13, color: secondaryTextColor, height: 1.35),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: ObsidianUITheme.primaryAccent,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
-                  onPressed: () => _switchMode(PrescoutMode.match),
-                  icon: const Icon(Icons.play_arrow_rounded, color: Colors.white),
-                  label: Text(
-                    context.tr('prescout.start_match_prescout'),
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+        LayoutBuilder(
+          builder: (ctx, constraints) {
+            final cols = constraints.maxWidth > 900 ? 3 : (constraints.maxWidth > 600 ? 2 : 1);
+            const spacing = 14.0;
+            final itemWidth = cols > 1 ? (constraints.maxWidth - (cols - 1) * spacing) / cols : constraints.maxWidth;
 
-        // 2. Pit Prescout Card
-        ObsidianGlassCard(
-          margin: const EdgeInsets.only(bottom: 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.cyanAccent.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.build_circle_rounded, color: Colors.cyanAccent, size: 26),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
+            return Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              children: [
+                // 1. Match Prescout Card
+                SizedBox(
+                  width: itemWidth,
+                  child: ObsidianGlassCard(
+                    margin: EdgeInsets.zero,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          context.tr('prescout.pit_prescout'),
-                          style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: primaryTextColor),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.amberAccent.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(Icons.sports_esports_rounded, color: Colors.amberAccent, size: 26),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    context.tr('prescout.match_prescout'),
+                                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: primaryTextColor),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${_matchEntries.length} entries saved',
+                                    style: TextStyle(fontSize: 11.5, color: tertiaryTextColor),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 12),
                         Text(
-                          '${_pitEntries.length} entries saved',
-                          style: TextStyle(fontSize: 11.5, color: tertiaryTextColor),
+                          context.tr('prescout.scout_match_play_for_teams_at_'),
+                          style: TextStyle(fontSize: 13, color: secondaryTextColor, height: 1.35),
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: ObsidianUITheme.primaryAccent,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            ),
+                            onPressed: () => _switchMode(PrescoutMode.match),
+                            icon: const Icon(Icons.play_arrow_rounded, color: Colors.white),
+                            label: Text(
+                              context.tr('prescout.start_match_prescout'),
+                              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
+                            ),
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                context.tr('prescout.record_robot_dimensions_subsys'),
-                style: TextStyle(fontSize: 13, color: secondaryTextColor, height: 1.35),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.cyan.shade700,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
-                  onPressed: () => _switchMode(PrescoutMode.pit),
-                  icon: const Icon(Icons.build_rounded, color: Colors.white),
-                  label: Text(
-                    context.tr('prescout.start_pit_prescout'),
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
-                  ),
                 ),
-              ),
-            ],
-          ),
-        ),
 
-        // 3. Qual Prescout Card
-        ObsidianGlassCard(
-          margin: const EdgeInsets.only(bottom: 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.lightGreenAccent.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.rate_review_rounded, color: Colors.lightGreenAccent, size: 26),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
+                // 2. Pit Prescout Card
+                SizedBox(
+                  width: itemWidth,
+                  child: ObsidianGlassCard(
+                    margin: EdgeInsets.zero,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          context.tr('prescout.qual_prescout'),
-                          style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: primaryTextColor),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.cyanAccent.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(Icons.build_circle_rounded, color: Colors.cyanAccent, size: 26),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    context.tr('prescout.pit_prescout'),
+                                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: primaryTextColor),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${_pitEntries.length} entries saved',
+                                    style: TextStyle(fontSize: 11.5, color: tertiaryTextColor),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 12),
                         Text(
-                          '${_qualEntries.length} entries saved',
-                          style: TextStyle(fontSize: 11.5, color: tertiaryTextColor),
+                          context.tr('prescout.record_robot_dimensions_subsys'),
+                          style: TextStyle(fontSize: 13, color: secondaryTextColor, height: 1.35),
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.cyan.shade700,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            ),
+                            onPressed: () => _switchMode(PrescoutMode.pit),
+                            icon: const Icon(Icons.build_rounded, color: Colors.white),
+                            label: Text(
+                              context.tr('prescout.start_pit_prescout'),
+                              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
+                            ),
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                context.tr('prescout.add_notes_on_driver_skill_robo'),
-                style: TextStyle(fontSize: 13, color: secondaryTextColor, height: 1.35),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal.shade700,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
-                  onPressed: () => _switchMode(PrescoutMode.qual),
-                  icon: const Icon(Icons.rate_review_rounded, color: Colors.white),
-                  label: Text(
-                    context.tr('prescout.start_qual_prescout'),
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
+                ),
+
+                // 3. Qual Prescout Card
+                SizedBox(
+                  width: itemWidth,
+                  child: ObsidianGlassCard(
+                    margin: EdgeInsets.zero,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.lightGreenAccent.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(Icons.rate_review_rounded, color: Colors.lightGreenAccent, size: 26),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    context.tr('prescout.qual_prescout'),
+                                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: primaryTextColor),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${_qualEntries.length} entries saved',
+                                    style: TextStyle(fontSize: 11.5, color: tertiaryTextColor),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          context.tr('prescout.add_notes_on_driver_skill_robo'),
+                          style: TextStyle(fontSize: 13, color: secondaryTextColor, height: 1.35),
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.teal.shade700,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            ),
+                            onPressed: () => _switchMode(PrescoutMode.qual),
+                            icon: const Icon(Icons.rate_review_rounded, color: Colors.white),
+                            label: Text(
+                              context.tr('prescout.start_qual_prescout'),
+                              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            );
+          },
         ),
       ],
     );

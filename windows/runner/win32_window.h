@@ -71,6 +71,12 @@ class Win32Window {
   // Called when Destroy is called.
   virtual void OnDestroy();
 
+  // window handle for top level window.
+  HWND window_handle_ = nullptr;
+
+  // window handle for hosted content.
+  HWND child_content_ = nullptr;
+
  private:
   friend class WindowClassRegistrar;
 
@@ -91,12 +97,6 @@ class Win32Window {
   static void UpdateTheme(HWND const window);
 
   bool quit_on_close_ = false;
-
-  // window handle for top level window.
-  HWND window_handle_ = nullptr;
-
-  // window handle for hosted content.
-  HWND child_content_ = nullptr;
 };
 
 #endif  // RUNNER_WIN32_WINDOW_H_

@@ -149,13 +149,21 @@ class _ChatScreenState extends State<ChatScreen> {
 
     if (!mounted) return;
 
-    setState(() {
-      _groupUnreads = unreads;
-      _messages = msgs;
-    });
+    final bool countChanged = _messages.length != msgs.length;
+    final bool lastMsgChanged = _messages.isNotEmpty && msgs.isNotEmpty &&
+        (_messages.last.id != msgs.last.id ||
+         _messages.last.content != msgs.last.content ||
+         _messages.last.reactions.length != msgs.last.reactions.length);
 
-    if (scrollToBottom) {
-      _scrollToBottom();
+    if (countChanged || lastMsgChanged || scrollToBottom || _groupUnreads.length != unreads.length) {
+      setState(() {
+        _groupUnreads = unreads;
+        _messages = msgs;
+      });
+
+      if (scrollToBottom) {
+        _scrollToBottom();
+      }
     }
 
     // Mark as read
@@ -1268,7 +1276,9 @@ class _ChatScreenState extends State<ChatScreen> {
                               child: GestureDetector(
                                 onLongPress: () => _showMessageActions(context, msg, isMe),
                                 child: Container(
-                                  constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
+                                  constraints: BoxConstraints(
+                                    maxWidth: (MediaQuery.of(context).size.width * 0.78).clamp(280.0, 720.0),
+                                  ),
                                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                                   decoration: BoxDecoration(
                                     color: isMe

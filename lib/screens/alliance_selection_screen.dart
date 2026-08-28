@@ -792,7 +792,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                           // Left 2/3: 8 Alliances Grid
                           Expanded(
                             flex: 2,
-                            child: _buildAlliancesGrid(),
+                            child: _buildAlliancesGrid(isWideScreen: true),
                           ),
                           const SizedBox(width: 16),
                           // Right 1/3: Recommendations Panel
@@ -839,20 +839,36 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
     );
   }
 
-  Widget _buildAlliancesGrid() {
+  Widget _buildAlliancesGrid({bool isWideScreen = false}) {
+    if (isWideScreen) {
+      return GridView.builder(
+        physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+        padding: EdgeInsets.fromLTRB(0, 4.0, 0, widget.isBarsVisible ? 100.0 : 20.0),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisExtent: 155.0,
+          crossAxisSpacing: 12.0,
+          mainAxisSpacing: 12.0,
+        ),
+        itemCount: 8,
+        itemBuilder: (context, idx) => _buildAllianceCard(idx + 1),
+      );
+    }
     return ListView.builder(
       physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
       padding: EdgeInsets.fromLTRB(0, 4.0, 0, widget.isBarsVisible ? 100.0 : 20.0),
       itemCount: 8,
-      itemBuilder: (context, idx) {
-        final allianceNum = idx + 1;
-        final key = 'alliance$allianceNum';
-        final alliance = _boardState[key]!;
+      itemBuilder: (context, idx) => _buildAllianceCard(idx + 1),
+    );
+  }
 
-        final bool isFull = alliance['captain'] != null && alliance['firstPick'] != null && alliance['secondPick'] != null;
+  Widget _buildAllianceCard(int allianceNum) {
+    final key = 'alliance$allianceNum';
+    final alliance = _boardState[key]!;
+    final bool isFull = alliance['captain'] != null && alliance['firstPick'] != null && alliance['secondPick'] != null;
 
-        return ObsidianGlassCard(
-          margin: const EdgeInsets.only(bottom: 12.0),
+    return ObsidianGlassCard(
+      margin: const EdgeInsets.only(bottom: 12.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -906,8 +922,6 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
             ],
           ),
         );
-      },
-    );
   }
 
   Widget _buildSlotTile(String allianceKey, String slotName, int? teamNumber, Color accentColor) {

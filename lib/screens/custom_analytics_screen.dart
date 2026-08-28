@@ -2056,7 +2056,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
       physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
       padding: EdgeInsets.only(top: 4.0, bottom: widget.isBarsVisible ? 120.0 : 20.0),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Studio Toolbar
           ObsidianGlassCard(

@@ -293,54 +293,57 @@ class _LoginScreenState extends State<LoginScreen> {
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
             padding: const EdgeInsets.all(20.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    DropdownButton<String>(
-                      value: widget.apiService.currentLocale.languageCode,
-                      dropdownColor: surfaceColor,
-                      style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.bold),
-                      underline: Container(height: 1, color: ObsidianUITheme.primaryAccent),
-                      items: const [
-                        DropdownMenuItem(value: 'en', child: Text('English 🇺🇸')),
-                        DropdownMenuItem(value: 'es', child: Text('Español 🇪🇸')),
-                        DropdownMenuItem(value: 'he', child: Text('עברית 🇮🇱')),
-                        DropdownMenuItem(value: 'tr', child: Text('Türkçe 🇹🇷')),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        DropdownButton<String>(
+                          value: widget.apiService.currentLocale.languageCode,
+                          dropdownColor: surfaceColor,
+                          style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.bold),
+                          underline: Container(height: 1, color: ObsidianUITheme.primaryAccent),
+                          items: const [
+                            DropdownMenuItem(value: 'en', child: Text('English 🇺🇸')),
+                            DropdownMenuItem(value: 'es', child: Text('Español 🇪🇸')),
+                            DropdownMenuItem(value: 'he', child: Text('עברית 🇮🇱')),
+                            DropdownMenuItem(value: 'tr', child: Text('Türkçe 🇹🇷')),
+                          ],
+                          onChanged: (newLang) {
+                            if (newLang != null) {
+                              widget.apiService.setLocale(Locale(newLang));
+                            }
+                          },
+                        ),
                       ],
-                      onChanged: (newLang) {
-                        if (newLang != null) {
-                          widget.apiService.setLocale(Locale(newLang));
-                        }
-                      },
                     ),
-                  ],
-                ),
-                const Icon(
-                  Icons.shield_outlined,
-                  size: 64.0,
-                  color: ObsidianUITheme.primaryAccent,
-                ),
-                const SizedBox(height: 12.0),
-                Text(
-                  context.tr('app.title'),
-                  style: TextStyle(
-                    fontSize: 32.0,
-                    fontWeight: FontWeight.bold,
-                    color: primaryTextColor,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                Text(
-                  context.tr('app.subtitle'),
-                  style: TextStyle(fontSize: 14.0, color: secondaryTextColor),
-                ),
-                const SizedBox(height: 24.0),
+                    const Icon(
+                      Icons.shield_outlined,
+                      size: 64.0,
+                      color: ObsidianUITheme.primaryAccent,
+                    ),
+                    const SizedBox(height: 12.0),
+                    Text(
+                      context.tr('app.title'),
+                      style: TextStyle(
+                        fontSize: 32.0,
+                        fontWeight: FontWeight.bold,
+                        color: primaryTextColor,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    Text(
+                      context.tr('app.subtitle'),
+                      style: TextStyle(fontSize: 14.0, color: secondaryTextColor),
+                    ),
+                    const SizedBox(height: 24.0),
 
-                // Main Auth Glass Card
-                ObsidianGlassCard(
+                    // Main Auth Glass Card
+                    ObsidianGlassCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -494,7 +497,9 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     ),
-  );
+  ),
+),
+);
 }
 
   Widget _buildLoginForm(Color primaryTextColor, Color secondaryTextColor, Color borderColor, Color surfaceColor) {
@@ -910,8 +915,11 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
           const SizedBox(height: 12.0),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8.0,
+            runSpacing: 4.0,
             children: [
               TextButton(
                 onPressed: () => setState(() => _activeTabIndex = 0),

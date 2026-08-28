@@ -565,9 +565,12 @@ class _DataValidationScreenState extends State<DataValidationScreen> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final double cardWidth = (constraints.maxWidth - 16) / 2;
+        final cols = constraints.maxWidth > 1000 ? 5 : (constraints.maxWidth > 600 ? 3 : 2);
+        const spacing = 12.0;
+        final double cardWidth = (constraints.maxWidth - (cols - 1) * spacing) / cols;
+
         return Wrap(
-          spacing: 12.0,
+          spacing: spacing,
           runSpacing: 10.0,
           children: [
             _buildMetricItem(
@@ -611,7 +614,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> {
               value: '${summary.teamsWithAnomalies}',
               subtitle: 'Scouted vs EPA/OPR delta',
               color: const Color(0xFF60A5FA),
-              width: constraints.maxWidth,
+              width: cardWidth,
               bg: cardBg,
               border: borderColor,
             ),
