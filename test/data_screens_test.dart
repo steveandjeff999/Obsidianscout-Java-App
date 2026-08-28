@@ -12,11 +12,17 @@ import 'package:obsidianscout_app/widgets/conflict_resolution_modal.dart';
 
 class _MockDataApiService extends ApiService {
   @override
+  bool get isOnline => true;
+
+  @override
   Future<AppSettingsModel?> fetchSettings() async => AppSettingsModel(
         year: 2026,
         eventKey: '2026test',
         eventCode: 'test',
       );
+
+  @override
+  Future<AppSettingsModel?> getCachedSettings() async => fetchSettings();
 
   @override
   Future<List<EventModel>> fetchEvents({int? year}) async => [
@@ -28,10 +34,16 @@ class _MockDataApiService extends ApiService {
       ];
 
   @override
+  Future<List<EventModel>> getCachedEvents({int? year}) async => fetchEvents(year: year);
+
+  @override
   Future<List<TeamModel>> fetchTeams(String? eventKey) async => [
         TeamModel(eventKey: '2026test', teamKey: 'frc1234', teamNumber: 1234, nickname: 'Obsidian Bots'),
         TeamModel(eventKey: '2026test', teamKey: 'frc5678', teamNumber: 5678, nickname: 'Robo Knights'),
       ];
+
+  @override
+  Future<List<TeamModel>> getCachedTeams(String? eventKey) async => fetchTeams(eventKey);
 
   @override
   Future<ScoutingConfigModel?> fetchMatchConfig() async => ScoutingConfigModel(
@@ -43,6 +55,9 @@ class _MockDataApiService extends ApiService {
           ScoutingFieldModel(id: 'endgame_climb', label: 'Endgame Climb', type: 'checkbox', phase: 'endgame', pointsPer: 5.0),
         ],
       );
+
+  @override
+  Future<ScoutingConfigModel?> getCachedMatchConfig() async => fetchMatchConfig();
 
   @override
   Future<ScoutingConfigModel?> fetchPitConfig() async => ScoutingConfigModel(
@@ -58,6 +73,9 @@ class _MockDataApiService extends ApiService {
       );
 
   @override
+  Future<ScoutingConfigModel?> getCachedPitConfig() async => fetchPitConfig();
+
+  @override
   Future<ScoutingConfigModel?> fetchQualConfig() async => ScoutingConfigModel(
         version: 1,
         title: 'Qual Config',
@@ -66,6 +84,9 @@ class _MockDataApiService extends ApiService {
           ScoutingFieldModel(id: 'defense_impact', label: 'Defense Impact', type: 'slider', min: 1, max: 10),
         ],
       );
+
+  @override
+  Future<ScoutingConfigModel?> getCachedQualConfig() async => fetchQualConfig();
 
   @override
   Future<List<dynamic>> fetchScoutingEntries() async => [
@@ -83,6 +104,9 @@ class _MockDataApiService extends ApiService {
       ];
 
   @override
+  Future<List<dynamic>> getCachedScoutingEntries() async => fetchScoutingEntries();
+
+  @override
   Future<List<dynamic>> fetchPitScoutingEntries() async => [
         {
           'id': '201',
@@ -93,6 +117,9 @@ class _MockDataApiService extends ApiService {
           'data': {'drivetrain': 'Swerve', 'robot_weight': 115},
         },
       ];
+
+  @override
+  Future<List<dynamic>> getCachedPitScoutingEntries() async => fetchPitScoutingEntries();
 
   @override
   Future<List<dynamic>> fetchQualScoutingEntries() async => [
@@ -106,6 +133,9 @@ class _MockDataApiService extends ApiService {
           'data': {'driver_skill': 4.5, 'defense_impact': 8},
         },
       ];
+
+  @override
+  Future<List<dynamic>> getCachedQualScoutingEntries() async => fetchQualScoutingEntries();
 
   @override
   Future<ApiResponse<void>> deleteScoutingEntry(String id, {String type = 'match'}) async {
@@ -179,6 +209,7 @@ void main() {
         ),
       );
 
+      await tester.pump();
       await tester.pumpAndSettle();
 
       expect(find.text('All Scouting Data'), findsOneWidget);
@@ -205,6 +236,7 @@ void main() {
         ),
       );
 
+      await tester.pump();
       await tester.pumpAndSettle();
 
       expect(find.text('Match Scouting Data'), findsOneWidget);
@@ -230,6 +262,7 @@ void main() {
         ),
       );
 
+      await tester.pump();
       await tester.pumpAndSettle();
 
       expect(find.text('Pit Scouting Data'), findsOneWidget);
@@ -257,6 +290,7 @@ void main() {
         ),
       );
 
+      await tester.pump();
       await tester.pumpAndSettle();
 
       expect(find.text('Qualitative Data Center'), findsOneWidget);

@@ -31,6 +31,7 @@ import 'screens/qual_data_screen.dart';
 import 'screens/data_validation_screen.dart';
 import 'screens/scout_history_screen.dart';
 import 'screens/custom_analytics_screen.dart';
+import 'screens/contact_screen.dart';
 import 'services/api_service.dart';
 import 'services/fcm_helper.dart';
 import 'services/notification_websocket_service.dart';
@@ -283,6 +284,7 @@ class _MainShellState extends State<MainShell> {
     'nav.data_validation',
     'nav.scout_history',
     'nav.custom_analytics',
+    'nav.contact',
   ];
   final List<String> _subtitleKeys = [
     'subtitle.dashboard',
@@ -304,6 +306,7 @@ class _MainShellState extends State<MainShell> {
     'subtitle.data_validation',
     'subtitle.scout_history',
     'subtitle.custom_analytics',
+    'subtitle.contact',
   ];
 
   String _getPageIdForIndex(int index) {
@@ -346,6 +349,8 @@ class _MainShellState extends State<MainShell> {
         return 'scout-history';
       case 18:
         return 'custom-analytics';
+      case 19:
+        return 'contact';
       default:
         return 'dashboard';
     }
@@ -549,6 +554,7 @@ class _MainShellState extends State<MainShell> {
       DataValidationScreen(apiService: widget.apiService, isVisible: _currentIndex == 16, isBarsVisible: _isBarsVisible),
       ScoutHistoryScreen(apiService: widget.apiService, isVisible: _currentIndex == 17, isBarsVisible: _isBarsVisible),
       CustomAnalyticsScreen(apiService: widget.apiService, isVisible: _currentIndex == 18, isBarsVisible: _isBarsVisible),
+      ContactScreen(apiService: widget.apiService, isVisible: _currentIndex == 19, isBarsVisible: _isBarsVisible),
     ];
 
     return PopScope(

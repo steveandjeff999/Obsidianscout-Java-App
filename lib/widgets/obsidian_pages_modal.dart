@@ -378,6 +378,9 @@ class ObsidianPagesModal extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 }
+
+
