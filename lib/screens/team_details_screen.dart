@@ -6,6 +6,7 @@ import '../models/team_match_models.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
+import '../widgets/obsidian_chart_interactive_wrapper.dart';
 
 class TeamDetailsScreen extends StatefulWidget {
   final TeamModel team;
@@ -679,66 +680,195 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
     final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
     final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      physics: const BouncingScrollPhysics(),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4.0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: _matchScoreSummaries.map((item) {
-            final autoHeight = maxVal > 0 ? (item.autoPoints / maxVal) * maxBarHeight : 0.0;
-            final teleopHeight = maxVal > 0 ? (item.teleopPoints / maxVal) * maxBarHeight : 0.0;
-            final endgameHeight = maxVal > 0 ? (item.endgamePoints / maxVal) * maxBarHeight : 0.0;
-            final totalHeight = autoHeight + teleopHeight + endgameHeight;
+    void showMatchDetailsModal(_MatchScoreSummary item) {
+      ObsidianChartHaptics.impact();
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: ObsidianUITheme.getSurfaceColor(context),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (ctx) {
+          final autoPct = item.totalPoints > 0 ? (item.autoPoints / item.totalPoints) * 100 : 0.0;
+          final teleopPct = item.totalPoints > 0 ? (item.teleopPoints / item.totalPoints) * 100 : 0.0;
+          final endgamePct = item.totalPoints > 0 ? (item.endgamePoints / item.totalPoints) * 100 : 0.0;
 
-            return Container(
-              width: _matchScoreSummaries.length <= 4
-                  ? (MediaQuery.of(context).size.width - 90) / _matchScoreSummaries.length
-                  : 52.0,
-              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    item.totalPoints.toStringAsFixed(0),
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: primaryTextColor),
-                  ),
-                  const SizedBox(height: 4),
-                  Container(
-                    width: 28,
-                    height: maxBarHeight,
-                    alignment: Alignment.bottomCenter,
+                  Center(
                     child: Container(
-                      width: 28,
-                      height: totalHeight.clamp(2.0, maxBarHeight),
+                      width: 36,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 14),
                       decoration: BoxDecoration(
-                        color: Colors.white10,
-                        borderRadius: BorderRadius.circular(4),
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(2),
                       ),
-                      clipBehavior: Clip.antiAlias,
+                    ),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Match ${item.matchNumber} Breakdown',
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: ObsidianUITheme.primaryAccent,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.4)),
+                        ),
+                        child: Text(
+                          '${item.totalPoints.toStringAsFixed(0)} pts',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  _buildPhaseScoreBar('Auto Phase', item.autoPoints, autoPct, Colors.blueAccent),
+                  const SizedBox(height: 10),
+                  _buildPhaseScoreBar('Teleop Phase', item.teleopPoints, teleopPct, Colors.deepPurpleAccent),
+                  const SizedBox(height: 10),
+                  _buildPhaseScoreBar('Endgame Phase', item.endgamePoints, endgamePct, Colors.tealAccent),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    }
+
+    return ScrollConfiguration(
+      behavior: const ObsidianChartScrollBehavior(),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: _matchScoreSummaries.map((item) {
+              final autoHeight = maxVal > 0 ? (item.autoPoints / maxVal) * maxBarHeight : 0.0;
+              final teleopHeight = maxVal > 0 ? (item.teleopPoints / maxVal) * maxBarHeight : 0.0;
+              final endgameHeight = maxVal > 0 ? (item.endgamePoints / maxVal) * maxBarHeight : 0.0;
+              final totalHeight = autoHeight + teleopHeight + endgameHeight;
+
+              return MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: () => showMatchDetailsModal(item),
+                  child: Tooltip(
+                    message: 'Match ${item.matchNumber}: ${item.totalPoints.toStringAsFixed(0)} pts\nAuto: ${item.autoPoints.toStringAsFixed(0)} • Teleop: ${item.teleopPoints.toStringAsFixed(0)} • Endgame: ${item.endgamePoints.toStringAsFixed(0)}\n(Tap for breakdown)',
+                    child: Container(
+                      width: _matchScoreSummaries.length <= 4
+                          ? (MediaQuery.of(context).size.width - 90) / _matchScoreSummaries.length
+                          : 54.0,
+                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (endgameHeight > 0) Container(height: endgameHeight, color: Colors.tealAccent),
-                          if (teleopHeight > 0) Container(height: teleopHeight, color: Colors.deepPurpleAccent),
-                          if (autoHeight > 0) Container(height: autoHeight, color: Colors.blueAccent),
+                          Text(
+                            item.totalPoints.toStringAsFixed(0),
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: primaryTextColor),
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            width: 30,
+                            height: maxBarHeight,
+                            alignment: Alignment.bottomCenter,
+                            child: Container(
+                              width: 30,
+                              height: totalHeight.clamp(2.0, maxBarHeight),
+                              decoration: BoxDecoration(
+                                color: Colors.white10,
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: Colors.white12, width: 0.8),
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  if (endgameHeight > 0) Container(height: endgameHeight, color: Colors.tealAccent),
+                                  if (teleopHeight > 0) Container(height: teleopHeight, color: Colors.deepPurpleAccent),
+                                  if (autoHeight > 0) Container(height: autoHeight, color: Colors.blueAccent),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'M${item.matchNumber}',
+                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: secondaryTextColor),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'M${item.matchNumber}',
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: secondaryTextColor),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPhaseScoreBar(String label, double points, double pct, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                  const SizedBox(width: 6),
+                  Text(label, style: TextStyle(fontSize: 12, color: ObsidianUITheme.getSecondaryTextColor(context))),
                 ],
               ),
-            );
-          }).toList(),
-        ),
+              Text(
+                '${points.toStringAsFixed(1)} pts (${pct.toStringAsFixed(0)}%)',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: ObsidianUITheme.getPrimaryTextColor(context)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: LinearProgressIndicator(
+              value: (pct / 100).clamp(0.0, 1.0),
+              backgroundColor: Colors.white10,
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+              minHeight: 6,
+            ),
+          ),
+        ],
       ),
     );
   }
