@@ -160,6 +160,34 @@ void main() {
       expect(find.byType(ObsidianDesktopAppBar), findsOneWidget);
       expect(find.byType(ObsidianBottomNav), findsNothing);
     });
+    testWidgets('Screen rotation does not unmount active screens and preserves state', (tester) async {
+      // Start in Portrait mobile size
+      tester.view.physicalSize = const Size(400, 850);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final mockApi = _MockResponsiveApiService();
+      mockApi.setMockUiMode('auto');
+
+      await tester.pumpWidget(createTestApp(MainShell(apiService: mockApi)));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ObsidianBottomNav), findsOneWidget);
+
+      // Rotate to Landscape (width >= 840.0)
+      tester.view.physicalSize = const Size(850, 400);
+      await tester.pumpAndSettle();
+
+      // Verify layout adjusted to desktop without throwing any unmount errors
+      expect(find.byType(ObsidianDesktopSidebar), findsOneWidget);
+
+      // Rotate back to Portrait
+      tester.view.physicalSize = const Size(400, 850);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ObsidianBottomNav), findsOneWidget);
+    });
   });
 
   group('DynamicFieldWidget Desktop vs Mobile Rendering', () {

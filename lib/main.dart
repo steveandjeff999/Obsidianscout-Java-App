@@ -558,207 +558,206 @@ class _MainShellState extends State<MainShell> {
       ScoutHistoryScreen(apiService: widget.apiService, isVisible: _currentIndex == 17, isBarsVisible: _isBarsVisible),
       CustomAnalyticsScreen(apiService: widget.apiService, isVisible: _currentIndex == 18, isBarsVisible: _isBarsVisible),
       ContactScreen(apiService: widget.apiService, isVisible: _currentIndex == 19, isBarsVisible: _isBarsVisible),
-    ];
+    ];    final isDesktop = ObsidianResponsive.isDesktop(context, overrideMode: widget.apiService.uiMode);
 
-    final isDesktop = ObsidianResponsive.isDesktop(context, overrideMode: widget.apiService.uiMode);
+    final mainIndexedStack = ObsidianAnimatedIndexedStack(
+      key: const ValueKey('obsidian_main_indexed_stack'),
+      index: _currentIndex,
+      children: screens,
+    );
 
-    if (isDesktop) {
-      return CallbackShortcuts(
-        bindings: <ShortcutActivator, VoidCallback>{
-          const SingleActivator(LogicalKeyboardKey.digit1, control: true): () => _navigateScreen(0),
-          const SingleActivator(LogicalKeyboardKey.digit2, control: true): () => _navigateScreen(1),
-          const SingleActivator(LogicalKeyboardKey.digit3, control: true): () => _navigateScreen(2),
-          const SingleActivator(LogicalKeyboardKey.digit4, control: true): () => _navigateScreen(4),
-          const SingleActivator(LogicalKeyboardKey.digit5, control: true): () => _navigateScreen(18),
-          const SingleActivator(LogicalKeyboardKey.digit6, control: true): () => _navigateScreen(12),
-          const SingleActivator(LogicalKeyboardKey.digit7, control: true): () => _navigateScreen(8),
-          const SingleActivator(LogicalKeyboardKey.digit8, control: true): () => _navigateScreen(9),
-          const SingleActivator(LogicalKeyboardKey.digit9, control: true): () => _navigateScreen(5),
-          const SingleActivator(LogicalKeyboardKey.keyT, control: true): () {
-            final next = widget.apiService.themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
-            widget.apiService.setThemeMode(next);
-          },
-          const SingleActivator(LogicalKeyboardKey.keyQ, control: true): _openQrScanner,
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.digit1, control: true): () => _navigateScreen(0),
+        const SingleActivator(LogicalKeyboardKey.digit2, control: true): () => _navigateScreen(1),
+        const SingleActivator(LogicalKeyboardKey.digit3, control: true): () => _navigateScreen(2),
+        const SingleActivator(LogicalKeyboardKey.digit4, control: true): () => _navigateScreen(4),
+        const SingleActivator(LogicalKeyboardKey.digit5, control: true): () => _navigateScreen(18),
+        const SingleActivator(LogicalKeyboardKey.digit6, control: true): () => _navigateScreen(12),
+        const SingleActivator(LogicalKeyboardKey.digit7, control: true): () => _navigateScreen(8),
+        const SingleActivator(LogicalKeyboardKey.digit8, control: true): () => _navigateScreen(9),
+        const SingleActivator(LogicalKeyboardKey.digit9, control: true): () => _navigateScreen(5),
+        const SingleActivator(LogicalKeyboardKey.keyT, control: true): () {
+          final next = widget.apiService.themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+          widget.apiService.setThemeMode(next);
         },
-        child: Focus(
-          autofocus: true,
-          child: PopScope(
-            canPop: false,
-            onPopInvokedWithResult: (didPop, result) {
-              if (didPop) return;
-              _handleBackPress();
-            },
-            child: Scaffold(
-              key: _scaffoldKey,
-              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-              body: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  ObsidianDesktopSidebar(
+        const SingleActivator(LogicalKeyboardKey.keyQ, control: true): _openQrScanner,
+      },
+      child: Focus(
+        autofocus: true,
+        child: PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+            _handleBackPress();
+          },
+          child: Scaffold(
+            key: _scaffoldKey,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            extendBodyBehindAppBar: !isDesktop,
+            extendBody: !isDesktop,
+            appBar: isDesktop
+                ? null
+                : PreferredSize(
+                    preferredSize: const Size.fromHeight(90.0),
+                    child: AnimatedOpacity(
+                      opacity: _isBarsVisible ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                      child: IgnorePointer(
+                        ignoring: !_isBarsVisible,
+                        child: AnimatedSlide(
+                          offset: _isBarsVisible ? Offset.zero : const Offset(0, -0.8),
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.fastOutSlowIn,
+                          child: ObsidianGlassAppBar(
+                            title: context.tr(_titleKeys[_currentIndex]),
+                            subtitle: context.tr(_subtitleKeys[_currentIndex]),
+                            isOnline: _isOnline,
+                            actions: [
+                              IconButton(
+                                icon: Icon(
+                                  widget.apiService.themeMode == ThemeMode.light
+                                      ? Icons.dark_mode_rounded
+                                      : Icons.light_mode_rounded,
+                                  color: widget.apiService.themeMode == ThemeMode.light
+                                      ? const Color(0xFF4F46E5)
+                                      : const Color(0xFFFFB703),
+                                ),
+                                tooltip: widget.apiService.themeMode == ThemeMode.light
+                                    ? 'Switch to Dark Mode'
+                                    : 'Switch to Light Mode',
+                                onPressed: () {
+                                  final nextMode = widget.apiService.themeMode == ThemeMode.light
+                                      ? ThemeMode.dark
+                                      : ThemeMode.light;
+                                  widget.apiService.setThemeMode(nextMode);
+                                },
+                              ),
+                              Builder(
+                                builder: (ctx) => IconButton(
+                                  icon: Icon(
+                                    Icons.menu_rounded,
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.white
+                                        : const Color(0xFF0F172A),
+                                  ),
+                                  tooltip: 'Navigation Menu',
+                                  onPressed: () => Scaffold.of(ctx).openDrawer(),
+                                ),
+                              ),
+                              if (widget.apiService.hasPageAccess('qr-scanner'))
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.qr_code_scanner_rounded,
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.cyanAccent
+                                        : const Color(0xFF0284C7),
+                                  ),
+                                  tooltip: 'QR & Barcode Scanner',
+                                  onPressed: _openQrScanner,
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+            drawer: isDesktop
+                ? null
+                : ObsidianNavigationDrawer(
                     apiService: widget.apiService,
                     currentIndex: _currentIndex,
                     onSelectScreen: _navigateScreen,
                     onOpenQrScanner: _openQrScanner,
                     onLogout: _handleLogout,
                   ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        ObsidianDesktopAppBar(
-                          title: context.tr(_titleKeys[_currentIndex]),
-                          subtitle: context.tr(_subtitleKeys[_currentIndex]),
-                          isOnline: _isOnline,
-                          apiService: widget.apiService,
-                          onOpenQrScanner: _openQrScanner,
+            body: isDesktop
+                ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ObsidianDesktopSidebar(
+                        apiService: widget.apiService,
+                        currentIndex: _currentIndex,
+                        onSelectScreen: _navigateScreen,
+                        onOpenQrScanner: _openQrScanner,
+                        onLogout: _handleLogout,
+                      ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            ObsidianDesktopAppBar(
+                              title: context.tr(_titleKeys[_currentIndex]),
+                              subtitle: context.tr(_subtitleKeys[_currentIndex]),
+                              isOnline: _isOnline,
+                              apiService: widget.apiService,
+                              onOpenQrScanner: _openQrScanner,
+                            ),
+                            ObsidianBannerWidget(
+                              apiService: widget.apiService,
+                              isBarsVisible: true,
+                            ),
+                            Expanded(
+                              child: mainIndexedStack,
+                            ),
+                          ],
                         ),
-                        ObsidianBannerWidget(
-                          apiService: widget.apiService,
-                          isBarsVisible: true,
-                        ),
-                        Expanded(
-                          child: ObsidianAnimatedIndexedStack(
-                            index: _currentIndex,
-                            children: screens,
+                      ),
+                    ],
+                  )
+                : Center(
+                    child: Container(
+                      constraints: const BoxConstraints(maxWidth: 1600.0),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).scaffoldBackgroundColor,
+                      ),
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 95.0),
+                          ObsidianBannerWidget(
+                            apiService: widget.apiService,
+                            isBarsVisible: _isBarsVisible,
+                          ),
+                          Expanded(
+                            child: mainIndexedStack,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+            bottomNavigationBar: isDesktop
+                ? null
+                : AnimatedOpacity(
+                    opacity: _isBarsVisible ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    child: IgnorePointer(
+                      ignoring: !_isBarsVisible,
+                      child: AnimatedSlide(
+                        offset: _isBarsVisible ? Offset.zero : const Offset(0, 0.8),
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.fastOutSlowIn,
+                        child: SafeArea(
+                          child: Align(
+                            alignment: Alignment.bottomCenter,
+                            child: Container(
+                              constraints: const BoxConstraints(maxWidth: 600.0),
+                              child: ObsidianBottomNav(
+                                apiService: widget.apiService,
+                                currentIndex: _currentIndex,
+                                onTap: _navigateScreen,
+                              ),
+                            ),
                           ),
                         ),
-                      ],
+                      ),
                     ),
                   ),
-                ],
-              ),
-            ),
           ),
         ),
-      );
-    }
+      ),
+    );
+  }
+}
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        _handleBackPress();
-      },
-      child: Scaffold(
-        key: _scaffoldKey,
-        extendBodyBehindAppBar: true,
-        extendBody: true,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(90.0),
-        child: AnimatedOpacity(
-          opacity: _isBarsVisible ? 1.0 : 0.0,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-          child: AnimatedSlide(
-            offset: _isBarsVisible ? Offset.zero : const Offset(0, -0.8),
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.fastOutSlowIn,
-            child: ObsidianGlassAppBar(
-              title: context.tr(_titleKeys[_currentIndex]),
-              subtitle: context.tr(_subtitleKeys[_currentIndex]),
-              isOnline: _isOnline,
-              actions: [
-                IconButton(
-                  icon: Icon(
-                    widget.apiService.themeMode == ThemeMode.light
-                        ? Icons.dark_mode_rounded
-                        : Icons.light_mode_rounded,
-                    color: widget.apiService.themeMode == ThemeMode.light
-                        ? const Color(0xFF4F46E5)
-                        : const Color(0xFFFFB703),
-                  ),
-                  tooltip: widget.apiService.themeMode == ThemeMode.light
-                      ? 'Switch to Dark Mode'
-                      : 'Switch to Light Mode',
-                  onPressed: () {
-                    final nextMode = widget.apiService.themeMode == ThemeMode.light
-                        ? ThemeMode.dark
-                        : ThemeMode.light;
-                    widget.apiService.setThemeMode(nextMode);
-                  },
-                ),
-                Builder(
-                  builder: (ctx) => IconButton(
-                    icon: Icon(
-                      Icons.menu_rounded,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white
-                          : const Color(0xFF0F172A),
-                    ),
-                    tooltip: 'Navigation Menu',
-                    onPressed: () => Scaffold.of(ctx).openDrawer(),
-                  ),
-                ),
-                if (widget.apiService.hasPageAccess('qr-scanner'))
-                  IconButton(
-                    icon: Icon(
-                      Icons.qr_code_scanner_rounded,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.cyanAccent
-                          : const Color(0xFF0284C7),
-                    ),
-                    tooltip: 'QR & Barcode Scanner',
-                    onPressed: _openQrScanner,
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-      drawer: ObsidianNavigationDrawer(
-        apiService: widget.apiService,
-        currentIndex: _currentIndex,
-        onSelectScreen: _navigateScreen,
-        onOpenQrScanner: _openQrScanner,
-        onLogout: _handleLogout,
-      ),
-      body: Center(
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 1600.0),
-          decoration: BoxDecoration(
-            color: Theme.of(context).scaffoldBackgroundColor,
-          ),
-          child: Column(
-            children: [
-              const SizedBox(height: 95.0),
-              ObsidianBannerWidget(
-                apiService: widget.apiService,
-                isBarsVisible: _isBarsVisible,
-              ),
-              Expanded(
-                child: ObsidianAnimatedIndexedStack(
-                  index: _currentIndex,
-                  children: screens,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      bottomNavigationBar: AnimatedOpacity(
-        opacity: _isBarsVisible ? 1.0 : 0.0,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-        child: AnimatedSlide(
-          offset: _isBarsVisible ? Offset.zero : const Offset(0, 0.8),
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.fastOutSlowIn,
-          child: SafeArea(
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: Container(
-                constraints: const BoxConstraints(maxWidth: 600.0),
-                child: ObsidianBottomNav(
-                  apiService: widget.apiService,
-                  currentIndex: _currentIndex,
-                  onTap: _navigateScreen,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    ),
-  );
-}
-}

@@ -169,6 +169,11 @@ class _ObsidianAnimatedIndexedStackState extends State<ObsidianAnimatedIndexedSt
       parent: _controller,
       curve: const Cubic(0.22, 1.0, 0.36, 1.0),
     );
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.completed && mounted) {
+        setState(() {});
+      }
+    });
     _controller.value = 1.0;
   }
 
@@ -267,39 +272,18 @@ class _ObsidianAnimatedIndexedStackState extends State<ObsidianAnimatedIndexedSt
         // Static non-transitioning state
         if (!isAnimating) {
           if (isCurrent) {
-            return TickerMode(
-              enabled: true,
-              child: widget.children[index],
-            );
-          }
-          return Offstage(
-            offstage: true,
-            child: TickerMode(
-              enabled: false,
-              child: widget.children[index],
-            ),
-          );
-        }
-
-        // Active animation state
-        if (isCurrent) {
-          return SlideTransition(
-            position: currentSlide,
-            child: FadeTransition(
-              opacity: currentFade,
+            return KeyedSubtree(
+              key: ValueKey('page_active_$index'),
               child: TickerMode(
                 enabled: true,
                 child: widget.children[index],
               ),
-            ),
-          );
-        }
-
-        if (isPrevious) {
-          return SlideTransition(
-            position: previousSlide,
-            child: FadeTransition(
-              opacity: previousFade,
+            );
+          }
+          return Offstage(
+            offstage: true,
+            child: IgnorePointer(
+              ignoring: true,
               child: TickerMode(
                 enabled: false,
                 child: widget.children[index],
@@ -308,11 +292,50 @@ class _ObsidianAnimatedIndexedStackState extends State<ObsidianAnimatedIndexedSt
           );
         }
 
+        // Active animation state
+        if (isCurrent) {
+          return KeyedSubtree(
+            key: ValueKey('page_current_$index'),
+            child: SlideTransition(
+              position: currentSlide,
+              child: FadeTransition(
+                opacity: currentFade,
+                child: TickerMode(
+                  enabled: true,
+                  child: widget.children[index],
+                ),
+              ),
+            ),
+          );
+        }
+
+        if (isPrevious) {
+          return KeyedSubtree(
+            key: ValueKey('page_previous_$index'),
+            child: IgnorePointer(
+              ignoring: true,
+              child: SlideTransition(
+                position: previousSlide,
+                child: FadeTransition(
+                  opacity: previousFade,
+                  child: TickerMode(
+                    enabled: false,
+                    child: widget.children[index],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
         return Offstage(
           offstage: true,
-          child: TickerMode(
-            enabled: false,
-            child: widget.children[index],
+          child: IgnorePointer(
+            ignoring: true,
+            child: TickerMode(
+              enabled: false,
+              child: widget.children[index],
+            ),
           ),
         );
       }),
