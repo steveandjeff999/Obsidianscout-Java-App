@@ -8,6 +8,7 @@ import '../theme/obsidian_ui_theme.dart';
 import '../services/api_service.dart';
 import '../models/custom_analytics_models.dart';
 import '../models/graph_models.dart';
+import '../widgets/obsidian_chart_interactive_wrapper.dart';
 import 'graphs_screen.dart';
 
 class CustomAnalyticsScreen extends StatefulWidget {
@@ -42,6 +43,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
   List<CustomAnalyticsReportRecord> _savedReports = [];
   CustomAnalyticsConfig _currentReport = CustomAnalyticsConfig();
   int? _activeCrossFilterTeam;
+  int? _touchedPieIndex;
   bool _isSlicersExpanded = true;
   String _teamSearch = '';
 
@@ -1640,6 +1642,19 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
     return LineChart(
       LineChartData(
         maxY: maxY * 1.15,
+        lineTouchData: LineTouchData(
+          handleBuiltInTouches: true,
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipColor: (_) => ObsidianUITheme.getSurfaceColor(context),
+            getTooltipItems: (spots) => spots.map((s) {
+              final tNum = s.barIndex < teams.length ? teams[s.barIndex] : 0;
+              return LineTooltipItem(
+                'Team $tNum: ${s.y.toStringAsFixed(1)} pts',
+                TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context), fontSize: 12, fontWeight: FontWeight.bold),
+              );
+            }).toList(),
+          ),
+        ),
         lineBarsData: lineBarsData,
         titlesData: FlTitlesData(
           bottomTitles: AxisTitles(
@@ -1688,14 +1703,16 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
       if (xVal > maxX) maxX = xVal;
       if (yVal > maxY) maxY = yVal;
 
+      final isSelected = _activeCrossFilterTeam == t;
+
       spots.add(ScatterSpot(
         xVal,
         yVal,
         dotPainter: FlDotCirclePainter(
-          radius: 6,
-          color: colors[0].withValues(alpha: 0.8),
+          radius: isSelected ? 8 : 6,
+          color: isSelected ? ObsidianUITheme.primaryAccent : colors[0].withValues(alpha: 0.8),
           strokeColor: Colors.white,
-          strokeWidth: 1.5,
+          strokeWidth: isSelected ? 2.5 : 1.5,
         ),
       ));
     }
@@ -1704,6 +1721,37 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
       ScatterChartData(
         maxX: maxX * 1.15,
         maxY: maxY * 1.15,
+        scatterTouchData: ScatterTouchData(
+          enabled: true,
+          touchTooltipData: ScatterTouchTooltipData(
+            getTooltipColor: (_) => ObsidianUITheme.getSurfaceColor(context),
+            getTooltipItems: (spot) {
+              final spotIdx = spots.indexOf(spot);
+              final tNum = (spotIdx >= 0 && spotIdx < teams.length) ? teams[spotIdx] : 0;
+              return ScatterTooltipItem(
+                'Team $tNum\n${_getFieldLabel(xMeasure)}: ${spot.x.toStringAsFixed(1)}\n${_getFieldLabel(yMeasure)}: ${spot.y.toStringAsFixed(1)}',
+                textStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
+              );
+            },
+          ),
+          touchCallback: (event, response) {
+            if (event is FlTapUpEvent && response?.touchedSpot != null) {
+              final touched = response!.touchedSpot!;
+              final spotIdx = touched.spotIndex;
+              if (spotIdx >= 0 && spotIdx < teams.length) {
+                final tNum = teams[spotIdx];
+                ObsidianChartHaptics.lightTouch();
+                scheduleMicrotask(() {
+                  if (mounted) {
+                    setState(() {
+                      _activeCrossFilterTeam = (_activeCrossFilterTeam == tNum) ? null : tNum;
+                    });
+                  }
+                });
+              }
+            }
+          },
+        ),
         scatterSpots: spots,
         titlesData: FlTitlesData(
           bottomTitles: AxisTitles(
@@ -1732,14 +1780,23 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
       return CustomAnalyticsMath.computeAggregation(vals, 'sum');
     }).toList();
 
+    final grandTotal = totals.fold(0.0, (a, b) => a + b);
+
     final sections = <PieChartSectionData>[];
     for (int i = 0; i < measures.length; i++) {
+      final isTouched = _touchedPieIndex == i;
+      final pct = grandTotal > 0 ? (totals[i] / grandTotal) * 100 : 0.0;
+
       sections.add(PieChartSectionData(
         value: totals[i],
-        title: '${totals[i].toStringAsFixed(0)}',
+        title: isTouched ? '${pct.toStringAsFixed(0)}%' : totals[i].toStringAsFixed(0),
         color: colors[i % colors.length],
-        radius: 35,
-        titleStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+        radius: isTouched ? 44 : 35,
+        titleStyle: TextStyle(
+          fontSize: isTouched ? 13 : 11,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
       ));
     }
 
@@ -1749,8 +1806,29 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
           flex: 3,
           child: PieChart(
             PieChartData(
+              pieTouchData: PieTouchData(
+                touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                  if (!event.isInterestedForInteractions ||
+                      pieTouchResponse == null ||
+                      pieTouchResponse.touchedSection == null) {
+                    if (_touchedPieIndex != null) {
+                      scheduleMicrotask(() {
+                        if (mounted) setState(() => _touchedPieIndex = null);
+                      });
+                    }
+                    return;
+                  }
+                  final touchedIdx = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                  if (_touchedPieIndex != touchedIdx) {
+                    ObsidianChartHaptics.lightTouch();
+                    scheduleMicrotask(() {
+                      if (mounted) setState(() => _touchedPieIndex = touchedIdx);
+                    });
+                  }
+                },
+              ),
               sections: sections,
-              centerSpaceRadius: 40,
+              centerSpaceRadius: 38,
               sectionsSpace: 2,
             ),
           ),
@@ -1761,16 +1839,51 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: measures.asMap().entries.map((e) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 3),
-                child: Row(
-                  children: [
-                    Container(width: 10, height: 10, color: colors[e.key % colors.length]),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(_getFieldLabel(e.value), style: TextStyle(fontSize: 11, color: ObsidianUITheme.getPrimaryTextColor(context)), overflow: TextOverflow.ellipsis),
+              final isTouched = _touchedPieIndex == e.key;
+              final pct = grandTotal > 0 ? (totals[e.key] / grandTotal) * 100 : 0.0;
+
+              return MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: () {
+                    ObsidianChartHaptics.lightTouch();
+                    scheduleMicrotask(() {
+                      if (mounted) {
+                        setState(() {
+                          _touchedPieIndex = (_touchedPieIndex == e.key) ? null : e.key;
+                        });
+                      }
+                    });
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    margin: const EdgeInsets.symmetric(vertical: 3),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: isTouched ? colors[e.key % colors.length].withValues(alpha: 0.15) : Colors.transparent,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: isTouched ? colors[e.key % colors.length] : Colors.transparent,
+                      ),
                     ),
-                  ],
+                    child: Row(
+                      children: [
+                        Container(width: 10, height: 10, color: colors[e.key % colors.length]),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            '${_getFieldLabel(e.value)} (${pct.toStringAsFixed(0)}%)',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: isTouched ? FontWeight.bold : FontWeight.normal,
+                              color: ObsidianUITheme.getPrimaryTextColor(context),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               );
             }).toList(),

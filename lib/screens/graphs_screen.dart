@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -8,9 +9,28 @@ import '../models/team_match_models.dart';
 import '../models/graph_models.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../services/api_service.dart';
+import '../widgets/obsidian_chart_interactive_wrapper.dart';
 
 // Reserved fields that are metadata, not graphable
 const _reserved = {'eventKey', 'matchKey', 'matchNumber', 'targetTeamNumber'};
+
+int _parseTeamNumber(String name) {
+  final trimmed = name.trim();
+  // If it's explicitly a match label (e.g. "M1", "M12", "Match 5", "Match 1 (event)"), it is NOT a team
+  if (RegExp(r'^M\d+(\s*\(.*\))?$', caseSensitive: false).hasMatch(trimmed) ||
+      RegExp(r'^Match\s*\d+(\s*\(.*\))?$', caseSensitive: false).hasMatch(trimmed)) {
+    return 0;
+  }
+
+  // If starts with "Team " (e.g. "Team 254")
+  if (RegExp(r'^team\s*\d+', caseSensitive: false).hasMatch(trimmed)) {
+    final digits = trimmed.replaceAll(RegExp(r'[^0-9]'), '');
+    return int.tryParse(digits) ?? 0;
+  }
+
+  final digits = trimmed.replaceAll(RegExp(r'[^0-9]'), '');
+  return int.tryParse(digits) ?? 0;
+}
 
 class GraphTypeInfo {
   final String id;
@@ -68,6 +88,12 @@ class _GraphsScreenState extends State<GraphsScreen> {
   bool _forcePrescout = false;
   String _teamSearch = '';
   bool _graphGenerated = false;
+
+  // Interactive Graph Controls
+  bool _showDataLabels = false;
+  bool _showBenchmark = false;
+  final Set<String> _hiddenSeries = {};
+  int? _hoveredSeriesIndex;
 
   // Summary stats
   int _totalEntries = 0;
@@ -586,8 +612,28 @@ class _GraphsScreenState extends State<GraphsScreen> {
   }
 
   int _extractTeamNum(String name) {
-    final digits = name.replaceAll(RegExp(r'[^0-9]'), '');
-    return int.tryParse(digits) ?? 0;
+    final numVal = _parseTeamNumber(name);
+    if (numVal > 0) {
+      if (_teamMap.containsKey(numVal) || _selectedTeams.contains(numVal)) {
+        return numVal;
+      }
+      if (_teams.isEmpty) return numVal;
+    }
+    return 0;
+  }
+
+  String _resolveTeamLabel({required String seriesName, required String xLabel}) {
+    if (seriesName.toLowerCase().startsWith('team ') || RegExp(r'^team\s*\d+', caseSensitive: false).hasMatch(seriesName)) {
+      return seriesName;
+    }
+    if (xLabel.toLowerCase().startsWith('team ') || RegExp(r'^team\s*\d+', caseSensitive: false).hasMatch(xLabel)) {
+      return xLabel;
+    }
+    final sNum = _extractTeamNum(seriesName);
+    if (sNum > 0) return 'Team $sNum';
+    final xNum = _extractTeamNum(xLabel);
+    if (xNum > 0) return 'Team $xNum';
+    return seriesName.isNotEmpty ? seriesName : xLabel;
   }
 
   List<HistogramBin> _buildHistogramBins(List<ScoutingEntryModel> entries, GraphMetric metric) {
@@ -1209,25 +1255,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
     // 3. Render Non-scouted Graphs
     if (!isScouted) {
       return ObsidianGlassCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: ObsidianUITheme.getPrimaryTextColor(context))),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.refresh_rounded, color: Colors.white54, size: 18),
-                  onPressed: _generateGraphs,
-                  tooltip: 'Refresh',
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _renderNonScoutedGraph(graphType),
-          ],
-        ),
+        child: _renderNonScoutedGraph(graphType, title: title),
       );
     }
 
@@ -1235,29 +1263,11 @@ class _GraphsScreenState extends State<GraphsScreen> {
     final entries = _getFilteredEntriesForTeams();
 
     return ObsidianGlassCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: ObsidianUITheme.getPrimaryTextColor(context))),
-              ),
-              IconButton(
-                icon: const Icon(Icons.refresh_rounded, color: Colors.white54, size: 18),
-                onPressed: _generateGraphs,
-                tooltip: 'Refresh',
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          if (metric != null) _renderScoutedGraph(graphType, metric, entries),
-        ],
-      ),
+      child: metric != null ? _renderScoutedGraph(graphType, metric, entries, title: title) : _buildNotice('Select a metric to view graph.'),
     );
   }
 
-  Widget _renderNonScoutedGraph(String graphType) {
+  Widget _renderNonScoutedGraph(String graphType, {String title = ''}) {
     final selectedNums = _selectedTeams.toList();
     final data = selectedNums.map((teamNum) {
       final team = _teamMap[teamNum];
@@ -1277,7 +1287,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
       final valA = _datasource == 'epa' ? a.epa : (_datasource == 'opr' ? a.opr : a.scouted);
       final valB = _datasource == 'epa' ? b.epa : (_datasource == 'opr' ? b.opr : b.scouted);
       if (_sort == 'value_asc') return valA.compareTo(valB);
-      return valB.compareTo(valA);
+      return valB.compareTo(a.scouted);
     });
 
     if (graphType == 'bar') {
@@ -1290,11 +1300,11 @@ class _GraphsScreenState extends State<GraphsScreen> {
           if (_settings?.useTbaOpr == true)
             GraphSeries(name: 'TBA OPR', x: data.map((d) => d.label).toList(), y: data.map((d) => d.opr).toList()),
         ];
-        return _buildGroupedBarChart(seriesList);
+        return _buildGroupedBarChart(seriesList, title: title);
       } else {
         final valExtractor = _datasource == 'epa' ? (d) => d.epa : (d) => d.opr;
         final points = data.map((d) => GraphPoint(d.label, valExtractor(d))).toList();
-        return _buildHorizontalBarChart(points);
+        return _buildHorizontalBarChart(points, title: title);
       }
     }
 
@@ -1312,242 +1322,584 @@ class _GraphsScreenState extends State<GraphsScreen> {
         seriesList.add(GraphSeries(name: 'TBA OPR', x: labels, y: data.map((d) => d.opr).toList()));
       }
 
-      return _buildLineOrScatterChart(seriesList, mode: graphType);
+      return _buildLineOrScatterChart(seriesList, mode: graphType, title: title);
     }
 
     return _buildNotice('Unsupported graph format.');
   }
 
-  Widget _renderScoutedGraph(String graphType, GraphMetric metric, List<ScoutingEntryModel> entries) {
+  Widget _renderScoutedGraph(String graphType, GraphMetric metric, List<ScoutingEntryModel> entries, {String title = ''}) {
     if (metric.kind == 'category') {
       final counts = _buildCategoryCounts(entries, metric);
-      return _buildHorizontalBarChart(counts);
+      return _buildHorizontalBarChart(counts, title: title);
     }
 
     if (graphType == 'bar') {
       if (_dataView == 'matches') {
         final seriesList = _buildTeamSeries(entries, metric);
-        return _buildGroupedBarChart(seriesList);
+        return _buildGroupedBarChart(seriesList, title: title);
       }
       final stats = _sortStats(_buildTeamStats(entries, metric));
       final points = stats.map((s) => GraphPoint('Team ${s.$1}', s.$2)).toList();
-      return _buildHorizontalBarChart(points);
+      return _buildHorizontalBarChart(points, title: title);
     }
 
     if (graphType == 'line' || graphType == 'scatter' || graphType == 'area') {
       final seriesList = _buildTeamSeries(entries, metric);
-      return _buildLineOrScatterChart(seriesList, mode: graphType);
+      return _buildLineOrScatterChart(seriesList, mode: graphType, title: title);
     }
 
     if (graphType == 'box' || graphType == 'violin') {
       final traces = _buildDistributionStats(entries, metric);
-      return _buildDistributionCards(traces, isViolin: graphType == 'violin');
+      return _buildDistributionCards(traces, isViolin: graphType == 'violin', title: title);
     }
 
     if (graphType == 'histogram') {
       final bins = _buildHistogramBins(entries, metric);
-      return _buildHistogramChart(bins);
+      return _buildHistogramChart(bins, title: title, entries: entries, metric: metric);
     }
 
     return _buildNotice('Unsupported graph format.');
   }
 
-  Widget _buildHorizontalBarChart(List<GraphPoint> points) {
-    if (points.isEmpty) return _buildNotice('No data yet.');
+  Future<void> _showTeamInspectFromLabel(String label, double val) async {
+    final teamNum = _extractTeamNum(label);
+    if (teamNum <= 0) return;
 
-    final maxVal = points.map((p) => p.value).fold(0.0, max);
-    final palette = _chartPalette();
+    final teamModel = _teamMap[teamNum];
+    final entries = _getFilteredEntriesForTeams();
+    final teamEntries = entries.where((e) => e.targetTeamNumber == teamNum).toList();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          height: max(200.0, points.length * 34.0).clamp(0.0, 500.0),
-          child: BarChart(
-            BarChartData(
-              alignment: BarChartAlignment.spaceAround,
-              maxY: maxVal > 0 ? maxVal * 1.15 : 10.0,
-              barTouchData: BarTouchData(
-                touchTooltipData: BarTouchTooltipData(
-                  getTooltipColor: (_) => ObsidianUITheme.getSurfaceColor(context),
-                  getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                    final label = points[groupIndex].label;
-                    return BarTooltipItem(
-                      '$label\n',
-                      TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context), fontSize: 12),
-                      children: [
-                        TextSpan(
-                          text: rod.toY.toStringAsFixed(rod.toY == rod.toY.truncate() ? 0 : 2),
-                          style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context), fontWeight: FontWeight.bold, fontSize: 14),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ),
-              titlesData: FlTitlesData(
-                show: true,
-                leftTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 42,
-                    getTitlesWidget: (value, meta) => Text(
-                      value == value.truncate() ? value.toInt().toString() : value.toStringAsFixed(1),
-                      style: TextStyle(color: ObsidianUITheme.getTertiaryTextColor(context), fontSize: 10),
+    double? minVal;
+    double? maxVal;
+    double? avgVal;
+    if (_selectedMetric != null && teamEntries.isNotEmpty) {
+      final vals = teamEntries
+          .map((e) => _metricValue(e, _selectedMetric!))
+          .whereType<double>()
+          .toList();
+      if (vals.isNotEmpty) {
+        minVal = vals.reduce(min);
+        maxVal = vals.reduce(max);
+        avgVal = vals.reduce((a, b) => a + b) / vals.length;
+      }
+    }
+
+    int? rank;
+    int? totalRankCount;
+    if (_selectedTeams.isNotEmpty) {
+      totalRankCount = _selectedTeams.length;
+      final allStats = _buildTeamStats(entries, _selectedMetric ?? _metrics.first);
+      allStats.sort((a, b) => b.$2.compareTo(a.$2));
+      final idx = allStats.indexWhere((s) => s.$1 == teamNum);
+      if (idx >= 0) rank = idx + 1;
+    }
+
+    final filteredTeam = await ObsidianTeamQuickInspect.show(
+      context: context,
+      teamNumber: teamNum,
+      teamName: teamModel?.name ?? teamModel?.nickname ?? 'Team $teamNum',
+      metricLabel: _selectedMetric?.label ?? 'Value',
+      metricValue: val,
+      apiService: widget.apiService,
+      rank: rank,
+      totalRankCount: totalRankCount,
+      matchCount: teamEntries.length,
+      teamMin: minVal,
+      teamMax: maxVal,
+      teamAverage: avgVal ?? val,
+      showFilterButton: true,
+    );
+
+    if (filteredTeam != null && filteredTeam > 0 && mounted) {
+      setState(() {
+        _selectedTeams = {filteredTeam};
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Filtered to Team $filteredTeam only'),
+          backgroundColor: ObsidianUITheme.primaryAccent,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  void _showHistogramBinInspect(HistogramBin bin, List<ScoutingEntryModel> entries, GraphMetric metric) {
+    ObsidianChartHaptics.impact();
+
+    final matchingEntries = entries.where((e) {
+      final val = _metricValue(e, metric);
+      if (val == null) return false;
+      return val >= bin.start && val <= bin.end;
+    }).toList();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: ObsidianUITheme.getSurfaceColor(context),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
                 ),
-                bottomTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 32,
-                    getTitlesWidget: (value, meta) {
-                      final idx = value.toInt();
-                      if (idx < 0 || idx >= points.length) return const SizedBox.shrink();
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Text(points[idx].label, style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context), fontSize: 10), overflow: TextOverflow.ellipsis),
-                      );
-                    },
-                  ),
-                ),
-                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              ),
-              gridData: FlGridData(
-                show: true,
-                getDrawingHorizontalLine: (_) => FlLine(color: ObsidianUITheme.getBorderColor(context), strokeWidth: 1),
-                drawVerticalLine: false,
-              ),
-              borderData: FlBorderData(show: false),
-              barGroups: List.generate(points.length, (i) {
-                return BarChartGroupData(
-                  x: i,
-                  barRods: [
-                    BarChartRodData(
-                      toY: points[i].value,
-                      gradient: LinearGradient(
-                        colors: [palette[i % palette.length].withValues(alpha: 0.9), ObsidianUITheme.secondaryAccent],
-                        begin: Alignment.bottomCenter,
-                        end: Alignment.topCenter,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Bin Range: ${bin.rangeLabel}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: ObsidianUITheme.primaryAccent,
                       ),
-                      width: max(8.0, min(28.0, 280.0 / points.length)),
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white10,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '${matchingEntries.length} ${matchingEntries.length == 1 ? "entry" : "entries"}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: ObsidianUITheme.getSecondaryTextColor(context),
+                        ),
+                      ),
                     ),
                   ],
-                );
-              }),
+                ),
+                const SizedBox(height: 12),
+                if (matchingEntries.isEmpty)
+                  Text(
+                    'No entries found in this range.',
+                    style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context)),
+                  )
+                else
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 280),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: matchingEntries.length,
+                      itemBuilder: (ctx, i) {
+                        final e = matchingEntries[i];
+                        final val = _metricValue(e, metric) ?? 0.0;
+                        final tNum = e.targetTeamNumber ?? 0;
+                        final mLabel = _matchLabel(e.matchKey, e.matchNumber, i);
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.03),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    'Team $tNum',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      color: ObsidianUITheme.primaryAccent,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    mLabel,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: ObsidianUITheme.getSecondaryTextColor(context),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Text(
+                                val.toStringAsFixed(val == val.truncate() ? 0 : 2),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: ObsidianUITheme.getPrimaryTextColor(context),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+              ],
             ),
           ),
-        ),
-        const SizedBox(height: 8),
-        _buildLegend(points.map((p) => p.label).toList()),
-      ],
+        );
+      },
     );
   }
 
-  Widget _buildGroupedBarChart(List<GraphSeries> seriesList) {
+  Widget _buildHorizontalBarChart(List<GraphPoint> points, {String title = ''}) {
+    if (points.isEmpty) return _buildNotice('No data yet.');
+
+    final maxVal = points.map((p) => p.value).fold(0.0, max);
+    final avgVal = points.isNotEmpty
+        ? points.map((p) => p.value).reduce((a, b) => a + b) / points.length
+        : 0.0;
+    final palette = _chartPalette();
+
+    final minContentWidth = max(points.length * 52.0 + 40.0, 300.0);
+
+    Widget buildChartWidget(BuildContext ctx, {bool isFullscreen = false}) {
+      return BarChart(
+        BarChartData(
+          alignment: BarChartAlignment.spaceAround,
+          maxY: maxVal > 0 ? maxVal * 1.18 : 10.0,
+          barTouchData: BarTouchData(
+            touchTooltipData: BarTouchTooltipData(
+              getTooltipColor: (_) => ObsidianUITheme.getSurfaceColor(context),
+              getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                if (groupIndex < 0 || groupIndex >= points.length) return null;
+                final label = points[groupIndex].label;
+                return BarTooltipItem(
+                  '$label\n',
+                  TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context), fontSize: 12),
+                  children: [
+                    TextSpan(
+                      text: rod.toY.toStringAsFixed(rod.toY == rod.toY.truncate() ? 0 : 2),
+                      style: TextStyle(
+                        color: ObsidianUITheme.getPrimaryTextColor(context),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const TextSpan(
+                      text: '\n(Tap to Inspect)',
+                      style: TextStyle(
+                        color: ObsidianUITheme.primaryAccent,
+                        fontSize: 10,
+                        fontWeight: FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+            touchCallback: (event, response) {
+              if (event is FlTapUpEvent && response?.spot != null) {
+                final groupIdx = response!.spot!.touchedBarGroupIndex;
+                if (groupIdx >= 0 && groupIdx < points.length) {
+                  _showTeamInspectFromLabel(points[groupIdx].label, points[groupIdx].value);
+                }
+              }
+            },
+          ),
+          extraLinesData: ExtraLinesData(
+            horizontalLines: [
+              if (_showBenchmark && avgVal > 0)
+                HorizontalLine(
+                  y: avgVal,
+                  color: ObsidianUITheme.primaryAccent,
+                  strokeWidth: 1.8,
+                  dashArray: [6, 4],
+                  label: HorizontalLineLabel(
+                    show: true,
+                    alignment: Alignment.topRight,
+                    padding: const EdgeInsets.only(right: 6, bottom: 4),
+                    style: const TextStyle(
+                      color: ObsidianUITheme.primaryAccent,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 10,
+                    ),
+                    labelResolver: (_) => 'Avg: ${avgVal.toStringAsFixed(1)}',
+                  ),
+                ),
+            ],
+          ),
+          titlesData: FlTitlesData(
+            show: true,
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 42,
+                getTitlesWidget: (value, meta) => Text(
+                  value == value.truncate() ? value.toInt().toString() : value.toStringAsFixed(1),
+                  style: TextStyle(color: ObsidianUITheme.getTertiaryTextColor(context), fontSize: 10),
+                ),
+              ),
+            ),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 34,
+                getTitlesWidget: (value, meta) {
+                  final idx = value.toInt();
+                  if (idx < 0 || idx >= points.length) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                      points[idx].label,
+                      style: TextStyle(
+                        color: ObsidianUITheme.getSecondaryTextColor(context),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  );
+                },
+              ),
+            ),
+            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          ),
+          gridData: FlGridData(
+            show: true,
+            getDrawingHorizontalLine: (_) =>
+                FlLine(color: ObsidianUITheme.getBorderColor(context), strokeWidth: 1),
+            drawVerticalLine: false,
+          ),
+          borderData: FlBorderData(show: false),
+          barGroups: List.generate(points.length, (i) {
+            return BarChartGroupData(
+              x: i,
+              showingTooltipIndicators: _showDataLabels ? [0] : [],
+              barRods: [
+                BarChartRodData(
+                  toY: points[i].value,
+                  gradient: LinearGradient(
+                    colors: [
+                      palette[i % palette.length].withValues(alpha: 0.9),
+                      ObsidianUITheme.secondaryAccent,
+                    ],
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                  ),
+                  width: max(8.0, min(28.0, 280.0 / points.length)),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                ),
+              ],
+            );
+          }),
+        ),
+      );
+    }
+
+    return ObsidianChartInteractiveWrapper(
+      title: title.isNotEmpty ? title : '${_selectedMetric?.label ?? "Chart"} — BAR',
+      subtitle: '${points.length} teams • Tap any bar for quick inspection',
+      minContentWidth: minContentWidth,
+      chartHeight: max(220.0, min(360.0, points.length * 16.0 + 120.0)),
+      showDataLabels: _showDataLabels,
+      onToggleDataLabels: (v) => setState(() => _showDataLabels = v),
+      showBenchmark: _showBenchmark,
+      onToggleBenchmark: (v) => setState(() => _showBenchmark = v),
+      benchmarkValue: avgVal,
+      benchmarkLabel: 'Avg: ${avgVal.toStringAsFixed(1)}',
+      onRefresh: _generateGraphs,
+      chart: buildChartWidget(context),
+      fullscreenChartBuilder: (ctx) => buildChartWidget(ctx, isFullscreen: true),
+    );
+  }
+
+  Widget _buildGroupedBarChart(List<GraphSeries> seriesList, {String title = ''}) {
     if (seriesList.isEmpty) return _buildNotice('No data yet.');
 
     final allX = seriesList.expand((s) => s.x).toSet().toList();
     if (allX.isEmpty) return _buildNotice('No data yet.');
 
-    final allY = seriesList.expand((s) => s.y).toList();
-    final maxY = allY.isNotEmpty ? allY.reduce(max) * 1.15 : 10.0;
+    final visibleSeries = seriesList
+        .where((s) => !_hiddenSeries.contains(s.name))
+        .toList();
+
+    final allY = visibleSeries.expand((s) => s.y).toList();
+    final maxY = allY.isNotEmpty ? allY.reduce(max) * 1.18 : 10.0;
+    final avgY = allY.isNotEmpty ? allY.reduce((a, b) => a + b) / allY.length : 0.0;
     final palette = _chartPalette();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          height: 300,
-          child: BarChart(
-            BarChartData(
-              alignment: BarChartAlignment.spaceAround,
-              maxY: maxY,
-              barTouchData: BarTouchData(
-                touchTooltipData: BarTouchTooltipData(
-                  getTooltipColor: (_) => ObsidianUITheme.getSurfaceColor(context),
-                  getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                    final sName = seriesList.length > rodIndex ? seriesList[rodIndex].name : '';
-                    return BarTooltipItem(
-                      '$sName: ${rod.toY.toStringAsFixed(rod.toY == rod.toY.truncate() ? 0 : 2)}',
-                      TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context), fontSize: 12),
-                    );
-                  },
-                ),
-              ),
-              titlesData: FlTitlesData(
-                leftTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 42,
-                    getTitlesWidget: (val, _) => Text(
-                      val == val.truncate() ? val.toInt().toString() : val.toStringAsFixed(1),
-                      style: TextStyle(color: ObsidianUITheme.getTertiaryTextColor(context), fontSize: 10),
-                    ),
-                  ),
-                ),
-                bottomTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 32,
-                    getTitlesWidget: (value, meta) {
-                      final idx = value.toInt();
-                      if (idx < 0 || idx >= allX.length) return const SizedBox.shrink();
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Text(allX[idx], style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context), fontSize: 10), overflow: TextOverflow.ellipsis),
-                      );
-                    },
-                  ),
-                ),
-                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              ),
-              gridData: FlGridData(
-                show: true,
-                getDrawingHorizontalLine: (_) => FlLine(color: ObsidianUITheme.getBorderColor(context), strokeWidth: 1),
-                drawVerticalLine: false,
-              ),
-              borderData: FlBorderData(show: false),
-              barGroups: List.generate(allX.length, (xIdx) {
-                final xLabel = allX[xIdx];
-                return BarChartGroupData(
-                  x: xIdx,
-                  barRods: seriesList.asMap().entries.map((entry) {
-                    final sIdx = entry.key;
-                    final s = entry.value;
-                    final pos = s.x.indexOf(xLabel);
-                    final val = pos >= 0 && pos < s.y.length ? s.y[pos] : 0.0;
-                    return BarChartRodData(
-                      toY: val,
-                      color: palette[sIdx % palette.length],
-                      width: max(4.0, 20.0 / seriesList.length),
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(3)),
-                    );
-                  }).toList(),
+    final legendSeries = seriesList.asMap().entries.map((entry) {
+      final s = entry.value;
+      final isVisible = !_hiddenSeries.contains(s.name);
+      final isDimmed = _hoveredSeriesIndex != null && _hoveredSeriesIndex != entry.key;
+      return ChartLegendSeries(
+        name: s.name,
+        color: palette[entry.key % palette.length],
+        isVisible: isVisible,
+        isDimmed: isDimmed,
+      );
+    }).toList();
+
+    final minContentWidth = max(allX.length * (max(1, visibleSeries.length) * 32.0 + 36.0), 300.0);
+
+    Widget buildChartWidget(BuildContext ctx, {bool isFullscreen = false}) {
+      return BarChart(
+        BarChartData(
+          alignment: BarChartAlignment.spaceAround,
+          maxY: maxY,
+          barTouchData: BarTouchData(
+            touchTooltipData: BarTouchTooltipData(
+              getTooltipColor: (_) => ObsidianUITheme.getSurfaceColor(context),
+              getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                final sName = visibleSeries.length > rodIndex ? visibleSeries[rodIndex].name : '';
+                return BarTooltipItem(
+                  '$sName: ${rod.toY.toStringAsFixed(rod.toY == rod.toY.truncate() ? 0 : 2)}\n(Tap to Inspect)',
+                  TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context), fontSize: 12),
                 );
-              }),
+              },
             ),
+            touchCallback: (event, response) {
+              if (event is FlTapUpEvent && response?.spot != null) {
+                final spot = response!.spot!;
+                final groupIdx = spot.touchedBarGroupIndex;
+                final rodIdx = spot.touchedRodDataIndex;
+                if (groupIdx >= 0 && groupIdx < allX.length) {
+                  final xLabel = allX[groupIdx];
+                  final sName = (rodIdx >= 0 && rodIdx < visibleSeries.length) ? visibleSeries[rodIdx].name : '';
+                  final teamLabel = _resolveTeamLabel(seriesName: sName, xLabel: xLabel);
+                  final val = spot.touchedRodData.toY;
+                  _showTeamInspectFromLabel(teamLabel, val);
+                }
+              }
+            },
           ),
+          extraLinesData: ExtraLinesData(
+            horizontalLines: [
+              if (_showBenchmark && avgY > 0)
+                HorizontalLine(
+                  y: avgY,
+                  color: ObsidianUITheme.primaryAccent,
+                  strokeWidth: 1.8,
+                  dashArray: [6, 4],
+                  label: HorizontalLineLabel(
+                    show: true,
+                    alignment: Alignment.topRight,
+                    padding: const EdgeInsets.only(right: 6, bottom: 4),
+                    style: const TextStyle(
+                      color: ObsidianUITheme.primaryAccent,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 10,
+                    ),
+                    labelResolver: (_) => 'Avg: ${avgY.toStringAsFixed(1)}',
+                  ),
+                ),
+            ],
+          ),
+          titlesData: FlTitlesData(
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 42,
+                getTitlesWidget: (val, _) => Text(
+                  val == val.truncate() ? val.toInt().toString() : val.toStringAsFixed(1),
+                  style: TextStyle(color: ObsidianUITheme.getTertiaryTextColor(context), fontSize: 10),
+                ),
+              ),
+            ),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 34,
+                getTitlesWidget: (value, meta) {
+                  final idx = value.toInt();
+                  if (idx < 0 || idx >= allX.length) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                      allX[idx],
+                      style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context), fontSize: 10),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  );
+                },
+              ),
+            ),
+            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          ),
+          gridData: FlGridData(
+            show: true,
+            getDrawingHorizontalLine: (_) =>
+                FlLine(color: ObsidianUITheme.getBorderColor(context), strokeWidth: 1),
+            drawVerticalLine: false,
+          ),
+          borderData: FlBorderData(show: false),
+          barGroups: List.generate(allX.length, (xIdx) {
+            final xLabel = allX[xIdx];
+            return BarChartGroupData(
+              x: xIdx,
+              barRods: visibleSeries.asMap().entries.map((entry) {
+                final sIdx = entry.key;
+                final s = entry.value;
+                final pos = s.x.indexOf(xLabel);
+                final val = pos >= 0 && pos < s.y.length ? s.y[pos] : 0.0;
+                final color = palette[sIdx % palette.length];
+                final isDimmed = _hoveredSeriesIndex != null && _hoveredSeriesIndex != sIdx;
+
+                return BarChartRodData(
+                  toY: val,
+                  color: isDimmed ? color.withValues(alpha: 0.25) : color,
+                  width: max(4.0, min(24.0, 36.0 / max(1, visibleSeries.length))),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(3)),
+                );
+              }).toList(),
+            );
+          }),
         ),
-        const SizedBox(height: 8),
-        _buildLegend(seriesList.map((s) => s.name).toList()),
-      ],
+      );
+    }
+
+    return ObsidianChartInteractiveWrapper(
+      title: title.isNotEmpty ? title : '${_selectedMetric?.label ?? "Grouped"} — GROUPED BAR',
+      subtitle: '${allX.length} groups • Click legend items to toggle series',
+      minContentWidth: minContentWidth,
+      chartHeight: 300.0,
+      legendSeries: legendSeries,
+      onToggleSeries: (idx) {
+        final sName = seriesList[idx].name;
+        setState(() {
+          if (_hiddenSeries.contains(sName)) {
+            _hiddenSeries.remove(sName);
+          } else {
+            // Keep at least one visible
+            if (_hiddenSeries.length < seriesList.length - 1) {
+              _hiddenSeries.add(sName);
+            }
+          }
+        });
+      },
+      onHoverSeries: (idx) => setState(() => _hoveredSeriesIndex = idx),
+      showBenchmark: _showBenchmark,
+      onToggleBenchmark: (v) => setState(() => _showBenchmark = v),
+      benchmarkValue: avgY,
+      benchmarkLabel: 'Avg: ${avgY.toStringAsFixed(1)}',
+      onRefresh: _generateGraphs,
+      chart: buildChartWidget(context),
+      fullscreenChartBuilder: (ctx) => buildChartWidget(ctx, isFullscreen: true),
     );
   }
 
-  /// Builds Line, Area, or Scatter Plot chart.
-  /// For SCATTER: strictly draws dots/markers without connecting lines!
-  Widget _buildLineOrScatterChart(List<GraphSeries> seriesList, {required String mode}) {
+  Widget _buildLineOrScatterChart(List<GraphSeries> seriesList, {required String mode, String title = ''}) {
     if (seriesList.isEmpty) return _buildNotice('No data yet.');
 
     final palette = _chartPalette();
-    final allY = seriesList.expand((s) => s.y).toList();
-    if (allY.isEmpty) return _buildNotice('No data yet.');
-
-    final maxY = (allY.reduce(max) * 1.15).clamp(1.0, double.infinity);
 
     // Unify x-axis and preserve order
     const levelOrder = {'PM': 0, 'QM': 1, 'EF': 2, 'SF': 3, 'F': 4};
@@ -1570,118 +1922,222 @@ class _GraphsScreenState extends State<GraphsScreen> {
       allX.sort((a, b) => labelSortKey(a).compareTo(labelSortKey(b)));
     }
 
+    final visibleSeries = seriesList
+        .where((s) => !_hiddenSeries.contains(s.name))
+        .toList();
+
+    final allY = visibleSeries.expand((s) => s.y).toList();
+    if (allY.isEmpty && seriesList.isNotEmpty) {
+      // If all hidden, fall back to showing all
+      visibleSeries.addAll(seriesList);
+    }
+    final safeY = visibleSeries.expand((s) => s.y).toList();
+    final maxY = safeY.isNotEmpty ? (safeY.reduce(max) * 1.18).clamp(1.0, double.infinity) : 10.0;
+    final avgY = safeY.isNotEmpty ? safeY.reduce((a, b) => a + b) / safeY.length : 0.0;
+
     final isScatter = mode == 'scatter';
     final isArea = mode == 'area';
 
-    final lineBarsData = seriesList.asMap().entries.map((entry) {
-      final i = entry.key;
-      final series = entry.value;
-      final color = palette[i % palette.length];
+    final legendSeries = seriesList.asMap().entries.map((entry) {
+      final s = entry.value;
+      final isVisible = !_hiddenSeries.contains(s.name);
+      final isDimmed = _hoveredSeriesIndex != null && _hoveredSeriesIndex != entry.key;
+      return ChartLegendSeries(
+        name: s.name,
+        color: palette[entry.key % palette.length],
+        isVisible: isVisible,
+        isDimmed: isDimmed,
+      );
+    }).toList();
 
-      final spots = List.generate(series.x.length, (j) {
-        final xIdx = allX.indexOf(series.x[j]).toDouble();
-        return FlSpot(xIdx < 0 ? j.toDouble() : xIdx, series.y[j]);
-      });
+    final minContentWidth = max(allX.length * 44.0 + 40.0, 300.0);
 
-      return LineChartBarData(
-        spots: spots,
-        isCurved: !isScatter,
-        color: isScatter ? Colors.transparent : color,
-        barWidth: isScatter ? 0.0 : 2.2,
-        dotData: FlDotData(
-          show: true,
-          getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
-            radius: isScatter ? 5.5 : 4.0,
-            color: color,
-            strokeWidth: 2,
-            strokeColor: ObsidianUITheme.getSurfaceColor(context),
+    Widget buildChartWidget(BuildContext ctx, {bool isFullscreen = false}) {
+      final lineBarsData = visibleSeries.asMap().entries.map((entry) {
+        final i = entry.key;
+        final series = entry.value;
+        final color = palette[i % palette.length];
+        final isDimmed = _hoveredSeriesIndex != null && _hoveredSeriesIndex != i;
+
+        final spots = List.generate(series.x.length, (j) {
+          final xIdx = allX.indexOf(series.x[j]).toDouble();
+          return FlSpot(xIdx < 0 ? j.toDouble() : xIdx, series.y[j]);
+        });
+
+        return LineChartBarData(
+          spots: spots,
+          isCurved: !isScatter,
+          color: isScatter ? Colors.transparent : (isDimmed ? color.withValues(alpha: 0.25) : color),
+          barWidth: isScatter ? 0.0 : (isDimmed ? 1.5 : 2.5),
+          dotData: FlDotData(
+            show: true,
+            getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+              radius: isScatter ? 6.0 : 4.5,
+              color: isDimmed ? color.withValues(alpha: 0.3) : color,
+              strokeWidth: 2,
+              strokeColor: ObsidianUITheme.getSurfaceColor(context),
+            ),
           ),
+          belowBarData: isArea
+              ? BarAreaData(
+                  show: true,
+                  color: color.withValues(alpha: isDimmed ? 0.05 : 0.20),
+                )
+              : BarAreaData(show: false),
+        );
+      }).toList();
+
+      return LineChart(
+        LineChartData(
+          maxY: maxY,
+          lineTouchData: LineTouchData(
+            handleBuiltInTouches: true,
+            touchTooltipData: LineTouchTooltipData(
+              getTooltipColor: (_) => ObsidianUITheme.getSurfaceColor(context),
+              getTooltipItems: (spots) => spots.map((s) {
+                final seriesName = visibleSeries.length > s.barIndex ? visibleSeries[s.barIndex].name : '';
+                return LineTooltipItem(
+                  '$seriesName: ${s.y.toStringAsFixed(s.y == s.y.truncate() ? 0 : 2)}',
+                  TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context), fontSize: 12),
+                );
+              }).toList(),
+            ),
+            touchCallback: (event, response) {
+              if (event is FlTapUpEvent && response?.lineBarSpots != null && response!.lineBarSpots!.isNotEmpty) {
+                final touched = response.lineBarSpots!.first;
+                final sName = visibleSeries.length > touched.barIndex ? visibleSeries[touched.barIndex].name : '';
+                final xIdx = touched.x.toInt();
+                final xLabel = (xIdx >= 0 && xIdx < allX.length) ? allX[xIdx] : '';
+                final teamLabel = _resolveTeamLabel(seriesName: sName, xLabel: xLabel);
+                _showTeamInspectFromLabel(teamLabel, touched.y);
+              }
+            },
+          ),
+          extraLinesData: ExtraLinesData(
+            horizontalLines: [
+              if (_showBenchmark && avgY > 0)
+                HorizontalLine(
+                  y: avgY,
+                  color: ObsidianUITheme.primaryAccent,
+                  strokeWidth: 1.8,
+                  dashArray: [6, 4],
+                  label: HorizontalLineLabel(
+                    show: true,
+                    alignment: Alignment.topRight,
+                    padding: const EdgeInsets.only(right: 6, bottom: 4),
+                    style: const TextStyle(
+                      color: ObsidianUITheme.primaryAccent,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 10,
+                    ),
+                    labelResolver: (_) => 'Avg: ${avgY.toStringAsFixed(1)}',
+                  ),
+                ),
+            ],
+          ),
+          titlesData: FlTitlesData(
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 42,
+                getTitlesWidget: (value, meta) => Text(
+                  value == value.truncate() ? value.toInt().toString() : value.toStringAsFixed(1),
+                  style: TextStyle(color: ObsidianUITheme.getTertiaryTextColor(context), fontSize: 10),
+                ),
+              ),
+            ),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 32,
+                getTitlesWidget: (value, meta) {
+                  if (value != value.roundToDouble()) return const SizedBox.shrink();
+                  final idx = value.toInt();
+                  if (idx < 0 || idx >= allX.length) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                      allX[idx],
+                      style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context), fontSize: 10),
+                    ),
+                  );
+                },
+              ),
+            ),
+            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          ),
+          gridData: FlGridData(
+            show: true,
+            getDrawingHorizontalLine: (_) =>
+                FlLine(color: ObsidianUITheme.getBorderColor(context), strokeWidth: 1),
+            getDrawingVerticalLine: (_) => FlLine(
+                color: ObsidianUITheme.getBorderColor(context).withValues(alpha: 0.5),
+                strokeWidth: 1),
+          ),
+          borderData: FlBorderData(show: false),
+          lineBarsData: lineBarsData,
         ),
-        belowBarData: isArea
-            ? BarAreaData(show: true, color: color.withValues(alpha: 0.18))
-            : BarAreaData(show: false),
+      );
+    }
+
+    return ObsidianChartInteractiveWrapper(
+      title: title.isNotEmpty ? title : '${_selectedMetric?.label ?? "Chart"} — ${mode.toUpperCase()}',
+      subtitle: '${allX.length} points • Scrub to inspect or click legend to toggle',
+      minContentWidth: minContentWidth,
+      chartHeight: 300.0,
+      legendSeries: legendSeries,
+      onToggleSeries: (idx) {
+        final sName = seriesList[idx].name;
+        setState(() {
+          if (_hiddenSeries.contains(sName)) {
+            _hiddenSeries.remove(sName);
+          } else {
+            if (_hiddenSeries.length < seriesList.length - 1) {
+              _hiddenSeries.add(sName);
+            }
+          }
+        });
+      },
+      onHoverSeries: (idx) => setState(() => _hoveredSeriesIndex = idx),
+      showBenchmark: _showBenchmark,
+      onToggleBenchmark: (v) => setState(() => _showBenchmark = v),
+      benchmarkValue: avgY,
+      benchmarkLabel: 'Avg: ${avgY.toStringAsFixed(1)}',
+      onRefresh: _generateGraphs,
+      chart: buildChartWidget(context),
+      fullscreenChartBuilder: (ctx) => buildChartWidget(ctx, isFullscreen: true),
+    );
+  }
+
+  Widget _buildDistributionCards(List<DistributionStats> statsList, {required bool isViolin, String title = ''}) {
+    if (statsList.isEmpty) return _buildNotice('No data yet.');
+    final palette = _chartPalette();
+
+    final legendSeries = statsList.asMap().entries.map((entry) {
+      return ChartLegendSeries(
+        name: entry.value.name,
+        color: palette[entry.key % palette.length],
       );
     }).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          height: 300,
-          child: LineChart(
-            LineChartData(
-              maxY: maxY,
-              lineTouchData: LineTouchData(
-                touchTooltipData: LineTouchTooltipData(
-                  getTooltipColor: (_) => ObsidianUITheme.getSurfaceColor(context),
-                  getTooltipItems: (spots) => spots.map((s) {
-                    final seriesName = seriesList.length > s.barIndex ? seriesList[s.barIndex].name : '';
-                    return LineTooltipItem(
-                      '$seriesName: ${s.y.toStringAsFixed(s.y == s.y.truncate() ? 0 : 2)}',
-                      TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context), fontSize: 12),
-                    );
-                  }).toList(),
-                ),
-              ),
-              titlesData: FlTitlesData(
-                leftTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 42,
-                    getTitlesWidget: (value, meta) => Text(
-                      value == value.truncate() ? value.toInt().toString() : value.toStringAsFixed(1),
-                      style: TextStyle(color: ObsidianUITheme.getTertiaryTextColor(context), fontSize: 10),
-                    ),
-                  ),
-                ),
-                bottomTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 28,
-                    getTitlesWidget: (value, meta) {
-                      if (value != value.roundToDouble()) return const SizedBox.shrink();
-                      final idx = value.toInt();
-                      if (idx < 0 || idx >= allX.length) return const SizedBox.shrink();
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Text(allX[idx], style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context), fontSize: 10)),
-                      );
-                    },
-                  ),
-                ),
-                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              ),
-              gridData: FlGridData(
-                show: true,
-                getDrawingHorizontalLine: (_) => FlLine(color: ObsidianUITheme.getBorderColor(context), strokeWidth: 1),
-                getDrawingVerticalLine: (_) => FlLine(color: ObsidianUITheme.getBorderColor(context).withValues(alpha: 0.5), strokeWidth: 1),
-              ),
-              borderData: FlBorderData(show: false),
-              lineBarsData: lineBarsData,
-            ),
+        ObsidianChartInteractiveWrapper(
+          title: title.isNotEmpty ? title : '${_selectedMetric?.label ?? "Distribution"} — ${isViolin ? "VIOLIN" : "BOX PLOT"}',
+          subtitle: '${statsList.length} teams • Tap or hover column for quantile breakdown',
+          chartHeight: 280.0,
+          legendSeries: legendSeries,
+          onRefresh: _generateGraphs,
+          chart: ObsidianDistributionChart(
+            statsList: statsList,
+            isViolin: isViolin,
+            palette: palette,
+            apiService: widget.apiService,
           ),
         ),
-        const SizedBox(height: 8),
-        _buildLegend(seriesList.map((s) => s.name).toList()),
-      ],
-    );
-  }
-
-  Widget _buildDistributionCards(List<DistributionStats> statsList, {required bool isViolin}) {
-    if (statsList.isEmpty) return _buildNotice('No data yet.');
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Graphical interactive Box / Violin chart
-        ObsidianDistributionChart(
-          statsList: statsList,
-          isViolin: isViolin,
-          palette: _chartPalette(),
-        ),
         const SizedBox(height: 16),
-        // Collapsible / detailed summary list
         Theme(
           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
           child: ExpansionTile(
@@ -1752,13 +2208,13 @@ class _GraphsScreenState extends State<GraphsScreen> {
     );
   }
 
-  Widget _buildHistogramChart(List<HistogramBin> bins) {
+  Widget _buildHistogramChart(List<HistogramBin> bins, {String title = '', List<ScoutingEntryModel>? entries, GraphMetric? metric}) {
     if (bins.isEmpty) return _buildNotice('No data yet.');
 
     final maxCount = bins.map((b) => b.count).fold(0, max).toDouble();
-    return SizedBox(
-      height: 240,
-      child: BarChart(
+
+    Widget buildChart(BuildContext ctx) {
+      return BarChart(
         BarChartData(
           alignment: BarChartAlignment.spaceAround,
           maxY: maxCount > 0 ? maxCount * 1.2 : 5.0,
@@ -1768,11 +2224,19 @@ class _GraphsScreenState extends State<GraphsScreen> {
               getTooltipItem: (group, groupIndex, rod, rodIndex) {
                 final bin = bins[groupIndex];
                 return BarTooltipItem(
-                  'Range: ${bin.rangeLabel}\nCount: ${bin.count}',
+                  'Range: ${bin.rangeLabel}\nCount: ${bin.count}\n(Tap to view entries)',
                   TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context), fontSize: 12),
                 );
               },
             ),
+            touchCallback: (event, response) {
+              if (event is FlTapUpEvent && response?.spot != null) {
+                final idx = response!.spot!.touchedBarGroupIndex;
+                if (idx >= 0 && idx < bins.length && entries != null && metric != null) {
+                  _showHistogramBinInspect(bins[idx], entries, metric);
+                }
+              }
+            },
           ),
           titlesData: FlTitlesData(
             leftTitles: AxisTitles(
@@ -1819,30 +2283,16 @@ class _GraphsScreenState extends State<GraphsScreen> {
             );
           }),
         ),
-      ),
-    );
-  }
+      );
+    }
 
-  Widget _buildLegend(List<String> labels) {
-    final palette = _chartPalette();
-    if (labels.length <= 1) return const SizedBox.shrink();
-
-    return Wrap(
-      spacing: 12,
-      runSpacing: 6,
-      children: labels.asMap().entries.map((entry) {
-        final i = entry.key;
-        final name = entry.value;
-        final color = palette[i % palette.length];
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-            const SizedBox(width: 4),
-            Text(name, style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context), fontSize: 11)),
-          ],
-        );
-      }).toList(),
+    return ObsidianChartInteractiveWrapper(
+      title: title.isNotEmpty ? title : '${_selectedMetric?.label ?? "Distribution"} — HISTOGRAM',
+      subtitle: '${bins.length} bins • Tap any bin to view matching matches',
+      chartHeight: 250.0,
+      onRefresh: _generateGraphs,
+      chart: buildChart(context),
+      fullscreenChartBuilder: (ctx) => buildChart(ctx),
     );
   }
 
@@ -1903,6 +2353,7 @@ class ObsidianDistributionChart extends StatefulWidget {
   final bool isViolin;
   final List<Color> palette;
   final double canvasHeight;
+  final ApiService? apiService;
 
   const ObsidianDistributionChart({
     super.key,
@@ -1910,6 +2361,7 @@ class ObsidianDistributionChart extends StatefulWidget {
     required this.isViolin,
     required this.palette,
     this.canvasHeight = 260.0,
+    this.apiService,
   });
 
   @override
@@ -1932,80 +2384,92 @@ class _ObsidianDistributionChartState extends State<ObsidianDistributionChart> {
 
     final count = widget.statsList.length;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Interactive Tooltip if column is selected
-        if (_selectedIndex != null && _selectedIndex! >= 0 && _selectedIndex! < count) ...[
-          _buildTooltipCard(widget.statsList[_selectedIndex!], _selectedIndex!),
-          const SizedBox(height: 10),
-        ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth;
+        final availableHeight = constraints.maxHeight.isFinite ? constraints.maxHeight : widget.canvasHeight;
+        final chartWidth = count <= 4 ? availableWidth : max(availableWidth, count * 85.0 + 50.0);
 
-        // Graphical Canvas with Horizontal Scroll if many teams
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final availableWidth = constraints.maxWidth;
-            final chartWidth = count <= 4 ? availableWidth : max(availableWidth, count * 85.0 + 50.0);
-
-            return SingleChildScrollView(
+        return Stack(
+          children: [
+            SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
               child: SizedBox(
                 width: chartWidth,
-                height: widget.canvasHeight,
-                child: GestureDetector(
-                  onTapDown: (details) {
-                    _handleTouch(details.localPosition, chartWidth);
+                height: availableHeight,
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  onHover: (event) {
+                    _handleTouch(event.localPosition, chartWidth);
                   },
-                  onHorizontalDragUpdate: (details) {
-                    _handleTouch(details.localPosition, chartWidth);
+                  onExit: (_) {
+                    scheduleMicrotask(() {
+                      if (mounted && _selectedIndex != null) {
+                        setState(() => _selectedIndex = null);
+                      }
+                    });
                   },
-                  child: CustomPaint(
-                    size: Size(chartWidth, widget.canvasHeight),
-                    painter: _DistributionPainter(
-                      statsList: widget.statsList,
-                      isViolin: widget.isViolin,
-                      palette: widget.palette,
-                      minY: minY,
-                      maxY: maxY,
-                      selectedIndex: _selectedIndex,
-                      textColor: ObsidianUITheme.getPrimaryTextColor(context),
-                      secondaryTextColor: ObsidianUITheme.getSecondaryTextColor(context),
-                      tertiaryTextColor: ObsidianUITheme.getTertiaryTextColor(context),
-                      gridColor: ObsidianUITheme.getBorderColor(context),
-                      surfaceColor: ObsidianUITheme.getSurfaceColor(context),
+                  child: GestureDetector(
+                    onTapDown: (details) {
+                      ObsidianChartHaptics.lightTouch();
+                      _handleTouch(details.localPosition, chartWidth);
+                    },
+                    onTap: () {
+                      if (_selectedIndex != null && _selectedIndex! >= 0 && _selectedIndex! < count && widget.apiService != null) {
+                        final stats = widget.statsList[_selectedIndex!];
+                        final teamNum = _parseTeamNumber(stats.name);
+                        if (teamNum > 0) {
+                          ObsidianTeamQuickInspect.show(
+                            context: context,
+                            teamNumber: teamNum,
+                            teamName: stats.name,
+                            metricLabel: 'Median Score',
+                            metricValue: stats.median,
+                            apiService: widget.apiService!,
+                            matchCount: stats.count,
+                            teamMin: stats.min,
+                            teamMax: stats.max,
+                            teamAverage: stats.mean,
+                          );
+                        }
+                      }
+                    },
+                    onHorizontalDragUpdate: (details) {
+                      _handleTouch(details.localPosition, chartWidth);
+                    },
+                    child: CustomPaint(
+                      size: Size(chartWidth, availableHeight),
+                      painter: _DistributionPainter(
+                        statsList: widget.statsList,
+                        isViolin: widget.isViolin,
+                        palette: widget.palette,
+                        minY: minY,
+                        maxY: maxY,
+                        selectedIndex: _selectedIndex,
+                        textColor: ObsidianUITheme.getPrimaryTextColor(context),
+                        secondaryTextColor: ObsidianUITheme.getSecondaryTextColor(context),
+                        tertiaryTextColor: ObsidianUITheme.getTertiaryTextColor(context),
+                        gridColor: ObsidianUITheme.getBorderColor(context),
+                        surfaceColor: ObsidianUITheme.getSurfaceColor(context),
+                      ),
                     ),
                   ),
                 ),
               ),
-            );
-          },
-        ),
-        const SizedBox(height: 8),
-        _buildLegend(widget.statsList.map((s) => s.name).toList()),
-      ],
-    );
-  }
+            ),
 
-  Widget _buildLegend(List<String> labels) {
-    if (labels.length <= 1) return const SizedBox.shrink();
-
-    return Wrap(
-      spacing: 12,
-      runSpacing: 6,
-      children: labels.asMap().entries.map((entry) {
-        final i = entry.key;
-        final name = entry.value;
-        final color = widget.palette[i % widget.palette.length];
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-            const SizedBox(width: 4),
-            Text(name, style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context), fontSize: 11)),
+            // Floating Tooltip Card over top if column is selected
+            if (_selectedIndex != null && _selectedIndex! >= 0 && _selectedIndex! < count)
+              Positioned(
+                top: 0,
+                left: 8,
+                right: 8,
+                child: _buildTooltipCard(widget.statsList[_selectedIndex!], _selectedIndex!),
+              ),
           ],
         );
-      }).toList(),
+      },
     );
   }
 
@@ -2016,13 +2480,21 @@ class _ObsidianDistributionChartState extends State<ObsidianDistributionChart> {
     final colWidth = chartContentWidth / widget.statsList.length;
 
     if (localPos.dx < leftMargin || localPos.dx > totalWidth - rightMargin) {
-      setState(() => _selectedIndex = null);
+      if (_selectedIndex != null) {
+        scheduleMicrotask(() {
+          if (mounted) setState(() => _selectedIndex = null);
+        });
+      }
       return;
     }
 
     final index = ((localPos.dx - leftMargin) / colWidth).floor();
     if (index >= 0 && index < widget.statsList.length) {
-      setState(() => _selectedIndex = index);
+      if (_selectedIndex != index) {
+        scheduleMicrotask(() {
+          if (mounted) setState(() => _selectedIndex = index);
+        });
+      }
     }
   }
 
