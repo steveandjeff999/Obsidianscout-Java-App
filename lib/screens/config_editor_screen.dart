@@ -439,13 +439,13 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: ObsidianUITheme.getSurfaceColor(context),
-        title: Text('Delete Field', style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context))),
-        content: Text('Are you sure you want to delete "$fieldName"?', style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context))),
+        backgroundColor: ObsidianUITheme.getSurfaceColor(ctx),
+        title: Text('Delete Field', style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(ctx))),
+        content: Text('Are you sure you want to delete "$fieldName"?', style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(ctx))),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(context.tr('events.cancel'), style: TextStyle(color: ObsidianUITheme.getTertiaryTextColor(context))),
+            child: Text(ctx.tr('events.cancel'), style: TextStyle(color: ObsidianUITheme.getTertiaryTextColor(ctx))),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.errorRed),
@@ -484,10 +484,10 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       builder: (ctx) {
         return StatefulBuilder(
           builder: (modalCtx, setModalState) {
-            final isDark = ObsidianUITheme.isDark(context);
+            final isDark = ObsidianUITheme.isDark(modalCtx);
             final bg = isDark ? const Color(0xFF0F172A) : Colors.white;
-            final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
-            final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+            final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(modalCtx);
+            final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(modalCtx);
 
             return Material(
               color: bg,
@@ -497,7 +497,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                   left: 20,
                   right: 20,
                   top: 20,
-                  bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+                  bottom: MediaQuery.of(modalCtx).viewInsets.bottom + 24,
                 ),
                 child: SingleChildScrollView(
                   child: Column(
@@ -520,7 +520,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                         decoration: InputDecoration(
                           labelText: 'Field Label (e.g. Speaker Cycles)',
                           labelStyle: TextStyle(color: secondaryTextColor),
-                          enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
+                          enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(modalCtx))),
                         ),
                         onChanged: (val) {
                           if (autoId) {
@@ -537,7 +537,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                         decoration: InputDecoration(
                           labelText: 'Field ID / Slug (e.g. speakerCycles)',
                           labelStyle: TextStyle(color: secondaryTextColor),
-                          enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
+                          enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(modalCtx))),
                         ),
                         onChanged: (val) => autoId = false,
                       ),
@@ -551,12 +551,12 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                               child: DropdownButtonFormField<String>(
                                 isExpanded: true,
                                 initialValue: selectedType,
-                                dropdownColor: ObsidianUITheme.getSurfaceColor(context),
+                                dropdownColor: ObsidianUITheme.getSurfaceColor(modalCtx),
                                 style: TextStyle(color: primaryTextColor),
                                 decoration: InputDecoration(
                                   labelText: 'Type',
                                   labelStyle: TextStyle(color: secondaryTextColor),
-                                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
+                                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(modalCtx))),
                                 ),
                                 items: const [
                                   DropdownMenuItem(value: 'counter', child: Text('COUNTER')),
@@ -597,12 +597,12 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                                 initialValue: const ['auto', 'teleop', 'endgame', 'postmatch'].contains(selectedPhase.toLowerCase())
                                     ? selectedPhase.toLowerCase()
                                     : 'teleop',
-                                dropdownColor: ObsidianUITheme.getSurfaceColor(context),
+                                dropdownColor: ObsidianUITheme.getSurfaceColor(modalCtx),
                                 style: TextStyle(color: primaryTextColor),
                                 decoration: InputDecoration(
                                   labelText: 'Phase',
                                   labelStyle: TextStyle(color: secondaryTextColor),
-                                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
+                                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(modalCtx))),
                                 ),
                                 items: const [
                                   DropdownMenuItem(value: 'auto', child: Text('Auto')),
@@ -619,12 +619,12 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                         DropdownButtonFormField<String>(
                           isExpanded: true,
                           initialValue: selectedType,
-                          dropdownColor: ObsidianUITheme.getSurfaceColor(context),
+                          dropdownColor: ObsidianUITheme.getSurfaceColor(modalCtx),
                           style: TextStyle(color: primaryTextColor),
                           decoration: InputDecoration(
                             labelText: 'Type',
                             labelStyle: TextStyle(color: secondaryTextColor),
-                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
+                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(modalCtx))),
                           ),
                           items: const [
                             DropdownMenuItem(value: 'counter', child: Text('COUNTER')),
@@ -684,7 +684,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                           final id = idCtrl.text.trim().isNotEmpty ? idCtrl.text.trim() : _slugify(label);
 
                           if (label.isEmpty || id.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
+                            ScaffoldMessenger.of(modalCtx).showSnackBar(
                               const SnackBar(content: Text('Please enter field label and ID')),
                             );
                             return;
@@ -739,17 +739,17 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
-        final isDark = ObsidianUITheme.isDark(context);
+        final isDark = ObsidianUITheme.isDark(ctx);
         final bg = isDark ? const Color(0xFF0F172A) : Colors.white;
-        final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
-        final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+        final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(ctx);
+        final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(ctx);
 
         return Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: bg,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
+            border: Border.all(color: ObsidianUITheme.getBorderColor(ctx)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -767,7 +767,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                   ),
                   IconButton(
                     icon: const Icon(Icons.close_rounded),
-                    color: ObsidianUITheme.getTertiaryTextColor(context),
+                    color: ObsidianUITheme.getTertiaryTextColor(ctx),
                     onPressed: () => Navigator.of(ctx).pop(),
                   ),
                 ],
@@ -791,12 +791,13 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                 subtitle: Text('Restores default ${_activeKind.toUpperCase()} form preset', style: TextStyle(color: secondaryTextColor, fontSize: 11)),
                 onTap: () async {
                   Navigator.of(ctx).pop();
+                  if (!mounted) return;
                   final confirm = await showDialog<bool>(
                     context: context,
                     builder: (c) => AlertDialog(
-                      backgroundColor: ObsidianUITheme.getSurfaceColor(context),
-                      title: Text('Reset Form?', style: TextStyle(color: primaryTextColor)),
-                      content: Text('Are you sure you want to reset ${_getKindLabel(_activeKind)} to official default? Unsaved changes will be replaced.', style: TextStyle(color: secondaryTextColor)),
+                      backgroundColor: ObsidianUITheme.getSurfaceColor(c),
+                      title: Text('Reset Form?', style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(c))),
+                      content: Text('Are you sure you want to reset ${_getKindLabel(_activeKind)} to official default? Unsaved changes will be replaced.', style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(c))),
                       actions: [
                         TextButton(onPressed: () => Navigator.of(c).pop(false), child: const Text('Cancel')),
                         ElevatedButton(
@@ -851,13 +852,13 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                     shrinkWrap: true,
                     itemCount: _presets.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 6),
-                    itemBuilder: (context, idx) {
+                    itemBuilder: (itemCtx, idx) {
                       final p = _presets[idx];
                       return ListTile(
                         dense: true,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
-                          side: BorderSide(color: ObsidianUITheme.getBorderColor(context)),
+                          side: BorderSide(color: ObsidianUITheme.getBorderColor(itemCtx)),
                         ),
                         leading: const Icon(Icons.bookmark_outline_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
                         title: Text(p.name, style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.w600, fontSize: 13)),
@@ -865,12 +866,13 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                         trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: ObsidianUITheme.primaryAccent),
                         onTap: () async {
                           Navigator.of(ctx).pop();
+                          if (!mounted) return;
                           final confirm = await showDialog<bool>(
                             context: context,
                             builder: (c) => AlertDialog(
-                              backgroundColor: ObsidianUITheme.getSurfaceColor(context),
-                              title: Text('Apply Preset?', style: TextStyle(color: primaryTextColor)),
-                              content: Text('Are you sure you want to apply preset "${p.name}" to ${_getKindLabel(_activeKind)}? Unsaved changes will be replaced.', style: TextStyle(color: secondaryTextColor)),
+                              backgroundColor: ObsidianUITheme.getSurfaceColor(c),
+                              title: Text('Apply Preset?', style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(c))),
+                              content: Text('Are you sure you want to apply preset "${p.name}" to ${_getKindLabel(_activeKind)}? Unsaved changes will be replaced.', style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(c))),
                               actions: [
                                 TextButton(onPressed: () => Navigator.of(c).pop(false), child: const Text('Cancel')),
                                 ElevatedButton(
@@ -924,8 +926,6 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
   }
 
   void _showInspectSchemaDialog(BuildContext context, int version, String? rawJson) {
-    final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
-    final isDark = ObsidianUITheme.isDark(context);
     final verticalScrollCtrl = ScrollController();
     final horizontalScrollCtrl = ScrollController();
 
@@ -936,47 +936,52 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
 
     showDialog(
       context: context,
-      builder: (dCtx) => AlertDialog(
-        backgroundColor: ObsidianUITheme.getSurfaceColor(context),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: Row(
-          children: [
-            const Icon(Icons.code_rounded, color: ObsidianUITheme.primaryAccent, size: 22),
-            const SizedBox(width: 8),
-            Text('Revision v$version Schema', style: TextStyle(color: primaryTextColor, fontSize: 17, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: SizedBox(
-          width: double.maxFinite,
-          height: MediaQuery.of(context).size.height * 0.65,
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
-            ),
-            child: Scrollbar(
-              controller: verticalScrollCtrl,
-              thumbVisibility: true,
-              interactive: true,
-              child: SingleChildScrollView(
+      builder: (dCtx) {
+        final isDark = ObsidianUITheme.isDark(dCtx);
+        final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(dCtx);
+
+        return AlertDialog(
+          backgroundColor: ObsidianUITheme.getSurfaceColor(dCtx),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          title: Row(
+            children: [
+              const Icon(Icons.code_rounded, color: ObsidianUITheme.primaryAccent, size: 22),
+              const SizedBox(width: 8),
+              Text('Revision v$version Schema', style: TextStyle(color: primaryTextColor, fontSize: 17, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            height: MediaQuery.of(dCtx).size.height * 0.65,
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: ObsidianUITheme.getBorderColor(dCtx)),
+              ),
+              child: Scrollbar(
                 controller: verticalScrollCtrl,
-                child: Scrollbar(
-                  controller: horizontalScrollCtrl,
-                  thumbVisibility: true,
-                  interactive: true,
-                  notificationPredicate: (notif) => notif.depth == 1,
-                  child: SingleChildScrollView(
+                thumbVisibility: true,
+                interactive: true,
+                child: SingleChildScrollView(
+                  controller: verticalScrollCtrl,
+                  child: Scrollbar(
                     controller: horizontalScrollCtrl,
-                    scrollDirection: Axis.horizontal,
-                    child: SelectableText(
-                      formatted,
-                      style: TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 12,
-                        height: 1.4,
-                        color: primaryTextColor,
+                    thumbVisibility: true,
+                    interactive: true,
+                    notificationPredicate: (notif) => notif.depth == 1,
+                    child: SingleChildScrollView(
+                      controller: horizontalScrollCtrl,
+                      scrollDirection: Axis.horizontal,
+                      child: SelectableText(
+                        formatted,
+                        style: TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 12,
+                          height: 1.4,
+                          color: primaryTextColor,
+                        ),
                       ),
                     ),
                   ),
@@ -984,25 +989,25 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
               ),
             ),
           ),
-        ),
-        actions: [
-          TextButton.icon(
-            icon: const Icon(Icons.copy_rounded, size: 16),
-            label: const Text('Copy JSON'),
-            onPressed: () {
-              Clipboard.setData(ClipboardData(text: formatted));
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Schema JSON copied to clipboard!'), duration: Duration(seconds: 2)),
-              );
-            },
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.primaryAccent),
-            onPressed: () => Navigator.of(dCtx).pop(),
-            child: const Text('Close', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton.icon(
+              icon: const Icon(Icons.copy_rounded, size: 16),
+              label: const Text('Copy JSON'),
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: formatted));
+                ScaffoldMessenger.of(dCtx).showSnackBar(
+                  const SnackBar(content: Text('Schema JSON copied to clipboard!'), duration: Duration(seconds: 2)),
+                );
+              },
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.primaryAccent),
+              onPressed: () => Navigator.of(dCtx).pop(),
+              child: const Text('Close', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -1015,10 +1020,10 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
-        final isDark = ObsidianUITheme.isDark(context);
+        final isDark = ObsidianUITheme.isDark(ctx);
         final bg = isDark ? const Color(0xFF0F172A) : Colors.white;
-        final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
-        final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+        final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(ctx);
+        final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(ctx);
 
         return StatefulBuilder(
           builder: (modalCtx, setModalState) {
@@ -1028,7 +1033,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
               decoration: BoxDecoration(
                 color: bg,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
+                border: Border.all(color: ObsidianUITheme.getBorderColor(modalCtx)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1045,7 +1050,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                       ),
                       IconButton(
                         icon: const Icon(Icons.close_rounded),
-                        color: ObsidianUITheme.getTertiaryTextColor(context),
+                        color: ObsidianUITheme.getTertiaryTextColor(modalCtx),
                         onPressed: () => Navigator.of(ctx).pop(),
                       ),
                     ],
@@ -1059,7 +1064,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                   Expanded(
                     child: FutureBuilder<List<ConfigRevisionModel>>(
                       future: historyFuture,
-                      builder: (context, snapshot) {
+                      builder: (fbCtx, snapshot) {
                         if (snapshot.connectionState == ConnectionState.waiting) {
                           return const Center(child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent));
                         }
@@ -1088,16 +1093,16 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                             physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
                             itemCount: revisions.length,
                             separatorBuilder: (_, __) => const SizedBox(height: 10),
-                            itemBuilder: (c, idx) {
+                            itemBuilder: (itemCtx, idx) {
                               final rev = revisions[idx];
                               final isLatest = idx == 0;
                               return Container(
                                 padding: const EdgeInsets.all(14),
                                 decoration: BoxDecoration(
-                                  color: ObsidianUITheme.getSurfaceColor(context),
+                                  color: ObsidianUITheme.getSurfaceColor(itemCtx),
                                   borderRadius: BorderRadius.circular(14),
                                   border: Border.all(
-                                    color: isLatest ? ObsidianUITheme.primaryAccent : ObsidianUITheme.getBorderColor(context),
+                                    color: isLatest ? ObsidianUITheme.primaryAccent : ObsidianUITheme.getBorderColor(itemCtx),
                                     width: isLatest ? 1.5 : 1,
                                   ),
                                 ),
@@ -1144,14 +1149,14 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                                         OutlinedButton.icon(
                                           style: OutlinedButton.styleFrom(
                                             visualDensity: VisualDensity.compact,
-                                            side: BorderSide(color: ObsidianUITheme.getBorderColor(context)),
+                                            side: BorderSide(color: ObsidianUITheme.getBorderColor(itemCtx)),
                                           ),
                                           icon: const Icon(Icons.code_rounded, size: 14),
                                           label: const Text('Inspect Schema', style: TextStyle(fontSize: 11)),
                                           onPressed: () async {
                                             final detail = await widget.apiService.fetchConfigRevisionDetail(rev.id);
-                                            if (detail != null && mounted) {
-                                              _showInspectSchemaDialog(context, detail.version, detail.configJson);
+                                            if (detail != null && itemCtx.mounted) {
+                                              _showInspectSchemaDialog(itemCtx, detail.version, detail.configJson);
                                             }
                                           },
                                         ),
@@ -1224,11 +1229,11 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
-        final isDark = ObsidianUITheme.isDark(context);
+        final isDark = ObsidianUITheme.isDark(ctx);
         final bg = isDark ? const Color(0xFF0F172A) : Colors.white;
-        final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
-        final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
-        final borderColor = ObsidianUITheme.getBorderColor(context);
+        final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(ctx);
+        final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(ctx);
+        final borderColor = ObsidianUITheme.getBorderColor(ctx);
 
         final Map<String, String> keyActions = {};
         final Map<String, String> keyTargets = {};
@@ -1270,7 +1275,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
               ),
               child: FutureBuilder<ConfigSchemaStatusModel?>(
                 future: statusFuture,
-                builder: (context, snapshot) {
+                builder: (fbCtx, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent));
                   }
@@ -1313,7 +1318,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                           ),
                           IconButton(
                             icon: const Icon(Icons.close_rounded),
-                            color: ObsidianUITheme.getTertiaryTextColor(context),
+                            color: ObsidianUITheme.getTertiaryTextColor(modalCtx),
                             onPressed: () => Navigator.of(ctx).pop(),
                           ),
                         ],
@@ -1327,11 +1332,11 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                       // Metrics Overview Grid
                       Row(
                         children: [
-                          _buildMetricCard('Records', '${status.entryCount}', Colors.cyanAccent, context),
+                          _buildMetricCard('Records', '${status.entryCount}', Colors.cyanAccent, modalCtx),
                           const SizedBox(width: 8),
-                          _buildMetricCard('Legacy Keys', '${status.unmatchedDataKeys.length}', ObsidianUITheme.warningOrange, context),
+                          _buildMetricCard('Legacy Keys', '${status.unmatchedDataKeys.length}', ObsidianUITheme.warningOrange, modalCtx),
                           const SizedBox(width: 8),
-                          _buildMetricCard('New Fields', '${status.newConfigKeys.length}', ObsidianUITheme.primaryAccent, context),
+                          _buildMetricCard('New Fields', '${status.newConfigKeys.length}', ObsidianUITheme.primaryAccent, modalCtx),
                         ],
                       ),
                       const SizedBox(height: 14),
@@ -1355,7 +1360,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                                   Container(
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
-                                      color: ObsidianUITheme.getSurfaceColor(context),
+                                      color: ObsidianUITheme.getSurfaceColor(modalCtx),
                                       borderRadius: BorderRadius.circular(10),
                                       border: Border.all(color: borderColor),
                                     ),
@@ -1376,7 +1381,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                                       return Container(
                                         padding: const EdgeInsets.all(10),
                                         decoration: BoxDecoration(
-                                          color: ObsidianUITheme.getSurfaceColor(context),
+                                          color: ObsidianUITheme.getSurfaceColor(modalCtx),
                                           borderRadius: BorderRadius.circular(10),
                                           border: Border.all(color: isUnmatched ? ObsidianUITheme.warningOrange.withValues(alpha: 0.5) : borderColor),
                                         ),
@@ -1396,7 +1401,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                                                 DropdownButton<String>(
                                                   value: action,
                                                   isDense: true,
-                                                  dropdownColor: ObsidianUITheme.getSurfaceColor(context),
+                                                  dropdownColor: ObsidianUITheme.getSurfaceColor(modalCtx),
                                                   style: TextStyle(fontSize: 12, color: primaryTextColor),
                                                   items: const [
                                                     DropdownMenuItem(value: 'map', child: Text('Map to Field')),
@@ -1417,7 +1422,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                                               DropdownButtonFormField<String>(
                                                 initialValue: status.configFields.any((f) => f.id == target) ? target : (status.configFields.isNotEmpty ? status.configFields.first.id : ''),
                                                 isDense: true,
-                                                dropdownColor: ObsidianUITheme.getSurfaceColor(context),
+                                                dropdownColor: ObsidianUITheme.getSurfaceColor(modalCtx),
                                                 style: TextStyle(fontSize: 12, color: primaryTextColor),
                                                 decoration: InputDecoration(
                                                   labelText: 'Target Config Field',
@@ -1493,7 +1498,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                                     padding: const EdgeInsets.all(20),
                                     alignment: Alignment.center,
                                     decoration: BoxDecoration(
-                                      color: ObsidianUITheme.getSurfaceColor(context),
+                                      color: ObsidianUITheme.getSurfaceColor(modalCtx),
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(color: borderColor),
                                     ),
@@ -1562,7 +1567,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                                   Container(
                                     padding: const EdgeInsets.all(16),
                                     decoration: BoxDecoration(
-                                      color: ObsidianUITheme.getSurfaceColor(context),
+                                      color: ObsidianUITheme.getSurfaceColor(modalCtx),
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(color: borderColor),
                                     ),
@@ -1583,7 +1588,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                                   Container(
                                     padding: const EdgeInsets.all(16),
                                     decoration: BoxDecoration(
-                                      color: ObsidianUITheme.getSurfaceColor(context),
+                                      color: ObsidianUITheme.getSurfaceColor(modalCtx),
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(color: borderColor),
                                     ),
@@ -1634,9 +1639,11 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                                   final response = await widget.apiService.applyConfigMigration(_activeKind, mappings, defaultVals);
                                   setModalState(() => isMigrating = false);
 
-                                  if (!mounted) return;
                                   if (response.success && response.data != null && response.data!.success) {
-                                    Navigator.of(ctx).pop();
+                                    if (ctx.mounted) {
+                                      Navigator.of(ctx).pop();
+                                    }
+                                    if (!mounted) return;
                                     ObsidianFeedback.showSuccess(
                                       context,
                                       title: 'Migration Succeeded',
@@ -1644,6 +1651,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                                       statusCode: response.statusCode,
                                     );
                                   } else {
+                                    if (!mounted) return;
                                     ObsidianFeedback.showError(
                                       context,
                                       title: 'Migration Failed',
@@ -1711,22 +1719,22 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: ObsidianUITheme.getSurfaceColor(context),
-        title: Text('Import Config JSON', style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context))),
+        backgroundColor: ObsidianUITheme.getSurfaceColor(ctx),
+        title: Text('Import Config JSON', style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(ctx))),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Paste your scouting configuration JSON below:', style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context), fontSize: 13)),
+            Text('Paste your scouting configuration JSON below:', style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(ctx), fontSize: 13)),
             const SizedBox(height: 12),
             TextField(
               controller: importCtrl,
               maxLines: 8,
-              style: TextStyle(fontFamily: 'monospace', fontSize: 12, color: ObsidianUITheme.getPrimaryTextColor(context)),
+              style: TextStyle(fontFamily: 'monospace', fontSize: 12, color: ObsidianUITheme.getPrimaryTextColor(ctx)),
               decoration: InputDecoration(
                 hintText: '{\n  "version": 1,\n  "title": "ObsidianScout",\n  "fields": [...]\n}',
-                hintStyle: TextStyle(color: ObsidianUITheme.getTertiaryTextColor(context)),
-                enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
+                hintStyle: TextStyle(color: ObsidianUITheme.getTertiaryTextColor(ctx)),
+                enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(ctx))),
                 focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
               ),
             ),
@@ -1735,7 +1743,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(context.tr('events.cancel'), style: TextStyle(color: ObsidianUITheme.getTertiaryTextColor(context))),
+            child: Text(ctx.tr('events.cancel'), style: TextStyle(color: ObsidianUITheme.getTertiaryTextColor(ctx))),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.primaryAccent),
@@ -1751,11 +1759,11 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                   _rawJsonController.text = const JsonEncoder.withIndent('  ').convert(model.toJson());
                 });
                 Navigator.of(ctx).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
+                ScaffoldMessenger.of(ctx).showSnackBar(
                   const SnackBar(content: Text('Config JSON imported successfully!'), backgroundColor: ObsidianUITheme.primaryAccent),
                 );
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
+                ScaffoldMessenger.of(ctx).showSnackBar(
                   SnackBar(content: Text('Invalid JSON: $e'), backgroundColor: ObsidianUITheme.errorRed),
                 );
               }

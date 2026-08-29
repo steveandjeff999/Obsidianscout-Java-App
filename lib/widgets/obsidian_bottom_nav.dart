@@ -128,7 +128,10 @@ class _ObsidianNavItemState extends State<_ObsidianNavItem> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           curve: Curves.fastOutSlowIn,
-          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+          padding: EdgeInsets.symmetric(
+            horizontal: widget.isSelected ? 8.0 : 4.0,
+            vertical: 6.0,
+          ),
           decoration: widget.isSelected
               ? BoxDecoration(
                   borderRadius: BorderRadius.circular(20.0),
@@ -156,13 +159,17 @@ class _ObsidianNavItemState extends State<_ObsidianNavItem> {
                 size: 20.0,
               ),
               if (widget.isSelected) ...[
-                const SizedBox(width: 6.0),
-                Text(
-                  context.tr(widget.labelKey),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12.0,
+                const SizedBox(width: 4.0),
+                Flexible(
+                  child: Text(
+                    context.tr(widget.labelKey),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 11.5,
+                    ),
                   ),
                 ),
               ],

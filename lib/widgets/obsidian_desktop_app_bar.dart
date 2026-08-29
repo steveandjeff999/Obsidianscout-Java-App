@@ -44,12 +44,15 @@ class ObsidianDesktopAppBar extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  'ObsidianScout',
-                  style: TextStyle(
-                    fontSize: 13.0,
-                    fontWeight: FontWeight.w500,
-                    color: secondaryTextColor,
+                Flexible(
+                  child: Text(
+                    'ObsidianScout',
+                    style: TextStyle(
+                      fontSize: 13.0,
+                      fontWeight: FontWeight.w500,
+                      color: secondaryTextColor,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 Padding(
