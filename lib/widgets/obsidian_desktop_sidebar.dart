@@ -1,8 +1,8 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
+import 'obsidian_user_avatar.dart';
 
 class ObsidianDesktopSidebar extends StatefulWidget {
   final ApiService apiService;
@@ -37,21 +37,6 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
     _collapsed = widget.isCollapsed;
   }
 
-  int _getHue(String text) {
-    var hue = 0;
-    for (var i = 0; i < text.length; i++) {
-      hue = (hue + text.codeUnitAt(i) * 37) % 360;
-    }
-    return hue;
-  }
-
-  void _toggle() {
-    setState(() {
-      _collapsed = !_collapsed;
-    });
-    widget.onToggleCollapse?.call(_collapsed);
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDark = ObsidianUITheme.isDark(context);
@@ -66,11 +51,6 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
         : (widget.apiService.savedUsername.isNotEmpty ? widget.apiService.savedUsername : 'Scout Operator');
     final roleLabel = user?.roleDisplayLabel ?? (widget.apiService.currentUserRole == 'SUPERADMIN' ? 'Site Admin' : 'Scout');
     final program = widget.apiService.currentProgram;
-    final initials = username.isNotEmpty
-        ? (username.length >= 2 ? username.substring(0, 2).toUpperCase() : username.toUpperCase())
-        : 'OS';
-    final avatarHue = _getHue(username).toDouble();
-    final avatarBgColor = HSLColor.fromAHSL(1.0, avatarHue, 0.65, 0.45).toColor();
 
     final sections = [
       {
@@ -330,31 +310,12 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
               ),
               child: Row(
                 children: [
-                  if (user?.profilePicture != null && user!.profilePicture!.isNotEmpty)
-                    CircleAvatar(
-                      radius: 16,
-                      backgroundImage: NetworkImage(user.profilePicture!),
-                      backgroundColor: avatarBgColor,
-                    )
-                  else
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: avatarBgColor,
-                      ),
-                      child: Center(
-                        child: Text(
-                          initials,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ),
+                  ObsidianUserAvatar(
+                    profilePicture: user?.profilePicture,
+                    username: username,
+                    size: 32,
+                    serverUrl: widget.apiService.currentServerUrl,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
@@ -389,23 +350,11 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
               padding: const EdgeInsets.symmetric(vertical: 10.0),
               child: Tooltip(
                 message: '$username ($roleLabel)',
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: avatarBgColor,
-                  ),
-                  child: Center(
-                    child: Text(
-                      initials,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
+                child: ObsidianUserAvatar(
+                  profilePicture: user?.profilePicture,
+                  username: username,
+                  size: 36,
+                  serverUrl: widget.apiService.currentServerUrl,
                 ),
               ),
             ),

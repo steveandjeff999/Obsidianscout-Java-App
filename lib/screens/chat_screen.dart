@@ -7,6 +7,7 @@ import '../l10n/app_localizations.dart';
 import '../models/chat_models.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
+import '../widgets/obsidian_user_avatar.dart';
 
 class ChatScreen extends StatefulWidget {
   final ApiService apiService;
@@ -781,14 +782,6 @@ class _ChatScreenState extends State<ChatScreen> {
     setState(() => _showMentionDropdown = false);
   }
 
-  Color _getAvatarColor(String username) {
-    int hue = 0;
-    for (int i = 0; i < username.length; i++) {
-      hue = (hue + username.codeUnitAt(i) * 37) % 360;
-    }
-    return HSLColor.fromAHSL(1.0, hue.toDouble(), 0.6, 0.45).toColor();
-  }
-
   String _formatTimestamp(String raw) {
     try {
       // Ensure UTC interpretation: append 'Z' if no timezone info present
@@ -1255,8 +1248,6 @@ class _ChatScreenState extends State<ChatScreen> {
                     itemBuilder: (ctx, index) {
                       final msg = _messages[index];
                       final isMe = (currentUsername.isNotEmpty && msg.username.toLowerCase() == currentUsername.toLowerCase());
-                      final initials = (msg.username.length >= 2 ? msg.username.substring(0, 2) : msg.username).toUpperCase();
-                      final avatarColor = _getAvatarColor(msg.username);
 
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12.0),
@@ -1265,10 +1256,11 @@ class _ChatScreenState extends State<ChatScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             if (!isMe) ...[
-                              CircleAvatar(
-                                radius: 18,
-                                backgroundColor: avatarColor,
-                                child: Text(initials, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                              ObsidianUserAvatar(
+                                profilePicture: msg.profilePicture,
+                                username: msg.username,
+                                size: 36,
+                                serverUrl: widget.apiService.currentServerUrl,
                               ),
                               const SizedBox(width: 10),
                             ],
@@ -1415,13 +1407,14 @@ class _ChatScreenState extends State<ChatScreen> {
                             ),
                           ),
                           if (isMe) ...[
-                              const SizedBox(width: 10),
-                              CircleAvatar(
-                                radius: 18,
-                                backgroundColor: ObsidianUITheme.primaryAccent,
-                                child: Text(initials, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                              ),
-                            ],
+                            const SizedBox(width: 10),
+                            ObsidianUserAvatar(
+                              profilePicture: widget.apiService.currentUser?.profilePicture,
+                              username: currentUsername,
+                              size: 36,
+                              serverUrl: widget.apiService.currentServerUrl,
+                            ),
+                          ],
                           ],
                         ),
                       );

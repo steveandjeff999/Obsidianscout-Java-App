@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
+import 'obsidian_user_avatar.dart';
 
 class ObsidianNavigationDrawer extends StatelessWidget {
   final ApiService apiService;
@@ -19,14 +20,6 @@ class ObsidianNavigationDrawer extends StatelessWidget {
     required this.onLogout,
   });
 
-  int _getHue(String text) {
-    var hue = 0;
-    for (var i = 0; i < text.length; i++) {
-      hue = (hue + text.codeUnitAt(i) * 37) % 360;
-    }
-    return hue;
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDark = ObsidianUITheme.isDark(context);
@@ -41,11 +34,7 @@ class ObsidianNavigationDrawer extends StatelessWidget {
         : (apiService.savedUsername.isNotEmpty ? apiService.savedUsername : 'Scout Operator');
     final roleLabel = user?.roleDisplayLabel ?? (apiService.currentUserRole == 'SUPERADMIN' ? 'Site Admin' : 'Scout');
     final program = apiService.currentProgram;
-    final initials = username.isNotEmpty
-        ? (username.length >= 2 ? username.substring(0, 2).toUpperCase() : username.toUpperCase())
-        : 'OS';
-    final avatarHue = _getHue(username).toDouble();
-    final avatarBgColor = HSLColor.fromAHSL(1.0, avatarHue, 0.65, 0.45).toColor();
+    final avatarBgColor = ObsidianUserAvatar.getAvatarBgColor(username);
 
     // Define navigation sections matching the website structure
     final sections = [
@@ -237,38 +226,19 @@ class ObsidianNavigationDrawer extends StatelessWidget {
                   child: Row(
                     children: [
                       // User Avatar with deterministic color or profile picture
-                      if (user?.profilePicture != null && user!.profilePicture!.isNotEmpty)
-                        CircleAvatar(
-                          radius: 24,
-                          backgroundImage: NetworkImage(user.profilePicture!),
-                          backgroundColor: avatarBgColor,
-                        )
-                      else
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: avatarBgColor,
-                            boxShadow: [
-                              BoxShadow(
-                                color: avatarBgColor.withValues(alpha: 0.4),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
+                      ObsidianUserAvatar(
+                        profilePicture: user?.profilePicture,
+                        username: username,
+                        size: 48,
+                        serverUrl: apiService.currentServerUrl,
+                        boxShadow: [
+                          BoxShadow(
+                            color: avatarBgColor.withValues(alpha: 0.4),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
                           ),
-                          child: Center(
-                            child: Text(
-                              initials,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                              ),
-                            ),
-                          ),
-                        ),
+                        ],
+                      ),
                       const SizedBox(width: 14),
                       Expanded(
                         child: Column(
