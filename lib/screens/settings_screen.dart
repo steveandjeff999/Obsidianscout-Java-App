@@ -3,6 +3,7 @@ import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
+import '../widgets/obsidian_user_avatar.dart';
 
 class SettingsScreen extends StatefulWidget {
   final ApiService apiService;
@@ -1064,15 +1065,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Row(
                         children: [
-                          Text(
-                            widget.apiService.savedUsername.isNotEmpty ? widget.apiService.savedUsername : 'Operator',
-                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primaryTextColor),
+                          ObsidianUserAvatar(
+                            profilePicture: widget.apiService.currentUser?.profilePicture,
+                            username: widget.apiService.savedUsername.isNotEmpty ? widget.apiService.savedUsername : (widget.apiService.currentUser?.username ?? 'Operator'),
+                            size: 42,
+                            serverUrl: widget.apiService.currentServerUrl,
                           ),
-                          const SizedBox(height: 2),
-                          Text('Session: ${context.tr("connection.online")}', style: const TextStyle(fontSize: 12, color: Colors.greenAccent)),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  widget.apiService.savedUsername.isNotEmpty ? widget.apiService.savedUsername : (widget.apiService.currentUser?.username ?? 'Operator'),
+                                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primaryTextColor),
+                                ),
+                                const SizedBox(height: 2),
+                                Text('Session: ${context.tr("connection.online")}', style: const TextStyle(fontSize: 12, color: Colors.greenAccent)),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ),

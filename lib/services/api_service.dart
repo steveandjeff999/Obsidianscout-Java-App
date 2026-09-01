@@ -48,6 +48,7 @@ class ApiService {
   final StreamController<String> _sessionRevokedController = StreamController<String>.broadcast();
 
   String get serverUrl => _currentServerUrl;
+  String get currentServerUrl => _currentServerUrl;
   bool get isLoggedIn => _sessionCookie != null && _sessionCookie!.isNotEmpty;
   bool get keepMeLoggedIn => _keepMeLoggedIn;
   String get savedUsername => _savedUsername;
