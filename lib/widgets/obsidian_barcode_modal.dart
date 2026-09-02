@@ -61,6 +61,7 @@ class ObsidianBarcodeModal extends StatefulWidget {
   final Map<String, dynamic> payload;
   final String typeLabel;
   final int targetTeamNumber;
+  final String? teamLabel;
   final String? matchKey;
 
   const ObsidianBarcodeModal({
@@ -68,6 +69,7 @@ class ObsidianBarcodeModal extends StatefulWidget {
     required this.payload,
     required this.typeLabel,
     required this.targetTeamNumber,
+    this.teamLabel,
     this.matchKey,
   });
 
@@ -76,6 +78,7 @@ class ObsidianBarcodeModal extends StatefulWidget {
     required Map<String, dynamic> payload,
     required String typeLabel,
     required int targetTeamNumber,
+    String? teamLabel,
     String? matchKey,
   }) {
     showModalBottomSheet(
@@ -86,6 +89,7 @@ class ObsidianBarcodeModal extends StatefulWidget {
         payload: payload,
         typeLabel: typeLabel,
         targetTeamNumber: targetTeamNumber,
+        teamLabel: teamLabel,
         matchKey: matchKey,
       ),
     );
@@ -99,6 +103,34 @@ class _ObsidianBarcodeModalState extends State<ObsidianBarcodeModal> {
   late List<String> _qrChunks;
   late String _qrPayloadJson;
   int _maxChunkSize = 550;
+
+  String get _displayTeamValue {
+    if (widget.teamLabel != null && widget.teamLabel!.trim().isNotEmpty) {
+      return widget.teamLabel!.trim();
+    }
+    // Auto-extract from alliance bundle payload if entries exist
+    final entries = widget.payload['entries'];
+    if (entries is List && entries.isNotEmpty) {
+      final teams = <int>[];
+      for (final e in entries) {
+        if (e is Map) {
+          final t = e['targetTeamNumber'] ?? e['teamNumber'];
+          if (t is num && !teams.contains(t.toInt())) {
+            teams.add(t.toInt());
+          }
+        }
+      }
+      if (teams.isNotEmpty) {
+        return teams.join(', ');
+      }
+    }
+    return '${widget.targetTeamNumber}';
+  }
+
+  String get _displayTeamHeader {
+    final val = _displayTeamValue;
+    return (val.contains(',') || val.contains('Teams')) ? 'TEAMS' : 'TEAM';
+  }
 
   Map<String, dynamic> _preparePayloadForQr(Map<String, dynamic> raw) {
     final copy = jsonDecode(jsonEncode(raw)) as Map<String, dynamic>;
@@ -353,8 +385,9 @@ class _ObsidianBarcodeModalState extends State<ObsidianBarcodeModal> {
                               ),
                               const SizedBox(height: 24.0),
                               Text(
-                                '${widget.typeLabel} • Team ${widget.targetTeamNumber}${widget.matchKey != null && widget.matchKey!.isNotEmpty ? " • ${widget.matchKey}" : ""}',
+                                '${widget.typeLabel} • $_displayTeamHeader: $_displayTeamValue${widget.matchKey != null && widget.matchKey!.isNotEmpty ? " • ${widget.matchKey}" : ""}',
                                 style: const TextStyle(color: Colors.white, fontSize: 16.0, fontWeight: FontWeight.bold),
+                                textAlign: TextAlign.center,
                               ),
                               const SizedBox(height: 8.0),
                               const Text(
@@ -523,14 +556,17 @@ class _ObsidianBarcodeModalState extends State<ObsidianBarcodeModal> {
 
                   // Details summary
                   ObsidianGlassCard(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _detailCol(context, 'TYPE', widget.typeLabel),
-                        _detailCol(context, 'TEAM', '${widget.targetTeamNumber}'),
-                        if (widget.matchKey != null && widget.matchKey!.isNotEmpty)
-                          _detailCol(context, 'MATCH', widget.matchKey!),
-                      ],
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          Expanded(child: _detailCol(context, 'TYPE', widget.typeLabel)),
+                          Expanded(flex: _displayTeamValue.contains(',') ? 2 : 1, child: _detailCol(context, _displayTeamHeader, _displayTeamValue)),
+                          if (widget.matchKey != null && widget.matchKey!.isNotEmpty)
+                            Expanded(child: _detailCol(context, 'MATCH', widget.matchKey!)),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12.0),
@@ -545,15 +581,20 @@ class _ObsidianBarcodeModalState extends State<ObsidianBarcodeModal> {
 
   Widget _detailCol(BuildContext context, String label, String value) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           label,
           style: const TextStyle(fontSize: 10.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, letterSpacing: 1.0),
+          textAlign: TextAlign.center,
         ),
         const SizedBox(height: 4.0),
         Text(
           value,
-          style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.getPrimaryTextColor(context)),
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(fontSize: 13.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.getPrimaryTextColor(context)),
         ),
       ],
     );

@@ -1803,6 +1803,40 @@ class ApiService {
     }
   }
 
+  Future<ApiResponse<void>> submitBatchQualScouting(List<Map<String, dynamic>> entries) async {
+    try {
+      final cached = await _getCache("cache_qual_scouting");
+      List list = [];
+      if (cached != null && cached.isNotEmpty) {
+        final decoded = jsonDecode(cached);
+        if (decoded is List) list = decoded;
+      }
+      list.addAll(entries);
+      await _setCache("cache_qual_scouting", jsonEncode(list));
+    } catch (_) {}
+
+    if (!_isOnline) {
+      return const ApiResponse.error(isOffline: true, message: 'Saved to offline cache. Will synchronize when online.');
+    }
+    try {
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/qual-scouting/batch'),
+        headers: _headers,
+        body: jsonEncode({'entries': entries}),
+      );
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to submit batch qualitative scouting');
+      }
+      // Fallback: submit individually
+      for (final entry in entries) {
+        await submitQualScouting(entry);
+      }
+      return const ApiResponse.success(null, statusCode: 200);
+    } catch (e) {
+      return const ApiResponse.error(isOffline: true, message: 'Connection error: saved to offline cache.');
+    }
+  }
+
   Future<ApiResponse<void>> submitPrescoutQualScouting(Map<String, dynamic> data) async {
     try {
       final cached = await _getCache("cache_prescout_qual_scouting");
