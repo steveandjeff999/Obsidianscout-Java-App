@@ -59,11 +59,69 @@ class QrScannerScreen extends StatefulWidget {
 
   const QrScannerScreen({super.key, required this.apiService});
 
+  /// Unpacks an alliance QR bundle (whether wrapped in `{type, data}` envelope or raw) into individual team entries.
+  static List<Map<String, dynamic>> unpackAllianceBundle(dynamic decoded) {
+    if (decoded == null) return [];
+
+    final bundleMap = (decoded is Map<String, dynamic> && decoded['data'] is Map<String, dynamic> && ((decoded['data'] as Map)['type'] == 'qual-alliance' || (decoded['data'] as Map)['entries'] is List))
+        ? Map<String, dynamic>.from(decoded['data'] as Map)
+        : (decoded is Map<String, dynamic> ? decoded : <String, dynamic>{});
+
+    final bool isAllianceBundle = bundleMap['type'] == 'qual-alliance' ||
+        (decoded is Map<String, dynamic> && decoded['type'] == 'qual-alliance') ||
+        bundleMap['entries'] is List;
+
+    if (!isAllianceBundle) return [];
+
+    final rawEntries = bundleMap['entries'] ?? (decoded is Map<String, dynamic> ? decoded['entries'] : null);
+    final entriesList = (rawEntries is List) ? rawEntries : [];
+    final results = <Map<String, dynamic>>[];
+
+    for (final item in entriesList) {
+      if (item is Map) {
+        final itemMap = Map<String, dynamic>.from(item);
+        final entryPayload = itemMap['data'] is Map ? Map<String, dynamic>.from(itemMap['data'] as Map) : itemMap;
+        final dynamic rawTeamNum = entryPayload['targetTeamNumber'] ?? entryPayload['teamNumber'];
+        final int? teamNum = rawTeamNum is num ? rawTeamNum.toInt() : (rawTeamNum != null ? int.tryParse(rawTeamNum.toString()) : null);
+
+        if (teamNum != null && teamNum > 0) {
+          entryPayload['targetTeamNumber'] = teamNum;
+          if (entryPayload['eventKey'] == null && bundleMap['eventKey'] != null) {
+            entryPayload['eventKey'] = bundleMap['eventKey'];
+          }
+          if (entryPayload['matchKey'] == null && bundleMap['matchKey'] != null) {
+            entryPayload['matchKey'] = bundleMap['matchKey'];
+          }
+          if (entryPayload['matchNumber'] == null && bundleMap['matchNumber'] != null) {
+            entryPayload['matchNumber'] = bundleMap['matchNumber'];
+          }
+          if (entryPayload['type'] == null || entryPayload['type'] == 'qual-alliance') {
+            entryPayload['type'] = 'qual-scout';
+          }
+          results.add(entryPayload);
+        }
+      }
+    }
+    return results;
+  }
+
   @override
-  State<QrScannerScreen> createState() => _QrScannerScreenState();
+  State<QrScannerScreen> createState() => QrScannerScreenState();
 }
 
-class _QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObserver {
+class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObserver {
+  @visibleForTesting
+  void handleRawScan(String rawText, {bool resetCooldown = false}) {
+    if (resetCooldown) {
+      _lastScannedText = null;
+      _lastScanTime = null;
+      _isProcessingScan = false;
+    }
+    _handleRawScan(rawText);
+  }
+
+  @visibleForTesting
+  List<ScannedQueueItem> get queue => _queue;
   late final MobileScannerController _scannerController = MobileScannerController(
     autoStart: false,
     detectionSpeed: DetectionSpeed.noDuplicates,
@@ -76,7 +134,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingOb
   bool _isUploading = false;
   bool _showManualInput = false;
 
-  bool get _isDesktopWindows => !kIsWeb && defaultTargetPlatform == TargetPlatform.windows;
+  bool get _isDesktopWindows => !kIsWeb && defaultTargetPlatform == TargetPlatform.windows && !Platform.environment.containsKey('FLUTTER_TEST');
   List<CameraDescription> _availableCameras = [];
   CameraController? _desktopCameraController;
   int _selectedCameraIndex = 0;
@@ -95,10 +153,12 @@ class _QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingOb
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _loadQueue();
-    if (_isDesktopWindows) {
-      _initDesktopCamera();
-    } else {
-      _checkAndRequestPermission(directRequest: true);
+    if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+      if (_isDesktopWindows) {
+        _initDesktopCamera();
+      } else {
+        _checkAndRequestPermission(directRequest: true);
+      }
     }
   }
 
@@ -561,7 +621,77 @@ class _QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingOb
         decompressed = BarcodeCompressor.decompressData(trimmed);
       }
 
-      final Map<String, dynamic> parsed = jsonDecode(decompressed);
+      final dynamic decoded = jsonDecode(decompressed);
+
+      // Handle Alliance-Level Scouting QR Codes (contains multiple team entries)
+      final allianceEntries = QrScannerScreen.unpackAllianceBundle(decoded);
+      if (allianceEntries.isNotEmpty) {
+        final bundleMap = (decoded is Map<String, dynamic> && decoded['data'] is Map<String, dynamic>)
+            ? Map<String, dynamic>.from(decoded['data'] as Map)
+            : (decoded is Map<String, dynamic> ? decoded : <String, dynamic>{});
+        final allianceScope = bundleMap['scope']?.toString() ?? (decoded is Map ? decoded['scope']?.toString() : null) ?? 'Alliance';
+        int added = 0;
+        int alreadyInQueue = 0;
+        final teamNumbers = <int>[];
+
+        for (final entryPayload in allianceEntries) {
+          final int teamNum = entryPayload['targetTeamNumber'] as int;
+          final isDup = _queue.any((q) =>
+              (q.type == 'qual-scout' || q.type == 'qualitative-scouting') &&
+              q.data['eventKey']?.toString() == entryPayload['eventKey']?.toString() &&
+              q.data['targetTeamNumber']?.toString() == teamNum.toString() &&
+              q.data['matchKey']?.toString() == entryPayload['matchKey']?.toString());
+
+          if (!isDup) {
+            final newItem = ScannedQueueItem(
+              id: '${DateTime.now().millisecondsSinceEpoch}_${teamNum}_$added',
+              type: 'qual-scout',
+              data: entryPayload,
+              status: 'pending',
+            );
+            _queue.add(newItem);
+            teamNumbers.add(teamNum);
+            added++;
+            ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+              type: 'qual',
+              action: 'qr_scanned',
+              status: 'pending',
+              payload: entryPayload,
+            ));
+          } else {
+            alreadyInQueue++;
+          }
+        }
+
+        _saveQueue();
+        setState(() {});
+
+        if (mounted) {
+          final messenger = ScaffoldMessenger.of(context);
+          messenger.hideCurrentSnackBar();
+          if (added > 0) {
+            final extra = alreadyInQueue > 0 ? ' ($alreadyInQueue already in queue)' : '';
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text('Scanned $allianceScope: ${teamNumbers.join(', ')} ($added entries added$extra)'),
+                backgroundColor: ObsidianUITheme.successGreen,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          } else {
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text('All ${allianceEntries.length} alliance entries already exist in queue'),
+                backgroundColor: ObsidianUITheme.warningOrange,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        }
+        return;
+      }
+
+      final Map<String, dynamic> parsed = decoded is Map<String, dynamic> ? decoded : {};
 
       final String? type = parsed['type']?.toString();
       final rawData = parsed['data'];
@@ -757,6 +887,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingOb
       case 'qual-scout':
       case 'qualitative-scouting':
       case 'qual-scouting':
+      case 'qual-alliance':
         return 'Qual Scouting';
       case 'prescout-scout':
         return 'Match Prescouting';
