@@ -321,10 +321,16 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ],
                     ),
-                    const Icon(
-                      Icons.shield_outlined,
-                      size: 64.0,
-                      color: ObsidianUITheme.primaryAccent,
+                    Image.asset(
+                      'assets/images/obsidian-512.png',
+                      width: 64.0,
+                      height: 64.0,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => const Icon(
+                        Icons.shield_outlined,
+                        size: 64.0,
+                        color: ObsidianUITheme.primaryAccent,
+                      ),
                     ),
                     const SizedBox(height: 12.0),
                     Text(
