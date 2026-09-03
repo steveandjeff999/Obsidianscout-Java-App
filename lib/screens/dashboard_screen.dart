@@ -59,13 +59,12 @@ class DashboardScreen extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(10.0),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.2),
-                      ),
-                      child: const Icon(
+                    Image.asset(
+                      'assets/images/obsidian-512.png',
+                      width: 40.0,
+                      height: 40.0,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => const Icon(
                         Icons.shield_outlined,
                         color: ObsidianUITheme.primaryAccent,
                         size: 24.0,
@@ -454,13 +453,16 @@ class DashboardScreen extends StatelessWidget {
             padding: const EdgeInsets.all(18.0),
             child: Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(12.0),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.2),
+                Image.asset(
+                  'assets/images/obsidian-512.png',
+                  width: 48.0,
+                  height: 48.0,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => const Icon(
+                    Icons.shield_rounded,
+                    color: ObsidianUITheme.primaryAccent,
+                    size: 28.0,
                   ),
-                  child: const Icon(Icons.shield_rounded, color: ObsidianUITheme.primaryAccent, size: 28.0),
                 ),
                 const SizedBox(width: 16.0),
                 Expanded(

@@ -254,22 +254,21 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
                   Expanded(
                     child: Row(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(6.0),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.2),
-                          ),
-                          child: const Icon(
+                        Image.asset(
+                          'assets/images/obsidian-512.png',
+                          width: 28.0,
+                          height: 28.0,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) => const Icon(
                             Icons.shield_rounded,
                             color: ObsidianUITheme.primaryAccent,
-                            size: 18.0,
+                            size: 24.0,
                           ),
                         ),
                         const SizedBox(width: 8.0),
                         Expanded(
                           child: Text(
-                            program.isNotEmpty ? 'Obsidian $program' : 'ObsidianScout',
+                            program.isNotEmpty ? 'ObsidianScout $program' : 'ObsidianScout',
                             style: TextStyle(
                               fontSize: 14.0,
                               fontWeight: FontWeight.bold,
