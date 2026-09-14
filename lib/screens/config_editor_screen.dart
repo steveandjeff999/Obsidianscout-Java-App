@@ -402,7 +402,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     }
   }
 
-  bool get _supportsPoints => _activeKind != 'qual';
+  bool get _supportsPoints => _activeKind == 'game';
   bool get _supportsPhases => _activeKind == 'game';
 
   String _slugify(String text) {
@@ -2973,7 +2973,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                       initialValue: opt.value,
                       style: TextStyle(color: primaryTextColor, fontSize: 12),
                       decoration: InputDecoration(
-                        labelText: 'Value',
+                        labelText: 'ID',
                         isDense: true,
                         enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
                       ),
