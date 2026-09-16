@@ -5,6 +5,8 @@ import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/reset_password_modal.dart';
 import '../services/api_service.dart';
+import '../services/auth_storage_service.dart';
+import '../services/biometric_auth_service.dart';
 import '../models/api_response.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -56,6 +58,12 @@ class _LoginScreenState extends State<LoginScreen> {
   int _forgotTabIndex = 0; // 0 = Email, 1 = Username & Team
   DateTime? _lastBackPressTime;
 
+  // Biometric / Passkey State
+  bool _isBiometricAvailable = false;
+  bool _isBiometricEnrolled = false;
+  bool _isLocked = false;
+  bool _isAuthenticatingBiometric = false;
+
   @override
   void initState() {
     super.initState();
@@ -65,6 +73,101 @@ class _LoginScreenState extends State<LoginScreen> {
     if (widget.apiService.savedUsername.isNotEmpty) {
       _usernameController.text = widget.apiService.savedUsername;
     }
+    _initBiometrics();
+  }
+
+  Future<void> _initBiometrics() async {
+    final available = await BiometricAuthService.isAvailable();
+    if (!available) return;
+
+    final enrolled = await AuthStorageService.isEnrolled();
+    final requireOnLaunch = await AuthStorageService.isRequireOnLaunch();
+
+    if (mounted) {
+      setState(() {
+        _isBiometricAvailable = available;
+        _isBiometricEnrolled = enrolled;
+        if (enrolled && requireOnLaunch) {
+          _isLocked = true;
+        }
+      });
+
+      if (enrolled && requireOnLaunch) {
+        _handleBiometricUnlock();
+      }
+    }
+  }
+
+  Future<void> _handleBiometricUnlock() async {
+    if (_isAuthenticatingBiometric) return;
+    setState(() => _isAuthenticatingBiometric = true);
+
+    try {
+      final authenticated = await BiometricAuthService.authenticate(
+        reason: 'Unlock ObsidianScout with your passkey or biometrics',
+      );
+      if (authenticated) {
+        setState(() => _isSubmitting = true);
+        final success = await widget.apiService.silentLogin();
+        setState(() => _isSubmitting = false);
+        if (success && mounted) {
+          widget.onLoginSuccess();
+          return;
+        } else if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to authenticate with server. Please check your connection.'),
+              backgroundColor: ObsidianUITheme.errorRed,
+            ),
+          );
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isAuthenticatingBiometric = false);
+      }
+    }
+  }
+
+  Future<bool?> _showEnrollBiometricDialog() {
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        final surface = ObsidianUITheme.getSurfaceColor(ctx);
+        final primaryText = ObsidianUITheme.getPrimaryTextColor(ctx);
+        final secondaryText = ObsidianUITheme.getSecondaryTextColor(ctx);
+        return AlertDialog(
+          backgroundColor: surface,
+          title: Row(
+            children: [
+              const Icon(Icons.fingerprint_rounded, color: ObsidianUITheme.primaryAccent),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text('Enable Biometric Sign-In?', style: TextStyle(color: primaryText, fontSize: 18)),
+              ),
+            ],
+          ),
+          content: Text(
+            'Would you like to use device biometrics (Fingerprint, Face, or Windows Hello) to sign in securely and quickly next time?',
+            style: TextStyle(color: secondaryText, fontSize: 14),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text('Not Now', style: TextStyle(color: secondaryText)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: ObsidianUITheme.primaryAccent,
+              ),
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Enable', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -92,10 +195,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
     await widget.apiService.setServerUrl(_serverUrlController.text.trim());
 
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text.trim();
+    final teamNum = int.tryParse(_teamNumberController.text.trim()) ?? 0;
+
     final success = await widget.apiService.login(
-      _usernameController.text.trim(),
-      _passwordController.text.trim(),
-      teamNumber: int.tryParse(_teamNumberController.text.trim()) ?? 0,
+      username,
+      password,
+      teamNumber: teamNum,
       program: _selectedProgram,
       keepMeLoggedIn: _keepMeLoggedIn,
     );
@@ -104,6 +211,37 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (mounted) {
       if (success) {
+        final isAvailable = await BiometricAuthService.isAvailable();
+        final isEnrolled = await AuthStorageService.isEnrolled();
+        final isDismissed = await AuthStorageService.isPromptDismissed();
+
+        if (isAvailable && !isEnrolled && !isDismissed) {
+          final shouldEnroll = await _showEnrollBiometricDialog();
+          if (shouldEnroll == true) {
+            final authenticated = await BiometricAuthService.authenticate(
+              reason: 'Scan biometric to complete enrollment',
+            );
+            if (authenticated) {
+              await widget.apiService.enrollBiometric(
+                username: username,
+                password: password,
+                teamNumber: teamNum,
+                program: _selectedProgram,
+              );
+            }
+          } else {
+            // User selected 'Not Now' or dismissed dialog -> never ask again
+            await AuthStorageService.setPromptDismissed(true);
+          }
+        } else if (isAvailable && isEnrolled) {
+          // If already enrolled, keep stored credentials fresh (e.g. if password was updated)
+          await widget.apiService.enrollBiometric(
+            username: username,
+            password: password,
+            teamNumber: teamNum,
+            program: _selectedProgram,
+          );
+        }
         widget.onLoginSuccess();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -277,6 +415,168 @@ class _LoginScreenState extends State<LoginScreen> {
     final faintTextColor = ObsidianUITheme.getFaintTextColor(context);
     final borderColor = ObsidianUITheme.getBorderColor(context);
     final surfaceColor = ObsidianUITheme.getSurfaceColor(context);
+
+    if (_isLocked) {
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          _handleBackPress();
+        },
+        child: Scaffold(
+          body: Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor,
+            ),
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          'assets/images/obsidian-512.png',
+                          width: 80.0,
+                          height: 80.0,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) => const Icon(
+                            Icons.shield_outlined,
+                            size: 80.0,
+                            color: ObsidianUITheme.primaryAccent,
+                          ),
+                        ),
+                        const SizedBox(height: 16.0),
+                        Text(
+                          context.tr('app.title'),
+                          style: TextStyle(
+                            fontSize: 32.0,
+                            fontWeight: FontWeight.bold,
+                            color: primaryTextColor,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 8.0),
+                        Text(
+                          'ObsidianScout is Locked',
+                          style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.w600, color: secondaryTextColor),
+                        ),
+                        const SizedBox(height: 32.0),
+                        ObsidianGlassCard(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
+                            child: Column(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(16.0),
+                                  decoration: BoxDecoration(
+                                    color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.fingerprint_rounded,
+                                    size: 48.0,
+                                    color: ObsidianUITheme.primaryAccent,
+                                  ),
+                                ),
+                                const SizedBox(height: 16.0),
+                                Text(
+                                  'Passkey Authentication Required',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 16.0,
+                                    fontWeight: FontWeight.bold,
+                                    color: primaryTextColor,
+                                  ),
+                                ),
+                                const SizedBox(height: 8.0),
+                                Text(
+                                  'Scan your biometric or passkey to unlock the application.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 13.0,
+                                    color: secondaryTextColor,
+                                  ),
+                                ),
+                                const SizedBox(height: 24.0),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: ObsidianUITheme.primaryAccent,
+                                      padding: const EdgeInsets.symmetric(vertical: 14.0),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12.0),
+                                      ),
+                                    ),
+                                    onPressed: (_isSubmitting || _isAuthenticatingBiometric)
+                                        ? null
+                                        : _handleBiometricUnlock,
+                                    icon: (_isSubmitting || _isAuthenticatingBiometric)
+                                        ? const SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : const Icon(Icons.lock_open_rounded, color: Colors.white),
+                                    label: Text(
+                                      (_isSubmitting || _isAuthenticatingBiometric)
+                                          ? 'Unlocking...'
+                                          : 'Unlock with Passkey',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15.0,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 12.0),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                      side: BorderSide(color: borderColor),
+                                      padding: const EdgeInsets.symmetric(vertical: 14.0),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12.0),
+                                      ),
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        _isLocked = false;
+                                      });
+                                    },
+                                    icon: Icon(Icons.password_rounded, color: primaryTextColor),
+                                    label: Text(
+                                      'Use Password Instead',
+                                      style: TextStyle(
+                                        color: primaryTextColor,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14.0,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return PopScope(
       canPop: false,
@@ -496,6 +796,27 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                     ),
                   ),
+                  if (_activeTabIndex == 0 && _isBiometricAvailable && _isBiometricEnrolled) ...[
+                    const SizedBox(height: 12.0),
+                    ObsidianGlassCard(
+                      onTap: (_isSubmitting || _isAuthenticatingBiometric) ? null : _handleBiometricUnlock,
+                      child: Center(
+                        child: _isAuthenticatingBiometric
+                            ? const CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.fingerprint_rounded, color: Colors.cyanAccent),
+                                  const SizedBox(width: 10.0),
+                                  Text(
+                                    'Sign In with Passkey / Biometrics',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15.0, color: primaryTextColor),
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ),
+                  ],
                 ],
               ],
             ),
