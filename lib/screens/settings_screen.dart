@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
+import '../services/auth_storage_service.dart';
+import '../services/biometric_auth_service.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/obsidian_user_avatar.dart';
@@ -34,11 +36,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isLoadingSessions = false;
   bool _isRevokingSession = false;
 
+  bool _isBiometricAvailable = false;
+  bool _isBiometricEnrolled = false;
+  bool _requirePasskeyOnLaunch = false;
+
   @override
   void initState() {
     super.initState();
     _loadCacheSummary();
     _loadSessions();
+    _loadBiometricSettings();
   }
 
   @override
@@ -47,6 +54,159 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (widget.isVisible && !oldWidget.isVisible) {
       _loadCacheSummary();
       _loadSessions();
+      _loadBiometricSettings();
+    }
+  }
+
+  Future<void> _loadBiometricSettings() async {
+    final available = await BiometricAuthService.isAvailable();
+    if (!mounted) return;
+    if (!available) {
+      setState(() => _isBiometricAvailable = false);
+      return;
+    }
+    final enrolled = await AuthStorageService.isEnrolled();
+    final requireOnLaunch = await AuthStorageService.isRequireOnLaunch();
+    if (mounted) {
+      setState(() {
+        _isBiometricAvailable = true;
+        _isBiometricEnrolled = enrolled;
+        _requirePasskeyOnLaunch = requireOnLaunch;
+      });
+    }
+  }
+
+  Future<String?> _showPasswordPromptDialog(String title, String message) {
+    final controller = TextEditingController();
+    final surfaceColor = ObsidianUITheme.getSurfaceColor(context);
+    final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+    final tertiaryTextColor = ObsidianUITheme.getTertiaryTextColor(context);
+
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: surfaceColor,
+        title: Text(title, style: TextStyle(color: primaryTextColor)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(message, style: TextStyle(color: secondaryTextColor, fontSize: 13)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              obscureText: true,
+              style: TextStyle(color: primaryTextColor),
+              decoration: InputDecoration(
+                labelText: 'Account Password',
+                labelStyle: const TextStyle(color: ObsidianUITheme.primaryAccent),
+                enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
+                focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(null),
+            child: Text(context.tr('events.cancel'), style: TextStyle(color: tertiaryTextColor)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.primaryAccent),
+            onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
+            child: const Text('Confirm', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleToggleBiometric(bool enable) async {
+    if (enable) {
+      final password = await _showPasswordPromptDialog(
+        'Enable Biometric Sign-In',
+        'Please enter your password to securely store your credentials on this device.',
+      );
+      if (password == null || password.isEmpty) return;
+
+      final authenticated = await BiometricAuthService.authenticate(
+        reason: 'Verify your identity to enable biometric sign-in',
+      );
+      if (!authenticated) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Biometric authentication cancelled or failed.'),
+              backgroundColor: ObsidianUITheme.warningOrange,
+            ),
+          );
+        }
+        return;
+      }
+
+      await widget.apiService.enrollBiometric(
+        username: widget.apiService.savedUsername.isNotEmpty
+            ? widget.apiService.savedUsername
+            : (widget.apiService.currentUser?.username ?? ''),
+        password: password,
+        teamNumber: widget.apiService.currentUser?.teamNumber ?? 0,
+        program: widget.apiService.currentUser?.program ?? 'FRC',
+      );
+
+      if (mounted) {
+        setState(() => _isBiometricEnrolled = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Biometric sign-in enabled successfully!'),
+            backgroundColor: ObsidianUITheme.successGreen,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } else {
+      final authenticated = await BiometricAuthService.authenticate(
+        reason: 'Verify your identity to disable biometric sign-in',
+      );
+      if (!authenticated) return;
+
+      await AuthStorageService.setEnrolled(false);
+      if (mounted) {
+        setState(() {
+          _isBiometricEnrolled = false;
+          _requirePasskeyOnLaunch = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Biometric sign-in disabled.'),
+            backgroundColor: ObsidianUITheme.warningOrange,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleToggleRequireOnLaunch(bool enable) async {
+    final authenticated = await BiometricAuthService.authenticate(
+      reason: enable
+          ? 'Verify your identity to require passkey on app launch'
+          : 'Verify your identity to disable launch requirement',
+    );
+    if (!authenticated) return;
+
+    await AuthStorageService.setRequireOnLaunch(enable);
+    if (mounted) {
+      setState(() => _requirePasskeyOnLaunch = enable);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(enable
+              ? 'Passkey is now required on launch.'
+              : 'Passkey launch requirement disabled.'),
+          backgroundColor: ObsidianUITheme.primaryAccent,
+          duration: const Duration(seconds: 2),
+        ),
+      );
     }
   }
 
@@ -868,6 +1028,86 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 16),
+
+          // Biometric / Passkey Security Card (only visible if supported by hardware)
+          if (_isBiometricAvailable) ...[
+            ObsidianGlassCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.fingerprint_rounded, color: ObsidianUITheme.primaryAccent),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Passkey & Biometric Security',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
+                      ),
+                    ],
+                  ),
+                  Divider(color: borderColor, height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Biometric Sign-In',
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: primaryTextColor),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Use Fingerprint, Face ID, or Windows Hello to sign in without typing your password.',
+                              style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Switch(
+                        value: _isBiometricEnrolled,
+                        activeThumbColor: ObsidianUITheme.primaryAccent,
+                        onChanged: _handleToggleBiometric,
+                      ),
+                    ],
+                  ),
+                  if (_isBiometricEnrolled) ...[
+                    Divider(color: borderColor, height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Require Passkey on Launch',
+                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: primaryTextColor),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Lock the app and require biometric authentication immediately when ObsidianScout opens.',
+                                style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Switch(
+                          value: _requirePasskeyOnLaunch,
+                          activeThumbColor: ObsidianUITheme.primaryAccent,
+                          onChanged: _handleToggleRequireOnLaunch,
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
 
           // Active Sessions Card
           ObsidianGlassCard(

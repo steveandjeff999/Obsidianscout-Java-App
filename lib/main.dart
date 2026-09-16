@@ -36,8 +36,11 @@ import 'screens/scout_history_screen.dart';
 import 'screens/custom_analytics_screen.dart';
 import 'screens/contact_screen.dart';
 import 'services/api_service.dart';
+import 'services/auth_storage_service.dart';
+import 'services/biometric_auth_service.dart';
 import 'services/fcm_helper.dart';
 import 'services/notification_websocket_service.dart';
+import 'widgets/obsidian_glass_card.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -119,6 +122,10 @@ class _MainShellState extends State<MainShell> {
   NotificationWebSocketService? _wsNotificationService;
   bool _isBarsVisible = true;
 
+  bool _isCheckingLaunchLock = true;
+  bool _isLaunchLocked = false;
+  bool _isUnlocking = false;
+
   @override
   void initState() {
     super.initState();
@@ -183,12 +190,84 @@ class _MainShellState extends State<MainShell> {
       );
     });
 
-    if (_isAuthenticated) {
-      _bootstrapFcm();
-      _bootstrapWsNotifications();
-    }
+    _checkLaunchLock();
 
     widget.apiService.permissionsNotifier.addListener(_onPermissionsChanged);
+  }
+
+  Future<void> _checkLaunchLock() async {
+    final available = await BiometricAuthService.isAvailable();
+    final enrolled = await AuthStorageService.isEnrolled();
+    final requireOnLaunch = await AuthStorageService.isRequireOnLaunch();
+
+    if (available && enrolled && requireOnLaunch) {
+      if (mounted) {
+        setState(() {
+          _isLaunchLocked = true;
+          _isCheckingLaunchLock = false;
+        });
+        _triggerLaunchBiometricUnlock();
+      }
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _isLaunchLocked = false;
+        _isCheckingLaunchLock = false;
+      });
+      if (_isAuthenticated) {
+        _bootstrapFcm();
+        _bootstrapWsNotifications();
+      }
+    }
+  }
+
+  Future<void> _triggerLaunchBiometricUnlock() async {
+    if (_isUnlocking) return;
+    setState(() => _isUnlocking = true);
+
+    try {
+      final authenticated = await BiometricAuthService.authenticate(
+        reason: 'Unlock ObsidianScout with your passkey or biometrics',
+      );
+      if (authenticated) {
+        // User unlocked via biometrics.
+        // If session is already active (keep-me-logged-in), let them in without fetching new keys!
+        if (widget.apiService.isLoggedIn) {
+          if (mounted) {
+            setState(() {
+              _isLaunchLocked = false;
+              _isAuthenticated = true;
+            });
+            _bootstrapFcm();
+            _bootstrapWsNotifications();
+          }
+          return;
+        }
+
+        // If not currently logged in, re-authenticate using stored credentials
+        final success = await widget.apiService.silentLogin();
+        if (success && mounted) {
+          setState(() {
+            _isLaunchLocked = false;
+            _isAuthenticated = true;
+          });
+          _bootstrapFcm();
+          _bootstrapWsNotifications();
+          return;
+        } else if (mounted) {
+          setState(() {
+            _isLaunchLocked = false;
+            _isAuthenticated = false;
+          });
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUnlocking = false);
+      }
+    }
   }
 
   void _onPermissionsChanged() {
@@ -503,6 +582,17 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isCheckingLaunchLock) {
+      return Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: const SizedBox.shrink(),
+      );
+    }
+
+    if (_isLaunchLocked) {
+      return _buildLaunchLockScreen();
+    }
+
     if (!_isAuthenticated) {
       return LoginScreen(
         apiService: widget.apiService,
@@ -511,6 +601,7 @@ class _MainShellState extends State<MainShell> {
             _isAuthenticated = true;
           });
           _bootstrapFcm();
+          _bootstrapWsNotifications();
         },
       );
     }
@@ -754,6 +845,164 @@ class _MainShellState extends State<MainShell> {
                       ),
                     ),
                   ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLaunchLockScreen() {
+    final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleBackPress();
+      },
+      child: Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset(
+                      'assets/images/obsidian-512.png',
+                      width: 80.0,
+                      height: 80.0,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => const Icon(
+                        Icons.shield_outlined,
+                        size: 80.0,
+                        color: ObsidianUITheme.primaryAccent,
+                      ),
+                    ),
+                    const SizedBox(height: 16.0),
+                    Text(
+                      context.tr('app.title'),
+                      style: TextStyle(
+                        fontSize: 32.0,
+                        fontWeight: FontWeight.bold,
+                        color: primaryTextColor,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 8.0),
+                    Text(
+                      'ObsidianScout is Locked',
+                      style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.w600, color: secondaryTextColor),
+                    ),
+                    const SizedBox(height: 32.0),
+                    ObsidianGlassCard(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(16.0),
+                              decoration: BoxDecoration(
+                                color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.fingerprint_rounded,
+                                size: 48.0,
+                                color: ObsidianUITheme.primaryAccent,
+                              ),
+                            ),
+                            const SizedBox(height: 16.0),
+                            Text(
+                              'Passkey Authentication Required',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 16.0,
+                                fontWeight: FontWeight.bold,
+                                color: primaryTextColor,
+                              ),
+                            ),
+                            const SizedBox(height: 8.0),
+                            Text(
+                              'Scan your biometric or passkey to unlock the application.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 13.0,
+                                color: secondaryTextColor,
+                              ),
+                            ),
+                            const SizedBox(height: 24.0),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: ObsidianUITheme.primaryAccent,
+                                  padding: const EdgeInsets.symmetric(vertical: 14.0),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12.0),
+                                  ),
+                                ),
+                                onPressed: _isUnlocking ? null : _triggerLaunchBiometricUnlock,
+                                icon: _isUnlocking
+                                    ? const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : const Icon(Icons.lock_open_rounded, color: Colors.white),
+                                label: Text(
+                                  _isUnlocking ? 'Unlocking...' : 'Unlock with Passkey',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15.0,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12.0),
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(color: ObsidianUITheme.getBorderColor(context)),
+                                  padding: const EdgeInsets.symmetric(vertical: 14.0),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12.0),
+                                  ),
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _isLaunchLocked = false;
+                                    _isAuthenticated = false;
+                                  });
+                                },
+                                icon: Icon(Icons.password_rounded, color: primaryTextColor),
+                                label: Text(
+                                  'Use Password Instead',
+                                  style: TextStyle(
+                                    color: primaryTextColor,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14.0,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ),

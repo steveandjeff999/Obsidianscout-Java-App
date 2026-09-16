@@ -10,6 +10,7 @@ import '../models/team_match_models.dart';
 import '../models/chat_models.dart';
 import '../models/validation_models.dart';
 import '../models/custom_analytics_models.dart';
+import 'auth_storage_service.dart';
 
 class ApiService {
   static const String keyServerUrl = "obsidianscout_server_url";
@@ -730,7 +731,70 @@ class ApiService {
     await prefs.remove(keySessionCookie);
     await prefs.remove("cache_auth_me");
     await prefs.setBool(keyKeepMeLoggedIn, false);
+    await AuthStorageService.clearCredentials();
     permissionsNotifier.value++;
+  }
+
+  /// Attempts silent authentication using stored secure credentials (biometric gate completed).
+  /// 1. Verifies existing session/JWT.
+  /// 2. If expired or invalid, re-authenticates with stored password and updates JWT.
+  Future<bool> silentLogin() async {
+    final creds = await AuthStorageService.loadCredentials();
+    if (creds == null) return false;
+
+    // Ensure server URL matches
+    if (creds.serverUrl.isNotEmpty && creds.serverUrl != _currentServerUrl) {
+      await setServerUrl(creds.serverUrl);
+    }
+
+    // Attempt verify session first if we have a cookie
+    if (_sessionCookie != null && _sessionCookie!.isNotEmpty) {
+      final valid = await _verifySession();
+      if (valid) {
+        _handlingRevocation = false;
+        _startBackgroundSync();
+        unawaited(fetchCurrentUser());
+        unawaited(fetchSettings());
+        return true;
+      }
+    }
+
+    // If session verification failed or no session, re-login with stored password
+    final success = await login(
+      creds.username,
+      creds.password,
+      teamNumber: creds.teamNumber,
+      program: creds.program,
+      keepMeLoggedIn: true,
+    );
+
+    if (success) {
+      // Update stored session cookie
+      if (_sessionCookie != null) {
+        await AuthStorageService.updateJwt(_sessionCookie!);
+      }
+      return true;
+    }
+
+    return false;
+  }
+
+  /// Enrolls the user in biometric authentication by saving credentials to secure storage.
+  Future<void> enrollBiometric({
+    required String username,
+    required String password,
+    required int teamNumber,
+    required String program,
+  }) async {
+    await AuthStorageService.saveCredentials(
+      username: username,
+      password: password,
+      teamNumber: teamNumber,
+      program: program,
+      serverUrl: _currentServerUrl,
+      jwt: _sessionCookie ?? '',
+    );
+    await AuthStorageService.setEnrolled(true);
   }
 
   Future<ApiResponse<Map<String, dynamic>>> forgotPassword({
