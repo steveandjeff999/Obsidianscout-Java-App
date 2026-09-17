@@ -215,7 +215,21 @@ class _LoginScreenState extends State<LoginScreen> {
         final isEnrolled = await AuthStorageService.isEnrolled();
         final isDismissed = await AuthStorageService.isPromptDismissed();
 
-        if (isAvailable && !isEnrolled && !isDismissed) {
+        if (mounted) {
+          setState(() {
+            _isBiometricEnrolled = isEnrolled;
+          });
+        }
+
+        if (isAvailable && isEnrolled) {
+          // If still enrolled (same account), keep stored credentials fresh
+          await widget.apiService.enrollBiometric(
+            username: username,
+            password: password,
+            teamNumber: teamNum,
+            program: _selectedProgram,
+          );
+        } else if (isAvailable && !isEnrolled && !isDismissed) {
           final shouldEnroll = await _showEnrollBiometricDialog();
           if (shouldEnroll == true) {
             final authenticated = await BiometricAuthService.authenticate(
@@ -233,14 +247,6 @@ class _LoginScreenState extends State<LoginScreen> {
             // User selected 'Not Now' or dismissed dialog -> never ask again
             await AuthStorageService.setPromptDismissed(true);
           }
-        } else if (isAvailable && isEnrolled) {
-          // If already enrolled, keep stored credentials fresh (e.g. if password was updated)
-          await widget.apiService.enrollBiometric(
-            username: username,
-            password: password,
-            teamNumber: teamNum,
-            program: _selectedProgram,
-          );
         }
         widget.onLoginSuccess();
       } else {

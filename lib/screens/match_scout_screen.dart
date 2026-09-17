@@ -334,6 +334,8 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
         action: 'direct_upload',
         status: 'synced',
         payload: data,
+        scoutedBy: widget.apiService.currentAccountUsername,
+        scoutedById: widget.apiService.currentAccountId,
       ));
       ObsidianFeedback.showSuccess(
         context,
@@ -348,6 +350,8 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
         action: 'offline_cached',
         status: 'pending',
         payload: data,
+        scoutedBy: widget.apiService.currentAccountUsername,
+        scoutedById: widget.apiService.currentAccountId,
       ));
       ObsidianFeedback.showWarning(
         context,
@@ -361,6 +365,8 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
         action: 'direct_upload',
         status: 'failed',
         payload: data,
+        scoutedBy: widget.apiService.currentAccountUsername,
+        scoutedById: widget.apiService.currentAccountId,
       ));
       ObsidianFeedback.showError(
         context,
@@ -460,6 +466,8 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
       type: 'match',
       action: 'qr_generated',
       status: 'pending',
+      scoutedBy: widget.apiService.currentAccountUsername,
+      scoutedById: widget.apiService.currentAccountId,
       payload: {
         'eventKey': _eventKey ?? '',
         'targetTeamNumber': _selectedTeam!.teamNumber,

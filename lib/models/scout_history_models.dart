@@ -22,6 +22,12 @@ class ScoutHistoryEntry {
   /// Full form data payload — same structure used for upload / QR generation
   final Map<String, dynamic> payload;
 
+  /// Account username that scouted this record
+  final String? scoutedBy;
+
+  /// Optional account ID that scouted this record
+  final String? scoutedById;
+
   ScoutHistoryEntry({
     required this.id,
     required this.type,
@@ -34,6 +40,8 @@ class ScoutHistoryEntry {
     this.compLevel,
     required this.status,
     required this.payload,
+    this.scoutedBy,
+    this.scoutedById,
   });
 
   Map<String, dynamic> toJson() => {
@@ -48,6 +56,8 @@ class ScoutHistoryEntry {
         'compLevel': compLevel,
         'status': status,
         'payload': payload,
+        'scoutedBy': scoutedBy,
+        'scoutedById': scoutedById,
       };
 
   factory ScoutHistoryEntry.fromJson(Map<String, dynamic> json) {
@@ -66,10 +76,19 @@ class ScoutHistoryEntry {
       payload: (json['payload'] is Map)
           ? Map<String, dynamic>.from(json['payload'] as Map)
           : {},
+      scoutedBy: json['scoutedBy']?.toString() ??
+          json['scoutName']?.toString() ??
+          json['username']?.toString(),
+      scoutedById: json['scoutedById']?.toString() ??
+          json['userId']?.toString(),
     );
   }
 
-  ScoutHistoryEntry copyWith({String? status}) {
+  ScoutHistoryEntry copyWith({
+    String? status,
+    String? scoutedBy,
+    String? scoutedById,
+  }) {
     return ScoutHistoryEntry(
       id: id,
       type: type,
@@ -82,7 +101,46 @@ class ScoutHistoryEntry {
       compLevel: compLevel,
       status: status ?? this.status,
       payload: payload,
+      scoutedBy: scoutedBy ?? this.scoutedBy,
+      scoutedById: scoutedById ?? this.scoutedById,
     );
+  }
+
+  /// Whether this entry is older than [maxAge] (defaults to 30 days).
+  bool isExpired({Duration maxAge = const Duration(days: 30)}) {
+    return DateTime.now().difference(timestamp) > maxAge;
+  }
+
+  /// Whether this entry belongs to the specified account.
+  bool matchesAccount(String? accountUsername, [String? accountId]) {
+    if (accountUsername == null || accountUsername.trim().isEmpty) {
+      return false;
+    }
+    final targetUser = accountUsername.trim().toLowerCase();
+
+    // Check top-level scoutedBy
+    if (scoutedBy != null && scoutedBy!.trim().toLowerCase() == targetUser) {
+      return true;
+    }
+
+    // Check top-level scoutedById
+    if (accountId != null && accountId.isNotEmpty && scoutedById != null && scoutedById == accountId) {
+      return true;
+    }
+
+    // Fallback: check inside payload for legacy or embedded scout attribution
+    final payloadUser = (payload['scoutedBy'] ??
+            payload['scoutName'] ??
+            payload['scout_name'] ??
+            payload['username'])
+        ?.toString()
+        .trim()
+        .toLowerCase();
+    if (payloadUser != null && payloadUser == targetUser) {
+      return true;
+    }
+
+    return false;
   }
 
   /// Human-readable label for the team + match combination

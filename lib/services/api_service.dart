@@ -11,6 +11,7 @@ import '../models/chat_models.dart';
 import '../models/validation_models.dart';
 import '../models/custom_analytics_models.dart';
 import 'auth_storage_service.dart';
+import 'scout_history_service.dart';
 
 class ApiService {
   static const String keyServerUrl = "obsidianscout_server_url";
@@ -54,6 +55,31 @@ class ApiService {
   bool get keepMeLoggedIn => _keepMeLoggedIn;
   String get savedUsername => _savedUsername;
   UserModel? get currentUser => _currentUser;
+  String? _sessionPassword;
+  String? get sessionPassword => _sessionPassword;
+
+  @visibleForTesting
+  void setSessionPasswordForTesting(String? password) {
+    _sessionPassword = password;
+  }
+
+  /// Returns the account username if authenticated, else null
+  String? get currentAccountUsername {
+    if (!isLoggedIn) return null;
+    if (_currentUser != null && _currentUser!.username.isNotEmpty) {
+      return _currentUser!.username;
+    }
+    if (_savedUsername.isNotEmpty) {
+      return _savedUsername;
+    }
+    return null;
+  }
+
+  /// Returns the account ID if authenticated, else null
+  String? get currentAccountId {
+    if (!isLoggedIn) return null;
+    return _currentUser?.id;
+  }
   AppSettingsModel? get currentSettings => _currentSettings;
   String get currentUserRole => _currentUser?.role ?? 'SCOUT';
   String get currentProgram => _currentUser?.program ?? _currentSettings?.program ?? 'FRC';
@@ -153,6 +179,10 @@ class ApiService {
     permissionsNotifier.value++;
 
     _initConnectivityMonitor();
+
+    ScoutHistoryService.currentAccountProvider = () => currentAccountUsername;
+    ScoutHistoryService.currentAccountIdProvider = () => currentAccountId;
+    unawaited(ScoutHistoryService.purgeExpiredEntries());
 
     if (_keepMeLoggedIn) {
       final savedCookie = prefs.getString(keySessionCookie);
@@ -647,6 +677,11 @@ class ApiService {
         _updateCookiesFromResponse(response);
         _keepMeLoggedIn = keepMeLoggedIn;
         _savedUsername = username;
+        _sessionPassword = password;
+        await AuthStorageService.clearBiometricIfDifferentAccount(
+          newUsername: username,
+          newTeamNumber: teamNumber,
+        );
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool(keyKeepMeLoggedIn, keepMeLoggedIn);
@@ -697,6 +732,11 @@ class ApiService {
         _updateCookiesFromResponse(response);
         _keepMeLoggedIn = keepMeLoggedIn;
         _savedUsername = username;
+        _sessionPassword = password;
+        await AuthStorageService.clearBiometricIfDifferentAccount(
+          newUsername: username,
+          newTeamNumber: teamNumber,
+        );
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool(keyKeepMeLoggedIn, keepMeLoggedIn);
@@ -730,6 +770,7 @@ class ApiService {
       );
     } catch (_) {}
     _sessionCookie = null;
+    _sessionPassword = null;
     _keepMeLoggedIn = false;
     _currentUser = null;
     final prefs = await SharedPreferences.getInstance();
@@ -756,6 +797,7 @@ class ApiService {
     if (_sessionCookie != null && _sessionCookie!.isNotEmpty) {
       final valid = await _verifySession();
       if (valid) {
+        _sessionPassword = creds.password;
         _handlingRevocation = false;
         _startBackgroundSync();
         try {
@@ -775,6 +817,7 @@ class ApiService {
     );
 
     if (success) {
+      _sessionPassword = creds.password;
       // Update stored session cookie
       if (_sessionCookie != null) {
         await AuthStorageService.updateJwt(_sessionCookie!);
@@ -792,6 +835,7 @@ class ApiService {
     required int teamNumber,
     required String program,
   }) async {
+    _sessionPassword = password;
     await AuthStorageService.saveCredentials(
       username: username,
       password: password,
@@ -801,6 +845,54 @@ class ApiService {
       jwt: _sessionCookie ?? '',
     );
     await AuthStorageService.setEnrolled(true);
+  }
+
+  /// Verifies whether the provided password matches the exact sign-in password.
+  /// First checks against the active in-memory session password.
+  /// Then verifies against the authentication server to ensure credentials are valid.
+  Future<bool> verifyPassword(String password) async {
+    // 1. If we have the session password in memory, it MUST match exactly.
+    if (_sessionPassword != null && _sessionPassword != password) {
+      return false;
+    }
+
+    // 2. Identify username for verification
+    final username = _savedUsername.isNotEmpty
+        ? _savedUsername
+        : (_currentUser?.username ?? '');
+    if (username.isEmpty || _currentServerUrl.isEmpty) {
+      return _sessionPassword != null && _sessionPassword == password;
+    }
+
+    // 3. Verify with server
+    try {
+      final teamNum = _currentUser?.teamNumber ?? 0;
+      final program = _currentUser?.program ?? 'FRC';
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/auth/login'),
+        headers: _headers,
+        body: jsonEncode({
+          'username': username,
+          'teamNumber': teamNum,
+          'program': program,
+          'password': password,
+          'keepMeLoggedIn': _keepMeLoggedIn,
+        }),
+      ).timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200 || response.statusCode == 302) {
+        _sessionPassword = password;
+        _updateCookiesFromResponse(response);
+        return true;
+      }
+      return false;
+    } catch (_) {
+      // If server is unreachable or offline, allow only if exact session password matches
+      if (_sessionPassword != null) {
+        return _sessionPassword == password;
+      }
+      return false;
+    }
   }
 
   Future<ApiResponse<Map<String, dynamic>>> forgotPassword({

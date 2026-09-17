@@ -113,6 +113,40 @@ class AuthStorageService {
     await _storage.delete(key: _keyJwt);
     await _storage.delete(key: _keyEnrolled);
     await _storage.delete(key: _keyRequireOnLaunch);
+    await _storage.delete(key: _keyBiometricPromptDismissed);
+  }
+
+  /// Checks whether an enrolled biometric belongs to a different account,
+  /// and if so, completely purges the biometric credentials.
+  /// Returns true if biometric was cleared, false if it is the same account or no biometric was saved.
+  static Future<bool> clearBiometricIfDifferentAccount({
+    required String newUsername,
+    int? newTeamNumber,
+  }) async {
+    final enrolled = await isEnrolled();
+    final creds = await loadCredentials();
+    if (!enrolled && creds == null) {
+      return false;
+    }
+
+    final savedUsername = creds?.username ?? await _storage.read(key: _keyUsername);
+    if (savedUsername == null || savedUsername.trim().isEmpty) {
+      await purgeAll();
+      return true;
+    }
+
+    final isSameUsername = savedUsername.trim().toLowerCase() == newUsername.trim().toLowerCase();
+    final isSameTeam = (newTeamNumber == null || newTeamNumber <= 0 || creds?.teamNumber == null || creds!.teamNumber <= 0)
+        ? true
+        : creds.teamNumber == newTeamNumber;
+
+    if (!isSameUsername || !isSameTeam) {
+      await purgeAll();
+      await setPromptDismissed(true);
+      return true;
+    }
+
+    return false;
   }
 
   /// Whether biometric sign-in is enrolled.

@@ -495,6 +495,8 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
           action: 'direct_upload',
           status: 'synced',
           payload: payload,
+          scoutedBy: widget.apiService.currentAccountUsername,
+          scoutedById: widget.apiService.currentAccountId,
         ));
         ObsidianFeedback.showSuccess(
           context,
@@ -509,6 +511,8 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
           action: 'offline_cached',
           status: 'pending',
           payload: payload,
+          scoutedBy: widget.apiService.currentAccountUsername,
+          scoutedById: widget.apiService.currentAccountId,
         ));
         ObsidianFeedback.showWarning(
           context,
@@ -522,6 +526,8 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
           action: 'direct_upload',
           status: 'failed',
           payload: payload,
+          scoutedBy: widget.apiService.currentAccountUsername,
+          scoutedById: widget.apiService.currentAccountId,
         ));
         ObsidianFeedback.showError(
           context,
@@ -564,6 +570,8 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
             action: 'direct_upload',
             status: 'synced',
             payload: p,
+            scoutedBy: widget.apiService.currentAccountUsername,
+            scoutedById: widget.apiService.currentAccountId,
           ));
         }
         final scopeLabel = _getScopeLabel(_scope);
@@ -581,6 +589,8 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
             action: 'offline_cached',
             status: 'pending',
             payload: p,
+            scoutedBy: widget.apiService.currentAccountUsername,
+            scoutedById: widget.apiService.currentAccountId,
           ));
         }
         ObsidianFeedback.showWarning(
@@ -596,6 +606,8 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
             action: 'direct_upload',
             status: 'failed',
             payload: p,
+            scoutedBy: widget.apiService.currentAccountUsername,
+            scoutedById: widget.apiService.currentAccountId,
           ));
         }
         ObsidianFeedback.showError(
@@ -630,6 +642,8 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
         action: 'qr_generated',
         status: 'pending',
         payload: payload,
+        scoutedBy: widget.apiService.currentAccountUsername,
+        scoutedById: widget.apiService.currentAccountId,
       ));
 
       ObsidianBarcodeModal.show(
@@ -669,6 +683,8 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
         action: 'qr_generated',
         status: 'pending',
         payload: allianceBundle,
+        scoutedBy: widget.apiService.currentAccountUsername,
+        scoutedById: widget.apiService.currentAccountId,
       ));
 
       final allTeamNumbers = allianceTeams.map((t) => t.teamNumber).join(', ');
