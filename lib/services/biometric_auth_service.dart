@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 
@@ -14,9 +15,11 @@ class BiometricAuthService {
       final canCheck = await _auth.canCheckBiometrics;
       final biometrics = await _auth.getAvailableBiometrics();
       return canCheck || biometrics.isNotEmpty;
-    } on PlatformException {
+    } on PlatformException catch (e) {
+      debugPrint('[BiometricAuthService] isAvailable PlatformException: ${e.code} - ${e.message}');
       return false;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[BiometricAuthService] isAvailable unexpected error: $e');
       return false;
     }
   }
@@ -43,10 +46,11 @@ class BiometricAuthService {
           biometricOnly: false, // Allows device PIN/passcode fallback if configured
         ),
       );
-    } on PlatformException {
-      // User cancelled or hardware locked/unavailable
+    } on PlatformException catch (e) {
+      debugPrint('[BiometricAuthService] authenticate PlatformException: ${e.code} - ${e.message}');
       return false;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[BiometricAuthService] authenticate unexpected error: $e');
       return false;
     }
   }
