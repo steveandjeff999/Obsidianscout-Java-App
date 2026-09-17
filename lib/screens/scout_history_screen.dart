@@ -38,7 +38,20 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
   @override
   void initState() {
     super.initState();
+    widget.apiService.permissionsNotifier.addListener(_onAuthChanged);
     _loadHistory().then((_) => _syncWithServer());
+  }
+
+  @override
+  void dispose() {
+    widget.apiService.permissionsNotifier.removeListener(_onAuthChanged);
+    super.dispose();
+  }
+
+  void _onAuthChanged() {
+    if (mounted) {
+      _loadHistory().then((_) => _syncWithServer());
+    }
   }
 
   @override
@@ -50,7 +63,12 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
   }
 
   Future<void> _loadHistory() async {
-    final entries = await ScoutHistoryService.loadAll();
+    final currentAccount = widget.apiService.currentAccountUsername;
+    final currentAccountId = widget.apiService.currentAccountId;
+    final entries = await ScoutHistoryService.loadForAccount(
+      currentAccount,
+      accountId: currentAccountId,
+    );
     if (mounted) {
       setState(() {
         _entries = entries;
@@ -144,7 +162,12 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
       final prescoutPit = results[4];
       final prescoutQual = results[5];
 
-      final localEntries = await ScoutHistoryService.loadAll();
+      final currentAccount = widget.apiService.currentAccountUsername;
+      final currentAccountId = widget.apiService.currentAccountId;
+      final localEntries = await ScoutHistoryService.loadForAccount(
+        currentAccount,
+        accountId: currentAccountId,
+      );
       for (final local in localEntries) {
         if (local.status == 'synced') continue;
 
@@ -407,7 +430,12 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
       },
     );
     if (confirmed == true) {
-      await ScoutHistoryService.clearSynced();
+      final currentAccount = widget.apiService.currentAccountUsername;
+      final currentAccountId = widget.apiService.currentAccountId;
+      await ScoutHistoryService.clearSynced(
+        account: currentAccount,
+        accountId: currentAccountId,
+      );
       await _loadHistory();
     }
   }
@@ -433,7 +461,7 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
             ],
           ),
           content: Text(
-            'This will permanently delete all ${_entries.length} scouting history records from this device. Are you sure?',
+            'This will permanently delete all ${_entries.length} scouting history records for your account from this device. Are you sure?',
             style: TextStyle(fontSize: 14, color: secondaryTextColor),
           ),
           actions: [
@@ -452,7 +480,12 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
       },
     );
     if (confirmed == true) {
-      await ScoutHistoryService.clearAll();
+      final currentAccount = widget.apiService.currentAccountUsername;
+      final currentAccountId = widget.apiService.currentAccountId;
+      await ScoutHistoryService.clearAll(
+        account: currentAccount,
+        accountId: currentAccountId,
+      );
       await _loadHistory();
     }
   }
@@ -903,26 +936,46 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
 
   Widget _buildEmptyState() {
     final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+    final tertiaryTextColor = ObsidianUITheme.getTertiaryTextColor(context);
+    final isLoggedIn = widget.apiService.isLoggedIn;
+    final currentUsername = widget.apiService.currentAccountUsername;
+
+    final String title;
+    final String subtitle;
+    final IconData icon;
+
+    if (!isLoggedIn || currentUsername == null || currentUsername.isEmpty) {
+      icon = Icons.lock_outline_rounded;
+      title = 'Sign in to view scouting history';
+      subtitle = 'Local scouting records are private and only visible when logged into the account that scouted them.';
+    } else if (_typeFilter == 'all' && _statusFilter == 'all') {
+      icon = Icons.history_rounded;
+      title = 'No scouting history for "$currentUsername"';
+      subtitle = 'Records scouted by your account will appear here and are retained locally for up to 30 days.';
+    } else {
+      icon = Icons.filter_alt_off_rounded;
+      title = 'No records match the current filter.';
+      subtitle = 'Try adjusting your type or status filter above.';
+    }
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(40),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.history_rounded, size: 64, color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.4)),
+            Icon(icon, size: 64, color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.4)),
             const SizedBox(height: 16),
             Text(
-              _typeFilter == 'all' && _statusFilter == 'all'
-                  ? 'No scouting history on this device yet.'
-                  : 'No records match the current filter.',
+              title,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 15, color: secondaryTextColor),
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: secondaryTextColor),
             ),
             const SizedBox(height: 8),
             Text(
-              'Records appear here after you submit, save locally, or generate a QR code on any scout screen.',
+              subtitle,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: ObsidianUITheme.getTertiaryTextColor(context)),
+              style: TextStyle(fontSize: 13, color: tertiaryTextColor),
             ),
           ],
         ),

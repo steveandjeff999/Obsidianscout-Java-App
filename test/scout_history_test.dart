@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:obsidianscout_app/models/scout_history_models.dart';
@@ -136,6 +137,104 @@ void main() {
       expect(list.length, equals(2));
       expect(list.any((e) => e.type == 'prescout-match' && e.action == 'offline_cached'), isTrue);
       expect(list.any((e) => e.action == 'qr_scanned' && e.status == 'synced'), isTrue);
+    });
+
+    test('30-day retention auto-purges entries older than 30 days', () async {
+      final now = DateTime.now();
+
+      // 1. Fresh entry (5 days old)
+      final freshEntry = ScoutHistoryService.buildEntry(
+        type: 'match',
+        action: 'direct_upload',
+        status: 'synced',
+        timestamp: now.subtract(const Duration(days: 5)),
+        payload: {'targetTeamNumber': 254},
+      );
+      await ScoutHistoryService.addEntry(freshEntry);
+
+      // 2. Expired entry (35 days old)
+      final expiredEntry = ScoutHistoryService.buildEntry(
+        type: 'pit',
+        action: 'direct_upload',
+        status: 'synced',
+        timestamp: now.subtract(const Duration(days: 35)),
+        payload: {'targetTeamNumber': 1678},
+      );
+      // Manually add expired entry to storage bypassing addEntry check to test loadAll prune
+      final all = await ScoutHistoryService.loadAll(pruneExpired: false);
+      all.insert(0, expiredEntry);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('obsidianscout:scout_history',
+          jsonEncode(all.map((e) => e.toJson()).toList()));
+
+      expect(expiredEntry.isExpired(), isTrue);
+      expect(freshEntry.isExpired(), isFalse);
+
+      // 3. Loading with pruneExpired: true should prune the 35-day-old entry
+      final loaded = await ScoutHistoryService.loadAll();
+      expect(loaded.length, equals(1));
+      expect(loaded.first.teamNumber, equals(254));
+
+      // 4. Verify SharedPreferences was updated
+      final reloaded = await ScoutHistoryService.loadAll(pruneExpired: false);
+      expect(reloaded.length, equals(1));
+      expect(reloaded.first.teamNumber, equals(254));
+    });
+
+    test('account isolation: only shows entries for logged-in account, else hides them', () async {
+      // 1. Add entry for userA
+      final entryA = ScoutHistoryService.buildEntry(
+        type: 'match',
+        action: 'direct_upload',
+        status: 'synced',
+        scoutedBy: 'ScoutAlice',
+        payload: {'targetTeamNumber': 254},
+      );
+      await ScoutHistoryService.addEntry(entryA);
+
+      // 2. Add entry for userB
+      final entryB = ScoutHistoryService.buildEntry(
+        type: 'pit',
+        action: 'direct_upload',
+        status: 'synced',
+        scoutedBy: 'ScoutBob',
+        payload: {'targetTeamNumber': 1678},
+      );
+      await ScoutHistoryService.addEntry(entryB);
+
+      // 3. UserAlice logs in: should only see userA's entry
+      final aliceView = await ScoutHistoryService.loadForAccount('ScoutAlice');
+      expect(aliceView.length, equals(1));
+      expect(aliceView.first.teamNumber, equals(254));
+      expect(aliceView.first.scoutedBy, equals('ScoutAlice'));
+
+      // Case-insensitivity check
+      final aliceLower = await ScoutHistoryService.loadForAccount('scoutalice');
+      expect(aliceLower.length, equals(1));
+
+      // 4. UserBob logs in: should only see userB's entry
+      final bobView = await ScoutHistoryService.loadForAccount('ScoutBob');
+      expect(bobView.length, equals(1));
+      expect(bobView.first.teamNumber, equals(1678));
+
+      // 5. Logged out / unknown account: hides all entries
+      final loggedOutView = await ScoutHistoryService.loadForAccount(null);
+      expect(loggedOutView, isEmpty);
+
+      final emptyAccountView = await ScoutHistoryService.loadForAccount('');
+      expect(emptyAccountView, isEmpty);
+
+      final strangerView = await ScoutHistoryService.loadForAccount('Stranger');
+      expect(strangerView, isEmpty);
+
+      // 6. Scoped clearAll: userA clears their history, userB history remains intact
+      await ScoutHistoryService.clearAll(account: 'ScoutAlice');
+      final aliceAfterClear = await ScoutHistoryService.loadForAccount('ScoutAlice');
+      expect(aliceAfterClear, isEmpty);
+
+      final bobAfterClear = await ScoutHistoryService.loadForAccount('ScoutBob');
+      expect(bobAfterClear.length, equals(1));
+      expect(bobAfterClear.first.teamNumber, equals(1678));
     });
   });
 }

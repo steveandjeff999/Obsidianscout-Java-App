@@ -285,6 +285,8 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
         action: 'direct_upload',
         status: 'synced',
         payload: payload,
+        scoutedBy: widget.apiService.currentAccountUsername,
+        scoutedById: widget.apiService.currentAccountId,
       ));
       ObsidianFeedback.showSuccess(
         context,
@@ -299,6 +301,8 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
         action: 'offline_cached',
         status: 'pending',
         payload: payload,
+        scoutedBy: widget.apiService.currentAccountUsername,
+        scoutedById: widget.apiService.currentAccountId,
       ));
       ObsidianFeedback.showWarning(
         context,
@@ -312,6 +316,8 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
         action: 'direct_upload',
         status: 'failed',
         payload: payload,
+        scoutedBy: widget.apiService.currentAccountUsername,
+        scoutedById: widget.apiService.currentAccountId,
       ));
       ObsidianFeedback.showError(
         context,
@@ -343,6 +349,8 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
       action: 'qr_generated',
       status: 'pending',
       payload: payload,
+      scoutedBy: widget.apiService.currentAccountUsername,
+      scoutedById: widget.apiService.currentAccountId,
     ));
 
     ObsidianBarcodeModal.show(

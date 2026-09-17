@@ -9,6 +9,11 @@ import '../models/scout_history_models.dart';
 class ScoutHistoryService {
   static const String _storageKey = 'obsidianscout:scout_history';
   static const int maxEntries = 500;
+  static const int maxRetentionDays = 30;
+
+  /// Optional hook to resolve currently active account username across the app
+  static String? Function()? currentAccountProvider;
+  static String? Function()? currentAccountIdProvider;
 
   // ---------------------------------------------------------------------------
   // Unique ID generation (no external package required)
@@ -26,7 +31,8 @@ class ScoutHistoryService {
   // ---------------------------------------------------------------------------
 
   /// Load all history entries from SharedPreferences, newest first.
-  static Future<List<ScoutHistoryEntry>> loadAll() async {
+  /// Automatically purges records older than [maxRetentionDays] days (30 days).
+  static Future<List<ScoutHistoryEntry>> loadAll({bool pruneExpired = true}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_storageKey);
@@ -35,6 +41,19 @@ class ScoutHistoryService {
       final entries = list
           .map((e) => ScoutHistoryEntry.fromJson(e as Map<String, dynamic>))
           .toList();
+
+      if (pruneExpired) {
+        final now = DateTime.now();
+        const maxAge = Duration(days: maxRetentionDays);
+        final validEntries = entries.where((e) => now.difference(e.timestamp) <= maxAge).toList();
+
+        if (validEntries.length != entries.length) {
+          await _persist(prefs, validEntries);
+        }
+        validEntries.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+        return validEntries;
+      }
+
       // Newest first
       entries.sort((a, b) => b.timestamp.compareTo(a.timestamp));
       return entries;
@@ -43,11 +62,60 @@ class ScoutHistoryService {
     }
   }
 
+  /// Load history entries scoped strictly to [account].
+  /// If [account] is null or empty (i.e. logged out), returns an empty list
+  /// ensuring unauthorized accounts cannot view other users' local history.
+  static Future<List<ScoutHistoryEntry>> loadForAccount(
+    String? account, {
+    String? accountId,
+    bool pruneExpired = true,
+  }) async {
+    if (account == null || account.trim().isEmpty) {
+      return [];
+    }
+    final allEntries = await loadAll(pruneExpired: pruneExpired);
+    return allEntries.where((e) => e.matchesAccount(account, accountId)).toList();
+  }
+
+  /// Proactively purges all entries older than [maxAge] (defaults to 30 days).
+  /// Returns the number of entries deleted.
+  static Future<int> purgeExpiredEntries({
+    Duration maxAge = const Duration(days: maxRetentionDays),
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_storageKey);
+      if (raw == null || raw.isEmpty) return 0;
+      final List<dynamic> list = jsonDecode(raw);
+      final entries = list
+          .map((e) => ScoutHistoryEntry.fromJson(e as Map<String, dynamic>))
+          .toList();
+
+      final now = DateTime.now();
+      final validEntries = entries.where((e) => now.difference(e.timestamp) <= maxAge).toList();
+      final purgedCount = entries.length - validEntries.length;
+
+      if (purgedCount > 0) {
+        await _persist(prefs, validEntries);
+      }
+      return purgedCount;
+    } catch (_) {
+      return 0;
+    }
+  }
+
   /// Append a new entry and persist. Trims to [maxEntries] oldest on overflow.
+  /// Automatically purges records older than [maxRetentionDays] days.
   static Future<void> addEntry(ScoutHistoryEntry entry) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final current = await loadAll();
+      final current = await loadAll(pruneExpired: true);
+
+      // Don't add if already expired
+      if (entry.isExpired(maxAge: const Duration(days: maxRetentionDays))) {
+        return;
+      }
+
       current.insert(0, entry);
       final trimmed = current.length > maxEntries
           ? current.sublist(0, maxEntries)
@@ -78,21 +146,36 @@ class ScoutHistoryService {
     } catch (_) {}
   }
 
-  /// Delete all entries with status == 'synced'.
-  static Future<void> clearSynced() async {
+  /// Delete synced entries. If [account] is provided, only removes synced entries
+  /// belonging to that account, preserving other accounts' local entries.
+  static Future<void> clearSynced({String? account, String? accountId}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final entries = await loadAll();
-      final filtered = entries.where((e) => e.status != 'synced').toList();
+      final filtered = entries.where((e) {
+        if (e.status != 'synced') return true;
+        if (account != null && account.trim().isNotEmpty) {
+          // If scoped to account, only remove if it matches account
+          return !e.matchesAccount(account, accountId);
+        }
+        return false;
+      }).toList();
       await _persist(prefs, filtered);
     } catch (_) {}
   }
 
-  /// Wipe all history entries.
-  static Future<void> clearAll() async {
+  /// Wipe history entries. If [account] is provided, only deletes entries
+  /// scouted by that account, preserving other users' local entries on shared devices.
+  static Future<void> clearAll({String? account, String? accountId}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_storageKey);
+      if (account != null && account.trim().isNotEmpty) {
+        final entries = await loadAll();
+        final kept = entries.where((e) => !e.matchesAccount(account, accountId)).toList();
+        await _persist(prefs, kept);
+      } else {
+        await prefs.remove(_storageKey);
+      }
     } catch (_) {}
   }
 
@@ -115,6 +198,9 @@ class ScoutHistoryService {
     required String action,       // 'direct_upload', 'qr_generated', 'offline_cached'
     required String status,       // 'synced', 'pending', 'failed'
     required Map<String, dynamic> payload,
+    String? scoutedBy,
+    String? scoutedById,
+    DateTime? timestamp,
   }) {
     final teamNumber = _extractInt(payload, ['targetTeamNumber', 'team_number', 'teamNumber']);
     final eventKey = payload['eventKey']?.toString() ??
@@ -125,11 +211,23 @@ class ScoutHistoryService {
     final compLevel = payload['compLevel']?.toString() ??
         payload['comp_level']?.toString();
 
+    final resolvedScoutedBy = scoutedBy ??
+        currentAccountProvider?.call() ??
+        payload['scoutedBy']?.toString() ??
+        payload['scoutName']?.toString() ??
+        payload['scout_name']?.toString() ??
+        payload['username']?.toString();
+
+    final resolvedScoutedById = scoutedById ??
+        currentAccountIdProvider?.call() ??
+        payload['scoutedById']?.toString() ??
+        payload['userId']?.toString();
+
     return ScoutHistoryEntry(
       id: generateId(),
       type: type,
       action: action,
-      timestamp: DateTime.now(),
+      timestamp: timestamp ?? DateTime.now(),
       teamNumber: teamNumber,
       eventKey: eventKey,
       matchKey: matchKey,
@@ -137,6 +235,8 @@ class ScoutHistoryService {
       compLevel: compLevel,
       status: status,
       payload: payload,
+      scoutedBy: resolvedScoutedBy,
+      scoutedById: resolvedScoutedById,
     );
   }
 

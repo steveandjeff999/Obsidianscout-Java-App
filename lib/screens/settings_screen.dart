@@ -83,41 +83,100 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
     final tertiaryTextColor = ObsidianUITheme.getTertiaryTextColor(context);
 
+    bool obscureText = true;
+    bool isVerifying = false;
+    String? errorMessage;
+
     return showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: surfaceColor,
-        title: Text(title, style: TextStyle(color: primaryTextColor)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(message, style: TextStyle(color: secondaryTextColor, fontSize: 13)),
-            const SizedBox(height: 12),
-            TextField(
-              controller: controller,
-              obscureText: true,
-              style: TextStyle(color: primaryTextColor),
-              decoration: InputDecoration(
-                labelText: 'Account Password',
-                labelStyle: const TextStyle(color: ObsidianUITheme.primaryAccent),
-                enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
-                focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
-              ),
+      barrierDismissible: !isVerifying,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          Future<void> submit() async {
+            final text = controller.text;
+            if (text.isEmpty) {
+              setDialogState(() {
+                errorMessage = 'Password cannot be empty.';
+              });
+              return;
+            }
+
+            setDialogState(() {
+              isVerifying = true;
+              errorMessage = null;
+            });
+
+            final isValid = await widget.apiService.verifyPassword(text);
+            if (!isValid) {
+              if (ctx.mounted) {
+                setDialogState(() {
+                  isVerifying = false;
+                  errorMessage = 'Incorrect password. You must enter the exact password you used to sign in.';
+                });
+              }
+              return;
+            }
+
+            if (ctx.mounted) {
+              Navigator.of(ctx).pop(text);
+            }
+          }
+
+          return AlertDialog(
+            backgroundColor: surfaceColor,
+            title: Text(title, style: TextStyle(color: primaryTextColor)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(message, style: TextStyle(color: secondaryTextColor, fontSize: 13)),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: controller,
+                  obscureText: obscureText,
+                  enabled: !isVerifying,
+                  style: TextStyle(color: primaryTextColor),
+                  onSubmitted: (_) => submit(),
+                  decoration: InputDecoration(
+                    labelText: 'Account Password',
+                    labelStyle: const TextStyle(color: ObsidianUITheme.primaryAccent),
+                    errorText: errorMessage,
+                    errorMaxLines: 3,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        color: secondaryTextColor,
+                        size: 20,
+                      ),
+                      onPressed: () => setDialogState(() => obscureText = !obscureText),
+                    ),
+                    enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
+                    focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+                    errorBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.errorRed)),
+                    focusedErrorBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.errorRed)),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(null),
-            child: Text(context.tr('events.cancel'), style: TextStyle(color: tertiaryTextColor)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.primaryAccent),
-            onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
-            child: const Text('Confirm', style: TextStyle(color: Colors.white)),
-          ),
-        ],
+            actions: [
+              TextButton(
+                onPressed: isVerifying ? null : () => Navigator.of(ctx).pop(null),
+                child: Text(context.tr('events.cancel'), style: TextStyle(color: tertiaryTextColor)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.primaryAccent),
+                onPressed: isVerifying ? null : submit,
+                child: isVerifying
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Text('Confirm', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
