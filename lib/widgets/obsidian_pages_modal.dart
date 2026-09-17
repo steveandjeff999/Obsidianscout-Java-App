@@ -84,6 +84,15 @@ class ObsidianPagesModal extends StatelessWidget {
         'color': Colors.cyanAccent,
       },
       {
+        'pageId': 'scout-history',
+        'index': 17,
+        'icon': Icons.history_rounded,
+        'name': 'Scout History',
+        'desc': 'Past scouting logs, offline entries, & sync records',
+        'tag': 'Form',
+        'color': const Color(0xFF38BDF8),
+      },
+      {
         'pageId': 'graphs',
         'index': 4,
         'icon': Icons.bar_chart_rounded,
@@ -91,6 +100,15 @@ class ObsidianPagesModal extends StatelessWidget {
         'desc': 'Data visualizations, team comparisons, & rankings',
         'tag': 'Analytics',
         'color': ObsidianUITheme.secondaryAccent,
+      },
+      {
+        'pageId': 'custom-analytics',
+        'index': 18,
+        'icon': Icons.auto_graph_rounded,
+        'name': 'Custom Analytics',
+        'desc': 'Build custom metric queries, scatter plots, & breakdowns',
+        'tag': 'Analytics',
+        'color': Colors.tealAccent,
       },
       {
         'pageId': 'all-data',
@@ -190,6 +208,15 @@ class ObsidianPagesModal extends StatelessWidget {
         'desc': 'Manage offline storage, server IP, & account sync',
         'tag': 'System',
         'color': Colors.orangeAccent,
+      },
+      {
+        'pageId': 'contact',
+        'index': 19,
+        'icon': Icons.contact_support_rounded,
+        'name': 'Contact & Support',
+        'desc': 'Get help, report issues, and view project info',
+        'tag': 'Support',
+        'color': Colors.blueGrey,
       },
     ];
 

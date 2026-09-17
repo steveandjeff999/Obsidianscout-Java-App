@@ -283,7 +283,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     await widget.apiService.setServerUrl(_serverUrlController.text.trim());
 
-    final success = await widget.apiService.register(
+    final response = await widget.apiService.register(
       _regUsernameController.text.trim(),
       _regPasswordController.text,
       teamNumber: teamNum,
@@ -296,7 +296,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isSubmitting = false);
 
     if (mounted) {
-      if (success) {
+      if (response.success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(context.tr('dashboard.sync_complete')),
@@ -305,9 +305,28 @@ class _LoginScreenState extends State<LoginScreen> {
         );
         widget.onLoginSuccess();
       } else {
+        final isRegistrationLocked = response.statusCode == 403 ||
+            response.errorCode == 'REGISTRATION_LOCKED' ||
+            (response.message != null &&
+                (response.message!.toLowerCase().contains('registration is locked') ||
+                 response.message!.toLowerCase().contains('registration_locked') ||
+                 response.message!.toLowerCase().contains('locked')));
+
+        final String errorMsg;
+        if (isRegistrationLocked) {
+          errorMsg = context.tr(
+            'login.registration_locked',
+            'Registration is locked for that team',
+          );
+        } else if (response.message != null && response.message!.trim().isNotEmpty) {
+          errorMsg = response.message!;
+        } else {
+          errorMsg = 'Registration failed. Please check your information and try again.';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Registration failed. Please check your information and try again.'),
+          SnackBar(
+            content: Text(errorMsg),
             backgroundColor: ObsidianUITheme.errorRed,
           ),
         );

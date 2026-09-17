@@ -1320,6 +1320,7 @@
   "login.role": "Rol / Acceso",
   "settings.logout": "Cerrar Sesión",
   "login.keep_logged_in": "Mantener sesión iniciada",
+  "login.registration_locked": "El registro está bloqueado para ese equipo",
   "team_details.title": "Detalles del Equipo",
   "team_details.analytics": "Analítica",
   "team_details.matches": "Partidos",

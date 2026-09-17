@@ -1320,6 +1320,7 @@
   "login.role": "תפקיד / גישה",
   "settings.logout": "התנתק",
   "login.keep_logged_in": "השאר אותי מחובר",
+  "login.registration_locked": "ההרשמה נעולה עבור צוות זה",
   "team_details.title": "פרטי קבוצה",
   "team_details.analytics": "אנליטיקה",
   "team_details.matches": "משחקים",

@@ -1331,6 +1331,7 @@
   "login.role": "Role / Access",
   "settings.logout": "Sign Out",
   "login.keep_logged_in": "Keep Me Logged In",
+  "login.registration_locked": "Registration is locked for that team",
   "team_details.title": "Team Details",
   "team_details.analytics": "Analytics",
   "team_details.matches": "Matches",

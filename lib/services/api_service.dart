@@ -150,6 +150,7 @@ class ApiService {
         _currentSettings = AppSettingsModel.fromJson(jsonMap);
       } catch (_) {}
     }
+    permissionsNotifier.value++;
 
     _initConnectivityMonitor();
 
@@ -656,8 +657,9 @@ class ApiService {
           await prefs.remove(keySessionCookie);
         }
         _startBackgroundSync();
-        unawaited(fetchCurrentUser());
-        unawaited(fetchSettings());
+        try {
+          await Future.wait([fetchCurrentUser(), fetchSettings()]).timeout(const Duration(seconds: 3));
+        } catch (_) {}
         return true;
       }
       return false;
@@ -666,7 +668,7 @@ class ApiService {
     }
   }
 
-  Future<bool> register(
+  Future<ApiResponse<void>> register(
     String username,
     String password, {
     required int teamNumber,
@@ -707,11 +709,14 @@ class ApiService {
         _startBackgroundSync();
         unawaited(fetchCurrentUser());
         unawaited(fetchSettings());
-        return true;
+        return const ApiResponse.success(null);
       }
-      return false;
+      return ApiResponse.fromHttpResponse(
+        response,
+        defaultErrorMessage: 'Registration failed. Please check your information and try again.',
+      );
     } catch (e) {
-      return false;
+      return ApiResponse.error(message: e.toString());
     }
   }
 
@@ -753,8 +758,9 @@ class ApiService {
       if (valid) {
         _handlingRevocation = false;
         _startBackgroundSync();
-        unawaited(fetchCurrentUser());
-        unawaited(fetchSettings());
+        try {
+          await Future.wait([fetchCurrentUser(), fetchSettings()]).timeout(const Duration(seconds: 3));
+        } catch (_) {}
         return true;
       }
     }
@@ -1056,20 +1062,49 @@ class ApiService {
       return true;
     }
 
-    // Resolve aliases
-    final candidatePages = <String>[pageId];
+    // Resolve aliases and related identifiers across App and Web
+    final candidatePages = <String>{pageId};
     if (pageId == 'config-editor') {
       candidatePages.addAll(['admin-settings', 'default-configs']);
     } else if (pageId == 'admin-settings' || pageId == 'default-configs') {
       candidatePages.add('config-editor');
     }
+
     if (pageId == 'alliance-selection') {
       candidatePages.add('alliances');
     } else if (pageId == 'alliances') {
       candidatePages.add('alliance-selection');
     }
 
-    // Dynamic role permissions from team settings
+    if (pageId == 'graphs') {
+      candidatePages.add('analytics');
+    } else if (pageId == 'analytics') {
+      candidatePages.add('graphs');
+    }
+
+    if (pageId == 'scout') {
+      candidatePages.add('match-scout');
+    } else if (pageId == 'match-scout') {
+      candidatePages.add('scout');
+    }
+
+    if (pageId == 'prescout') {
+      candidatePages.addAll(['prescout-scout', 'prescout-pit', 'prescout-qual']);
+    } else if (pageId.startsWith('prescout-')) {
+      candidatePages.add('prescout');
+    }
+
+    if (pageId == 'scout-history') {
+      candidatePages.addAll(['history', 'scouting-history', 'cache-manager']);
+    } else if (pageId == 'history' || pageId == 'scouting-history' || pageId == 'cache-manager') {
+      candidatePages.addAll(['scout-history', 'history', 'cache-manager']);
+    }
+
+    if (pageId == 'match-data') {
+      candidatePages.add('all-data');
+    }
+
+    // Dynamic role permissions from team settings (offline cached or live)
     final settings = _currentSettings;
     List<String> allowedPages;
     if (role == 'ADMIN') {

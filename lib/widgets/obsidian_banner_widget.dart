@@ -23,11 +23,18 @@ class _ObsidianBannerWidgetState extends State<ObsidianBannerWidget> {
   final Set<String> _expandedIds = {};
   bool _isLoading = true;
   StreamSubscription<bool>? _onlineSub;
+  Timer? _timer;
+  bool _isFetching = false;
 
   @override
   void initState() {
     super.initState();
     _loadBanners();
+    _timer = Timer.periodic(const Duration(seconds: 10), (_) {
+      if (mounted) {
+        _loadBanners();
+      }
+    });
     _onlineSub = widget.apiService.onOnlineStatusChanged.listen((_) {
       if (mounted) {
         _loadBanners();
@@ -37,31 +44,67 @@ class _ObsidianBannerWidgetState extends State<ObsidianBannerWidget> {
 
   @override
   void dispose() {
+    _timer?.cancel();
     _onlineSub?.cancel();
     super.dispose();
   }
 
   Future<void> _loadBanners() async {
-    final banners = await widget.apiService.fetchBanners();
+    if (_isFetching) return;
+    _isFetching = true;
+    try {
+      final banners = await widget.apiService.fetchBanners();
 
-    // Offline / local fallback check for missing eventKey or missing API key
-    if (banners.isEmpty && !widget.apiService.isOnline) {
-      final eventKey = await widget.apiService.fetchCurrentEventKey();
-      if (eventKey == null || eventKey.isEmpty) {
-        banners.add({
-          'id': 'sys-no-event-key-offline',
-          'message': 'No Event Key configured. Please set an Event Key in Settings.',
-          'bannerType': 'warning',
-          'isDismissible': true,
+      // Offline / local fallback check for missing eventKey or missing API key
+      if (banners.isEmpty && !widget.apiService.isOnline) {
+        final eventKey = await widget.apiService.fetchCurrentEventKey();
+        if (eventKey == null || eventKey.isEmpty) {
+          banners.add({
+            'id': 'sys-no-event-key-offline',
+            'message': 'No Event Key configured. Please set an Event Key in Settings.',
+            'bannerType': 'warning',
+            'isDismissible': true,
+          });
+        }
+      }
+
+      // Clean up expanded IDs for banners that no longer exist
+      _expandedIds.retainWhere((id) => banners.any((b) => b['id']?.toString() == id));
+
+      if (mounted) {
+        bool isSame = false;
+        if (_banners.length == banners.length) {
+          isSame = true;
+          for (int i = 0; i < banners.length; i++) {
+            final a = banners[i];
+            final b = _banners[i];
+            if (a['id'] != b['id'] ||
+                a['message'] != b['message'] ||
+                a['bannerType'] != b['bannerType'] ||
+                a['expandableMessage'] != b['expandableMessage'] ||
+                a['isDismissible'] != b['isDismissible'] ||
+                a['isExpandable'] != b['isExpandable']) {
+              isSame = false;
+              break;
+            }
+          }
+        }
+
+        if (!isSame || _isLoading) {
+          setState(() {
+            _banners = banners;
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (_) {
+      if (mounted && _isLoading) {
+        setState(() {
+          _isLoading = false;
         });
       }
-    }
-
-    if (mounted) {
-      setState(() {
-        _banners = banners;
-        _isLoading = false;
-      });
+    } finally {
+      _isFetching = false;
     }
   }
 

@@ -113,8 +113,9 @@ class DashboardScreen extends StatelessWidget {
               final canAnalytics = apiService?.hasPageAccess('graphs') ?? true;
               final canAlliance = (apiService?.hasPageAccess('alliance-selection') ?? true) && onNavigateAlliance != null;
               final canPrescout = (apiService?.hasPageAccess('prescout') ?? true) && onNavigatePrescout != null;
+              final canHistory = (apiService?.hasPageAccess('scout-history') ?? true) && onNavigateHistory != null;
 
-              final hasAnyActions = canScout || canPitScout || canQr || canAnalytics || canAlliance || canPrescout;
+              final hasAnyActions = canScout || canPitScout || canQr || canAnalytics || canAlliance || canPrescout || canHistory;
               if (!hasAnyActions) return const SizedBox.shrink();
 
               return Column(
@@ -325,7 +326,7 @@ class DashboardScreen extends StatelessWidget {
                       ),
                     ),
 
-                  if (onNavigateHistory != null)
+                  if (canHistory)
                     ObsidianGlassCard(
                       onTap: onNavigateHistory,
                       child: Row(
@@ -380,7 +381,7 @@ class DashboardScreen extends StatelessWidget {
     final canAnalytics = apiService?.hasPageAccess('graphs') ?? true;
     final canAlliance = (apiService?.hasPageAccess('alliance-selection') ?? true) && onNavigateAlliance != null;
     final canPrescout = (apiService?.hasPageAccess('prescout') ?? true) && onNavigatePrescout != null;
-    final canHistory = onNavigateHistory != null;
+    final canHistory = (apiService?.hasPageAccess('scout-history') ?? true) && onNavigateHistory != null;
 
     final actions = [
       if (canScout)
