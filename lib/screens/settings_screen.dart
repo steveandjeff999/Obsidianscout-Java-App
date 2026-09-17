@@ -769,16 +769,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.tune_rounded, color: ObsidianUITheme.primaryAccent),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Scouting Forms Editor',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
-                        ),
-                      ],
+                    Expanded(
+                      child: Row(
+                        children: [
+                          const Icon(Icons.tune_rounded, color: ObsidianUITheme.primaryAccent),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Scouting Forms Editor',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     if (widget.onNavigateConfigEditor != null)
                       ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
@@ -1117,16 +1123,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.devices_rounded, color: ObsidianUITheme.primaryAccent),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Active Sessions',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
-                        ),
-                      ],
+                    Expanded(
+                      child: Row(
+                        children: [
+                          const Icon(Icons.devices_rounded, color: ObsidianUITheme.primaryAccent),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Active Sessions',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     IconButton(
                       icon: _isLoadingSessions
                           ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianUITheme.primaryAccent))
