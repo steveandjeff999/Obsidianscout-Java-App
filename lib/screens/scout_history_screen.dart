@@ -560,7 +560,7 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
                           ),
                           gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                             maxCrossAxisExtent: 460.0,
-                            mainAxisExtent: 140.0,
+                            mainAxisExtent: 180.0,
                             crossAxisSpacing: 12.0,
                             mainAxisSpacing: 12.0,
                           ),
@@ -680,72 +680,57 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
                 alignment: WrapAlignment.spaceBetween,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  // Left side actions: Upload & Server Verify
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Upload All Pending Button
-                      ElevatedButton.icon(
-                        onPressed: pendingCount > 0 ? _uploadAllPending : null,
-                        icon: const Icon(Icons.cloud_upload_rounded, size: 15),
-                        label: Text(
-                          pendingCount > 0 ? 'Upload Pending ($pendingCount)' : 'All Synced',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: ObsidianUITheme.primaryAccent,
-                          foregroundColor: Colors.white,
-                          disabledBackgroundColor: ObsidianUITheme.primaryAccent.withValues(alpha: 0.25),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      // Check Server Sync Button
-                      OutlinedButton.icon(
-                        onPressed: _isSyncingServer ? null : () => _syncWithServer(showFeedback: true),
-                        icon: _isSyncingServer
-                            ? const SizedBox(width: 13, height: 13, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF38BDF8)))
-                            : const Icon(Icons.sync_rounded, size: 15),
-                        label: Text(_isSyncingServer ? 'Checking...' : 'Verify Server', style: const TextStyle(fontSize: 12)),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF38BDF8),
-                          side: BorderSide(color: const Color(0xFF38BDF8).withValues(alpha: 0.5)),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-                        ),
-                      ),
-                    ],
+                  // Upload All Pending Button
+                  ElevatedButton.icon(
+                    onPressed: pendingCount > 0 ? _uploadAllPending : null,
+                    icon: const Icon(Icons.cloud_upload_rounded, size: 15),
+                    label: Text(
+                      pendingCount > 0 ? 'Upload Pending ($pendingCount)' : 'All Synced',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: ObsidianUITheme.primaryAccent,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: ObsidianUITheme.primaryAccent.withValues(alpha: 0.25),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                    ),
                   ),
-
-                  // Right side actions: Clear Synced & Delete All
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Clear Synced
-                      OutlinedButton(
-                        onPressed: syncedCount > 0 ? _clearSynced : null,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: ObsidianUITheme.successGreen,
-                          side: BorderSide(color: ObsidianUITheme.successGreen.withValues(alpha: 0.5)),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-                        ),
-                        child: Text('Clear Synced ($syncedCount)', style: const TextStyle(fontSize: 12)),
-                      ),
-                      const SizedBox(width: 6),
-                      // Clear All
-                      OutlinedButton(
-                        onPressed: _clearAll,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: ObsidianUITheme.errorRed,
-                          side: BorderSide(color: ObsidianUITheme.errorRed.withValues(alpha: 0.4)),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-                        ),
-                        child: const Icon(Icons.delete_sweep_rounded, size: 16),
-                      ),
-                    ],
+                  // Check Server Sync Button
+                  OutlinedButton.icon(
+                    onPressed: _isSyncingServer ? null : () => _syncWithServer(showFeedback: true),
+                    icon: _isSyncingServer
+                        ? const SizedBox(width: 13, height: 13, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF38BDF8)))
+                        : const Icon(Icons.sync_rounded, size: 15),
+                    label: Text(_isSyncingServer ? 'Checking...' : 'Verify Server', style: const TextStyle(fontSize: 12)),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF38BDF8),
+                      side: BorderSide(color: const Color(0xFF38BDF8).withValues(alpha: 0.5)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                    ),
+                  ),
+                  // Clear Synced
+                  OutlinedButton(
+                    onPressed: syncedCount > 0 ? _clearSynced : null,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: ObsidianUITheme.successGreen,
+                      side: BorderSide(color: ObsidianUITheme.successGreen.withValues(alpha: 0.5)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                    ),
+                    child: Text('Clear Synced ($syncedCount)', style: const TextStyle(fontSize: 12)),
+                  ),
+                  // Clear All
+                  OutlinedButton(
+                    onPressed: _clearAll,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: ObsidianUITheme.errorRed,
+                      side: BorderSide(color: ObsidianUITheme.errorRed.withValues(alpha: 0.4)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                    ),
+                    child: const Icon(Icons.delete_sweep_rounded, size: 16),
                   ),
                 ],
               ),
@@ -770,6 +755,7 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             // Top row: Type badge, status, action chip, relative time
             Row(
@@ -795,11 +781,16 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
                   entry.status.toUpperCase(),
                   style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: statusColor),
                 ),
+                const SizedBox(width: 6),
                 const Spacer(),
                 // Action badge & time
-                Text(
-                  '${_actionLabel(entry.action)}  ${_relativeTime(entry.timestamp)}',
-                  style: TextStyle(fontSize: 10, color: tertiaryTextColor),
+                Flexible(
+                  child: Text(
+                    '${_actionLabel(entry.action)}  ${_relativeTime(entry.timestamp)}',
+                    style: TextStyle(fontSize: 10, color: tertiaryTextColor),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
                 ),
               ],
             ),
@@ -816,16 +807,25 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
                 ),
                 if (entry.matchKey != null || entry.matchNumber != null) ...[
                   Text('  •  ', style: TextStyle(color: tertiaryTextColor)),
-                  Text(
-                    entry.matchKey ?? 'Match #${entry.matchNumber}',
-                    style: TextStyle(fontSize: 13, color: secondaryTextColor),
+                  Expanded(
+                    child: Text(
+                      entry.matchKey ?? 'Match #${entry.matchNumber}',
+                      style: TextStyle(fontSize: 13, color: secondaryTextColor),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
                   ),
                 ],
               ],
             ),
             if (entry.eventKey.isNotEmpty) ...[
               const SizedBox(height: 2),
-              Text(entry.eventKey, style: TextStyle(fontSize: 11, color: tertiaryTextColor)),
+              Text(
+                entry.eventKey,
+                style: TextStyle(fontSize: 11, color: tertiaryTextColor),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
             ],
 
             const SizedBox(height: 10),
@@ -838,13 +838,18 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
                   child: ElevatedButton.icon(
                     onPressed: () => _uploadEntry(entry),
                     icon: const Icon(Icons.cloud_upload_rounded, size: 14),
-                    label: Text(entry.status == 'synced' ? 'Re-Upload' : 'Upload', style: const TextStyle(fontSize: 12)),
+                    label: Text(
+                      entry.status == 'synced' ? 'Re-Upload' : 'Upload',
+                      style: const TextStyle(fontSize: 12),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
                       foregroundColor: ObsidianUITheme.primaryAccent,
                       elevation: 0,
                       side: BorderSide(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.4)),
-                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                   ),
@@ -855,11 +860,16 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
                   child: OutlinedButton.icon(
                     onPressed: () => _regenerateQr(entry),
                     icon: const Icon(Icons.qr_code_rounded, size: 14),
-                    label: const Text('QR Code', style: TextStyle(fontSize: 12)),
+                    label: const Text(
+                      'QR Code',
+                      style: TextStyle(fontSize: 12),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: ObsidianUITheme.secondaryAccent,
                       side: BorderSide(color: ObsidianUITheme.secondaryAccent.withValues(alpha: 0.5)),
-                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                   ),

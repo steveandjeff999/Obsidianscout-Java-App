@@ -26,9 +26,44 @@ class DynamicFieldWidget extends StatelessWidget {
     final tertiaryTextColor = ObsidianUITheme.getTertiaryTextColor(context);
     final isDesktop = ObsidianResponsive.isDesktop(context);
 
-    // 1. SECTION HEADER / DIVIDER - Deprecated / No longer rendered
+    // 1. SECTION HEADER / DIVIDER
     if (type == 'section' || type == 'header' || type == 'divider') {
-      return const SizedBox.shrink();
+      final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+      final borderColor = ObsidianUITheme.getBorderColor(context);
+      return Padding(
+        padding: EdgeInsets.only(top: isDesktop ? 16.0 : 20.0, bottom: isDesktop ? 6.0 : 10.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 4,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    color: ObsidianUITheme.primaryAccent,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    field.label.isNotEmpty ? field.label : 'Section',
+                    style: TextStyle(
+                      fontSize: isDesktop ? 15.0 : 16.5,
+                      fontWeight: FontWeight.bold,
+                      color: primaryTextColor,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Divider(color: borderColor.withValues(alpha: 0.5), height: 1),
+          ],
+        ),
+      );
     }
 
     return Padding(

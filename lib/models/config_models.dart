@@ -126,15 +126,16 @@ class ScoutingFieldModel {
       'type': type,
     };
 
+    if (phase != null && phase!.isNotEmpty) {
+      data['phase'] = (phase!.toLowerCase() == 'general' || phase!.trim().isEmpty) ? 'teleop' : phase;
+    }
+
     if (type != 'section') {
       if (description != null && description!.isNotEmpty) {
         data['description'] = description;
       }
       if (type != 'text' && required) {
         data['required'] = true;
-      }
-      if (phase != null && phase!.isNotEmpty) {
-        data['phase'] = phase;
       }
       if (placeholder != null && placeholder!.isNotEmpty) {
         data['placeholder'] = placeholder;
@@ -301,6 +302,7 @@ class ScoutingConfigModel {
 
     if (enableRobotRoleCollection) {
       data['enable_robot_role_collection'] = true;
+      data['enableRobotRoleCollection'] = true;
     }
 
     if (tbaKey != null) data['tba_key'] = tbaKey;
@@ -407,21 +409,21 @@ class AnalyticsSeriesPointModel {
 }
 
 const List<String> defaultScoutPages = [
-  'dashboard', 'chat', 'scout', 'pit-scout', 'qual-scout', 'qr-scanner', 'contact',
+  'dashboard', 'chat', 'scout', 'pit-scout', 'qual-scout', 'qr-scanner', 'contact', 'scout-history',
 ];
 
 const List<String> defaultAnalyticsPages = [
   'dashboard', 'events', 'scout', 'pit-scout', 'qual-scout', 'qr-scanner',
   'all-data', 'match-data', 'qual-data', 'pit-data', 'analytics', 'custom-analytics', 'graphs', 'data-validation',
   'teams', 'rankings', 'qual-rankings', 'matches', 'predictor',
-  'event-predictor', 'alliances', 'alliance-selection', 'chat', 'backup', 'docs', 'contact',
+  'event-predictor', 'alliances', 'alliance-selection', 'chat', 'backup', 'docs', 'contact', 'scout-history',
 ];
 
 const List<String> defaultAdminPages = [
   'dashboard', 'admin-settings', 'default-configs', 'config-editor', 'users', 'banners', 'scout', 'pit-scout', 'qual-scout', 'qr-scanner',
   'all-data', 'match-data', 'qual-data', 'pit-data', 'analytics', 'custom-analytics', 'graphs', 'data-validation',
   'events', 'teams', 'rankings', 'qual-rankings', 'matches', 'predictor',
-  'event-predictor', 'alliances', 'alliance-selection', 'chat', 'backup', 'docs', 'contact',
+  'event-predictor', 'alliances', 'alliance-selection', 'chat', 'backup', 'docs', 'contact', 'scout-history',
 ];
 
 const List<String> superAdminOnlyPages = [
@@ -429,14 +431,12 @@ const List<String> superAdminOnlyPages = [
 ];
 
 const List<String> adminOnlyBasePages = [
-  'users', 'banners', 'admin-settings', 'default-configs', 'events', 'config-editor',
+  'users', 'banners', 'admin-settings', 'default-configs', 'config-editor',
 ];
 
 const List<String> bypassPages = [
   'settings', 'login', 'index', 'dashboard', 'theme-editor', 'team',
-  'cache-manager', 'prescout', 'prescout-scout', 'prescout-pit',
-  'prescout-qual', 'reset-password', 'docs', 'contact', 'config-migration', 'schema-history',
-  'scout-history', 'history', 'scouting-history',
+  'reset-password', 'config-migration', 'schema-history',
 ];
 
 class UserModel {
@@ -545,6 +545,7 @@ class AppSettingsModel {
   final String timezone;
   final String preferredSource;
   final bool chatEnabled;
+  final bool registrationLocked;
   final bool useStatboticsEpa;
   final bool useTbaOpr;
   final List<String> scoutPages;
@@ -562,6 +563,7 @@ class AppSettingsModel {
     this.timezone = 'America/New_York',
     this.preferredSource = 'tba',
     this.chatEnabled = true,
+    this.registrationLocked = false,
     this.useStatboticsEpa = false,
     this.useTbaOpr = false,
     this.scoutPages = defaultScoutPages,
@@ -597,6 +599,7 @@ class AppSettingsModel {
       timezone: settingsMap['timezone']?.toString() ?? 'America/New_York',
       preferredSource: settingsMap['preferredSource']?.toString() ?? 'tba',
       chatEnabled: settingsMap['chatEnabled'] != false,
+      registrationLocked: settingsMap['registrationLocked'] == true,
       useStatboticsEpa: settingsMap['useStatboticsEpa'] == true,
       useTbaOpr: settingsMap['useTbaOpr'] == true,
       scoutPages: parseList(settingsMap['scoutPages'], defaultScoutPages),
@@ -617,6 +620,7 @@ class AppSettingsModel {
       'timezone': timezone,
       'preferredSource': preferredSource,
       'chatEnabled': chatEnabled,
+      'registrationLocked': registrationLocked,
       'useStatboticsEpa': useStatboticsEpa,
       'useTbaOpr': useTbaOpr,
       'scoutPages': scoutPages,
@@ -636,6 +640,7 @@ class AppSettingsModel {
     String? timezone,
     String? preferredSource,
     bool? chatEnabled,
+    bool? registrationLocked,
     bool? useStatboticsEpa,
     bool? useTbaOpr,
     List<String>? scoutPages,
@@ -653,6 +658,7 @@ class AppSettingsModel {
       timezone: timezone ?? this.timezone,
       preferredSource: preferredSource ?? this.preferredSource,
       chatEnabled: chatEnabled ?? this.chatEnabled,
+      registrationLocked: registrationLocked ?? this.registrationLocked,
       useStatboticsEpa: useStatboticsEpa ?? this.useStatboticsEpa,
       useTbaOpr: useTbaOpr ?? this.useTbaOpr,
       scoutPages: scoutPages ?? this.scoutPages,

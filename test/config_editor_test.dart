@@ -295,17 +295,25 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
 
-      // Verify Screen, Header, and Kind Selectors render
+      // Verify Screen, Header, and Top-level Tabs render
       expect(find.byType(ConfigEditorScreen), findsOneWidget);
-      expect(find.text('Scouting Form Editor'), findsOneWidget);
-      expect(find.text('Match'), findsOneWidget);
-      expect(find.text('Pit'), findsOneWidget);
-      expect(find.text('Qualitative'), findsOneWidget);
-      expect(find.text('API Settings'), findsOneWidget);
+      expect(find.text('Admin Settings & Form Editor'), findsOneWidget);
+      expect(find.text('Scouting configs'), findsOneWidget);
+      expect(find.text('API keys'), findsOneWidget);
+      expect(find.text('Permissions'), findsOneWidget);
+
+      // Verify Subtabs render under Scouting configs
+      expect(find.text('Game form'), findsOneWidget);
+      expect(find.text('Pit form'), findsOneWidget);
+      expect(find.text('Qualitative form'), findsOneWidget);
 
       // Verify Mode Selector Buttons render
-      expect(find.text('Visual Form Editor'), findsOneWidget);
+      expect(find.text('Visual Editor'), findsOneWidget);
       expect(find.text('Raw JSON'), findsOneWidget);
+
+      // Verify Form Fields header actions
+      expect(find.text('+ Add Field'), findsOneWidget);
+      expect(find.text('+ Add Section Header'), findsOneWidget);
     });
 
     testWidgets('ConfigEditorScreen does not show phase selection when editing pit config', (WidgetTester tester) async {
@@ -333,15 +341,9 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
 
-      // Ensure Add Field button is visible and tap it
-      await tester.ensureVisible(find.text('Add Field'));
-      await tester.tap(find.text('Add Field'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 500));
-
-      // Phase dropdown should NOT be present in pit config add dialog
+      // On pit config, field cards should NOT display Phase dropdown
       expect(find.text('Phase'), findsNothing);
-      expect(find.text('Type'), findsOneWidget);
+      expect(find.text('Type'), findsWidgets);
     });
 
     testWidgets('ConfigEditorScreen does not show phase selection when editing qual config', (WidgetTester tester) async {
@@ -369,18 +371,14 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
 
-      // Ensure Add Field button is visible and tap it
-      await tester.ensureVisible(find.text('Add Field'));
-      await tester.tap(find.text('Add Field'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 500));
-
-      // Phase dropdown should NOT be present in qual config add dialog
+      // On qual config, field cards should NOT display Phase dropdown
       expect(find.text('Phase'), findsNothing);
-      expect(find.text('Type'), findsOneWidget);
+      expect(find.text('Type'), findsWidgets);
+      // Qual should show robot role collection card
+      expect(find.text('Enable Robot Role Collection'), findsOneWidget);
     });
 
-    testWidgets('ConfigEditorScreen shows phase selection when editing match (game) config', (WidgetTester tester) async {
+    testWidgets('ConfigEditorScreen shows phase selection and section header adding on game config', (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1200, 1600);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -405,15 +403,17 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
 
-      // Ensure Add Field button is visible and tap it
-      await tester.ensureVisible(find.text('Add Field'));
-      await tester.tap(find.text('Add Field'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 500));
+      // Phase dropdown SHOULD be present on game config cards
+      expect(find.text('Phase'), findsWidgets);
+      expect(find.text('Type'), findsWidgets);
 
-      // Phase dropdown SHOULD be present in game config add dialog
-      expect(find.text('Phase'), findsOneWidget);
-      expect(find.text('Type'), findsOneWidget);
+      // Tap + Add Section Header
+      await tester.tap(find.text('+ Add Section Header'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(find.text('section header'), findsOneWidget);
+      expect(find.text('New Section'), findsWidgets);
     });
   });
 
@@ -709,8 +709,8 @@ void main() {
       expect(find.text('Event & Season Configuration'), findsOneWidget);
       expect(find.text('The Blue Alliance (TBA)'), findsOneWidget);
       expect(find.text('FIRST API'), findsOneWidget);
-      expect(find.text('Statbotics API'), findsOneWidget);
-      expect(find.text('Save API Settings'), findsOneWidget);
+      expect(find.text('Statbotics'), findsOneWidget);
+      expect(find.text('Save API settings'), findsOneWidget);
 
       // Verify initial values
       expect(find.text('2026'), findsOneWidget);
@@ -729,11 +729,42 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
 
       // Save settings
-      await tester.tap(find.text('Save API Settings'));
+      await tester.tap(find.text('Save API settings'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
       expect(apiService.mockSettings.eventCode, 'nytr');
+    });
+
+    testWidgets('ConfigEditorScreen renders Permissions tab with match-data and scout-history', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1200, 2000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final apiService = _MockConfigApiService();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ObsidianUITheme.darkTheme,
+          home: Scaffold(
+            body: ConfigEditorScreen(
+              apiService: apiService,
+              initialKind: 'permissions',
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.text('General Permissions'), findsOneWidget);
+      expect(find.text('Scout Role Access'), findsOneWidget);
+      expect(find.text('Scout History'), findsWidgets);
+      expect(find.text('Match Data'), findsWidgets);
     });
   });
 }

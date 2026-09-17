@@ -6,6 +6,7 @@ class ApiResponse<T> {
   final bool success;
   final int? statusCode;
   final String? message;
+  final String? errorCode;
   final T? data;
   final bool isOffline;
 
@@ -13,17 +14,18 @@ class ApiResponse<T> {
     required this.success,
     this.statusCode,
     this.message,
+    this.errorCode,
     this.data,
     this.isOffline = false,
   });
 
   /// Const constructor for a successful API response
-  const ApiResponse.success(this.data, {this.statusCode = 200, this.message})
+  const ApiResponse.success(this.data, {this.statusCode = 200, this.message, this.errorCode})
       : success = true,
         isOffline = false;
 
   /// Const constructor for a failed API response
-  const ApiResponse.error({this.statusCode, this.message, this.isOffline = false, this.data})
+  const ApiResponse.error({this.statusCode, this.message, this.errorCode, this.isOffline = false, this.data})
       : success = false;
 
   /// Factory to parse standard HTTP response
@@ -34,6 +36,7 @@ class ApiResponse<T> {
   }) {
     final isSuccess = response.statusCode >= 200 && response.statusCode < 300;
     String? extractedMessage;
+    String? extractedErrorCode;
     T? parsedData;
 
     if (response.body.isNotEmpty) {
@@ -43,6 +46,8 @@ class ApiResponse<T> {
           extractedMessage = decoded['error']?.toString() ??
               decoded['message']?.toString() ??
               decoded['reason']?.toString();
+          extractedErrorCode = decoded['error_code']?.toString() ??
+              decoded['errorCode']?.toString();
           if (isSuccess && parser != null) {
             parsedData = parser(decoded);
           }
@@ -61,6 +66,7 @@ class ApiResponse<T> {
         parsedData,
         statusCode: response.statusCode,
         message: extractedMessage,
+        errorCode: extractedErrorCode,
       );
     } else {
       final reason = response.reasonPhrase ?? '';
@@ -69,6 +75,7 @@ class ApiResponse<T> {
       return ApiResponse<T>.error(
         statusCode: response.statusCode,
         message: msg,
+        errorCode: extractedErrorCode,
       );
     }
   }

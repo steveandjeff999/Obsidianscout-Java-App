@@ -1320,6 +1320,7 @@
   "login.role": "Rol / Erişim",
   "settings.logout": "Çıkış Yap",
   "login.keep_logged_in": "Oturumu Açık Tut",
+  "login.registration_locked": "Bu takım için kayıt kilitlidir",
   "team_details.title": "Takım Detayları",
   "team_details.analytics": "Analitik",
   "team_details.matches": "Maçlar",
