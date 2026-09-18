@@ -185,6 +185,20 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
         'titleKey': 'sidebar.section.strategy',
         'items': [
           {
+            'pageId': 'predictor',
+            'index': 20,
+            'icon': Icons.auto_awesome_rounded,
+            'labelKey': 'nav.predictor',
+            'subKey': 'subtitle.predictor',
+          },
+          {
+            'pageId': 'event-predictor',
+            'index': 21,
+            'icon': Icons.leaderboard_rounded,
+            'labelKey': 'nav.event_predictor',
+            'subKey': 'subtitle.event_predictor',
+          },
+          {
             'pageId': 'alliance-selection',
             'index': 7,
             'icon': Icons.stars_rounded,

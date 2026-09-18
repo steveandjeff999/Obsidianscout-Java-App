@@ -4,11 +4,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:obsidianscout_app/services/auth_storage_service.dart';
 import 'package:obsidianscout_app/services/api_service.dart';
-import 'package:obsidianscout_app/services/biometric_auth_service.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:obsidianscout_app/l10n/app_localizations.dart';
 import 'package:obsidianscout_app/screens/login_screen.dart';
-import 'package:obsidianscout_app/screens/settings_screen.dart';
 import 'package:obsidianscout_app/widgets/obsidian_glass_card.dart';
 
 import 'package:flutter/services.dart';

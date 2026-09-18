@@ -1384,5 +1384,8 @@
   "bi.move_right": "Mover Derecha",
   "bi.duplicate": "Duplicar",
   "bi.edit": "Editar",
-  "bi.delete": "Eliminar"
+  "bi.delete": "Eliminar",
+  "nav.event_predictor": "Predictor de Eventos",
+  "subtitle.predictor": "Predicción de partidos cara a cara y simulador de alianzas",
+  "subtitle.event_predictor": "Simular y pronosticar resultados para todos los partidos del evento"
 }

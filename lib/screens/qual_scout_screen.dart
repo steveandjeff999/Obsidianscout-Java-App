@@ -115,10 +115,14 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
         _config = config ?? _config;
         if (teams.isNotEmpty) _teams = teams;
         if (matches.isNotEmpty) _matches = matches;
-        if (_selectedTeam != null && !_teams.contains(_selectedTeam)) {
+        if (_selectedTeam != null && !_teams.any((t) => t.teamNumber == _selectedTeam!.teamNumber)) {
           _selectedTeam = null;
         }
-        if (_selectedMatch != null && !_matches.contains(_selectedMatch)) {
+        if (_selectedMatch != null && !_matches.any((m) => m.matchKey == _selectedMatch!.matchKey)) {
+          _selectedMatch = null;
+        }
+        final matchHasRoster = _selectedMatch != null && (_selectedMatch!.redTeams.isNotEmpty || _selectedMatch!.blueTeams.isNotEmpty);
+        if (_scope == QualScoutScope.singleTeam && _selectedTeam != null && matchHasRoster && !_selectedMatch!.hasTeam(_selectedTeam!.teamNumber)) {
           _selectedMatch = null;
         }
         _isLoading = false;
@@ -130,6 +134,72 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
     } catch (_) {
       if (mounted && _isLoading) setState(() => _isLoading = false);
     }
+  }
+
+  List<MatchModel> get _availableMatches {
+    if (_scope != QualScoutScope.singleTeam || _selectedTeam == null || (_selectedTeam != null && _selectedMatch != null)) {
+      return _matches;
+    }
+    final anyMatchHasTeams = _matches.any((m) => m.redTeams.isNotEmpty || m.blueTeams.isNotEmpty);
+    final byTeam = _matches.where((m) => m.hasTeam(_selectedTeam!.teamNumber)).toList();
+    if (byTeam.isNotEmpty || anyMatchHasTeams) {
+      return byTeam;
+    }
+    return _matches;
+  }
+
+  List<TeamModel> get _availableTeams {
+    if (_selectedMatch == null || (_selectedTeam != null && _selectedMatch != null)) {
+      return _teams;
+    }
+    final teamNums = _selectedMatch!.getTeamNumbers();
+    if (teamNums.isEmpty) return _teams;
+
+    final filtered = _teams.where((t) => teamNums.contains(t.teamNumber)).toList();
+    final existingNums = filtered.map((t) => t.teamNumber).toSet();
+    for (final num in teamNums) {
+      if (!existingNums.contains(num)) {
+        filtered.add(TeamModel(
+          eventKey: _eventKey ?? '',
+          teamKey: 'frc$num',
+          teamNumber: num,
+        ));
+      }
+    }
+    filtered.sort((a, b) => a.teamNumber.compareTo(b.teamNumber));
+    return filtered;
+  }
+
+  void _onTeamSelected(TeamModel? team) {
+    setState(() {
+      final wasBothSelected = _selectedTeam != null && _selectedMatch != null;
+      _selectedTeam = team;
+      if (team == null) return;
+      if (wasBothSelected) {
+        _selectedMatch = null;
+      } else if (_selectedMatch != null) {
+        final matchHasRoster = _selectedMatch!.redTeams.isNotEmpty || _selectedMatch!.blueTeams.isNotEmpty;
+        if (matchHasRoster && !_selectedMatch!.hasTeam(team.teamNumber)) {
+          _selectedMatch = null;
+        }
+      }
+    });
+  }
+
+  void _onMatchSelected(MatchModel? match) {
+    setState(() {
+      final wasBothSelected = _scope == QualScoutScope.singleTeam && _selectedTeam != null && _selectedMatch != null;
+      _selectedMatch = match;
+      if (match == null) return;
+      if (wasBothSelected) {
+        _selectedTeam = null;
+      } else if (_scope == QualScoutScope.singleTeam && _selectedTeam != null) {
+        final matchHasRoster = match.redTeams.isNotEmpty || match.blueTeams.isNotEmpty;
+        if (matchHasRoster && !match.hasTeam(_selectedTeam!.teamNumber)) {
+          _selectedTeam = null;
+        }
+      }
+    });
   }
 
   ScoutingConfigModel _buildFallbackQualConfig() {
@@ -762,37 +832,49 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
                   if (_scope == QualScoutScope.singleTeam) ...[
                     DropdownButtonFormField<TeamModel>(
                       isExpanded: true,
-                      value: _teams.contains(_selectedTeam) ? _selectedTeam : null,
+                      value: _availableTeams.contains(_selectedTeam) ? _selectedTeam : null,
                       dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                       style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
                       decoration: InputDecoration(
                         labelText: context.tr('scout.select_team'),
                         labelStyle: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context)),
                         prefixIcon: const Icon(Icons.group_outlined, color: ObsidianUITheme.warningOrange),
+                        suffixIcon: _selectedTeam != null
+                            ? IconButton(
+                                icon: const Icon(Icons.clear_rounded, size: 18.0),
+                                color: ObsidianUITheme.getSecondaryTextColor(context),
+                                onPressed: () => _onTeamSelected(null),
+                                tooltip: 'Clear Team',
+                              )
+                            : null,
                         enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
                       ),
-                      items: _teams.map((t) => DropdownMenuItem(value: t, child: Text(t.displayName, overflow: TextOverflow.ellipsis))).toList(),
-                      onChanged: (team) => setState(() => _selectedTeam = team),
+                      items: _availableTeams.map((t) => DropdownMenuItem(value: t, child: Text(t.displayName, overflow: TextOverflow.ellipsis))).toList(),
+                      onChanged: _onTeamSelected,
                     ),
                     const SizedBox(height: 12.0),
                   ],
                   DropdownButtonFormField<MatchModel>(
                     isExpanded: true,
-                    value: _matches.contains(_selectedMatch) ? _selectedMatch : null,
+                    value: _availableMatches.contains(_selectedMatch) ? _selectedMatch : null,
                     dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                     style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
                     decoration: InputDecoration(
                       labelText: context.tr('scout.select_match'),
                       labelStyle: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context)),
                       prefixIcon: const Icon(Icons.rate_review_outlined, color: ObsidianUITheme.warningOrange),
+                      suffixIcon: _selectedMatch != null
+                          ? IconButton(
+                              icon: const Icon(Icons.clear_rounded, size: 18.0),
+                              color: ObsidianUITheme.getSecondaryTextColor(context),
+                              onPressed: () => _onMatchSelected(null),
+                              tooltip: 'Clear Match',
+                            )
+                          : null,
                       enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
                     ),
-                    items: _matches.map((m) => DropdownMenuItem(value: m, child: Text(m.displayLabel, overflow: TextOverflow.ellipsis))).toList(),
-                    onChanged: (match) {
-                      setState(() {
-                        _selectedMatch = match;
-                      });
-                    },
+                    items: _availableMatches.map((m) => DropdownMenuItem(value: m, child: Text(m.displayLabel, overflow: TextOverflow.ellipsis))).toList(),
+                    onChanged: _onMatchSelected,
                   ),
                 ],
               ),

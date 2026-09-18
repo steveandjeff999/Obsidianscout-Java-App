@@ -1384,5 +1384,8 @@
   "bi.move_right": "הזז ימינה",
   "bi.duplicate": "שכפל",
   "bi.edit": "ערוך",
-  "bi.delete": "מחק"
+  "bi.delete": "מחק",
+  "nav.event_predictor": "מנבא אירועים",
+  "subtitle.predictor": "חיזוי משחקים ראש בראש וסימולטור כוח בריתות",
+  "subtitle.event_predictor": "סימולציה וחיזוי תוצאות לכל משחקי האירוע המתוכננים"
 }
