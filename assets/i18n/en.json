@@ -1395,5 +1395,8 @@
   "bi.move_right": "Move Right",
   "bi.duplicate": "Duplicate",
   "bi.edit": "Edit",
-  "bi.delete": "Delete"
+  "bi.delete": "Delete",
+  "nav.event_predictor": "Event Predictor",
+  "subtitle.predictor": "Head-to-head match prediction & alliance strength simulator",
+  "subtitle.event_predictor": "Simulate and forecast outcomes for all scheduled event matches"
 }

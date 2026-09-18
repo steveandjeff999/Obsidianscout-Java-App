@@ -10,6 +10,7 @@ import '../models/team_match_models.dart';
 import '../models/chat_models.dart';
 import '../models/validation_models.dart';
 import '../models/custom_analytics_models.dart';
+import '../models/predictor_models.dart';
 import 'auth_storage_service.dart';
 import 'scout_history_service.dart';
 
@@ -1688,6 +1689,140 @@ class ApiService {
     } catch (_) {}
 
     return cachedList;
+  }
+
+  Future<MatchPredictionResponse?> fetchMatchPrediction(
+    String matchKey, {
+    String? eventKey,
+    bool usePrescout = false,
+  }) async {
+    final effectiveKey = (eventKey != null && eventKey.isNotEmpty)
+        ? eventKey
+        : (_currentSettings?.eventKey ?? '');
+    final cacheKey = "cache_predict_${matchKey}_${effectiveKey}_$usePrescout";
+
+    final cached = await _getCache(cacheKey);
+    MatchPredictionResponse? cachedPrediction;
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        cachedPrediction = MatchPredictionResponse.fromJson(jsonDecode(cached));
+      } catch (_) {}
+    }
+
+    if (!_isOnline) return cachedPrediction;
+
+    try {
+      final queryParams = <String, String>{
+        'matchKey': matchKey,
+        if (effectiveKey.isNotEmpty) 'eventKey': effectiveKey,
+        if (usePrescout) 'usePrescout': 'true',
+      };
+      final uri = Uri.parse('$_currentServerUrl/api/matches/predict').replace(queryParameters: queryParams);
+      final response = await http.get(uri, headers: _headers).timeout(heavyRequestTimeout);
+      if (response.statusCode == 200) {
+        await _setCache(cacheKey, response.body);
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          return MatchPredictionResponse.fromJson(decoded);
+        }
+      }
+    } catch (_) {}
+
+    return cachedPrediction;
+  }
+
+  Future<MatchPredictionResponse?> getCachedMatchPrediction({
+    required String eventKey,
+    required String matchKey,
+    bool usePrescout = false,
+  }) async {
+    final effectiveKey = eventKey.isNotEmpty
+        ? eventKey
+        : (_currentSettings?.eventKey ?? '');
+    final cacheKey = "cache_predict_${matchKey}_${effectiveKey}_$usePrescout";
+
+    final cached = await _getCache(cacheKey);
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(cached);
+        if (decoded is Map<String, dynamic>) {
+          return MatchPredictionResponse.fromJson(decoded);
+        }
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  Future<List<MatchPredictionResponse>> fetchEventPredictions(
+    String eventKey, {
+    bool usePrescout = false,
+  }) async {
+    final effectiveKey = eventKey.isNotEmpty
+        ? eventKey
+        : (_currentSettings?.eventKey ?? '');
+    if (effectiveKey.isEmpty) return [];
+
+    final cacheKey = "cache_predict_all_${effectiveKey}_$usePrescout";
+
+    final cached = await _getCache(cacheKey);
+    List<MatchPredictionResponse> cachedPredictions = [];
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(cached);
+        if (decoded is List) {
+          cachedPredictions = decoded
+              .map((item) => MatchPredictionResponse.fromJson(item as Map<String, dynamic>))
+              .toList();
+        }
+      } catch (_) {}
+    }
+
+    if (!_isOnline) return cachedPredictions;
+
+    try {
+      final queryParams = <String, String>{
+        'eventKey': effectiveKey,
+        if (usePrescout) 'usePrescout': 'true',
+      };
+      final uri = Uri.parse('$_currentServerUrl/api/matches/predict-all').replace(queryParameters: queryParams);
+      final response = await http.get(uri, headers: _headers).timeout(heavyRequestTimeout);
+      if (response.statusCode == 200) {
+        await _setCache(cacheKey, response.body);
+        final decoded = jsonDecode(response.body);
+        if (decoded is List) {
+          return decoded
+              .map((item) => MatchPredictionResponse.fromJson(item as Map<String, dynamic>))
+              .toList();
+        }
+      }
+    } catch (_) {}
+
+    return cachedPredictions;
+  }
+
+  Future<List<MatchPredictionResponse>> getCachedEventPredictions(
+    String eventKey, {
+    bool usePrescout = false,
+  }) async {
+    final effectiveKey = eventKey.isNotEmpty
+        ? eventKey
+        : (_currentSettings?.eventKey ?? '');
+    if (effectiveKey.isEmpty) return [];
+
+    final cacheKey = "cache_predict_all_${effectiveKey}_$usePrescout";
+
+    final cached = await _getCache(cacheKey);
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(cached);
+        if (decoded is List) {
+          return decoded
+              .map((item) => MatchPredictionResponse.fromJson(item as Map<String, dynamic>))
+              .toList();
+        }
+      } catch (_) {}
+    }
+    return [];
   }
 
   Future<List<dynamic>> fetchScoutingEntries() async {

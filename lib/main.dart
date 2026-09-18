@@ -35,6 +35,8 @@ import 'screens/data_validation_screen.dart';
 import 'screens/scout_history_screen.dart';
 import 'screens/custom_analytics_screen.dart';
 import 'screens/contact_screen.dart';
+import 'screens/predictor_screen.dart';
+import 'screens/event_predictor_screen.dart';
 import 'services/api_service.dart';
 import 'services/auth_storage_service.dart';
 import 'services/biometric_auth_service.dart';
@@ -367,6 +369,8 @@ class _MainShellState extends State<MainShell> {
     'nav.scout_history',
     'nav.custom_analytics',
     'nav.contact',
+    'nav.predictor',
+    'nav.event_predictor',
   ];
   final List<String> _subtitleKeys = [
     'subtitle.dashboard',
@@ -389,6 +393,8 @@ class _MainShellState extends State<MainShell> {
     'subtitle.scout_history',
     'subtitle.custom_analytics',
     'subtitle.contact',
+    'subtitle.predictor',
+    'subtitle.event_predictor',
   ];
 
   String _getPageIdForIndex(int index) {
@@ -433,6 +439,10 @@ class _MainShellState extends State<MainShell> {
         return 'custom-analytics';
       case 19:
         return 'contact';
+      case 20:
+        return 'predictor';
+      case 21:
+        return 'event-predictor';
       default:
         return 'dashboard';
     }
@@ -649,6 +659,8 @@ class _MainShellState extends State<MainShell> {
       ScoutHistoryScreen(apiService: widget.apiService, isVisible: _currentIndex == 17, isBarsVisible: _isBarsVisible),
       CustomAnalyticsScreen(apiService: widget.apiService, isVisible: _currentIndex == 18, isBarsVisible: _isBarsVisible),
       ContactScreen(apiService: widget.apiService, isVisible: _currentIndex == 19, isBarsVisible: _isBarsVisible),
+      PredictorScreen(apiService: widget.apiService, isVisible: _currentIndex == 20, isBarsVisible: _isBarsVisible),
+      EventPredictorScreen(apiService: widget.apiService, isVisible: _currentIndex == 21, isBarsVisible: _isBarsVisible),
     ];    final isDesktop = ObsidianResponsive.isDesktop(context, overrideMode: widget.apiService.uiMode);
 
     final mainIndexedStack = ObsidianAnimatedIndexedStack(

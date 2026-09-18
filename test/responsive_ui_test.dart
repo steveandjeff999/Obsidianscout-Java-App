@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:obsidianscout_app/l10n/app_localizations.dart';
 import 'package:obsidianscout_app/main.dart';
 import 'package:obsidianscout_app/models/config_models.dart';
@@ -51,6 +54,16 @@ class _MockResponsiveApiService extends ApiService {
   Future<List<MatchModel>> fetchMatches(String? eventKey) async => [
         MatchModel(matchKey: '2026test_qm1', eventKey: '2026test', matchNumber: 1, compLevel: 'qm', label: 'Quals 1'),
       ];
+
+  @override
+  Future<List<EventModel>> fetchEvents({int? year}) async => [
+        EventModel(eventKey: '2026test', name: 'Test Regional', year: 2026),
+      ];
+
+  @override
+  Future<List<EventModel>> getCachedEvents({int? year}) async => [
+        EventModel(eventKey: '2026test', name: 'Test Regional', year: 2026),
+      ];
 }
 
 class _TestAppLocalizations extends AppLocalizations {
@@ -96,6 +109,23 @@ class _TestAppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizatio
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('plugins.flutter.io/local_auth'),
+      (MethodCall methodCall) async {
+        if (methodCall.method == 'isDeviceSupported') return false;
+        if (methodCall.method == 'canCheckBiometrics') return false;
+        if (methodCall.method == 'getAvailableBiometrics') return <String>[];
+        return null;
+      },
+    );
+  });
+
   Widget createTestApp(Widget home) {
     return MaterialApp(
       localizationsDelegates: const [

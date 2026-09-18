@@ -184,6 +184,33 @@ class MatchModel {
     return '${compLevel.toUpperCase()} $numStr'.trim();
   }
 
+  bool hasTeam(int teamNumber) {
+    final cleanTarget = teamNumber.toString();
+    bool checkList(List<String> list) {
+      return list.any((key) {
+        final clean = key.replaceAll(RegExp(r'^(frc|ftc)', caseSensitive: false), '').trim();
+        if (clean == cleanTarget) return true;
+        final parts = key.split('/');
+        return parts.any((part) => part.replaceAll(RegExp(r'^(frc|ftc)', caseSensitive: false), '').trim() == cleanTarget);
+      });
+    }
+    return checkList(redTeams) || checkList(blueTeams);
+  }
+
+  Set<int> getTeamNumbers() {
+    final result = <int>{};
+    for (final key in [...redTeams, ...blueTeams]) {
+      for (final part in key.split('/')) {
+        final clean = part.replaceAll(RegExp(r'^(frc|ftc)', caseSensitive: false), '').trim();
+        final num = int.tryParse(clean);
+        if (num != null) {
+          result.add(num);
+        }
+      }
+    }
+    return result;
+  }
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||

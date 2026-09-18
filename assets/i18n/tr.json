@@ -1384,5 +1384,8 @@
   "bi.move_right": "Sağa Taşı",
   "bi.duplicate": "Çoğalt",
   "bi.edit": "Düzenle",
-  "bi.delete": "Sil"
+  "bi.delete": "Sil",
+  "nav.event_predictor": "Etkinlik Tahmincisi",
+  "subtitle.predictor": "Birebir maç tahmini ve ittifak gücü simülatörü",
+  "subtitle.event_predictor": "Tüm planlanan etkinlik maçları için sonuçları simüle edin ve tahmin edin"
 }
