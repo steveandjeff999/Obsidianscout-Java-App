@@ -62,10 +62,10 @@ class ObsidianGlassAppBar extends StatelessWidget implements PreferredSizeWidget
                               subtitle.toUpperCase(),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 11.0,
                                 fontWeight: FontWeight.w600,
-                                color: ObsidianUITheme.primaryAccent,
+                                color: ObsidianUITheme.getPrimaryAccent(context),
                                 letterSpacing: 1.2,
                               ),
                             ),

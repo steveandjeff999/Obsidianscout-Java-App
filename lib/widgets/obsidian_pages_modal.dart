@@ -329,11 +329,11 @@ class ObsidianPagesModal extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Row(
+                    Row(
                       children: [
                         Icon(Icons.widgets_rounded, color: ObsidianUITheme.primaryAccent, size: 26),
-                        SizedBox(width: 10),
-                        Text(
+                        const SizedBox(width: 10),
+                        const Text(
                           'All App Pages Directory',
                           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
                         ),
@@ -417,7 +417,7 @@ class ObsidianPagesModal extends StatelessWidget {
                               ),
                             ),
                             trailing: isSelected
-                                ? const Icon(Icons.check_circle_rounded, color: ObsidianUITheme.primaryAccent, size: 20)
+                                ? Icon(Icons.check_circle_rounded, color: ObsidianUITheme.primaryAccent, size: 20)
                                 : const Icon(Icons.chevron_right_rounded, color: Colors.white30, size: 20),
                             onTap: () {
                               Navigator.of(context).pop();

@@ -213,7 +213,7 @@ class _InlineCameraCaptureDialogState extends State<InlineCameraCaptureDialog> {
                     color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.camera_alt_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
+                  child: Icon(Icons.camera_alt_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -302,13 +302,13 @@ class _InlineCameraCaptureDialogState extends State<InlineCameraCaptureDialog> {
 
   Widget _buildCameraBody() {
     if (_isInitializing) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             CircularProgressIndicator(strokeWidth: 2.5, color: ObsidianUITheme.primaryAccent),
-            SizedBox(height: 12),
-            Text('Accessing camera...', style: TextStyle(color: Colors.white70, fontSize: 13)),
+            const SizedBox(height: 12),
+            const Text('Accessing camera...', style: TextStyle(color: Colors.white70, fontSize: 13)),
           ],
         ),
       );

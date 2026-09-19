@@ -141,7 +141,7 @@ class _LoginScreenState extends State<LoginScreen> {
           backgroundColor: surface,
           title: Row(
             children: [
-              const Icon(Icons.fingerprint_rounded, color: ObsidianUITheme.primaryAccent),
+              Icon(Icons.fingerprint_rounded, color: ObsidianUITheme.primaryAccent),
               const SizedBox(width: 10),
               Expanded(
                 child: Text('Enable Biometric Sign-In?', style: TextStyle(color: primaryText, fontSize: 18)),
@@ -450,9 +450,7 @@ class _LoginScreenState extends State<LoginScreen> {
         },
         child: Scaffold(
           body: Container(
-            decoration: BoxDecoration(
-              color: Theme.of(context).scaffoldBackgroundColor,
-            ),
+            decoration: ObsidianUITheme.getBackgroundDecoration(context),
             child: Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(24.0),
@@ -467,7 +465,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           width: 80.0,
                           height: 80.0,
                           fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) => const Icon(
+                          errorBuilder: (context, error, stackTrace) => Icon(
                             Icons.shield_outlined,
                             size: 80.0,
                             color: ObsidianUITheme.primaryAccent,
@@ -500,7 +498,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
                                     shape: BoxShape.circle,
                                   ),
-                                  child: const Icon(
+                                  child: Icon(
                                     Icons.fingerprint_rounded,
                                     size: 48.0,
                                     color: ObsidianUITheme.primaryAccent,
@@ -611,9 +609,7 @@ class _LoginScreenState extends State<LoginScreen> {
       },
       child: Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-        ),
+        decoration: ObsidianUITheme.getBackgroundDecoration(context),
         child: Center(
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
@@ -651,7 +647,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       width: 64.0,
                       height: 64.0,
                       fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) => const Icon(
+                      errorBuilder: (context, error, stackTrace) => Icon(
                         Icons.shield_outlined,
                         size: 64.0,
                         color: ObsidianUITheme.primaryAccent,
@@ -685,7 +681,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           Expanded(
                             child: Text(
                               context.tr('login.server_config'),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 11.0,
                                 fontWeight: FontWeight.bold,
                                 color: ObsidianUITheme.primaryAccent,
@@ -716,7 +712,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             labelStyle: TextStyle(color: secondaryTextColor),
                             hintText: 'http(s)://your-ip-or-domain(:port)',
                             hintStyle: TextStyle(color: faintTextColor),
-                            prefixIcon: const Icon(Icons.dns_rounded, color: ObsidianUITheme.primaryAccent),
+                            prefixIcon: Icon(Icons.dns_rounded, color: ObsidianUITheme.primaryAccent),
                             enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
                           ),
                         ),
@@ -804,7 +800,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     onTap: _isSubmitting ? null : (_activeTabIndex == 0 ? _handleLogin : _handleRegister),
                     child: Center(
                       child: _isSubmitting
-                          ? const CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)
+                          ? CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)
                           : Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
@@ -827,7 +823,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       onTap: (_isSubmitting || _isAuthenticatingBiometric) ? null : _handleBiometricUnlock,
                       child: Center(
                         child: _isAuthenticatingBiometric
-                            ? const CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)
+                            ? CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)
                             : Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -948,7 +944,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               child: Text(
                 context.tr('index.forgot_usernamepassword', 'Forgot username/password?'),
-                style: const TextStyle(
+                style: TextStyle(
                   color: ObsidianUITheme.primaryAccent,
                   fontSize: 13.0,
                   fontWeight: FontWeight.w600,
@@ -972,7 +968,7 @@ class _LoginScreenState extends State<LoginScreen> {
             decoration: InputDecoration(
               labelText: context.tr('login.new_username'),
               labelStyle: TextStyle(color: secondaryTextColor),
-              prefixIcon: const Icon(Icons.person_add_outlined, color: ObsidianUITheme.secondaryAccent),
+              prefixIcon: Icon(Icons.person_add_outlined, color: ObsidianUITheme.secondaryAccent),
               enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
             ),
             validator: (val) => val == null || val.trim().isEmpty ? context.tr('login.username') : null,
@@ -1044,7 +1040,7 @@ class _LoginScreenState extends State<LoginScreen> {
             decoration: InputDecoration(
               labelText: context.tr('login.role'),
               labelStyle: TextStyle(color: secondaryTextColor),
-              prefixIcon: const Icon(Icons.badge_outlined, color: ObsidianUITheme.secondaryAccent),
+              prefixIcon: Icon(Icons.badge_outlined, color: ObsidianUITheme.secondaryAccent),
               enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
             ),
             items: const [
@@ -1282,8 +1278,8 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               TextButton.icon(
                 onPressed: () => _openResetPasswordModal(),
-                icon: const Icon(Icons.vpn_key_outlined, size: 16, color: ObsidianUITheme.primaryAccent),
-                label: const Text(
+                icon: Icon(Icons.vpn_key_outlined, size: 16, color: ObsidianUITheme.primaryAccent),
+                label: Text(
                   'Have a token?',
                   style: TextStyle(color: ObsidianUITheme.primaryAccent, fontSize: 13.0, fontWeight: FontWeight.w600),
                 ),

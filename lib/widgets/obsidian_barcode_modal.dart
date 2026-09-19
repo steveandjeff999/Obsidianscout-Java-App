@@ -258,7 +258,7 @@ class _ObsidianBarcodeModalState extends State<ObsidianBarcodeModal> {
               value: options.containsKey(_maxChunkSize) ? _maxChunkSize : 450,
               dropdownColor: surfaceColor,
               isDense: true,
-              icon: const Icon(
+              icon: Icon(
                 Icons.arrow_drop_down_rounded,
                 color: ObsidianUITheme.primaryAccent,
               ),
@@ -326,7 +326,7 @@ class _ObsidianBarcodeModalState extends State<ObsidianBarcodeModal> {
                               if (_qrChunks.length > 1) ...[
                                 Text(
                                   'GRID OF ${_qrChunks.length} QR CODES',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: ObsidianUITheme.primaryAccent,
                                     fontSize: 14.0,
                                     fontWeight: FontWeight.bold,
@@ -473,7 +473,7 @@ class _ObsidianBarcodeModalState extends State<ObsidianBarcodeModal> {
                     if (_qrChunks.length > 1)
                       Text(
                         'Multi-QR Grid (${_qrChunks.length} Parts)',
-                        style: const TextStyle(fontSize: 12.0, color: ObsidianUITheme.primaryAccent, fontWeight: FontWeight.bold),
+                        style: TextStyle(fontSize: 12.0, color: ObsidianUITheme.primaryAccent, fontWeight: FontWeight.bold),
                       ),
                   ],
                 ),
@@ -585,7 +585,7 @@ class _ObsidianBarcodeModalState extends State<ObsidianBarcodeModal> {
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 10.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, letterSpacing: 1.0),
+          style: TextStyle(fontSize: 10.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, letterSpacing: 1.0),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 4.0),

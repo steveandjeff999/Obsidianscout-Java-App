@@ -354,7 +354,7 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
             // Tab Views
             Expanded(
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent))
+                  ? Center(child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent))
                   : TabBarView(
                       controller: _tabController,
                       children: [
@@ -385,7 +385,7 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
           Container(
             width: 44,
             height: 44,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: LinearGradient(
                 colors: [ObsidianUITheme.primaryAccent, ObsidianUITheme.secondaryAccent],
@@ -424,7 +424,7 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: ObsidianUITheme.primaryAccent),
+            icon: Icon(Icons.refresh_rounded, color: ObsidianUITheme.primaryAccent),
             onPressed: _loadData,
           ),
         ],
@@ -467,7 +467,7 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.pie_chart_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
+                    Icon(Icons.pie_chart_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
                     const SizedBox(width: 8),
                     Text(
                       context.tr('team_details.scoring_breakdown', 'Scoring Breakdown by Phase'),
@@ -492,7 +492,7 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
                   children: [
                     Text('${context.tr("team_details.max_score", "Max Match Score")}: ${_maxTotalScore.toStringAsFixed(1)}', style: TextStyle(fontSize: 12, color: secondaryTextColor)),
                     Text('${context.tr("team_details.min_score", "Min")}: ${_minTotalScore.toStringAsFixed(1)}', style: TextStyle(fontSize: 12, color: secondaryTextColor)),
-                    Text('${context.tr("team_details.scouted_matches", "Scouted Matches")}: ${_matchEntries.length}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent)),
+                    Text('${context.tr("team_details.scouted_matches", "Scouted Matches")}: ${_matchEntries.length}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent)),
                   ],
                 ),
               ],
@@ -510,7 +510,7 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.show_chart_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
+                          Icon(Icons.show_chart_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
                           const SizedBox(width: 8),
                           Text(
                             context.tr('team_details.match_scoring_trend', 'Match-by-Match Scoring Trend'),
@@ -550,7 +550,7 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.tune_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
+                      Icon(Icons.tune_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
                       const SizedBox(width: 8),
                       Text(
                         context.tr('team_details.game_metrics', 'Game Metrics Analysis'),
@@ -572,7 +572,7 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.rate_review_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
+                      Icon(Icons.rate_review_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
                       const SizedBox(width: 8),
                       Text(
                         '${context.tr("team_details.qualitative_notes", "Qualitative Scout Notes")} (${_qualEntries.length})',
@@ -600,7 +600,7 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text('Match $matchNum', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: ObsidianUITheme.primaryAccent)),
+                                Text('Match $matchNum', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: ObsidianUITheme.primaryAccent)),
                                 Text('By $scouter', style: TextStyle(fontSize: 11, color: secondaryTextColor)),
                               ],
                             ),
@@ -716,7 +716,7 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
                     children: [
                       Text(
                         'Match ${item.matchNumber} Breakdown',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.bold,
                           color: ObsidianUITheme.primaryAccent,
@@ -888,7 +888,7 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(metric.field.label, style: TextStyle(fontSize: 13, color: primaryTextColor)),
-                Text('${pct.toStringAsFixed(0)}% (${metric.total.toInt()}/${metric.count})', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent)),
+                Text('${pct.toStringAsFixed(0)}% (${metric.total.toInt()}/${metric.count})', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent)),
               ],
             ),
             const SizedBox(height: 4),
@@ -897,7 +897,7 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
               child: LinearProgressIndicator(
                 value: (pct / 100).clamp(0.0, 1.0),
                 backgroundColor: ObsidianUITheme.isDark(context) ? Colors.white10 : Colors.black12,
-                valueColor: const AlwaysStoppedAnimation<Color>(ObsidianUITheme.primaryAccent),
+                valueColor: AlwaysStoppedAnimation<Color>(ObsidianUITheme.primaryAccent),
                 minHeight: 6,
               ),
             ),
@@ -929,7 +929,7 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
               ),
               child: Text(
                 'Avg: ${metric.average!.toStringAsFixed(1)}',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent),
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent),
               ),
             ),
           ],

@@ -449,7 +449,7 @@ class _QualRankingsScreenState extends State<QualRankingsScreen> {
                                   color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Icon(Icons.stars_rounded, color: ObsidianUITheme.primaryAccent, size: 24),
+                                child: Icon(Icons.stars_rounded, color: ObsidianUITheme.primaryAccent, size: 24),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
@@ -476,7 +476,7 @@ class _QualRankingsScreenState extends State<QualRankingsScreen> {
                                           ),
                                           child: Text(
                                             '${teamScores.length} teams',
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontSize: 11,
                                               fontWeight: FontWeight.bold,
                                               color: ObsidianUITheme.primaryAccent,
@@ -689,7 +689,7 @@ class _QualRankingsScreenState extends State<QualRankingsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           if (_isLoading && _rawEntries.isEmpty)
-                            const Padding(
+                            Padding(
                               padding: EdgeInsets.symmetric(vertical: 40),
                               child: Center(
                                 child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent),
@@ -841,7 +841,7 @@ class _QualRankingsScreenState extends State<QualRankingsScreen> {
                     onTap: () => _openTeamDetails(item.team),
                     child: Text(
                       'Team ${item.team.teamNumber}',
-                      style: const TextStyle(fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent),
+                      style: TextStyle(fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent),
                     ),
                   ),
                 ),
@@ -897,7 +897,7 @@ class _QualRankingsScreenState extends State<QualRankingsScreen> {
                       ),
                       child: Text(
                         '${item.entriesCount} times',
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: ObsidianUITheme.primaryAccent),
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: ObsidianUITheme.primaryAccent),
                       ),
                     ),
                   ),
@@ -956,7 +956,7 @@ class _QualRankingsScreenState extends State<QualRankingsScreen> {
                     if (primaryScore != null && !primaryScore.isNaN) ...[
                       Text(
                         primaryScore.toStringAsFixed(1),
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: ObsidianUITheme.primaryAccent),
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: ObsidianUITheme.primaryAccent),
                       ),
                       const SizedBox(width: 4),
                       Icon(Icons.star_rounded, size: 16, color: Colors.amberAccent),
@@ -996,7 +996,7 @@ class _QualRankingsScreenState extends State<QualRankingsScreen> {
                         ),
                         child: Text(
                           '${item.entriesCount} entries',
-                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: ObsidianUITheme.primaryAccent),
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: ObsidianUITheme.primaryAccent),
                         ),
                       ),
                       const SizedBox(width: 8),

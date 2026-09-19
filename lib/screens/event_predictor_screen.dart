@@ -97,11 +97,9 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> {
             _events = events;
           }
           _isLoadingEvents = false;
-          if (_selectedEventKey == null) {
-            _selectedEventKey = (currentEventKey != null && currentEventKey.isNotEmpty)
+          _selectedEventKey ??= (currentEventKey != null && currentEventKey.isNotEmpty)
                 ? currentEventKey
                 : (events.isNotEmpty ? events.first.eventKey : null);
-          }
         });
         if (_selectedEventKey != null && _predictions.isEmpty) {
           _fetchPredictions(_selectedEventKey!);
@@ -620,7 +618,6 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> {
     final diff = (redPoints - bluePoints).abs();
     final bool isRedWinner = redPoints > bluePoints && (redPoints > 0 || bluePoints > 0);
     final bool isBlueWinner = bluePoints > redPoints && (redPoints > 0 || bluePoints > 0);
-    final bool isTie = (redPoints == bluePoints) && (redPoints > 0);
     final bool noData = redPoints == 0 && bluePoints == 0;
 
     Color winnerColor;

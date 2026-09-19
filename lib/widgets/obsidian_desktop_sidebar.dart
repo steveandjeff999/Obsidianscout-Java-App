@@ -40,10 +40,14 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
   @override
   Widget build(BuildContext context) {
     final isDark = ObsidianUITheme.isDark(context);
-    final sidebarBg = isDark ? const Color(0xF20A0D14) : const Color(0xF8F1F5F9);
-    final borderColor = isDark ? Colors.white10 : Colors.black12;
-    final headerTextColor = isDark ? Colors.white : const Color(0xFF0F172A);
-    final sectionLabelColor = isDark ? Colors.white38 : Colors.black45;
+    final sidebarBg = isDark
+        ? ObsidianUITheme.getSurfaceColor(context).withValues(alpha: 0.88)
+        : ObsidianUITheme.getSurfaceColor(context).withValues(alpha: 0.95);
+    final borderColor = ObsidianUITheme.getBorderColor(context);
+    final headerTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+    final sectionLabelColor = ObsidianUITheme.getSecondaryTextColor(context);
+    final primaryAccent = ObsidianUITheme.getPrimaryAccent(context);
+    final itemRadius = ObsidianUITheme.getButtonRadius(context, fallback: 10.0).clamp(4.0, 16.0);
 
     final user = widget.apiService.currentUser;
     final username = user?.username.isNotEmpty == true
@@ -246,6 +250,13 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
             'subKey': 'subtitle.config_editor',
           },
           {
+            'pageId': 'theme-editor',
+            'index': 28,
+            'icon': Icons.palette_rounded,
+            'labelKey': 'nav.theme_editor',
+            'subKey': 'subtitle.theme_editor',
+          },
+          {
             'pageId': 'users',
             'index': 22,
             'icon': Icons.manage_accounts_rounded,
@@ -315,7 +326,7 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
                           width: 28.0,
                           height: 28.0,
                           fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) => const Icon(
+                          errorBuilder: (context, error, stackTrace) => Icon(
                             Icons.shield_rounded,
                             color: ObsidianUITheme.primaryAccent,
                             size: 24.0,
@@ -360,7 +371,7 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
               margin: const EdgeInsets.all(8.0),
               decoration: BoxDecoration(
                 color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03),
-                borderRadius: BorderRadius.circular(12.0),
+                borderRadius: BorderRadius.circular(itemRadius),
                 border: Border.all(color: borderColor),
               ),
               child: Row(
@@ -388,10 +399,10 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
                         ),
                         Text(
                           roleLabel,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 10.0,
                             fontWeight: FontWeight.w600,
-                            color: ObsidianUITheme.primaryAccent,
+                            color: primaryAccent,
                           ),
                         ),
                       ],
@@ -466,9 +477,9 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
                             margin: const EdgeInsets.symmetric(vertical: 2.0),
                             child: Material(
                               color: isSelected
-                                  ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.2)
+                                  ? primaryAccent.withValues(alpha: 0.2)
                                   : Colors.transparent,
-                              borderRadius: BorderRadius.circular(10.0),
+                              borderRadius: BorderRadius.circular(itemRadius),
                               child: InkWell(
                                 onTap: () {
                                   if (isAction) {
@@ -478,15 +489,15 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
                                     widget.onSelectScreen(idx);
                                   }
                                 },
-                                borderRadius: BorderRadius.circular(10.0),
+                                borderRadius: BorderRadius.circular(itemRadius),
                                 child: Container(
                                   height: 40.0,
                                   alignment: Alignment.center,
                                   decoration: isSelected
                                       ? BoxDecoration(
-                                          borderRadius: BorderRadius.circular(10.0),
+                                          borderRadius: BorderRadius.circular(itemRadius),
                                           border: Border.all(
-                                            color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.5),
+                                            color: primaryAccent.withValues(alpha: 0.5),
                                             width: 1.0,
                                           ),
                                         )
@@ -494,7 +505,7 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
                                   child: Icon(
                                     item['icon'] as IconData,
                                     size: 20.0,
-                                    color: isSelected ? ObsidianUITheme.primaryAccent : unselectedIconColor,
+                                    color: isSelected ? primaryAccent : unselectedIconColor,
                                   ),
                                 ),
                               ),
@@ -507,9 +518,9 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
                         margin: const EdgeInsets.symmetric(vertical: 1.5),
                         child: Material(
                           color: isSelected
-                              ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.18)
+                              ? primaryAccent.withValues(alpha: 0.18)
                               : Colors.transparent,
-                          borderRadius: BorderRadius.circular(10.0),
+                          borderRadius: BorderRadius.circular(itemRadius),
                           child: InkWell(
                             onTap: () {
                               if (isAction) {
@@ -519,14 +530,14 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
                                 widget.onSelectScreen(idx);
                               }
                             },
-                            borderRadius: BorderRadius.circular(10.0),
+                            borderRadius: BorderRadius.circular(itemRadius),
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 7.0),
                               decoration: isSelected
                                   ? BoxDecoration(
-                                      borderRadius: BorderRadius.circular(10.0),
+                                      borderRadius: BorderRadius.circular(itemRadius),
                                       border: Border.all(
-                                        color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.4),
+                                        color: primaryAccent.withValues(alpha: 0.4),
                                         width: 1.0,
                                       ),
                                     )
@@ -536,7 +547,7 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
                                   Icon(
                                     item['icon'] as IconData,
                                     size: 18.0,
-                                    color: isSelected ? ObsidianUITheme.primaryAccent : unselectedIconColor,
+                                    color: isSelected ? primaryAccent : unselectedIconColor,
                                   ),
                                   const SizedBox(width: 10.0),
                                   Expanded(
@@ -546,7 +557,7 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
                                         fontSize: 12.5,
                                         fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                                         color: isSelected
-                                            ? (isDark ? Colors.white : ObsidianUITheme.primaryAccent)
+                                            ? (isDark ? Colors.white : primaryAccent)
                                             : unselectedItemColor,
                                       ),
                                       maxLines: 1,
@@ -557,9 +568,9 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
                                     Container(
                                       width: 5,
                                       height: 5,
-                                      decoration: const BoxDecoration(
+                                      decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: ObsidianUITheme.primaryAccent,
+                                        color: primaryAccent,
                                       ),
                                     ),
                                 ],

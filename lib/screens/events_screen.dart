@@ -520,7 +520,7 @@ class _EventsScreenState extends State<EventsScreen> {
                                   color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Icon(Icons.event_rounded, color: ObsidianUITheme.primaryAccent, size: 24),
+                                child: Icon(Icons.event_rounded, color: ObsidianUITheme.primaryAccent, size: 24),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
@@ -631,7 +631,7 @@ class _EventsScreenState extends State<EventsScreen> {
                                 ),
                               ),
                               if (_isLoading)
-                                const SizedBox(
+                                SizedBox(
                                   width: 18,
                                   height: 18,
                                   child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianUITheme.primaryAccent),
@@ -640,7 +640,7 @@ class _EventsScreenState extends State<EventsScreen> {
                           ),
                           const SizedBox(height: 12),
                           if (_isLoading && _events.isEmpty)
-                            const Padding(
+                            Padding(
                               padding: EdgeInsets.symmetric(vertical: 40),
                               child: Center(
                                 child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent),
@@ -724,7 +724,7 @@ class _EventsScreenState extends State<EventsScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.edit_rounded, size: 18, color: ObsidianUITheme.primaryAccent),
+                          icon: Icon(Icons.edit_rounded, size: 18, color: ObsidianUITheme.primaryAccent),
                           tooltip: context.tr('common.edit', 'Edit'),
                           onPressed: () => _openEventModal(e),
                         ),
@@ -784,7 +784,7 @@ class _EventsScreenState extends State<EventsScreen> {
                           ),
                           child: Text(
                             e.eventKey,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'monospace',
                               fontSize: 11,
                               color: ObsidianUITheme.primaryAccent,
@@ -810,7 +810,7 @@ class _EventsScreenState extends State<EventsScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.edit_rounded, size: 20, color: ObsidianUITheme.primaryAccent),
+                      icon: Icon(Icons.edit_rounded, size: 20, color: ObsidianUITheme.primaryAccent),
                       onPressed: () => _openEventModal(e),
                     ),
                     IconButton(

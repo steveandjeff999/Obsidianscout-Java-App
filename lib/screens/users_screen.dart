@@ -328,7 +328,7 @@ class _UsersScreenState extends State<UsersScreen> {
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.manage_accounts_rounded, color: ObsidianUITheme.primaryAccent, size: 24),
+                            Icon(Icons.manage_accounts_rounded, color: ObsidianUITheme.primaryAccent, size: 24),
                             const SizedBox(width: 10),
                             Text(
                               dialogCtx.tr('users.edit_user', 'Edit User'),
@@ -692,7 +692,7 @@ class _UsersScreenState extends State<UsersScreen> {
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.3)),
                             ),
-                            child: const Icon(Icons.manage_accounts_rounded, color: ObsidianUITheme.primaryAccent, size: 26),
+                            child: Icon(Icons.manage_accounts_rounded, color: ObsidianUITheme.primaryAccent, size: 26),
                           ),
                           const SizedBox(width: 14),
                           Expanded(
@@ -730,7 +730,7 @@ class _UsersScreenState extends State<UsersScreen> {
 
               // Users List / Table
               if (_isLoading)
-                const SliverFillRemaining(
+                SliverFillRemaining(
                   hasScrollBody: false,
                   child: Center(
                     child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent),
@@ -796,7 +796,7 @@ class _UsersScreenState extends State<UsersScreen> {
                   child: _hasMore
                       ? Center(
                           child: _isLoadingMore
-                              ? const CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)
+                              ? CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)
                               : ElevatedButton.icon(
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: ObsidianUITheme.getSurfaceColor(context),
@@ -879,7 +879,7 @@ class _UsersScreenState extends State<UsersScreen> {
               color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(Icons.person_add_alt_1_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
+            child: Icon(Icons.person_add_alt_1_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
           ),
           title: Text(
             context.tr('users.create_user', 'Create user'),
@@ -1088,7 +1088,7 @@ class _UsersScreenState extends State<UsersScreen> {
           children: [
             Row(
               children: [
-                const Icon(Icons.filter_list_rounded, size: 18, color: ObsidianUITheme.primaryAccent),
+                Icon(Icons.filter_list_rounded, size: 18, color: ObsidianUITheme.primaryAccent),
                 const SizedBox(width: 8),
                 Text(
                   context.tr('users.current_users', 'Current users'),
@@ -1291,7 +1291,7 @@ class _UsersScreenState extends State<UsersScreen> {
                       children: [
                         if (canEdit) ...[
                           IconButton(
-                            icon: const Icon(Icons.edit_rounded, size: 18, color: ObsidianUITheme.primaryAccent),
+                            icon: Icon(Icons.edit_rounded, size: 18, color: ObsidianUITheme.primaryAccent),
                             tooltip: 'Edit User',
                             onPressed: () => _openEditModal(user),
                           ),

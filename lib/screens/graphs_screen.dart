@@ -748,7 +748,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent));
+      return Center(child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent));
     }
 
     final filteredTeams = _teams.where((t) {
@@ -773,7 +773,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(context.tr('dashboard.data_summary').toUpperCase(),
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, letterSpacing: 1.0)),
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, letterSpacing: 1.0)),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -805,7 +805,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
                       ),
                       child: Text(
                         _selectedTeams.isNotEmpty ? '${_selectedTeams.length} selected' : 'No teams selected',
-                        style: const TextStyle(color: ObsidianUITheme.primaryAccent, fontSize: 11, fontWeight: FontWeight.w600),
+                        style: TextStyle(color: ObsidianUITheme.primaryAccent, fontSize: 11, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ],
@@ -815,13 +815,13 @@ class _GraphsScreenState extends State<GraphsScreen> {
                 // Event filter
                 DropdownButtonFormField<String>(
                   isExpanded: true,
-                  value: _eventKey ?? '',
+                  initialValue: _eventKey ?? '',
                   dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                   style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
                   decoration: InputDecoration(
                     labelText: context.tr('graphs.event_filter'),
                     labelStyle: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context)),
-                    prefixIcon: const Icon(Icons.event_rounded, color: ObsidianUITheme.primaryAccent),
+                    prefixIcon: Icon(Icons.event_rounded, color: ObsidianUITheme.primaryAccent),
                     enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
                   ),
                   items: [
@@ -863,7 +863,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
                       return Chip(
                         label: Text('Team $teamNum', style: const TextStyle(fontSize: 11, color: Colors.white)),
                         backgroundColor: ObsidianUITheme.primaryAccent.withValues(alpha: 0.25),
-                        side: const BorderSide(color: ObsidianUITheme.primaryAccent),
+                        side: BorderSide(color: ObsidianUITheme.primaryAccent),
                         deleteIcon: const Icon(Icons.close_rounded, size: 14, color: Colors.white70),
                         onDeleted: () {
                           setState(() => _selectedTeams.remove(teamNum));
@@ -891,7 +891,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
                           )
                         : null,
                     enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
-                    focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+                    focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
                 ),
@@ -959,7 +959,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(context.tr('graphs.graph_options').toUpperCase(),
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.secondaryAccent, letterSpacing: 1.0)),
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.secondaryAccent, letterSpacing: 1.0)),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
@@ -968,7 +968,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
                       ),
                       child: Text(
                         '${_selectedGraphTypes.length} selected',
-                        style: const TextStyle(color: ObsidianUITheme.secondaryAccent, fontSize: 11, fontWeight: FontWeight.w600),
+                        style: TextStyle(color: ObsidianUITheme.secondaryAccent, fontSize: 11, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ],
@@ -979,13 +979,13 @@ class _GraphsScreenState extends State<GraphsScreen> {
                 if (showDatasource) ...[
                   DropdownButtonFormField<String>(
                     isExpanded: true,
-                    value: _datasource,
+                    initialValue: _datasource,
                     dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                     style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
                     decoration: InputDecoration(
                       labelText: context.tr('predictor.data_source'),
                       labelStyle: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context)),
-                      prefixIcon: const Icon(Icons.storage_rounded, color: ObsidianUITheme.secondaryAccent),
+                      prefixIcon: Icon(Icons.storage_rounded, color: ObsidianUITheme.secondaryAccent),
                       enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
                     ),
                     items: [
@@ -1006,13 +1006,13 @@ class _GraphsScreenState extends State<GraphsScreen> {
                 if (_datasource == 'scouted') ...[
                   DropdownButtonFormField<GraphMetric>(
                     isExpanded: true,
-                    value: _metrics.contains(_selectedMetric) ? _selectedMetric : (_metrics.isNotEmpty ? _metrics.first : null),
+                    initialValue: _metrics.contains(_selectedMetric) ? _selectedMetric : (_metrics.isNotEmpty ? _metrics.first : null),
                     dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                     style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
                     decoration: InputDecoration(
                       labelText: context.tr('graphs.metric'),
                       labelStyle: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context)),
-                      prefixIcon: const Icon(Icons.assessment_rounded, color: ObsidianUITheme.primaryAccent),
+                      prefixIcon: Icon(Icons.assessment_rounded, color: ObsidianUITheme.primaryAccent),
                       enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
                     ),
                     items: _metrics.map((m) => DropdownMenuItem(value: m, child: Text(m.label, overflow: TextOverflow.ellipsis))).toList(),
@@ -1043,13 +1043,13 @@ class _GraphsScreenState extends State<GraphsScreen> {
                 // Sort teams dropdown
                 DropdownButtonFormField<String>(
                   isExpanded: true,
-                  value: _sort,
+                  initialValue: _sort,
                   dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                   style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
                   decoration: InputDecoration(
                     labelText: context.tr('graphs.sort_teams'),
                     labelStyle: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context)),
-                    prefixIcon: const Icon(Icons.sort_rounded, color: ObsidianUITheme.secondaryAccent),
+                    prefixIcon: Icon(Icons.sort_rounded, color: ObsidianUITheme.secondaryAccent),
                     enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
                   ),
                   items: const [
@@ -1133,7 +1133,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
                 borderRadius: BorderRadius.circular(16),
                 child: Ink(
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
+                    gradient: LinearGradient(
                       colors: [ObsidianUITheme.primaryAccent, Color(0xFF6366F1)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -1464,7 +1464,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
                   children: [
                     Text(
                       'Bin Range: ${bin.rangeLabel}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: ObsidianUITheme.primaryAccent,
@@ -1519,7 +1519,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
                                 children: [
                                   Text(
                                     'Team $tNum',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 13,
                                       color: ObsidianUITheme.primaryAccent,
@@ -1591,7 +1591,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
                         fontSize: 14,
                       ),
                     ),
-                    const TextSpan(
+                    TextSpan(
                       text: '\n(Tap to Inspect)',
                       style: TextStyle(
                         color: ObsidianUITheme.primaryAccent,
@@ -1624,7 +1624,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
                     show: true,
                     alignment: Alignment.topRight,
                     padding: const EdgeInsets.only(right: 6, bottom: 4),
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: ObsidianUITheme.primaryAccent,
                       fontWeight: FontWeight.bold,
                       fontSize: 10,
@@ -1792,7 +1792,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
                     show: true,
                     alignment: Alignment.topRight,
                     padding: const EdgeInsets.only(right: 6, bottom: 4),
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: ObsidianUITheme.primaryAccent,
                       fontWeight: FontWeight.bold,
                       fontSize: 10,
@@ -2025,7 +2025,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
                     show: true,
                     alignment: Alignment.topRight,
                     padding: const EdgeInsets.only(right: 6, bottom: 4),
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: ObsidianUITheme.primaryAccent,
                       fontWeight: FontWeight.bold,
                       fontSize: 10,
@@ -2166,7 +2166,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(stats.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: ObsidianUITheme.primaryAccent)),
+                        Text(stats.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: ObsidianUITheme.primaryAccent)),
                         Text('${stats.count} matches', style: TextStyle(fontSize: 10, color: ObsidianUITheme.getTertiaryTextColor(context))),
                       ],
                     ),
@@ -2327,15 +2327,15 @@ class _GraphsScreenState extends State<GraphsScreen> {
     );
   }
 
-  List<Color> _chartPalette() => const [
+  List<Color> _chartPalette() => [
     ObsidianUITheme.primaryAccent,
     ObsidianUITheme.secondaryAccent,
     ObsidianUITheme.successGreen,
     ObsidianUITheme.warningOrange,
-    Color(0xFF8B5CF6), // Purple
-    Color(0xFFEC4899), // Pink
-    Color(0xFF06B6D4), // Cyan
-    Color(0xFFF59E0B), // Amber
+    const Color(0xFF8B5CF6), // Purple
+    const Color(0xFFEC4899), // Pink
+    const Color(0xFF06B6D4), // Cyan
+    const Color(0xFFF59E0B), // Amber
   ];
 }
 

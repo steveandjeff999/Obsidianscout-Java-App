@@ -746,7 +746,7 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent));
+      return Center(child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent));
     }
 
     return SingleChildScrollView(
@@ -790,7 +790,7 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
                       color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: const Icon(Icons.history_edu_rounded, color: ObsidianUITheme.primaryAccent, size: 30),
+                    child: Icon(Icons.history_edu_rounded, color: ObsidianUITheme.primaryAccent, size: 30),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -1181,11 +1181,11 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.schedule_rounded, size: 14, color: ObsidianUITheme.primaryAccent),
+                    Icon(Icons.schedule_rounded, size: 14, color: ObsidianUITheme.primaryAccent),
                     const SizedBox(width: 6),
                     Text(
                       _timezone,
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ObsidianUITheme.primaryAccent),
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ObsidianUITheme.primaryAccent),
                     ),
                   ],
                 ),
@@ -1206,7 +1206,7 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
       return ObsidianGlassCard(
         child: Row(
           children: [
-            const Icon(Icons.info_outline_rounded, color: ObsidianUITheme.primaryAccent, size: 24),
+            Icon(Icons.info_outline_rounded, color: ObsidianUITheme.primaryAccent, size: 24),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -1491,14 +1491,14 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
               child: OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  side: const BorderSide(color: ObsidianUITheme.primaryAccent),
+                  side: BorderSide(color: ObsidianUITheme.primaryAccent),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
                 onPressed: _isSubmitting ? null : () => _handleSubmit(isOffline: true),
-                icon: const Icon(Icons.save_alt_rounded, color: ObsidianUITheme.primaryAccent),
+                icon: Icon(Icons.save_alt_rounded, color: ObsidianUITheme.primaryAccent),
                 label: Text(
                   context.tr('scout.save_offline'),
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, fontSize: 12),
+                  style: TextStyle(fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, fontSize: 12),
                 ),
               ),
             ),
@@ -1515,10 +1515,10 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: _handleExportJson,
-                icon: const Icon(Icons.download_rounded, size: 18, color: ObsidianUITheme.secondaryAccent),
+                icon: Icon(Icons.download_rounded, size: 18, color: ObsidianUITheme.secondaryAccent),
                 label: Text(
                   context.tr('pit-scout.export_json'),
-                  style: const TextStyle(fontSize: 12, color: ObsidianUITheme.secondaryAccent),
+                  style: TextStyle(fontSize: 12, color: ObsidianUITheme.secondaryAccent),
                 ),
               ),
             ),

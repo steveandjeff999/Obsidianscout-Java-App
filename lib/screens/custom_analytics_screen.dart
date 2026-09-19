@@ -671,7 +671,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
                       children: [
                         Expanded(
                           child: DropdownButtonFormField<String>(
-                            value: widget.width,
+                            initialValue: widget.width,
                             dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                             style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context), fontSize: 12),
                             decoration: InputDecoration(
@@ -691,7 +691,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
                         const SizedBox(width: 10),
                         Expanded(
                           child: DropdownButtonFormField<String>(
-                            value: widget.palette,
+                            initialValue: widget.palette,
                             dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                             style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context), fontSize: 12),
                             decoration: InputDecoration(
@@ -713,7 +713,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       isExpanded: true,
-                      value: numericFields.any((f) => f.id == widget.measure) ? widget.measure : (numericFields.isNotEmpty ? numericFields.first.id : 'calc_total_score'),
+                      initialValue: numericFields.any((f) => f.id == widget.measure) ? widget.measure : (numericFields.isNotEmpty ? numericFields.first.id : 'calc_total_score'),
                       dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                       style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context), fontSize: 12),
                       decoration: InputDecoration(
@@ -733,7 +733,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
                       children: [
                         Expanded(
                           child: DropdownButtonFormField<String>(
-                            value: widget.aggregation,
+                            initialValue: widget.aggregation,
                             dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                             style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context), fontSize: 12),
                             decoration: InputDecoration(
@@ -756,7 +756,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
                         const SizedBox(width: 10),
                         Expanded(
                           child: DropdownButtonFormField<String>(
-                            value: widget.sort,
+                            initialValue: widget.sort,
                             dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                             style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context), fontSize: 12),
                             decoration: InputDecoration(
@@ -966,7 +966,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
                           ),
                           const SizedBox(height: 10),
                           DropdownButtonFormField<String>(
-                            value: category,
+                            initialValue: category,
                             dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                             style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context), fontSize: 13),
                             decoration: InputDecoration(
@@ -1100,7 +1100,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
                                             color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
                                             borderRadius: BorderRadius.circular(6),
                                           ),
-                                          child: Text(rep.category, style: const TextStyle(fontSize: 10, color: ObsidianUITheme.primaryAccent, fontWeight: FontWeight.bold)),
+                                          child: Text(rep.category, style: TextStyle(fontSize: 10, color: ObsidianUITheme.primaryAccent, fontWeight: FontWeight.bold)),
                                         ),
                                         if (rep.isDefault) ...[
                                           const SizedBox(width: 6),
@@ -1125,7 +1125,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
                                 ),
                               ),
                               IconButton(
-                                icon: const Icon(Icons.download_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
+                                icon: Icon(Icons.download_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
                                 tooltip: 'Load Report',
                                 onPressed: () {
                                   try {
@@ -1149,7 +1149,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
                                 },
                               ),
                               IconButton(
-                                icon: const Icon(Icons.copy_rounded, color: ObsidianUITheme.secondaryAccent, size: 18),
+                                icon: Icon(Icons.copy_rounded, color: ObsidianUITheme.secondaryAccent, size: 18),
                                 tooltip: 'Duplicate',
                                 onPressed: () async {
                                   await widget.apiService.duplicateCustomAnalyticsReport(rep.id);
@@ -1246,7 +1246,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
                                       color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
-                                    child: Text('Total: ${totalScore.toStringAsFixed(1)} pts', style: const TextStyle(color: ObsidianUITheme.primaryAccent, fontWeight: FontWeight.bold, fontSize: 12)),
+                                    child: Text('Total: ${totalScore.toStringAsFixed(1)} pts', style: TextStyle(color: ObsidianUITheme.primaryAccent, fontWeight: FontWeight.bold, fontSize: 12)),
                                   ),
                                 ],
                               ),
@@ -1934,7 +1934,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
                 DataCell(
                   InkWell(
                     onTap: () => _openDrillDownModal(tNum),
-                    child: Text('Team $tNum', style: const TextStyle(fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, fontSize: 12)),
+                    child: Text('Team $tNum', style: TextStyle(fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, fontSize: 12)),
                   ),
                 ),
                 DataCell(Text('${r['matchCount']}', style: const TextStyle(fontSize: 12))),
@@ -2156,7 +2156,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent));
+      return Center(child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent));
     }
 
     final filteredEntries = _getFilteredEntries();
@@ -2202,7 +2202,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
                               ),
                               child: Text(
                                 _currentReport.category,
-                                style: const TextStyle(fontSize: 10, color: ObsidianUITheme.primaryAccent, fontWeight: FontWeight.bold),
+                                style: TextStyle(fontSize: 10, color: ObsidianUITheme.primaryAccent, fontWeight: FontWeight.bold),
                               ),
                             ),
                             const SizedBox(width: 4),
@@ -2243,14 +2243,14 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text('GLOBAL SLICERS & FILTERS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.getSecondaryTextColor(context), letterSpacing: 0.5)),
-                      Text('${_currentReport.slicers.teamNumbers.isEmpty ? "All" : _currentReport.slicers.teamNumbers.length} teams selected', style: const TextStyle(fontSize: 11, color: ObsidianUITheme.primaryAccent)),
+                      Text('${_currentReport.slicers.teamNumbers.isEmpty ? "All" : _currentReport.slicers.teamNumbers.length} teams selected', style: TextStyle(fontSize: 11, color: ObsidianUITheme.primaryAccent)),
                     ],
                   ),
                   const SizedBox(height: 10),
                   // Event Filter
                   DropdownButtonFormField<String>(
                     isExpanded: true,
-                    value: _currentReport.slicers.eventKey,
+                    initialValue: _currentReport.slicers.eventKey,
                     dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                     style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context), fontSize: 13),
                     decoration: InputDecoration(
@@ -2355,10 +2355,10 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('📌 Interactive Cross-Filter Active: Team $_activeCrossFilterTeam', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent)),
+                  Text('📌 Interactive Cross-Filter Active: Team $_activeCrossFilterTeam', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent)),
                   InkWell(
                     onTap: () => setState(() => _activeCrossFilterTeam = null),
-                    child: const Text('Clear Filter', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent)),
+                    child: Text('Clear Filter', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent)),
                   ),
                 ],
               ),
@@ -2372,7 +2372,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
                   padding: const EdgeInsets.all(32),
                   child: Column(
                     children: [
-                      const Icon(Icons.dashboard_customize_rounded, size: 48, color: ObsidianUITheme.primaryAccent),
+                      Icon(Icons.dashboard_customize_rounded, size: 48, color: ObsidianUITheme.primaryAccent),
                       const SizedBox(height: 12),
                       Text('Your Dashboard is Empty', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: ObsidianUITheme.getPrimaryTextColor(context))),
                       const SizedBox(height: 6),
@@ -2455,7 +2455,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
           color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(4),
         ),
-        child: Text(label, style: const TextStyle(fontSize: 10, color: ObsidianUITheme.primaryAccent, fontWeight: FontWeight.bold)),
+        child: Text(label, style: TextStyle(fontSize: 10, color: ObsidianUITheme.primaryAccent, fontWeight: FontWeight.bold)),
       ),
     );
   }

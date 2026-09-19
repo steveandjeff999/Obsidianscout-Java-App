@@ -172,7 +172,7 @@ class _ObsidianChartInteractiveWrapperState
                           color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(Icons.fullscreen_rounded,
+                        child: Icon(Icons.fullscreen_rounded,
                             color: ObsidianUITheme.primaryAccent, size: 20),
                       ),
                       const SizedBox(width: 12),
@@ -365,7 +365,7 @@ class _ObsidianChartInteractiveWrapperState
                 Text(
                   widget.benchmarkLabel ??
                       'Avg: ${widget.benchmarkValue!.toStringAsFixed(1)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: ObsidianUITheme.primaryAccent,
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
@@ -710,7 +710,7 @@ class ObsidianTeamQuickInspect {
               ),
               child: Text(
                 'Team $teamNumber',
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                   color: ObsidianUITheme.primaryAccent,

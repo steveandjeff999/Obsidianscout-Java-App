@@ -22,7 +22,7 @@ class ObsidianImagePreviewCard extends StatelessWidget {
     showDialog(
       context: context,
       builder: (dialogCtx) => Dialog(
-        backgroundColor: Colors.black.withOpacity(0.94),
+        backgroundColor: Colors.black.withValues(alpha: 0.94),
         insetPadding: const EdgeInsets.all(12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Column(
@@ -91,7 +91,7 @@ class ObsidianImagePreviewCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
+        color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
       ),
@@ -139,7 +139,7 @@ class ObsidianImagePreviewCard extends StatelessWidget {
                   margin: const EdgeInsets.all(8),
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.75),
+                    color: Colors.black.withValues(alpha: 0.75),
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(color: Colors.white24),
                   ),
@@ -189,10 +189,10 @@ class ObsidianImageThumbnail extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.black54,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.cyanAccent.withOpacity(0.5), width: 1.2),
+          border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.5), width: 1.2),
           boxShadow: [
             BoxShadow(
-              color: Colors.cyanAccent.withOpacity(0.2),
+              color: Colors.cyanAccent.withValues(alpha: 0.2),
               blurRadius: 4,
               offset: const Offset(0, 1),
             ),

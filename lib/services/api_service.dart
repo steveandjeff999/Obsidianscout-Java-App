@@ -13,6 +13,7 @@ import '../models/validation_models.dart';
 import '../models/custom_analytics_models.dart';
 import '../models/predictor_models.dart';
 import '../models/error_report_models.dart';
+import '../theme/obsidian_ui_theme.dart';
 import 'auth_storage_service.dart';
 import 'scout_history_service.dart';
 
@@ -22,6 +23,7 @@ class ApiService {
   static const String keyKeepMeLoggedIn = "obsidianscout_keep_me_logged_in";
   static const String keySavedUsername = "obsidianscout_saved_username";
   static const String keyThemeMode = "obsidianscout_theme_mode";
+  static const String keyUseServerCustomTheme = "obsidianscout_use_server_custom_theme";
   static const String keyUiMode = "obsidianscout_ui_mode";
   static const String keyDesktopTabs = "obsidianscout_desktop_tabs_enabled";
   static const String keyLocale = "obsidianscout_locale";
@@ -41,6 +43,8 @@ class ApiService {
   final ValueNotifier<int> permissionsNotifier = ValueNotifier<int>(0);
 
   final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier<ThemeMode>(ThemeMode.dark);
+  final ValueNotifier<bool> useServerCustomThemeNotifier = ValueNotifier<bool>(true);
+  final ValueNotifier<ThemePresetModel?> customThemeNotifier = ValueNotifier<ThemePresetModel?>(null);
   final ValueNotifier<String> uiModeNotifier = ValueNotifier<String>('auto'); // 'auto', 'mobile', 'desktop'
   final ValueNotifier<bool> desktopTabsNotifier = ValueNotifier<bool>(true);
   final ValueNotifier<Locale> localeNotifier = ValueNotifier<Locale>(const Locale('en'));
@@ -86,6 +90,8 @@ class ApiService {
     return _currentUser?.id;
   }
   AppSettingsModel? get currentSettings => _currentSettings;
+  bool get isSuperAdmin => _currentUser?.isSuperAdmin ?? (currentUserRole.toUpperCase() == 'SUPERADMIN');
+  bool get isAdmin => _currentUser?.isAdmin ?? (currentUserRole.toUpperCase() == 'ADMIN' || isSuperAdmin);
   String get currentUserRole => _currentUser?.role ?? 'SCOUT';
   String get currentProgram => _currentUser?.program ?? _currentSettings?.program ?? 'FRC';
   bool get isOnline => _isOnline;
@@ -93,6 +99,8 @@ class ApiService {
   Stream<int> get onServerError => _serverErrorController.stream;
   Stream<String> get onSessionRevoked => _sessionRevokedController.stream;
   ThemeMode get themeMode => themeNotifier.value;
+  bool get useServerCustomTheme => useServerCustomThemeNotifier.value;
+  ThemePresetModel? get currentCustomTheme => customThemeNotifier.value;
   String get uiMode => uiModeNotifier.value;
   bool get desktopTabsEnabled => desktopTabsNotifier.value;
   Locale get currentLocale => localeNotifier.value;
@@ -104,6 +112,32 @@ class ApiService {
     themeNotifier.value = mode;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(keyThemeMode, mode.name);
+  }
+
+  Future<void> setUseServerCustomTheme(bool enabled) async {
+    useServerCustomThemeNotifier.value = enabled;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(keyUseServerCustomTheme, enabled);
+    _syncObsidianTheme();
+  }
+
+  void _syncObsidianTheme() {
+    if (_currentSettings != null) {
+      ThemePresetModel? active;
+      if (_currentSettings!.theme != null) {
+        active = _currentSettings!.theme;
+      } else if (_currentSettings!.themes.isNotEmpty) {
+        active = _currentSettings!.themes.firstWhere(
+          (t) => t.name == _currentSettings!.activeThemeName,
+          orElse: () => _currentSettings!.themes.first,
+        );
+      }
+      customThemeNotifier.value = active;
+      ObsidianUITheme.setCustomTheme(active, enabled: useServerCustomThemeNotifier.value);
+    } else {
+      customThemeNotifier.value = null;
+      ObsidianUITheme.setCustomTheme(null, enabled: useServerCustomThemeNotifier.value);
+    }
   }
 
   Future<void> setUiMode(String mode) async {
@@ -140,6 +174,7 @@ class ApiService {
   @visibleForTesting
   void setCachedSettingsForTesting(AppSettingsModel? settings) {
     _currentSettings = settings;
+    _syncObsidianTheme();
     permissionsNotifier.value++;
   }
 
@@ -164,6 +199,9 @@ class ApiService {
     } else {
       localeNotifier.value = const Locale('en');
     }
+
+    final savedUseServerCustomTheme = prefs.getBool(keyUseServerCustomTheme) ?? true;
+    useServerCustomThemeNotifier.value = savedUseServerCustomTheme;
 
     final savedUiMode = prefs.getString(keyUiMode) ?? 'auto';
     uiModeNotifier.value = savedUiMode;
@@ -191,6 +229,7 @@ class ApiService {
         _currentSettings = AppSettingsModel.fromJson(jsonMap);
       } catch (_) {}
     }
+    _syncObsidianTheme();
     permissionsNotifier.value++;
 
     _initConnectivityMonitor();
@@ -1041,6 +1080,7 @@ class ApiService {
       try {
         final jsonMap = jsonDecode(cached);
         _currentSettings = AppSettingsModel.fromJson(jsonMap);
+        _syncObsidianTheme();
       } catch (_) {}
     }
 
@@ -1055,6 +1095,7 @@ class ApiService {
         await _setCache("cache_settings", response.body);
         final jsonMap = jsonDecode(response.body);
         _currentSettings = AppSettingsModel.fromJson(jsonMap);
+        _syncObsidianTheme();
         permissionsNotifier.value++;
         return _currentSettings;
       }
@@ -1067,6 +1108,7 @@ class ApiService {
     final jsonStr = jsonEncode(payload);
     await _setCache("cache_settings", jsonStr);
     _currentSettings = settings;
+    _syncObsidianTheme();
     permissionsNotifier.value++;
 
     if (!_isOnline) {
@@ -1084,6 +1126,7 @@ class ApiService {
         await _setCache("cache_settings", response.body);
         final jsonMap = jsonDecode(response.body);
         _currentSettings = AppSettingsModel.fromJson(jsonMap);
+        _syncObsidianTheme();
         permissionsNotifier.value++;
         return ApiResponse.success(
           _currentSettings!,
@@ -1095,6 +1138,27 @@ class ApiService {
     } catch (e) {
       return ApiResponse.error(message: e.toString());
     }
+  }
+
+  Future<ApiResponse<AppSettingsModel>> saveThemes({
+    required List<ThemePresetModel> themes,
+    required String activeThemeName,
+  }) async {
+    final current = _currentSettings ?? AppSettingsModel();
+    final activePreset = themes.firstWhere(
+      (t) => t.name == activeThemeName,
+      orElse: () => themes.isNotEmpty ? themes.first : const ThemePresetModel(),
+    );
+    final updated = current.copyWith(
+      themes: themes,
+      activeThemeName: activeThemeName,
+      theme: activePreset,
+    );
+    final res = await updateSettings(updated);
+    if (res.isSuccess) {
+      _syncObsidianTheme();
+    }
+    return res;
   }
 
   Future<ApiResponse<Map<String, dynamic>>> testApiKey({

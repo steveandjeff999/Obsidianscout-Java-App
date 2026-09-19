@@ -48,6 +48,10 @@ class _ObsidianGlassCardState extends State<ObsidianGlassCard> {
       ),
     );
 
+    final effectiveRadius = widget.borderRadius == 24.0
+        ? ObsidianUITheme.getCardBorderRadius(context)
+        : (widget.borderRadius >= 999.0 ? 24.0 : widget.borderRadius.clamp(0.0, 28.0));
+
     // Static card optimization (no onTap): Render pure container without animation overhead
     if (widget.onTap == null) {
       return Container(
@@ -55,7 +59,7 @@ class _ObsidianGlassCardState extends State<ObsidianGlassCard> {
         width: double.infinity,
         padding: widget.padding,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(widget.borderRadius),
+          borderRadius: BorderRadius.circular(effectiveRadius),
           color: cardBgColor,
           border: Border.all(
             color: borderColor,
@@ -93,7 +97,7 @@ class _ObsidianGlassCardState extends State<ObsidianGlassCard> {
           width: double.infinity,
           padding: widget.padding,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(widget.borderRadius),
+            borderRadius: BorderRadius.circular(effectiveRadius),
             color: cardBgColor,
             border: Border.all(
               color: _isPressed

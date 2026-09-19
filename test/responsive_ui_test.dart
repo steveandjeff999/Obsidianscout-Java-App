@@ -17,7 +17,7 @@ import 'package:obsidianscout_app/widgets/dynamic_field_widget.dart';
 import 'package:obsidianscout_app/widgets/obsidian_bottom_nav.dart';
 
 class _MockResponsiveApiService extends ApiService {
-  bool _mockLoggedIn = true;
+  final bool _mockLoggedIn = true;
   String _mode = 'auto';
 
   @override

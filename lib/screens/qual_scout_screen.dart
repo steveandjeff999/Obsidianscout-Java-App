@@ -496,7 +496,7 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
                   onPressed: () => Navigator.of(ctx).pop(),
                   child: Text(
                     context.tr('qr.close'),
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent),
+                    style: TextStyle(fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent),
                   ),
                 ),
               ],
@@ -832,7 +832,7 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
                   if (_scope == QualScoutScope.singleTeam) ...[
                     DropdownButtonFormField<TeamModel>(
                       isExpanded: true,
-                      value: _availableTeams.contains(_selectedTeam) ? _selectedTeam : null,
+                      initialValue: _availableTeams.contains(_selectedTeam) ? _selectedTeam : null,
                       dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                       style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
                       decoration: InputDecoration(
@@ -856,7 +856,7 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
                   ],
                   DropdownButtonFormField<MatchModel>(
                     isExpanded: true,
-                    value: _availableMatches.contains(_selectedMatch) ? _selectedMatch : null,
+                    initialValue: _availableMatches.contains(_selectedMatch) ? _selectedMatch : null,
                     dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                     style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
                     decoration: InputDecoration(
@@ -987,9 +987,9 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
                                         decoration: BoxDecoration(
-                                          color: accentColor.withOpacity(0.12),
+                                          color: accentColor.withValues(alpha: 0.12),
                                           borderRadius: BorderRadius.circular(10.0),
-                                          border: Border.all(color: accentColor.withOpacity(0.3)),
+                                          border: Border.all(color: accentColor.withValues(alpha: 0.3)),
                                         ),
                                         child: Row(
                                           children: [
@@ -1080,7 +1080,7 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
                     onTap: _isSubmitting ? null : _submitQualData,
                     child: Center(
                       child: _isSubmitting
-                          ? const CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)
+                          ? CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)
                           : Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
@@ -1154,7 +1154,7 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
         decoration: BoxDecoration(
-          color: isSelected ? themeColor.withOpacity(0.25) : Colors.transparent,
+          color: isSelected ? themeColor.withValues(alpha: 0.25) : Colors.transparent,
           borderRadius: BorderRadius.circular(20.0),
           border: Border.all(
             color: isSelected ? themeColor : ObsidianUITheme.getBorderColor(context),
