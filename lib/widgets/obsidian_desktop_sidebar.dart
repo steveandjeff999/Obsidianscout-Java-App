@@ -252,6 +252,13 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
             'labelKey': 'nav.cluster_management',
             'subKey': 'subtitle.cluster_management',
           },
+          {
+            'pageId': 'error-reports',
+            'index': 24,
+            'icon': Icons.bug_report_rounded,
+            'labelKey': 'nav.error_reports',
+            'subKey': 'subtitle.error_reports',
+          },
         ],
       },
     ];

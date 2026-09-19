@@ -427,7 +427,7 @@ const List<String> defaultAdminPages = [
 ];
 
 const List<String> superAdminOnlyPages = [
-  'cluster-management', 'fcm-settings', 'migration', 'backup', 'logs',
+  'cluster-management', 'error-reports', 'fcm-settings', 'migration', 'backup', 'logs',
 ];
 
 const List<String> adminOnlyBasePages = [

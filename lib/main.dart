@@ -39,12 +39,15 @@ import 'screens/predictor_screen.dart';
 import 'screens/event_predictor_screen.dart';
 import 'screens/users_screen.dart';
 import 'screens/cluster_management_screen.dart';
+import 'screens/error_reports_screen.dart';
 import 'services/api_service.dart';
 import 'services/auth_storage_service.dart';
 import 'services/biometric_auth_service.dart';
 import 'services/fcm_helper.dart';
 import 'services/notification_websocket_service.dart';
 import 'widgets/obsidian_glass_card.dart';
+import 'models/desktop_tab_model.dart';
+import 'widgets/obsidian_desktop_tab_bar.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -61,7 +64,7 @@ class ObsidianscoutApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([apiService.themeNotifier, apiService.localeNotifier, apiService.uiModeNotifier]),
+      listenable: Listenable.merge([apiService.themeNotifier, apiService.localeNotifier, apiService.uiModeNotifier, apiService.desktopTabsNotifier]),
       builder: (context, child) {
         return MaterialApp(
           navigatorKey: ObsidianFeedback.navigatorKey,
@@ -118,6 +121,25 @@ class _MainShellState extends State<MainShell> {
   late bool _isAuthenticated;
   late bool _isOnline;
   int _currentIndex = 0;
+
+  final List<DesktopTab> _desktopTabs = [
+    DesktopTab(id: 'tab_0', screenIndex: 0),
+  ];
+  final Map<String, GlobalKey<NavigatorState>> _tabNavigatorKeys = {};
+  String _activeTabId = 'tab_0';
+  int _tabCounter = 1;
+
+  GlobalKey<NavigatorState> _getTabNavigatorKey(String tabId) {
+    return _tabNavigatorKeys.putIfAbsent(tabId, () => GlobalKey<NavigatorState>());
+  }
+
+  DesktopTab get _activeTab => _desktopTabs.firstWhere(
+        (t) => t.id == _activeTabId,
+        orElse: () => _desktopTabs.isNotEmpty ? _desktopTabs.first : DesktopTab(id: 'tab_0', screenIndex: 0),
+      );
+
+  int get _activeScreenIndex => _activeTab.screenIndex;
+
   StreamSubscription<bool>? _onlineSub;
   StreamSubscription<int>? _serverErrorSub;
   StreamSubscription<String>? _sessionRevokedSub;
@@ -129,6 +151,212 @@ class _MainShellState extends State<MainShell> {
   bool _isCheckingLaunchLock = true;
   bool _isLaunchLocked = false;
   bool _isUnlocking = false;
+
+  void _openNewTab([int initialIndex = 0]) {
+    final pageId = _getPageIdForIndex(initialIndex);
+    if (!widget.apiService.hasPageAccess(pageId)) {
+      initialIndex = 0;
+    }
+    final newId = 'tab_${_tabCounter++}';
+    final newTab = DesktopTab(id: newId, screenIndex: initialIndex);
+    setState(() {
+      _desktopTabs.add(newTab);
+      _activeTabId = newId;
+      _currentIndex = initialIndex;
+    });
+  }
+
+  void _switchTab(String id) {
+    if (_activeTabId == id) return;
+    final tab = _desktopTabs.firstWhere((t) => t.id == id, orElse: () => _desktopTabs.first);
+    setState(() {
+      _activeTabId = tab.id;
+      _currentIndex = tab.screenIndex;
+    });
+  }
+
+  void _closeTab(String id) {
+    if (_desktopTabs.length <= 1) return;
+    final index = _desktopTabs.indexWhere((t) => t.id == id);
+    if (index == -1) return;
+
+    setState(() {
+      if (_activeTabId == id) {
+        if (index > 0) {
+          _activeTabId = _desktopTabs[index - 1].id;
+          _currentIndex = _desktopTabs[index - 1].screenIndex;
+        } else {
+          _activeTabId = _desktopTabs[index + 1].id;
+          _currentIndex = _desktopTabs[index + 1].screenIndex;
+        }
+      }
+      _desktopTabs.removeAt(index);
+      _tabNavigatorKeys.remove(id);
+    });
+  }
+
+  void _duplicateTab(String id) {
+    final index = _desktopTabs.indexWhere((t) => t.id == id);
+    if (index == -1) return;
+    final original = _desktopTabs[index];
+    final newId = 'tab_${_tabCounter++}';
+    final duplicate = DesktopTab(
+      id: newId,
+      screenIndex: original.screenIndex,
+      customTitle: original.customTitle,
+      customIcon: original.customIcon,
+      pendingChatChannel: original.pendingChatChannel,
+    );
+    setState(() {
+      _desktopTabs.insert(index + 1, duplicate);
+      _activeTabId = newId;
+      _currentIndex = duplicate.screenIndex;
+    });
+  }
+
+  void _closeOtherTabs(String id) {
+    final target = _desktopTabs.firstWhere((t) => t.id == id, orElse: () => _desktopTabs.first);
+    setState(() {
+      _desktopTabs.removeWhere((t) => t.id != target.id);
+      _tabNavigatorKeys.removeWhere((key, _) => key != target.id);
+      _activeTabId = target.id;
+      _currentIndex = target.screenIndex;
+    });
+  }
+
+  void _cycleTab(bool forward) {
+    if (_desktopTabs.length <= 1) return;
+    final currentIndex = _desktopTabs.indexWhere((t) => t.id == _activeTabId);
+    if (currentIndex == -1) return;
+    final nextIndex = forward
+        ? (currentIndex + 1) % _desktopTabs.length
+        : (currentIndex - 1 + _desktopTabs.length) % _desktopTabs.length;
+    _switchTab(_desktopTabs[nextIndex].id);
+  }
+
+  void _switchToTabNumber(int tabNumber) {
+    if (tabNumber < 1 || tabNumber > _desktopTabs.length) return;
+    _switchTab(_desktopTabs[tabNumber - 1].id);
+  }
+
+  void _switchToLastTab() {
+    if (_desktopTabs.isEmpty) return;
+    _switchTab(_desktopTabs.last.id);
+  }
+
+  IconData _getScreenIcon(int index) {
+    switch (index) {
+      case 0:
+        return Icons.dashboard_rounded;
+      case 1:
+        return Icons.sports_esports_rounded;
+      case 2:
+        return Icons.build_circle_rounded;
+      case 3:
+        return Icons.rate_review_rounded;
+      case 4:
+        return Icons.bar_chart_rounded;
+      case 5:
+        return Icons.settings_suggest_rounded;
+      case 6:
+        return Icons.chat_bubble_outline_rounded;
+      case 7:
+        return Icons.stars_rounded;
+      case 8:
+        return Icons.groups_rounded;
+      case 9:
+        return Icons.event_note_rounded;
+      case 10:
+        return Icons.tune_rounded;
+      case 11:
+        return Icons.history_edu_rounded;
+      case 12:
+        return Icons.dataset_rounded;
+      case 13:
+        return Icons.table_chart_rounded;
+      case 14:
+        return Icons.engineering_rounded;
+      case 15:
+        return Icons.insights_rounded;
+      case 16:
+        return Icons.fact_check_rounded;
+      case 17:
+        return Icons.history_rounded;
+      case 18:
+        return Icons.auto_graph_rounded;
+      case 19:
+        return Icons.contact_support_rounded;
+      case 20:
+        return Icons.auto_awesome_rounded;
+      case 21:
+        return Icons.leaderboard_rounded;
+      case 22:
+        return Icons.manage_accounts_rounded;
+      case 23:
+        return Icons.hub_rounded;
+      case 24:
+        return Icons.bug_report_rounded;
+      default:
+        return Icons.dashboard_rounded;
+    }
+  }
+
+  String _getScreenDisplayName(int index) {
+    switch (index) {
+      case 0:
+        return context.tr('nav.dashboard', 'Dashboard');
+      case 1:
+        return context.tr('nav.scout', context.tr('nav.match_scout', 'Match Scout'));
+      case 2:
+        return context.tr('nav.pit-scout', context.tr('nav.pit_scout', 'Pit Scout'));
+      case 3:
+        return context.tr('nav.qual-scout', context.tr('nav.qual_scout', 'Qual Scout'));
+      case 4:
+        return context.tr('nav.graphs', 'Graphs');
+      case 5:
+        return context.tr('nav.settings', context.tr('nav.settings_cache', 'Settings'));
+      case 6:
+        return context.tr('nav.team_chat', context.tr('nav.chat', 'Team Chat'));
+      case 7:
+        return context.tr('nav.alliance-selection', context.tr('nav.alliance_selection', 'Alliance Selection'));
+      case 8:
+        return context.tr('nav.teams', 'Teams');
+      case 9:
+        return context.tr('nav.matches', 'Matches');
+      case 10:
+        return context.tr('nav.config_editor', 'Config Editor');
+      case 11:
+        return context.tr('nav.prescout', 'Prescout');
+      case 12:
+        return context.tr('nav.all-data', context.tr('nav.all_data', 'All Data'));
+      case 13:
+        return context.tr('nav.match-data', context.tr('nav.match_data', 'Match Data'));
+      case 14:
+        return context.tr('nav.pit-data', context.tr('nav.pit_data', 'Pit Data'));
+      case 15:
+        return context.tr('nav.qual-data', context.tr('nav.qual_data', 'Qual Data'));
+      case 16:
+        return context.tr('nav.data-validation', context.tr('nav.data_validation', 'Data Validation'));
+      case 17:
+        return context.tr('nav.scout-history', context.tr('nav.scout_history', 'Scout History'));
+      case 18:
+        return context.tr('nav.custom_analytics', context.tr('nav.analytics', 'Analytics'));
+      case 19:
+        return context.tr('nav.contact', 'Contact');
+      case 20:
+        return context.tr('nav.predictor', 'Predictor');
+      case 21:
+        return context.tr('nav.event-predictor', context.tr('nav.event_predictor', 'Event Predictor'));
+      case 22:
+        return context.tr('nav.users', 'Users');
+      case 23:
+        return context.tr('nav.cluster-management', context.tr('nav.cluster_management', 'Cluster'));
+      case 24:
+        return context.tr('nav.error-reports', context.tr('nav.error_reports', 'Error Reports'));
+      default:
+        return 'Dashboard';
+    }
+  }
 
   @override
   void initState() {
@@ -276,6 +504,12 @@ class _MainShellState extends State<MainShell> {
 
   void _onPermissionsChanged() {
     if (!mounted) return;
+    for (final tab in _desktopTabs) {
+      final pageId = _getPageIdForIndex(tab.screenIndex);
+      if (!widget.apiService.hasPageAccess(pageId)) {
+        tab.screenIndex = 0;
+      }
+    }
     final currentPageId = _getPageIdForIndex(_currentIndex);
     if (!widget.apiService.hasPageAccess(currentPageId)) {
       setState(() {
@@ -375,6 +609,7 @@ class _MainShellState extends State<MainShell> {
     'nav.event_predictor',
     'nav.users',
     'nav.cluster_management',
+    'nav.error_reports',
   ];
   final List<String> _subtitleKeys = [
     'subtitle.dashboard',
@@ -401,6 +636,7 @@ class _MainShellState extends State<MainShell> {
     'subtitle.event_predictor',
     'subtitle.users',
     'subtitle.cluster_management',
+    'subtitle.error_reports',
   ];
 
   String _getPageIdForIndex(int index) {
@@ -453,13 +689,23 @@ class _MainShellState extends State<MainShell> {
         return 'users';
       case 23:
         return 'cluster-management';
+      case 24:
+        return 'error-reports';
       default:
         return 'dashboard';
     }
   }
 
   void _navigateScreen(int index) {
-    if (_currentIndex == index) return;
+    final isDesktop = ObsidianResponsive.isDesktop(context, overrideMode: widget.apiService.uiMode);
+    final isDesktopTabs = isDesktop && widget.apiService.desktopTabsEnabled;
+
+    if (isDesktopTabs) {
+      if (_activeTab.screenIndex == index) return;
+    } else {
+      if (_currentIndex == index) return;
+    }
+
     final pageId = _getPageIdForIndex(index);
     if (!widget.apiService.hasPageAccess(pageId)) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -486,8 +732,19 @@ class _MainShellState extends State<MainShell> {
     }
 
     setState(() {
-      if (_screenHistory.isEmpty || _screenHistory.last != _currentIndex) {
-        _screenHistory.add(_currentIndex);
+      if (isDesktopTabs) {
+        final tabNav = _tabNavigatorKeys[_activeTab.id]?.currentState;
+        if (tabNav != null && tabNav.canPop()) {
+          tabNav.popUntil((route) => route.isFirst);
+        }
+        if (_activeTab.history.isEmpty || _activeTab.history.last != _activeTab.screenIndex) {
+          _activeTab.history.add(_activeTab.screenIndex);
+        }
+        _activeTab.screenIndex = index;
+      } else {
+        if (_screenHistory.isEmpty || _screenHistory.last != _currentIndex) {
+          _screenHistory.add(_currentIndex);
+        }
       }
       _currentIndex = index;
       _isBarsVisible = true;
@@ -495,32 +752,63 @@ class _MainShellState extends State<MainShell> {
   }
 
   void _handleBackPress() {
+    final isDesktop = ObsidianResponsive.isDesktop(context, overrideMode: widget.apiService.uiMode);
+    final isDesktopTabs = isDesktop && widget.apiService.desktopTabsEnabled;
+
     // 1. If drawer is open, close it
     if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
       _scaffoldKey.currentState?.closeDrawer();
       return;
     }
 
-    // 2. If there is screen navigation history, pop to previous screen
-    while (_screenHistory.isNotEmpty) {
-      final prevIndex = _screenHistory.removeLast();
-      final pageId = _getPageIdForIndex(prevIndex);
-      if (prevIndex != _currentIndex && widget.apiService.hasPageAccess(pageId)) {
+    if (isDesktopTabs) {
+      final tabNav = _tabNavigatorKeys[_activeTab.id]?.currentState;
+      if (tabNav != null && tabNav.canPop()) {
+        tabNav.pop();
+        return;
+      }
+      while (_activeTab.history.isNotEmpty) {
+        final prevIndex = _activeTab.history.removeLast();
+        final pageId = _getPageIdForIndex(prevIndex);
+        if (prevIndex != _activeTab.screenIndex && widget.apiService.hasPageAccess(pageId)) {
+          setState(() {
+            _activeTab.screenIndex = prevIndex;
+            _currentIndex = prevIndex;
+            _isBarsVisible = true;
+          });
+          return;
+        }
+      }
+      if (_activeTab.screenIndex != 0) {
         setState(() {
-          _currentIndex = prevIndex;
+          _activeTab.screenIndex = 0;
+          _currentIndex = 0;
           _isBarsVisible = true;
         });
         return;
       }
-    }
+    } else {
+      // 2. If there is screen navigation history, pop to previous screen
+      while (_screenHistory.isNotEmpty) {
+        final prevIndex = _screenHistory.removeLast();
+        final pageId = _getPageIdForIndex(prevIndex);
+        if (prevIndex != _currentIndex && widget.apiService.hasPageAccess(pageId)) {
+          setState(() {
+            _currentIndex = prevIndex;
+            _isBarsVisible = true;
+          });
+          return;
+        }
+      }
 
-    // 3. If currently not on Dashboard and history was exhausted, go back to Dashboard
-    if (_currentIndex != 0) {
-      setState(() {
-        _currentIndex = 0;
-        _isBarsVisible = true;
-      });
-      return;
+      // 3. If currently not on Dashboard and history was exhausted, go back to Dashboard
+      if (_currentIndex != 0) {
+        setState(() {
+          _currentIndex = 0;
+          _isBarsVisible = true;
+        });
+        return;
+      }
     }
 
     // 4. On Dashboard (root screen): require double back press within 2 seconds to exit
@@ -600,6 +888,98 @@ class _MainShellState extends State<MainShell> {
     }
   }
 
+  List<Widget> _buildScreens({required int screenIndex, required bool isTabActive, String? chatChannel}) {
+    return [
+      DashboardScreen(
+        apiService: widget.apiService,
+        onNavigateMatch: () => _navigateScreen(1),
+        onNavigatePit: () => _navigateScreen(2),
+        onNavigateAnalytics: () => _navigateScreen(4),
+        onNavigateQrScanner: _openQrScanner,
+        onNavigateAlliance: () => _navigateScreen(7),
+        onNavigatePrescout: () => _navigateScreen(11),
+        onNavigateHistory: () => _navigateScreen(17),
+        isVisible: isTabActive && screenIndex == 0,
+        isBarsVisible: _isBarsVisible,
+      ),
+      MatchScoutScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 1, isBarsVisible: _isBarsVisible),
+      PitScoutScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 2, isBarsVisible: _isBarsVisible),
+      QualScoutScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 3, isBarsVisible: _isBarsVisible),
+      GraphsScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 4, isBarsVisible: _isBarsVisible),
+      SettingsScreen(
+        apiService: widget.apiService,
+        onLogout: _handleLogout,
+        onNavigateConfigEditor: () => _navigateScreen(10),
+        onNavigateUsers: () => _navigateScreen(22),
+        onNavigateErrorReports: () => _navigateScreen(24),
+        isVisible: isTabActive && screenIndex == 5,
+        isBarsVisible: _isBarsVisible,
+      ),
+      ChatScreen(
+        apiService: widget.apiService,
+        initialChannel: chatChannel ?? _pendingChatChannel,
+        isVisible: isTabActive && screenIndex == 6,
+        isBarsVisible: _isBarsVisible,
+      ),
+      AllianceSelectionScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 7, isBarsVisible: _isBarsVisible),
+      TeamsListScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 8, isBarsVisible: _isBarsVisible),
+      MatchListScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 9, isBarsVisible: _isBarsVisible),
+      ConfigEditorScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 10, isBarsVisible: _isBarsVisible),
+      PrescoutScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 11, isBarsVisible: _isBarsVisible),
+      AllDataScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 12, isBarsVisible: _isBarsVisible),
+      MatchDataScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 13, isBarsVisible: _isBarsVisible),
+      PitDataScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 14, isBarsVisible: _isBarsVisible),
+      QualDataScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 15, isBarsVisible: _isBarsVisible),
+      DataValidationScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 16, isBarsVisible: _isBarsVisible),
+      ScoutHistoryScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 17, isBarsVisible: _isBarsVisible),
+      CustomAnalyticsScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 18, isBarsVisible: _isBarsVisible),
+      ContactScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 19, isBarsVisible: _isBarsVisible),
+      PredictorScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 20, isBarsVisible: _isBarsVisible),
+      EventPredictorScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 21, isBarsVisible: _isBarsVisible),
+      UsersScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 22, isBarsVisible: _isBarsVisible),
+      ClusterManagementScreen(
+        apiService: widget.apiService,
+        isVisible: isTabActive && screenIndex == 23,
+        isBarsVisible: _isBarsVisible,
+        onNavigateErrorReports: () => _navigateScreen(24),
+      ),
+      ErrorReportsScreen(
+        apiService: widget.apiService,
+        isVisible: isTabActive && screenIndex == 24,
+        isBarsVisible: _isBarsVisible,
+        onNavigateCluster: () => _navigateScreen(23),
+      ),
+    ];
+  }
+
+  Widget _buildDesktopTabbedContent() {
+    final activeIndex = _desktopTabs.indexWhere((t) => t.id == _activeTabId);
+    final safeActiveIndex = activeIndex >= 0 ? activeIndex : 0;
+
+    return IndexedStack(
+      index: safeActiveIndex,
+      children: [
+        for (final tab in _desktopTabs)
+          Navigator(
+            key: _getTabNavigatorKey(tab.id),
+            onGenerateRoute: (settings) {
+              return MaterialPageRoute(
+                builder: (context) => ObsidianAnimatedIndexedStack(
+                  key: ValueKey('tab_stack_${tab.id}'),
+                  index: tab.screenIndex,
+                  children: _buildScreens(
+                    screenIndex: tab.screenIndex,
+                    isTabActive: tab.id == _activeTabId,
+                    chatChannel: tab.pendingChatChannel,
+                  ),
+                ),
+              );
+            },
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isCheckingLaunchLock) {
@@ -626,79 +1006,55 @@ class _MainShellState extends State<MainShell> {
       );
     }
 
-    final screens = [
-      DashboardScreen(
-        apiService: widget.apiService,
-        onNavigateMatch: () => _navigateScreen(1),
-        onNavigatePit: () => _navigateScreen(2),
-        onNavigateAnalytics: () => _navigateScreen(4),
-        onNavigateQrScanner: _openQrScanner,
-        onNavigateAlliance: () => _navigateScreen(7),
-        onNavigatePrescout: () => _navigateScreen(11),
-        onNavigateHistory: () => _navigateScreen(17),
-        isVisible: _currentIndex == 0,
-        isBarsVisible: _isBarsVisible,
-      ),
-      MatchScoutScreen(apiService: widget.apiService, isVisible: _currentIndex == 1, isBarsVisible: _isBarsVisible),
-      PitScoutScreen(apiService: widget.apiService, isVisible: _currentIndex == 2, isBarsVisible: _isBarsVisible),
-      QualScoutScreen(apiService: widget.apiService, isVisible: _currentIndex == 3, isBarsVisible: _isBarsVisible),
-      GraphsScreen(apiService: widget.apiService, isVisible: _currentIndex == 4, isBarsVisible: _isBarsVisible),
-      SettingsScreen(
-        apiService: widget.apiService,
-        onLogout: _handleLogout,
-        onNavigateConfigEditor: () => _navigateScreen(10),
-        onNavigateUsers: () => _navigateScreen(22),
-        isVisible: _currentIndex == 5,
-        isBarsVisible: _isBarsVisible,
-      ),
-      ChatScreen(
-        apiService: widget.apiService,
-        initialChannel: _pendingChatChannel,
-        isVisible: _currentIndex == 6,
-        isBarsVisible: _isBarsVisible,
-      ),
-      AllianceSelectionScreen(apiService: widget.apiService, isVisible: _currentIndex == 7, isBarsVisible: _isBarsVisible),
-      TeamsListScreen(apiService: widget.apiService, isVisible: _currentIndex == 8, isBarsVisible: _isBarsVisible),
-      MatchListScreen(apiService: widget.apiService, isVisible: _currentIndex == 9, isBarsVisible: _isBarsVisible),
-      ConfigEditorScreen(apiService: widget.apiService, isVisible: _currentIndex == 10, isBarsVisible: _isBarsVisible),
-      PrescoutScreen(apiService: widget.apiService, isVisible: _currentIndex == 11, isBarsVisible: _isBarsVisible),
-      AllDataScreen(apiService: widget.apiService, isVisible: _currentIndex == 12, isBarsVisible: _isBarsVisible),
-      MatchDataScreen(apiService: widget.apiService, isVisible: _currentIndex == 13, isBarsVisible: _isBarsVisible),
-      PitDataScreen(apiService: widget.apiService, isVisible: _currentIndex == 14, isBarsVisible: _isBarsVisible),
-      QualDataScreen(apiService: widget.apiService, isVisible: _currentIndex == 15, isBarsVisible: _isBarsVisible),
-      DataValidationScreen(apiService: widget.apiService, isVisible: _currentIndex == 16, isBarsVisible: _isBarsVisible),
-      ScoutHistoryScreen(apiService: widget.apiService, isVisible: _currentIndex == 17, isBarsVisible: _isBarsVisible),
-      CustomAnalyticsScreen(apiService: widget.apiService, isVisible: _currentIndex == 18, isBarsVisible: _isBarsVisible),
-      ContactScreen(apiService: widget.apiService, isVisible: _currentIndex == 19, isBarsVisible: _isBarsVisible),
-      PredictorScreen(apiService: widget.apiService, isVisible: _currentIndex == 20, isBarsVisible: _isBarsVisible),
-      EventPredictorScreen(apiService: widget.apiService, isVisible: _currentIndex == 21, isBarsVisible: _isBarsVisible),
-      UsersScreen(apiService: widget.apiService, isVisible: _currentIndex == 22, isBarsVisible: _isBarsVisible),
-      ClusterManagementScreen(apiService: widget.apiService, isVisible: _currentIndex == 23, isBarsVisible: _isBarsVisible),
-    ];    final isDesktop = ObsidianResponsive.isDesktop(context, overrideMode: widget.apiService.uiMode);
+    final isDesktop = ObsidianResponsive.isDesktop(context, overrideMode: widget.apiService.uiMode);
+    final isDesktopTabs = isDesktop && widget.apiService.desktopTabsEnabled;
 
     final mainIndexedStack = ObsidianAnimatedIndexedStack(
       key: const ValueKey('obsidian_main_indexed_stack'),
       index: _currentIndex,
-      children: screens,
+      children: _buildScreens(screenIndex: _currentIndex, isTabActive: true),
     );
 
+    final Map<ShortcutActivator, VoidCallback> shortcutBindings = isDesktopTabs
+        ? <ShortcutActivator, VoidCallback>{
+            const SingleActivator(LogicalKeyboardKey.keyT, control: true): () => _openNewTab(0),
+            const SingleActivator(LogicalKeyboardKey.keyW, control: true): () => _closeTab(_activeTabId),
+            const SingleActivator(LogicalKeyboardKey.tab, control: true): () => _cycleTab(true),
+            const SingleActivator(LogicalKeyboardKey.tab, control: true, shift: true): () => _cycleTab(false),
+            const SingleActivator(LogicalKeyboardKey.digit1, control: true): () => _switchToTabNumber(1),
+            const SingleActivator(LogicalKeyboardKey.digit2, control: true): () => _switchToTabNumber(2),
+            const SingleActivator(LogicalKeyboardKey.digit3, control: true): () => _switchToTabNumber(3),
+            const SingleActivator(LogicalKeyboardKey.digit4, control: true): () => _switchToTabNumber(4),
+            const SingleActivator(LogicalKeyboardKey.digit5, control: true): () => _switchToTabNumber(5),
+            const SingleActivator(LogicalKeyboardKey.digit6, control: true): () => _switchToTabNumber(6),
+            const SingleActivator(LogicalKeyboardKey.digit7, control: true): () => _switchToTabNumber(7),
+            const SingleActivator(LogicalKeyboardKey.digit8, control: true): () => _switchToTabNumber(8),
+            const SingleActivator(LogicalKeyboardKey.digit9, control: true): _switchToLastTab,
+            const SingleActivator(LogicalKeyboardKey.keyT, control: true, shift: true): () {
+              final next = widget.apiService.themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+              widget.apiService.setThemeMode(next);
+            },
+            const SingleActivator(LogicalKeyboardKey.keyQ, control: true): _openQrScanner,
+          }
+        : <ShortcutActivator, VoidCallback>{
+            const SingleActivator(LogicalKeyboardKey.digit1, control: true): () => _navigateScreen(0),
+            const SingleActivator(LogicalKeyboardKey.digit2, control: true): () => _navigateScreen(1),
+            const SingleActivator(LogicalKeyboardKey.digit3, control: true): () => _navigateScreen(2),
+            const SingleActivator(LogicalKeyboardKey.digit4, control: true): () => _navigateScreen(4),
+            const SingleActivator(LogicalKeyboardKey.digit5, control: true): () => _navigateScreen(18),
+            const SingleActivator(LogicalKeyboardKey.digit6, control: true): () => _navigateScreen(12),
+            const SingleActivator(LogicalKeyboardKey.digit7, control: true): () => _navigateScreen(8),
+            const SingleActivator(LogicalKeyboardKey.digit8, control: true): () => _navigateScreen(9),
+            const SingleActivator(LogicalKeyboardKey.digit9, control: true): () => _navigateScreen(5),
+            const SingleActivator(LogicalKeyboardKey.keyT, control: true): () {
+              final next = widget.apiService.themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+              widget.apiService.setThemeMode(next);
+            },
+            const SingleActivator(LogicalKeyboardKey.keyQ, control: true): _openQrScanner,
+          };
+
     return CallbackShortcuts(
-      bindings: <ShortcutActivator, VoidCallback>{
-        const SingleActivator(LogicalKeyboardKey.digit1, control: true): () => _navigateScreen(0),
-        const SingleActivator(LogicalKeyboardKey.digit2, control: true): () => _navigateScreen(1),
-        const SingleActivator(LogicalKeyboardKey.digit3, control: true): () => _navigateScreen(2),
-        const SingleActivator(LogicalKeyboardKey.digit4, control: true): () => _navigateScreen(4),
-        const SingleActivator(LogicalKeyboardKey.digit5, control: true): () => _navigateScreen(18),
-        const SingleActivator(LogicalKeyboardKey.digit6, control: true): () => _navigateScreen(12),
-        const SingleActivator(LogicalKeyboardKey.digit7, control: true): () => _navigateScreen(8),
-        const SingleActivator(LogicalKeyboardKey.digit8, control: true): () => _navigateScreen(9),
-        const SingleActivator(LogicalKeyboardKey.digit9, control: true): () => _navigateScreen(5),
-        const SingleActivator(LogicalKeyboardKey.keyT, control: true): () {
-          final next = widget.apiService.themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
-          widget.apiService.setThemeMode(next);
-        },
-        const SingleActivator(LogicalKeyboardKey.keyQ, control: true): _openQrScanner,
-      },
+      bindings: shortcutBindings,
       child: Focus(
         autofocus: true,
         child: PopScope(
@@ -789,39 +1145,80 @@ class _MainShellState extends State<MainShell> {
                     onLogout: _handleLogout,
                   ),
             body: isDesktop
-                ? Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      ObsidianDesktopSidebar(
-                        apiService: widget.apiService,
-                        currentIndex: _currentIndex,
-                        onSelectScreen: _navigateScreen,
-                        onOpenQrScanner: _openQrScanner,
-                        onLogout: _handleLogout,
-                      ),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            ObsidianDesktopAppBar(
-                              title: context.tr(_titleKeys[_currentIndex]),
-                              subtitle: context.tr(_subtitleKeys[_currentIndex]),
-                              isOnline: _isOnline,
-                              apiService: widget.apiService,
-                              onOpenQrScanner: _openQrScanner,
+                ? (isDesktopTabs
+                    ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          ObsidianDesktopSidebar(
+                            apiService: widget.apiService,
+                            currentIndex: _activeScreenIndex,
+                            onSelectScreen: _navigateScreen,
+                            onOpenQrScanner: _openQrScanner,
+                            onLogout: _handleLogout,
+                          ),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                ObsidianDesktopTabBar(
+                                  tabs: _desktopTabs,
+                                  activeTabId: _activeTabId,
+                                  onSelectTab: _switchTab,
+                                  onCloseTab: _closeTab,
+                                  onNewTab: () => _openNewTab(0),
+                                  onDuplicateTab: _duplicateTab,
+                                  onCloseOtherTabs: _closeOtherTabs,
+                                  apiService: widget.apiService,
+                                  isOnline: _isOnline,
+                                  onOpenQrScanner: _openQrScanner,
+                                  getScreenTitle: _getScreenDisplayName,
+                                  getScreenIcon: _getScreenIcon,
+                                ),
+                                ObsidianBannerWidget(
+                                  apiService: widget.apiService,
+                                  isBarsVisible: true,
+                                ),
+                                Expanded(
+                                  child: _buildDesktopTabbedContent(),
+                                ),
+                              ],
                             ),
-                            ObsidianBannerWidget(
-                              apiService: widget.apiService,
-                              isBarsVisible: true,
+                          ),
+                        ],
+                      )
+                    : Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          ObsidianDesktopSidebar(
+                            apiService: widget.apiService,
+                            currentIndex: _currentIndex,
+                            onSelectScreen: _navigateScreen,
+                            onOpenQrScanner: _openQrScanner,
+                            onLogout: _handleLogout,
+                          ),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                ObsidianDesktopAppBar(
+                                  title: context.tr(_titleKeys[_currentIndex]),
+                                  subtitle: context.tr(_subtitleKeys[_currentIndex]),
+                                  isOnline: _isOnline,
+                                  apiService: widget.apiService,
+                                  onOpenQrScanner: _openQrScanner,
+                                ),
+                                ObsidianBannerWidget(
+                                  apiService: widget.apiService,
+                                  isBarsVisible: true,
+                                ),
+                                Expanded(
+                                  child: mainIndexedStack,
+                                ),
+                              ],
                             ),
-                            Expanded(
-                              child: mainIndexedStack,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  )
+                          ),
+                        ],
+                      ))
                 : Center(
                     child: Container(
                       constraints: const BoxConstraints(maxWidth: 1600.0),

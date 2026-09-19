@@ -1407,6 +1407,9 @@
   "bi.edit": "Düzenle",
   "bi.delete": "Sil",
   "nav.event_predictor": "Etkinlik Tahmincisi",
-  "subtitle.predictor": "Birebir maç tahmini ve ittifak gücü simülatörü",
-  "subtitle.event_predictor": "Tüm planlanan etkinlik maçları için sonuçları simüle edin ve tahmin edin",`n  "nav.cluster_management": "Küme Yönetimi",`n  "subtitle.cluster_management": "CockroachDB küme düğümlerini, günlükleri, yük dengeleyiciyi ve yedeği yönetin"
+  "subtitle.event_predictor": "Tüm planlanan etkinlik maçları için sonuçları simüle edin ve tahmin edin",
+  "nav.cluster_management": "Küme Yönetimi",
+  "subtitle.cluster_management": "CockroachDB küme düğümlerini, günlükleri, yük dengeleyiciyi ve yedeği yönetin",
+  "nav.error_reports": "Hata Raporları",
+  "subtitle.error_reports": "Küme sunucu istisnaları ve istemci hata raporları"
 }

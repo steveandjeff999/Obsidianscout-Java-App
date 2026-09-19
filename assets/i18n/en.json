@@ -1421,5 +1421,7 @@
   "subtitle.predictor": "Head-to-head match prediction & alliance strength simulator",
   "subtitle.event_predictor": "Simulate and forecast outcomes for all scheduled event matches",
   "nav.cluster_management": "Cluster Management",
-  "subtitle.cluster_management": "Manage CockroachDB cluster nodes, logs, load balancer & backup"
+  "subtitle.cluster_management": "Manage CockroachDB cluster nodes, logs, load balancer & backup",
+  "nav.error_reports": "Error Reports",
+  "subtitle.error_reports": "Cluster server exceptions & client bug reports"
 }

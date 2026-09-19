@@ -1407,6 +1407,9 @@
   "bi.edit": "Editar",
   "bi.delete": "Eliminar",
   "nav.event_predictor": "Predictor de Eventos",
-  "subtitle.predictor": "Predicción de partidos cara a cara y simulador de alianzas",
-  "subtitle.event_predictor": "Simular y pronosticar resultados para todos los partidos del evento",`n  "nav.cluster_management": "Administración del Clúster",`n  "subtitle.cluster_management": "Gestionar nodos del clúster CockroachDB, registros, balanceador de carga y respaldos"
+  "subtitle.event_predictor": "Simular y pronosticar resultados para todos los partidos del evento",
+  "nav.cluster_management": "Administración del Clúster",
+  "subtitle.cluster_management": "Gestionar nodos del clúster CockroachDB, registros, balanceador de carga y respaldos",
+  "nav.error_reports": "Informes de Errores",
+  "subtitle.error_reports": "Excepciones del servidor del clúster e informes de errores del cliente"
 }
