@@ -555,7 +555,7 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(
+      return Center(
         child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent),
       );
     }
@@ -696,7 +696,7 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
       child: ObsidianGlassCard(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         child: _isBulkUploading
-            ? const Padding(
+            ? Padding(
                 padding: EdgeInsets.symmetric(vertical: 6),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,

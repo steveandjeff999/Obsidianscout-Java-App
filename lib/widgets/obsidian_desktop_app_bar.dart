@@ -23,10 +23,13 @@ class ObsidianDesktopAppBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = ObsidianUITheme.isDark(context);
-    final bgColor = isDark ? const Color(0xDE0E1118) : const Color(0xF2F8FAFC);
-    final borderColor = isDark ? Colors.white10 : Colors.black12;
+    final bgColor = isDark
+        ? ObsidianUITheme.getSurfaceColor(context).withValues(alpha: 0.85)
+        : ObsidianUITheme.getSurfaceColor(context).withValues(alpha: 0.95);
+    final borderColor = ObsidianUITheme.getBorderColor(context);
     final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
     final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+    final primaryAccent = ObsidianUITheme.getPrimaryAccent(context);
     final eventKey = apiService.currentSettings?.eventKey ?? '';
 
     return Container(
@@ -81,24 +84,24 @@ class ObsidianDesktopAppBar extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
               decoration: BoxDecoration(
-                color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
+                color: primaryAccent.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(6.0),
                 border: Border.all(
-                  color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.35),
+                  color: primaryAccent.withValues(alpha: 0.35),
                   width: 0.8,
                 ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.event_available_rounded, size: 12.0, color: ObsidianUITheme.primaryAccent),
+                  Icon(Icons.event_available_rounded, size: 12.0, color: primaryAccent),
                   const SizedBox(width: 4.0),
                   Text(
                     eventKey.toUpperCase(),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11.0,
                       fontWeight: FontWeight.bold,
-                      color: ObsidianUITheme.primaryAccent,
+                      color: primaryAccent,
                       letterSpacing: 0.5,
                     ),
                   ),

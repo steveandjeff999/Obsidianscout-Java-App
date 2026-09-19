@@ -22,7 +22,7 @@ void main() {
       expect(CsvExportService.formatCell('say "hello"'), '"say ""hello"""');
       expect(CsvExportService.formatCell('line1\nline2'), '"line1\nline2"');
       expect(CsvExportService.formatCell(['alpha', 'beta']), '"alpha; beta"');
-      expect(CsvExportService.formatCell({'key': 'value'}), '"{\""key\"":\""value\""}"');
+      expect(CsvExportService.formatCell({'key': 'value'}), '"{""key"":""value""}"');
     });
 
     test('exportMatchData flattens config schema fields into separate columns', () {

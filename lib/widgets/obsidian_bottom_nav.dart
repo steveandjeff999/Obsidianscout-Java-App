@@ -19,10 +19,12 @@ class ObsidianBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = ObsidianUITheme.isDark(context);
-    final navBg = isDark ? const Color(0x24121620) : const Color(0xECFFFFFF);
+    final navBg = isDark
+        ? ObsidianUITheme.getSurfaceColor(context).withValues(alpha: 0.85)
+        : ObsidianUITheme.getSurfaceColor(context).withValues(alpha: 0.95);
     final borderColor = ObsidianUITheme.getGlassBorderColor(context);
     final shadowColor = isDark ? Colors.black.withValues(alpha: 0.5) : Colors.black.withValues(alpha: 0.1);
-    final inactiveItemColor = isDark ? Colors.white54 : const Color(0xFF64748B);
+    final inactiveItemColor = ObsidianUITheme.getSecondaryTextColor(context);
 
     final allNavItems = [
       {'pageId': 'dashboard', 'targetIndex': 0, 'icon': Icons.dashboard_rounded, 'labelKey': 'nav.dashboard'},
@@ -113,6 +115,10 @@ class _ObsidianNavItemState extends State<_ObsidianNavItem> {
 
   @override
   Widget build(BuildContext context) {
+    final primaryAccent = ObsidianUITheme.getPrimaryAccent(context);
+    final secondaryAccent = ObsidianUITheme.getSecondaryAccent(context);
+    final pillRadius = ObsidianUITheme.getButtonRadius(context, fallback: 20.0).clamp(10.0, 32.0);
+
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
       onTapUp: (_) {
@@ -134,16 +140,16 @@ class _ObsidianNavItemState extends State<_ObsidianNavItem> {
           ),
           decoration: widget.isSelected
               ? BoxDecoration(
-                  borderRadius: BorderRadius.circular(20.0),
-                  gradient: const LinearGradient(
+                  borderRadius: BorderRadius.circular(pillRadius),
+                  gradient: LinearGradient(
                     colors: [
-                      ObsidianUITheme.primaryAccent,
-                      ObsidianUITheme.secondaryAccent,
+                      primaryAccent,
+                      secondaryAccent,
                     ],
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.4),
+                      color: primaryAccent.withValues(alpha: 0.4),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),

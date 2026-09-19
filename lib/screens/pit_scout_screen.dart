@@ -232,7 +232,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
                 onPressed: () => Navigator.of(ctx).pop(),
                 child: Text(
                   context.tr('qr.close'),
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent),
+                  style: TextStyle(fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent),
                 ),
               ),
             ],
@@ -364,7 +364,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(
+      return Center(
         child: CircularProgressIndicator(color: ObsidianUITheme.secondaryAccent),
       );
     }
@@ -387,13 +387,13 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
               ObsidianGlassCard(
                 child: DropdownButtonFormField<TeamModel>(
                   isExpanded: true,
-                  value: _teams.contains(_selectedTeam) ? _selectedTeam : null,
+                  initialValue: _teams.contains(_selectedTeam) ? _selectedTeam : null,
                   dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                   style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
                   decoration: InputDecoration(
                     labelText: context.tr('scout.select_team'),
                     labelStyle: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context)),
-                    prefixIcon: const Icon(Icons.build_circle_outlined, color: ObsidianUITheme.secondaryAccent),
+                    prefixIcon: Icon(Icons.build_circle_outlined, color: ObsidianUITheme.secondaryAccent),
                     enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
                   ),
                   items: _teams.map((t) => DropdownMenuItem(value: t, child: Text(t.displayName, overflow: TextOverflow.ellipsis))).toList(),
@@ -411,7 +411,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.info_outline_rounded, color: ObsidianUITheme.secondaryAccent, size: 36.0),
+                          Icon(Icons.info_outline_rounded, color: ObsidianUITheme.secondaryAccent, size: 36.0),
                           const SizedBox(height: 12.0),
                           Text(
                             'Select a team above to start entering pit scouting data.',
@@ -442,7 +442,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Icon(Icons.qr_code_2_rounded, color: ObsidianUITheme.secondaryAccent, size: 20.0),
+                                  Icon(Icons.qr_code_2_rounded, color: ObsidianUITheme.secondaryAccent, size: 20.0),
                                   const SizedBox(width: 8.0),
                                   Text(
                                     context.tr('qr.button_label').toUpperCase(),
@@ -461,7 +461,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
                                 onTap: _isSubmitting ? null : _submitPitData,
                                 child: Center(
                                   child: _isSubmitting
-                                      ? const SizedBox(
+                                      ? SizedBox(
                                           width: 20,
                                           height: 20,
                                           child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianUITheme.primaryAccent),
@@ -572,18 +572,18 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
                 children: [
                   Text(
                     context.tr('nav.pit_scout').toUpperCase(),
-                    style: const TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.secondaryAccent, letterSpacing: 1.0),
+                    style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.secondaryAccent, letterSpacing: 1.0),
                   ),
                   const SizedBox(height: 12.0),
                   DropdownButtonFormField<TeamModel>(
                     isExpanded: true,
-                    value: _teams.contains(_selectedTeam) ? _selectedTeam : null,
+                    initialValue: _teams.contains(_selectedTeam) ? _selectedTeam : null,
                     dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                     style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
                     decoration: InputDecoration(
                       labelText: context.tr('scout.select_team'),
                       labelStyle: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context)),
-                      prefixIcon: const Icon(Icons.build_circle_outlined, color: ObsidianUITheme.secondaryAccent),
+                      prefixIcon: Icon(Icons.build_circle_outlined, color: ObsidianUITheme.secondaryAccent),
                       enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
                     ),
                     items: _teams.map((t) => DropdownMenuItem(value: t, child: Text(t.displayName, overflow: TextOverflow.ellipsis))).toList(),
@@ -600,7 +600,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.info_outline_rounded, color: ObsidianUITheme.secondaryAccent, size: 36.0),
+                        Icon(Icons.info_outline_rounded, color: ObsidianUITheme.secondaryAccent, size: 36.0),
                         const SizedBox(height: 12.0),
                         Builder(
                           builder: (ctx) {
@@ -652,7 +652,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.qr_code_2_rounded, color: ObsidianUITheme.secondaryAccent),
+                      Icon(Icons.qr_code_2_rounded, color: ObsidianUITheme.secondaryAccent),
                       const SizedBox(width: 10.0),
                       Text(
                         context.tr('qr.button_label').toUpperCase(),
@@ -670,7 +670,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
                     onTap: _isSubmitting ? null : _submitPitData,
                     child: Center(
                       child: _isSubmitting
-                          ? const CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)
+                          ? CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)
                           : Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [

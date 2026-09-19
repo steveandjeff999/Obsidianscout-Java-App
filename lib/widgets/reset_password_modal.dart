@@ -218,7 +218,7 @@ class _ResetPasswordModalState extends State<ResetPasswordModal> {
                     Expanded(
                       child: Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.lock_reset_rounded,
                             color: ObsidianUITheme.primaryAccent,
                             size: 24.0,
@@ -268,10 +268,10 @@ class _ResetPasswordModalState extends State<ResetPasswordModal> {
                     labelStyle: TextStyle(color: secondaryTextColor),
                     hintText: 'Paste token from your email',
                     hintStyle: TextStyle(color: faintTextColor),
-                    prefixIcon: const Icon(Icons.vpn_key_outlined, color: ObsidianUITheme.primaryAccent),
+                    prefixIcon: Icon(Icons.vpn_key_outlined, color: ObsidianUITheme.primaryAccent),
                     suffixIcon: _isVerifying
-                        ? const Padding(
-                            padding: EdgeInsets.all(12.0),
+                        ? Padding(
+                            padding: const EdgeInsets.all(12.0),
                             child: SizedBox(
                               width: 18,
                               height: 18,
@@ -279,7 +279,7 @@ class _ResetPasswordModalState extends State<ResetPasswordModal> {
                             ),
                           )
                         : IconButton(
-                            icon: const Icon(Icons.arrow_forward_rounded, color: ObsidianUITheme.primaryAccent),
+                            icon: Icon(Icons.arrow_forward_rounded, color: ObsidianUITheme.primaryAccent),
                             tooltip: 'Verify Token',
                             onPressed: _verifyToken,
                           ),
@@ -339,7 +339,7 @@ class _ResetPasswordModalState extends State<ResetPasswordModal> {
                       children: [
                         if (_accounts.length > 1) ...[
                           DropdownButtonFormField<String>(
-                            value: _selectedUserId,
+                            initialValue: _selectedUserId,
                             dropdownColor: surfaceColor,
                             style: TextStyle(color: primaryTextColor),
                             decoration: InputDecoration(

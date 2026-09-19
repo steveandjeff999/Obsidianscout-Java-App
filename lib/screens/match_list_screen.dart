@@ -164,7 +164,7 @@ class _MatchListScreenState extends State<MatchListScreen> {
                         shape: BoxShape.circle,
                         color: ObsidianUITheme.secondaryAccent.withValues(alpha: 0.2),
                       ),
-                      child: const Icon(Icons.sports_esports_rounded, color: ObsidianUITheme.secondaryAccent, size: 22),
+                      child: Icon(Icons.sports_esports_rounded, color: ObsidianUITheme.secondaryAccent, size: 22),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -188,7 +188,7 @@ class _MatchListScreenState extends State<MatchListScreen> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.refresh_rounded, color: ObsidianUITheme.secondaryAccent),
+                      icon: Icon(Icons.refresh_rounded, color: ObsidianUITheme.secondaryAccent),
                       tooltip: context.tr('dashboard.quick_sync'),
                       onPressed: _loadMatches,
                     ),
@@ -200,7 +200,7 @@ class _MatchListScreenState extends State<MatchListScreen> {
                   decoration: InputDecoration(
                     hintText: 'Search by match label or team...',
                     hintStyle: TextStyle(color: secondaryTextColor, fontSize: 13),
-                    prefixIcon: const Icon(Icons.search_rounded, color: ObsidianUITheme.secondaryAccent, size: 20),
+                    prefixIcon: Icon(Icons.search_rounded, color: ObsidianUITheme.secondaryAccent, size: 20),
                     filled: true,
                     fillColor: surfaceColor,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -214,7 +214,7 @@ class _MatchListScreenState extends State<MatchListScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: ObsidianUITheme.secondaryAccent),
+                      borderSide: BorderSide(color: ObsidianUITheme.secondaryAccent),
                     ),
                   ),
                   onChanged: (v) => setState(() => _searchQuery = v),
@@ -261,7 +261,7 @@ class _MatchListScreenState extends State<MatchListScreen> {
         // Match list
         Expanded(
           child: _isLoading
-              ? const Center(child: CircularProgressIndicator(color: ObsidianUITheme.secondaryAccent))
+              ? Center(child: CircularProgressIndicator(color: ObsidianUITheme.secondaryAccent))
               : filtered.isEmpty
                   ? Center(
                       child: Column(

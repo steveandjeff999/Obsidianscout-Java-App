@@ -64,7 +64,7 @@ class DashboardScreen extends StatelessWidget {
                       width: 40.0,
                       height: 40.0,
                       fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) => const Icon(
+                      errorBuilder: (context, error, stackTrace) => Icon(
                         Icons.shield_outlined,
                         color: ObsidianUITheme.primaryAccent,
                         size: 24.0,
@@ -144,7 +144,7 @@ class DashboardScreen extends StatelessWidget {
                             margin: const EdgeInsets.only(left: 16.0, right: 8.0, top: 8.0, bottom: 8.0),
                             child: Column(
                               children: [
-                                const Icon(Icons.sports_esports_rounded, size: 36.0, color: ObsidianUITheme.primaryAccent),
+                                Icon(Icons.sports_esports_rounded, size: 36.0, color: ObsidianUITheme.primaryAccent),
                                 const SizedBox(height: 12.0),
                                 Text(context.tr('nav.match_scout'), style: TextStyle(fontWeight: FontWeight.bold, color: primaryTextColor)),
                                 const SizedBox(height: 4.0),
@@ -159,7 +159,7 @@ class DashboardScreen extends StatelessWidget {
                             margin: const EdgeInsets.only(left: 8.0, right: 16.0, top: 8.0, bottom: 8.0),
                             child: Column(
                               children: [
-                                const Icon(Icons.build_circle_rounded, size: 36.0, color: ObsidianUITheme.secondaryAccent),
+                                Icon(Icons.build_circle_rounded, size: 36.0, color: ObsidianUITheme.secondaryAccent),
                                 const SizedBox(height: 12.0),
                                 Text(context.tr('nav.pit_scout'), style: TextStyle(fontWeight: FontWeight.bold, color: primaryTextColor)),
                                 const SizedBox(height: 4.0),
@@ -175,7 +175,7 @@ class DashboardScreen extends StatelessWidget {
                       onTap: onNavigateMatch,
                       child: Row(
                         children: [
-                          const Icon(Icons.sports_esports_rounded, size: 32.0, color: ObsidianUITheme.primaryAccent),
+                          Icon(Icons.sports_esports_rounded, size: 32.0, color: ObsidianUITheme.primaryAccent),
                           const SizedBox(width: 16.0),
                           Expanded(
                             child: Column(
@@ -196,7 +196,7 @@ class DashboardScreen extends StatelessWidget {
                       onTap: onNavigatePit,
                       child: Row(
                         children: [
-                          const Icon(Icons.build_circle_rounded, size: 32.0, color: ObsidianUITheme.secondaryAccent),
+                          Icon(Icons.build_circle_rounded, size: 32.0, color: ObsidianUITheme.secondaryAccent),
                           const SizedBox(width: 16.0),
                           Expanded(
                             child: Column(
@@ -219,7 +219,7 @@ class DashboardScreen extends StatelessWidget {
                       onTap: onNavigateQrScanner,
                       child: Row(
                         children: [
-                          const Icon(Icons.qr_code_scanner_rounded, size: 32.0, color: ObsidianUITheme.primaryAccent),
+                          Icon(Icons.qr_code_scanner_rounded, size: 32.0, color: ObsidianUITheme.primaryAccent),
                           const SizedBox(width: 16.0),
                           Expanded(
                             child: Column(
@@ -459,7 +459,7 @@ class DashboardScreen extends StatelessWidget {
                   width: 48.0,
                   height: 48.0,
                   fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) => const Icon(
+                  errorBuilder: (context, error, stackTrace) => Icon(
                     Icons.shield_rounded,
                     color: ObsidianUITheme.primaryAccent,
                     size: 28.0,
@@ -586,7 +586,7 @@ class DashboardScreen extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.info_outline_rounded, color: ObsidianUITheme.primaryAccent, size: 18.0),
+                    Icon(Icons.info_outline_rounded, color: ObsidianUITheme.primaryAccent, size: 18.0),
                     const SizedBox(width: 8.0),
                     Text(
                       'STATION GUIDELINES & SYNC STATUS',

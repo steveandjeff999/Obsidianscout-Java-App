@@ -23,10 +23,14 @@ class ObsidianNavigationDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = ObsidianUITheme.isDark(context);
-    final drawerBg = isDark ? const Color(0xF70C0F14) : const Color(0xF9F8FAFC);
-    final borderColor = isDark ? Colors.white10 : Colors.black12;
-    final headerTextColor = isDark ? Colors.white : const Color(0xFF0F172A);
-    final sectionLabelColor = isDark ? Colors.white38 : Colors.black45;
+    final drawerBg = isDark
+        ? ObsidianUITheme.getSurfaceColor(context)
+        : ObsidianUITheme.getSurfaceColor(context);
+    final borderColor = ObsidianUITheme.getBorderColor(context);
+    final headerTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+    final sectionLabelColor = ObsidianUITheme.getSecondaryTextColor(context);
+    final primaryAccent = ObsidianUITheme.getPrimaryAccent(context);
+    final itemRadius = ObsidianUITheme.getButtonRadius(context, fallback: 12.0).clamp(4.0, 18.0);
 
     final user = apiService.currentUser;
     final username = user?.username.isNotEmpty == true
@@ -231,6 +235,13 @@ class ObsidianNavigationDrawer extends StatelessWidget {
             'subKey': 'subtitle.config_editor',
           },
           {
+            'pageId': 'theme-editor',
+            'index': 28,
+            'icon': Icons.palette_rounded,
+            'labelKey': 'nav.theme_editor',
+            'subKey': 'subtitle.theme_editor',
+          },
+          {
             'pageId': 'users',
             'index': 22,
             'icon': Icons.manage_accounts_rounded,
@@ -328,19 +339,19 @@ class ObsidianNavigationDrawer extends StatelessWidget {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.2),
+                                    color: primaryAccent.withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(10),
                                     border: Border.all(
-                                      color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.4),
+                                      color: primaryAccent.withValues(alpha: 0.4),
                                       width: 0.8,
                                     ),
                                   ),
                                   child: Text(
                                     roleLabel,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.w700,
-                                      color: ObsidianUITheme.primaryAccent,
+                                      color: primaryAccent,
                                     ),
                                   ),
                                 ),
@@ -402,13 +413,13 @@ class ObsidianNavigationDrawer extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(vertical: 2.5),
                               child: Material(
                                 color: isSelected
-                                    ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.2)
+                                    ? primaryAccent.withValues(alpha: 0.2)
                                     : Colors.transparent,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14.0),
+                                  borderRadius: BorderRadius.circular(itemRadius),
                                   side: isSelected
                                       ? BorderSide(
-                                          color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.5),
+                                          color: primaryAccent.withValues(alpha: 0.5),
                                           width: 1.2,
                                         )
                                       : BorderSide.none,
@@ -418,14 +429,14 @@ class ObsidianNavigationDrawer extends StatelessWidget {
                                 dense: true,
                                 leading: Icon(
                                   item['icon'] as IconData,
-                                  color: isSelected ? ObsidianUITheme.primaryAccent : unselectedIconColor,
+                                  color: isSelected ? primaryAccent : unselectedIconColor,
                                   size: 22.0,
                                 ),
                                 title: Text(
                                   context.tr(item['labelKey'] as String),
                                   style: TextStyle(
                                     color: isSelected
-                                        ? (isDark ? Colors.white : ObsidianUITheme.primaryAccent)
+                                        ? (isDark ? Colors.white : primaryAccent)
                                         : unselectedItemColor,
                                     fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                                     fontSize: 13.5,
@@ -439,9 +450,9 @@ class ObsidianNavigationDrawer extends StatelessWidget {
                                     ? Container(
                                         width: 6,
                                         height: 6,
-                                        decoration: const BoxDecoration(
+                                        decoration: BoxDecoration(
                                           shape: BoxShape.circle,
-                                          color: ObsidianUITheme.primaryAccent,
+                                          color: primaryAccent,
                                         ),
                                       )
                                     : null,

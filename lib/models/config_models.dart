@@ -567,6 +567,112 @@ class ApiKeysModel {
   }
 }
 
+class ThemePresetModel {
+  final String name;
+  final String lightAccent;
+  final String lightAccent2;
+  final String lightAccent3;
+  final String lightBg;
+  final String lightInk;
+  final String lightMuted;
+  final String darkAccent;
+  final String darkAccent2;
+  final String darkAccent3;
+  final String darkBg;
+  final String darkInk;
+  final String darkMuted;
+  final String btnRadius;
+
+  const ThemePresetModel({
+    this.name = 'Default',
+    this.lightAccent = '#0b8f88',
+    this.lightAccent2 = '#f28b35',
+    this.lightAccent3 = '#255a9c',
+    this.lightBg = '#ffffff',
+    this.lightInk = '#1d1a17',
+    this.lightMuted = '#5f5b55',
+    this.darkAccent = '#3ccfc0',
+    this.darkAccent2 = '#f2a353',
+    this.darkAccent3 = '#6aa2ff',
+    this.darkBg = '#09090b',
+    this.darkInk = '#f4f2ed',
+    this.darkMuted = '#c3bfb8',
+    this.btnRadius = '999px',
+  });
+
+  factory ThemePresetModel.fromJson(Map<String, dynamic> json) {
+    return ThemePresetModel(
+      name: json['name']?.toString() ?? 'Default',
+      lightAccent: json['lightAccent']?.toString() ?? '#0b8f88',
+      lightAccent2: json['lightAccent2']?.toString() ?? '#f28b35',
+      lightAccent3: json['lightAccent3']?.toString() ?? '#255a9c',
+      lightBg: json['lightBg']?.toString() ?? '#ffffff',
+      lightInk: json['lightInk']?.toString() ?? '#1d1a17',
+      lightMuted: json['lightMuted']?.toString() ?? '#5f5b55',
+      darkAccent: json['darkAccent']?.toString() ?? '#3ccfc0',
+      darkAccent2: json['darkAccent2']?.toString() ?? '#f2a353',
+      darkAccent3: json['darkAccent3']?.toString() ?? '#6aa2ff',
+      darkBg: json['darkBg']?.toString() ?? '#09090b',
+      darkInk: json['darkInk']?.toString() ?? '#f4f2ed',
+      darkMuted: json['darkMuted']?.toString() ?? '#c3bfb8',
+      btnRadius: json['btnRadius']?.toString() ?? '999px',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'lightAccent': lightAccent,
+      'lightAccent2': lightAccent2,
+      'lightAccent3': lightAccent3,
+      'lightBg': lightBg,
+      'lightInk': lightInk,
+      'lightMuted': lightMuted,
+      'darkAccent': darkAccent,
+      'darkAccent2': darkAccent2,
+      'darkAccent3': darkAccent3,
+      'darkBg': darkBg,
+      'darkInk': darkInk,
+      'darkMuted': darkMuted,
+      'btnRadius': btnRadius,
+    };
+  }
+
+  ThemePresetModel copyWith({
+    String? name,
+    String? lightAccent,
+    String? lightAccent2,
+    String? lightAccent3,
+    String? lightBg,
+    String? lightInk,
+    String? lightMuted,
+    String? darkAccent,
+    String? darkAccent2,
+    String? darkAccent3,
+    String? darkBg,
+    String? darkInk,
+    String? darkMuted,
+    String? btnRadius,
+  }) {
+    return ThemePresetModel(
+      name: name ?? this.name,
+      lightAccent: lightAccent ?? this.lightAccent,
+      lightAccent2: lightAccent2 ?? this.lightAccent2,
+      lightAccent3: lightAccent3 ?? this.lightAccent3,
+      lightBg: lightBg ?? this.lightBg,
+      lightInk: lightInk ?? this.lightInk,
+      lightMuted: lightMuted ?? this.lightMuted,
+      darkAccent: darkAccent ?? this.darkAccent,
+      darkAccent2: darkAccent2 ?? this.darkAccent2,
+      darkAccent3: darkAccent3 ?? this.darkAccent3,
+      darkBg: darkBg ?? this.darkBg,
+      darkInk: darkInk ?? this.darkInk,
+      darkMuted: darkMuted ?? this.darkMuted,
+      btnRadius: btnRadius ?? this.btnRadius,
+    );
+  }
+}
+
 class AppSettingsModel {
   final int year;
   final String eventCode;
@@ -584,6 +690,9 @@ class AppSettingsModel {
   final String serverVersion;
   final ApiKeysModel apiKeys;
   final String statboticsBaseUrl;
+  final ThemePresetModel? theme;
+  final List<ThemePresetModel> themes;
+  final String activeThemeName;
 
   AppSettingsModel({
     this.year = 2026,
@@ -602,6 +711,9 @@ class AppSettingsModel {
     this.serverVersion = '',
     ApiKeysModel? apiKeys,
     this.statboticsBaseUrl = 'https://api.statbotics.io',
+    this.theme,
+    this.themes = const [],
+    this.activeThemeName = '',
   }) : apiKeys = apiKeys ?? ApiKeysModel();
 
   factory AppSettingsModel.fromJson(Map<String, dynamic> json) {
@@ -621,6 +733,27 @@ class AppSettingsModel {
       return ApiKeysModel();
     }
 
+    ThemePresetModel? parseTheme(dynamic raw) {
+      if (raw is Map<String, dynamic>) {
+        return ThemePresetModel.fromJson(raw);
+      }
+      return null;
+    }
+
+    List<ThemePresetModel> parseThemes(dynamic raw) {
+      if (raw is List) {
+        return raw
+            .whereType<Map<String, dynamic>>()
+            .map((e) => ThemePresetModel.fromJson(e))
+            .toList();
+      }
+      return const [];
+    }
+
+    final parsedTheme = parseTheme(settingsMap['theme']);
+    final parsedThemes = parseThemes(settingsMap['themes']);
+    final activeThemeName = settingsMap['activeThemeName']?.toString() ?? (parsedTheme?.name ?? '');
+
     return AppSettingsModel(
       year: (settingsMap['year'] as num?)?.toInt() ?? DateTime.now().year,
       eventCode: settingsMap['eventCode']?.toString() ?? '',
@@ -638,6 +771,9 @@ class AppSettingsModel {
       serverVersion: json['version']?.toString() ?? json['serverVersion']?.toString() ?? '',
       apiKeys: parseApiKeys(settingsMap['apiKeys']),
       statboticsBaseUrl: settingsMap['statboticsBaseUrl']?.toString() ?? 'https://api.statbotics.io',
+      theme: parsedTheme,
+      themes: parsedThemes,
+      activeThemeName: activeThemeName,
     );
   }
 
@@ -659,6 +795,9 @@ class AppSettingsModel {
       'serverVersion': serverVersion,
       'apiKeys': apiKeys.toJson(),
       'statboticsBaseUrl': statboticsBaseUrl,
+      if (theme != null) 'theme': theme!.toJson(),
+      'themes': themes.map((t) => t.toJson()).toList(),
+      'activeThemeName': activeThemeName,
     };
   }
 
@@ -679,6 +818,9 @@ class AppSettingsModel {
     String? serverVersion,
     ApiKeysModel? apiKeys,
     String? statboticsBaseUrl,
+    ThemePresetModel? theme,
+    List<ThemePresetModel>? themes,
+    String? activeThemeName,
   }) {
     return AppSettingsModel(
       year: year ?? this.year,
@@ -697,6 +839,9 @@ class AppSettingsModel {
       serverVersion: serverVersion ?? this.serverVersion,
       apiKeys: apiKeys ?? this.apiKeys,
       statboticsBaseUrl: statboticsBaseUrl ?? this.statboticsBaseUrl,
+      theme: theme ?? this.theme,
+      themes: themes ?? this.themes,
+      activeThemeName: activeThemeName ?? this.activeThemeName,
     );
   }
 }

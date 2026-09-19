@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../l10n/app_localizations.dart';
 import '../models/desktop_tab_model.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
@@ -50,8 +49,12 @@ class _ObsidianDesktopTabBarState extends State<ObsidianDesktopTabBar> {
   @override
   Widget build(BuildContext context) {
     final isDark = ObsidianUITheme.isDark(context);
-    final barBg = isDark ? const Color(0xFF0D1017) : const Color(0xFFE2E8F0);
-    final borderColor = isDark ? Colors.white10 : Colors.black12;
+    final barBg = isDark
+        ? ObsidianUITheme.getSurfaceColor(context).withValues(alpha: 0.65)
+        : ObsidianUITheme.getSurfaceColor(context).withValues(alpha: 0.85);
+    final borderColor = ObsidianUITheme.getBorderColor(context);
+    final primaryAccent = ObsidianUITheme.getPrimaryAccent(context);
+    final tabRadius = ObsidianUITheme.getButtonRadius(context, fallback: 8.0).clamp(4.0, 14.0);
     final eventKey = widget.apiService.currentSettings?.eventKey ?? '';
 
     return Container(
@@ -91,6 +94,8 @@ class _ObsidianDesktopTabBarState extends State<ObsidianDesktopTabBar> {
                     isActive: isActive,
                     isDark: isDark,
                     canClose: widget.tabs.length > 1,
+                    tabRadius: tabRadius,
+                    primaryAccent: primaryAccent,
                   );
                 },
               ),
@@ -104,24 +109,24 @@ class _ObsidianDesktopTabBarState extends State<ObsidianDesktopTabBar> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 7.0, vertical: 3.0),
                 decoration: BoxDecoration(
-                  color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(6.0),
+                  color: primaryAccent.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(tabRadius > 6.0 ? 6.0 : tabRadius),
                   border: Border.all(
-                    color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.35),
+                    color: primaryAccent.withValues(alpha: 0.35),
                     width: 0.8,
                   ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.event_available_rounded, size: 11.0, color: ObsidianUITheme.primaryAccent),
+                    Icon(Icons.event_available_rounded, size: 11.0, color: primaryAccent),
                     const SizedBox(width: 4.0),
                     Text(
                       eventKey.toUpperCase(),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 10.5,
                         fontWeight: FontWeight.bold,
-                        color: ObsidianUITheme.primaryAccent,
+                        color: primaryAccent,
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -217,13 +222,15 @@ class _ObsidianDesktopTabBarState extends State<ObsidianDesktopTabBar> {
     required bool isActive,
     required bool isDark,
     required bool canClose,
+    required double tabRadius,
+    required Color primaryAccent,
   }) {
-    final activeBg = isDark ? const Color(0xFF1E2536) : Colors.white;
-    final inactiveBg = isDark ? const Color(0x0AFFFFFF) : const Color(0x08000000);
-    final activeBorderColor = isDark ? const Color(0xFF5B6CFF) : const Color(0xFF4F46E5);
+    final activeBg = isDark ? ObsidianUITheme.getSurfaceColor(context) : Colors.white;
+    final inactiveBg = isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.04);
+    final activeBorderColor = primaryAccent;
     final titleText = title.isNotEmpty && !title.startsWith('nav.') ? title : 'Tab ${widget.tabs.indexOf(tab) + 1}';
     final tabBorderColor = isActive
-        ? (isDark ? Colors.white24 : Colors.black12)
+        ? ObsidianUITheme.getBorderColor(context)
         : (isDark ? Colors.white10 : Colors.black12);
 
     return GestureDetector(
@@ -245,14 +252,14 @@ class _ObsidianDesktopTabBarState extends State<ObsidianDesktopTabBar> {
           margin: const EdgeInsets.only(top: 4.0, bottom: 0.0, right: 3.0),
           decoration: BoxDecoration(
             color: isActive ? activeBg : inactiveBg,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(8.0)),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(tabRadius)),
             border: Border.all(
               color: tabBorderColor,
               width: 0.8,
             ),
           ),
           child: ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(7.0)),
+            borderRadius: BorderRadius.vertical(top: Radius.circular((tabRadius - 1).clamp(0.0, 32.0))),
             child: Stack(
               children: [
                 Positioned.fill(
@@ -270,8 +277,8 @@ class _ObsidianDesktopTabBarState extends State<ObsidianDesktopTabBar> {
                               icon,
                               size: 15.0,
                               color: isActive
-                                  ? (isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5))
-                                  : (isDark ? Colors.white54 : Colors.black45),
+                                  ? primaryAccent
+                                  : (isDark ? ObsidianUITheme.getSecondaryTextColor(context) : Colors.black45),
                             ),
                             const SizedBox(width: 8.0),
                             Expanded(
@@ -283,8 +290,8 @@ class _ObsidianDesktopTabBarState extends State<ObsidianDesktopTabBar> {
                                   fontSize: 12.0,
                                   fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
                                   color: isActive
-                                      ? (isDark ? Colors.white : const Color(0xFF0F172A))
-                                      : (isDark ? Colors.white70 : Colors.black54),
+                                      ? ObsidianUITheme.getPrimaryTextColor(context)
+                                      : ObsidianUITheme.getSecondaryTextColor(context),
                                 ),
                               ),
                             ),
@@ -298,8 +305,8 @@ class _ObsidianDesktopTabBarState extends State<ObsidianDesktopTabBar> {
                                     Icons.close_rounded,
                                     size: 13.5,
                                     color: isActive
-                                        ? (isDark ? Colors.white70 : Colors.black54)
-                                        : (isDark ? Colors.white38 : Colors.black26),
+                                        ? ObsidianUITheme.getSecondaryTextColor(context)
+                                        : ObsidianUITheme.getFaintTextColor(context),
                                   ),
                                 ),
                               )

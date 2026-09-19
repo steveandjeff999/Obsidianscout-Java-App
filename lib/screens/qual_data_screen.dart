@@ -660,8 +660,8 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                         color: _conflictsOnly ? Colors.black87 : Colors.amberAccent,
                       ),
                       selectedColor: Colors.amberAccent,
-                      backgroundColor: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04),
-                      side: BorderSide(color: Colors.amberAccent.withOpacity(0.4)),
+                      backgroundColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.04),
+                      side: BorderSide(color: Colors.amberAccent.withValues(alpha: 0.4)),
                       onSelected: (val) => setState(() => _conflictsOnly = val),
                     ),
                   ],
@@ -669,12 +669,12 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                 const SizedBox(height: 12),
                 // Event selector
                 DropdownButtonFormField<String>(
-                  value: _events.any((e) => e.eventKey == _selectedEventKey) ? _selectedEventKey : 'all',
+                  initialValue: _events.any((e) => e.eventKey == _selectedEventKey) ? _selectedEventKey : 'all',
                   decoration: InputDecoration(
                     labelText: 'Event',
                     prefixIcon: const Icon(Icons.event_rounded, size: 20),
                     filled: true,
-                    fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04),
+                    fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   ),
@@ -701,7 +701,7 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                           hintText: 'Search Team # or name',
                           prefixIcon: const Icon(Icons.search_rounded, size: 20),
                           filled: true,
-                          fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04),
+                          fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         ),
@@ -712,13 +712,13 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                     Expanded(
                       flex: 3,
                       child: DropdownButtonFormField<String>(
-                        value: (_selectedMetric == '__composite__' || _metricFields.any((f) => f.id == _selectedMetric))
+                        initialValue: (_selectedMetric == '__composite__' || _metricFields.any((f) => f.id == _selectedMetric))
                             ? _selectedMetric
                             : '__composite__',
                         decoration: InputDecoration(
                           labelText: 'Rank Metric',
                           filled: true,
-                          fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04),
+                          fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         ),
@@ -744,11 +744,11 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                     Expanded(
                       flex: 3,
                       child: DropdownButtonFormField<String>(
-                        value: _aggregateMode,
+                        initialValue: _aggregateMode,
                         decoration: InputDecoration(
                           labelText: 'Aggregation',
                           filled: true,
-                          fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04),
+                          fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         ),
@@ -768,11 +768,11 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                     Expanded(
                       flex: 2,
                       child: DropdownButtonFormField<int>(
-                        value: _minEntries,
+                        initialValue: _minEntries,
                         decoration: InputDecoration(
                           labelText: 'Min Entries',
                           filled: true,
-                          fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04),
+                          fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         ),
@@ -816,9 +816,9 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.lightGreenAccent.withOpacity(0.15),
+                        color: Colors.lightGreenAccent.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.lightGreenAccent.withOpacity(0.3)),
+                        border: Border.all(color: Colors.lightGreenAccent.withValues(alpha: 0.3)),
                       ),
                       child: Text(
                         '${rankings.length} ranked',
@@ -839,7 +839,7 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
           // Tabs: Team Rankings vs Entry List
           Container(
             decoration: BoxDecoration(
-              color: isDark ? const Color(0x601E293B) : Colors.black.withOpacity(0.04),
+              color: isDark ? const Color(0x601E293B) : Colors.black.withValues(alpha: 0.04),
               borderRadius: BorderRadius.circular(12),
             ),
             child: TabBar(
@@ -847,8 +847,8 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
               indicatorSize: TabBarIndicatorSize.tab,
               indicator: BoxDecoration(
                 borderRadius: BorderRadius.circular(10),
-                color: Colors.lightGreenAccent.withOpacity(0.2),
-                border: Border.all(color: Colors.lightGreenAccent.withOpacity(0.6)),
+                color: Colors.lightGreenAccent.withValues(alpha: 0.2),
+                border: Border.all(color: Colors.lightGreenAccent.withValues(alpha: 0.6)),
               ),
               labelColor: Colors.lightGreenAccent,
               unselectedLabelColor: secondaryTextColor,
@@ -893,12 +893,12 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                         child: Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0x731E293B) : Colors.white.withOpacity(0.85),
+                            color: isDark ? const Color(0x731E293B) : Colors.white.withValues(alpha: 0.85),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
                               color: isSelected
                                   ? Colors.lightGreenAccent
-                                  : (isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.08)),
+                                  : (isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.08)),
                               width: isSelected ? 2.0 : 1.0,
                             ),
                           ),
@@ -911,7 +911,7 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                                 alignment: Alignment.center,
                                 decoration: BoxDecoration(
                                   color: team.rank <= 3
-                                      ? Colors.amberAccent.withOpacity(0.2)
+                                      ? Colors.amberAccent.withValues(alpha: 0.2)
                                       : (isDark ? Colors.white10 : Colors.black12),
                                   shape: BoxShape.circle,
                                   border: Border.all(
@@ -954,9 +954,9 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: Colors.lightGreenAccent.withOpacity(0.15),
+                                  color: Colors.lightGreenAccent.withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: Colors.lightGreenAccent.withOpacity(0.4)),
+                                  border: Border.all(color: Colors.lightGreenAccent.withValues(alpha: 0.4)),
                                 ),
                                 child: Text(
                                   team.score.toStringAsFixed(1),
@@ -1010,14 +1010,14 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                         child: Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0x731E293B) : Colors.white.withOpacity(0.85),
+                            color: isDark ? const Color(0x731E293B) : Colors.white.withValues(alpha: 0.85),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
                               color: hasConflict
-                                  ? Colors.amberAccent.withOpacity(0.7)
+                                  ? Colors.amberAccent.withValues(alpha: 0.7)
                                   : (isSelected
                                       ? Colors.lightGreenAccent
-                                      : (isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.08))),
+                                      : (isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.08))),
                               width: hasConflict || isSelected ? 1.8 : 1.0,
                             ),
                           ),
@@ -1026,7 +1026,7 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: Colors.lightGreenAccent.withOpacity(0.15),
+                                  color: Colors.lightGreenAccent.withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
@@ -1065,7 +1065,7 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: Colors.amberAccent.withOpacity(0.2),
+                                      color: Colors.amberAccent.withValues(alpha: 0.2),
                                       borderRadius: BorderRadius.circular(8),
                                       border: Border.all(color: Colors.amberAccent),
                                     ),
@@ -1091,7 +1091,7 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.06),
+                                  color: Colors.white.withValues(alpha: 0.06),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
@@ -1177,7 +1177,7 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: Colors.lightGreenAccent.withOpacity(0.15),
+                            color: Colors.lightGreenAccent.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Icon(Icons.rate_review_rounded, color: Colors.lightGreenAccent, size: 24),
@@ -1226,7 +1226,7 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                             margin: const EdgeInsets.only(bottom: 8),
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
+                              color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
                             ),
@@ -1323,7 +1323,7 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: Colors.lightGreenAccent.withOpacity(0.15),
+                            color: Colors.lightGreenAccent.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Icon(Icons.rate_review_rounded, color: Colors.lightGreenAccent, size: 24),
@@ -1366,9 +1366,9 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                             margin: const EdgeInsets.only(bottom: 12),
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.amberAccent.withOpacity(0.12),
+                              color: Colors.amberAccent.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.amberAccent.withOpacity(0.4)),
+                              border: Border.all(color: Colors.amberAccent.withValues(alpha: 0.4)),
                             ),
                             child: Row(
                               children: [
@@ -1402,7 +1402,7 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03),
+                            color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Column(
@@ -1438,7 +1438,7 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                               margin: const EdgeInsets.only(bottom: 6),
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                               decoration: BoxDecoration(
-                                color: isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
+                                color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02),
                                 borderRadius: BorderRadius.circular(10),
                                 border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
                               ),
@@ -1476,7 +1476,7 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                               margin: const EdgeInsets.only(bottom: 6),
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                               decoration: BoxDecoration(
-                                color: isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
+                                color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02),
                                 borderRadius: BorderRadius.circular(10),
                                 border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
                               ),
@@ -1529,9 +1529,9 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0x521E293B) : Colors.white.withOpacity(0.7),
+        color: isDark ? const Color(0x521E293B) : Colors.white.withValues(alpha: 0.7),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: accent.withOpacity(0.3)),
+        border: Border.all(color: accent.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

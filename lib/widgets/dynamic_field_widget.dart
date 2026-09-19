@@ -206,7 +206,7 @@ class DynamicFieldWidget extends StatelessWidget {
                   ),
                   IconButton(
                     onPressed: val < maxVal ? () => onChanged((val + stepVal).clamp(minVal, maxVal)) : null,
-                    icon: const Icon(Icons.add_circle_outline, color: ObsidianUITheme.primaryAccent, size: 20.0),
+                    icon: Icon(Icons.add_circle_outline, color: ObsidianUITheme.primaryAccent, size: 20.0),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(minWidth: 32.0, minHeight: 32.0),
                   ),
@@ -248,7 +248,7 @@ class DynamicFieldWidget extends StatelessWidget {
                 ),
                 IconButton(
                   onPressed: val < maxVal ? () => onChanged((val + stepVal).clamp(minVal, maxVal)) : null,
-                  icon: const Icon(Icons.add_circle_outline, color: ObsidianUITheme.primaryAccent, size: 30.0),
+                  icon: Icon(Icons.add_circle_outline, color: ObsidianUITheme.primaryAccent, size: 30.0),
                   iconSize: 30.0,
                   padding: const EdgeInsets.all(14.0),
                   constraints: const BoxConstraints(minWidth: 56.0, minHeight: 56.0),
@@ -475,7 +475,7 @@ class DynamicFieldWidget extends StatelessWidget {
             hintText: field.placeholder,
             labelStyle: TextStyle(color: secondaryTextColor),
             enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
-            focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
           ),
           items: field.options.map((opt) {
             return DropdownMenuItem<String>(
@@ -508,9 +508,9 @@ class DynamicFieldWidget extends StatelessWidget {
               borderSide: BorderSide(color: borderColor),
               borderRadius: const BorderRadius.all(Radius.circular(12.0)),
             ),
-            focusedBorder: const OutlineInputBorder(
+            focusedBorder: OutlineInputBorder(
               borderSide: BorderSide(color: ObsidianUITheme.primaryAccent),
-              borderRadius: BorderRadius.all(Radius.circular(12.0)),
+              borderRadius: const BorderRadius.all(Radius.circular(12.0)),
             ),
           ),
           onChanged: (text) => onChanged(text),
@@ -579,7 +579,7 @@ class DynamicFieldWidget extends StatelessWidget {
             hintStyle: TextStyle(color: tertiaryTextColor, fontSize: 13.0),
             labelStyle: TextStyle(color: secondaryTextColor),
             enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
-            focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
           ),
           onChanged: (text) => onChanged(text),
         );
@@ -697,7 +697,7 @@ class DynamicFieldWidget extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 ListTile(
-                  leading: const Icon(Icons.camera_alt_outlined, color: ObsidianUITheme.primaryAccent),
+                  leading: Icon(Icons.camera_alt_outlined, color: ObsidianUITheme.primaryAccent),
                   title: Text('Take Photo with Camera', style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.w600)),
                   subtitle: Text('Take a live mechanism snapshot', style: TextStyle(color: secondaryTextColor, fontSize: 12)),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -709,7 +709,7 @@ class DynamicFieldWidget extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 ListTile(
-                  leading: const Icon(Icons.photo_library_outlined, color: ObsidianUITheme.secondaryAccent),
+                  leading: Icon(Icons.photo_library_outlined, color: ObsidianUITheme.secondaryAccent),
                   title: Text('Choose from Gallery', style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.w600)),
                   subtitle: Text('Pick an existing photo from device', style: TextStyle(color: secondaryTextColor, fontSize: 12)),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -842,12 +842,12 @@ class DynamicFieldWidget extends StatelessWidget {
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(color: Colors.white24),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.zoom_in, size: 14, color: ObsidianUITheme.primaryAccent),
-                        SizedBox(width: 4),
-                        Text(
+                        const SizedBox(width: 4),
+                        const Text(
                           'Tap to Zoom',
                           style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
                         ),
@@ -867,7 +867,7 @@ class DynamicFieldWidget extends StatelessWidget {
                     color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Cleaned & Optimized',
                     style: TextStyle(color: ObsidianUITheme.primaryAccent, fontSize: 11, fontWeight: FontWeight.w600),
                   ),
@@ -876,8 +876,8 @@ class DynamicFieldWidget extends StatelessWidget {
                   children: [
                     TextButton.icon(
                       onPressed: showSourceSelector,
-                      icon: const Icon(Icons.refresh, size: 16, color: ObsidianUITheme.primaryAccent),
-                      label: const Text('Retake', style: TextStyle(fontSize: 12, color: ObsidianUITheme.primaryAccent)),
+                      icon: Icon(Icons.refresh, size: 16, color: ObsidianUITheme.primaryAccent),
+                      label: Text('Retake', style: TextStyle(fontSize: 12, color: ObsidianUITheme.primaryAccent)),
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         minimumSize: Size.zero,

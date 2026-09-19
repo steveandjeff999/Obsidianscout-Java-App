@@ -219,7 +219,7 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
             const SnackBar(
               content: Text('Error report deleted'),
               behavior: SnackBarBehavior.floating,
-              duration: const Duration(seconds: 2),
+              duration: Duration(seconds: 2),
             ),
           );
           _loadData();

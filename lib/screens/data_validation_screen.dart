@@ -237,7 +237,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> {
                           shape: BoxShape.circle,
                           color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.2),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.fact_check_rounded,
                           color: ObsidianUITheme.primaryAccent,
                           size: 24.0,
@@ -483,7 +483,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12.0),
-                        borderSide: const BorderSide(color: ObsidianUITheme.primaryAccent, width: 1.5),
+                        borderSide: BorderSide(color: ObsidianUITheme.primaryAccent, width: 1.5),
                       ),
                     ),
                   ),
@@ -504,7 +504,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> {
 
             // Content Views
             if (_isLoading)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.symmetric(vertical: 48.0),
                 child: Center(
                   child: Column(
@@ -849,7 +849,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> {
               label: const Text('Inspect Breakdown', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold)),
               style: OutlinedButton.styleFrom(
                 foregroundColor: ObsidianUITheme.primaryAccent,
-                side: const BorderSide(color: ObsidianUITheme.primaryAccent, width: 1.2),
+                side: BorderSide(color: ObsidianUITheme.primaryAccent, width: 1.2),
                 padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 8.0),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
               ),
@@ -1188,7 +1188,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> {
                     ),
                     child: Text(
                       '${team.teamNumber}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14.0,
                         fontWeight: FontWeight.w800,
                         color: ObsidianUITheme.primaryAccent,

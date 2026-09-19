@@ -329,7 +329,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                 onPressed: () => Navigator.of(ctx).pop(),
                 child: Text(
                   context.tr('qr.close'),
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent),
+                  style: TextStyle(fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent),
                 ),
               ),
             ],
@@ -632,14 +632,14 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
             children: [
               Text(
                 displayPreviewTitle.toUpperCase(),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12.0,
                   fontWeight: FontWeight.bold,
                   color: ObsidianUITheme.primaryAccent,
                   letterSpacing: 1.0,
                 ),
               ),
-              const Icon(Icons.analytics_outlined, size: 16.0, color: ObsidianUITheme.primaryAccent),
+              Icon(Icons.analytics_outlined, size: 16.0, color: ObsidianUITheme.primaryAccent),
             ],
           ),
           const SizedBox(height: 10.0),
@@ -774,7 +774,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(
+      return Center(
         child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent),
       );
     }
@@ -799,13 +799,13 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                     Expanded(
                       child: DropdownButtonFormField<TeamModel>(
                         isExpanded: true,
-                        value: _availableTeams.contains(_selectedTeam) ? _selectedTeam : null,
+                        initialValue: _availableTeams.contains(_selectedTeam) ? _selectedTeam : null,
                         dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                         style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
                         decoration: InputDecoration(
                           labelText: context.tr('scout.select_team'),
                           labelStyle: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context)),
-                          prefixIcon: const Icon(Icons.group_outlined, color: ObsidianUITheme.primaryAccent),
+                          prefixIcon: Icon(Icons.group_outlined, color: ObsidianUITheme.primaryAccent),
                           suffixIcon: _selectedTeam != null
                               ? IconButton(
                                   icon: const Icon(Icons.clear_rounded, size: 18.0),
@@ -824,13 +824,13 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                     Expanded(
                       child: DropdownButtonFormField<MatchModel>(
                         isExpanded: true,
-                        value: _availableMatches.contains(_selectedMatch) ? _selectedMatch : null,
+                        initialValue: _availableMatches.contains(_selectedMatch) ? _selectedMatch : null,
                         dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                         style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
                         decoration: InputDecoration(
                           labelText: context.tr('scout.select_match'),
                           labelStyle: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context)),
-                          prefixIcon: const Icon(Icons.sports_esports_outlined, color: ObsidianUITheme.primaryAccent),
+                          prefixIcon: Icon(Icons.sports_esports_outlined, color: ObsidianUITheme.primaryAccent),
                           suffixIcon: _selectedMatch != null
                               ? IconButton(
                                   icon: const Icon(Icons.clear_rounded, size: 18.0),
@@ -859,7 +859,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.info_outline_rounded, color: ObsidianUITheme.primaryAccent, size: 36.0),
+                          Icon(Icons.info_outline_rounded, color: ObsidianUITheme.primaryAccent, size: 36.0),
                           const SizedBox(height: 12.0),
                           Builder(
                             builder: (ctx) {
@@ -900,7 +900,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Icon(Icons.qr_code_2_rounded, color: ObsidianUITheme.secondaryAccent, size: 20.0),
+                                  Icon(Icons.qr_code_2_rounded, color: ObsidianUITheme.secondaryAccent, size: 20.0),
                                   const SizedBox(width: 8.0),
                                   Text(
                                     context.tr('qr.button_label').toUpperCase(),
@@ -919,7 +919,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                                 onTap: _isSubmitting ? null : _submitData,
                                 child: Center(
                                   child: _isSubmitting
-                                      ? const SizedBox(
+                                      ? SizedBox(
                                           width: 20,
                                           height: 20,
                                           child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianUITheme.primaryAccent),
@@ -1003,18 +1003,18 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                 children: [
                   Text(
                     context.tr('dashboard.event_context').toUpperCase(),
-                    style: const TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, letterSpacing: 1.0),
+                    style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, letterSpacing: 1.0),
                   ),
                   const SizedBox(height: 12.0),
                   DropdownButtonFormField<TeamModel>(
                     isExpanded: true,
-                    value: _availableTeams.contains(_selectedTeam) ? _selectedTeam : null,
+                    initialValue: _availableTeams.contains(_selectedTeam) ? _selectedTeam : null,
                     dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                     style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
                     decoration: InputDecoration(
                       labelText: context.tr('scout.select_team'),
                       labelStyle: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context)),
-                      prefixIcon: const Icon(Icons.group_outlined, color: ObsidianUITheme.primaryAccent),
+                      prefixIcon: Icon(Icons.group_outlined, color: ObsidianUITheme.primaryAccent),
                       suffixIcon: _selectedTeam != null
                           ? IconButton(
                               icon: const Icon(Icons.clear_rounded, size: 18.0),
@@ -1031,13 +1031,13 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                   const SizedBox(height: 12.0),
                   DropdownButtonFormField<MatchModel>(
                     isExpanded: true,
-                    value: _availableMatches.contains(_selectedMatch) ? _selectedMatch : null,
+                    initialValue: _availableMatches.contains(_selectedMatch) ? _selectedMatch : null,
                     dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                     style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
                     decoration: InputDecoration(
                       labelText: context.tr('scout.select_match'),
                       labelStyle: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context)),
-                      prefixIcon: const Icon(Icons.sports_esports_outlined, color: ObsidianUITheme.primaryAccent),
+                      prefixIcon: Icon(Icons.sports_esports_outlined, color: ObsidianUITheme.primaryAccent),
                       suffixIcon: _selectedMatch != null
                           ? IconButton(
                               icon: const Icon(Icons.clear_rounded, size: 18.0),
@@ -1064,7 +1064,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.info_outline_rounded, color: ObsidianUITheme.primaryAccent, size: 36.0),
+                        Icon(Icons.info_outline_rounded, color: ObsidianUITheme.primaryAccent, size: 36.0),
                         const SizedBox(height: 12.0),
                         Builder(
                           builder: (ctx) {
@@ -1105,7 +1105,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.qr_code_2_rounded, color: ObsidianUITheme.secondaryAccent),
+                      Icon(Icons.qr_code_2_rounded, color: ObsidianUITheme.secondaryAccent),
                       const SizedBox(width: 10.0),
                       Text(
                         context.tr('qr.button_label').toUpperCase(),
@@ -1125,7 +1125,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                     onTap: _isSubmitting ? null : _submitData,
                     child: Center(
                       child: _isSubmitting
-                          ? const CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)
+                          ? CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)
                           : Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [

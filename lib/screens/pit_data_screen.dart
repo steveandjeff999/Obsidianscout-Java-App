@@ -483,12 +483,12 @@ class _PitDataScreenState extends State<PitDataScreen> {
                 const SizedBox(height: 12),
                 // Event selector
                 DropdownButtonFormField<String>(
-                  value: _events.any((e) => e.eventKey == _selectedEventKey) ? _selectedEventKey : (_events.isNotEmpty ? _events.first.eventKey : ''),
+                  initialValue: _events.any((e) => e.eventKey == _selectedEventKey) ? _selectedEventKey : (_events.isNotEmpty ? _events.first.eventKey : ''),
                   decoration: InputDecoration(
                     labelText: 'Event',
                     prefixIcon: const Icon(Icons.event_rounded, size: 20),
                     filled: true,
-                    fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04),
+                    fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   ),
@@ -515,7 +515,7 @@ class _PitDataScreenState extends State<PitDataScreen> {
                           hintText: 'Search Team # or name',
                           prefixIcon: const Icon(Icons.search_rounded, size: 20),
                           filled: true,
-                          fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04),
+                          fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         ),
@@ -527,11 +527,11 @@ class _PitDataScreenState extends State<PitDataScreen> {
                       Expanded(
                         flex: 3,
                         child: DropdownButtonFormField<String>(
-                          value: _quickFieldOptions.any((f) => f.id == _selectedQuickFieldId) ? _selectedQuickFieldId : _quickFieldOptions.first.id,
+                          initialValue: _quickFieldOptions.any((f) => f.id == _selectedQuickFieldId) ? _selectedQuickFieldId : _quickFieldOptions.first.id,
                           decoration: InputDecoration(
                             labelText: 'Quick Field',
                             filled: true,
-                            fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04),
+                            fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                           ),
@@ -565,8 +565,8 @@ class _PitDataScreenState extends State<PitDataScreen> {
                         color: _missingOnly ? Colors.black87 : Colors.orangeAccent,
                       ),
                       selectedColor: Colors.orangeAccent,
-                      backgroundColor: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04),
-                      side: BorderSide(color: Colors.orangeAccent.withOpacity(0.4)),
+                      backgroundColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.04),
+                      side: BorderSide(color: Colors.orangeAccent.withValues(alpha: 0.4)),
                       onSelected: (val) => setState(() => _missingOnly = val),
                     ),
                     FilterChip(
@@ -581,8 +581,8 @@ class _PitDataScreenState extends State<PitDataScreen> {
                         color: _conflictsOnly ? Colors.black87 : Colors.amberAccent,
                       ),
                       selectedColor: Colors.amberAccent,
-                      backgroundColor: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04),
-                      side: BorderSide(color: Colors.amberAccent.withOpacity(0.4)),
+                      backgroundColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.04),
+                      side: BorderSide(color: Colors.amberAccent.withValues(alpha: 0.4)),
                       onSelected: (val) => setState(() => _conflictsOnly = val),
                     ),
                   ],
@@ -614,9 +614,9 @@ class _PitDataScreenState extends State<PitDataScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.cyanAccent.withOpacity(0.15),
+                        color: Colors.cyanAccent.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.cyanAccent.withOpacity(0.3)),
+                        border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.3)),
                       ),
                       child: Text(
                         '${filtered.length} teams',
@@ -642,7 +642,7 @@ class _PitDataScreenState extends State<PitDataScreen> {
                 child: Center(
                   child: Column(
                     children: [
-                      Icon(Icons.build_circle_outlined, size: 48, color: secondaryTextColor.withOpacity(0.5)),
+                      Icon(Icons.build_circle_outlined, size: 48, color: secondaryTextColor.withValues(alpha: 0.5)),
                       const SizedBox(height: 10),
                       Text(
                         'No teams found',
@@ -686,14 +686,14 @@ class _PitDataScreenState extends State<PitDataScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0x731E293B) : Colors.white.withOpacity(0.85),
+                      color: isDark ? const Color(0x731E293B) : Colors.white.withValues(alpha: 0.85),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: hasConflict
-                            ? Colors.amberAccent.withOpacity(0.7)
+                            ? Colors.amberAccent.withValues(alpha: 0.7)
                             : (isSelected
                                 ? Colors.cyanAccent
-                                : (isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.08))),
+                                : (isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.08))),
                         width: hasConflict || isSelected ? 1.8 : 1.0,
                       ),
                     ),
@@ -718,10 +718,10 @@ class _PitDataScreenState extends State<PitDataScreen> {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: item.hasPitData ? Colors.tealAccent.withOpacity(0.2) : Colors.orangeAccent.withOpacity(0.2),
+                                      color: item.hasPitData ? Colors.tealAccent.withValues(alpha: 0.2) : Colors.orangeAccent.withValues(alpha: 0.2),
                                       borderRadius: BorderRadius.circular(8),
                                       border: Border.all(
-                                        color: item.hasPitData ? Colors.tealAccent.withOpacity(0.5) : Colors.orangeAccent.withOpacity(0.5),
+                                        color: item.hasPitData ? Colors.tealAccent.withValues(alpha: 0.5) : Colors.orangeAccent.withValues(alpha: 0.5),
                                       ),
                                     ),
                                     child: Text(
@@ -750,7 +750,7 @@ class _PitDataScreenState extends State<PitDataScreen> {
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                         decoration: BoxDecoration(
-                                          color: Colors.amberAccent.withOpacity(0.2),
+                                          color: Colors.amberAccent.withValues(alpha: 0.2),
                                           borderRadius: BorderRadius.circular(8),
                                           border: Border.all(color: Colors.amberAccent),
                                         ),
@@ -791,7 +791,7 @@ class _PitDataScreenState extends State<PitDataScreen> {
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                       decoration: BoxDecoration(
-                                        color: Colors.cyanAccent.withOpacity(0.12),
+                                        color: Colors.cyanAccent.withValues(alpha: 0.12),
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: Text(
@@ -860,7 +860,7 @@ class _PitDataScreenState extends State<PitDataScreen> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: Colors.cyanAccent.withOpacity(0.15),
+                            color: Colors.cyanAccent.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Icon(Icons.build_circle_rounded, color: Colors.cyanAccent, size: 24),
@@ -903,9 +903,9 @@ class _PitDataScreenState extends State<PitDataScreen> {
                             margin: const EdgeInsets.only(bottom: 12),
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.amberAccent.withOpacity(0.12),
+                              color: Colors.amberAccent.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.amberAccent.withOpacity(0.4)),
+                              border: Border.all(color: Colors.amberAccent.withValues(alpha: 0.4)),
                             ),
                             child: Row(
                               children: [
@@ -939,7 +939,7 @@ class _PitDataScreenState extends State<PitDataScreen> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03),
+                            color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Column(
@@ -991,7 +991,7 @@ class _PitDataScreenState extends State<PitDataScreen> {
                               margin: const EdgeInsets.only(bottom: 6),
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                               decoration: BoxDecoration(
-                                color: isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
+                                color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02),
                                 borderRadius: BorderRadius.circular(10),
                                 border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
                               ),
@@ -1028,7 +1028,7 @@ class _PitDataScreenState extends State<PitDataScreen> {
                               margin: const EdgeInsets.only(bottom: 6),
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                               decoration: BoxDecoration(
-                                color: isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
+                                color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02),
                                 borderRadius: BorderRadius.circular(10),
                                 border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
                               ),
@@ -1081,9 +1081,9 @@ class _PitDataScreenState extends State<PitDataScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0x521E293B) : Colors.white.withOpacity(0.7),
+        color: isDark ? const Color(0x521E293B) : Colors.white.withValues(alpha: 0.7),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: accent.withOpacity(0.3)),
+        border: Border.all(color: accent.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

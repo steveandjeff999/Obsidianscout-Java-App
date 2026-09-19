@@ -226,7 +226,7 @@ class _RankingsScreenState extends State<RankingsScreen> {
                                   color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Icon(Icons.leaderboard_rounded, color: ObsidianUITheme.primaryAccent, size: 24),
+                                child: Icon(Icons.leaderboard_rounded, color: ObsidianUITheme.primaryAccent, size: 24),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
@@ -423,7 +423,7 @@ class _RankingsScreenState extends State<RankingsScreen> {
                                 ),
                               ),
                               if (_isLoading)
-                                const SizedBox(
+                                SizedBox(
                                   width: 18,
                                   height: 18,
                                   child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianUITheme.primaryAccent),
@@ -432,7 +432,7 @@ class _RankingsScreenState extends State<RankingsScreen> {
                           ),
                           const SizedBox(height: 12),
                           if (_isLoading && _teams.isEmpty)
-                            const Padding(
+                            Padding(
                               padding: EdgeInsets.symmetric(vertical: 40),
                               child: Center(
                                 child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent),
@@ -560,7 +560,7 @@ class _RankingsScreenState extends State<RankingsScreen> {
                     onTap: () => _openTeamDetails(t),
                     child: Text(
                       t.teamNumber.toString(),
-                      style: const TextStyle(fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent),
+                      style: TextStyle(fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent),
                     ),
                   ),
                 ),
@@ -650,7 +650,7 @@ class _RankingsScreenState extends State<RankingsScreen> {
                     if (showScouted && t.averagePoints != null)
                       Text(
                         '${t.averagePoints!.toStringAsFixed(1)} pts',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: ObsidianUITheme.primaryAccent),
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: ObsidianUITheme.primaryAccent),
                       ),
                     Row(
                       mainAxisSize: MainAxisSize.min,

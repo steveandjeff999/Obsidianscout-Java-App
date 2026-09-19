@@ -674,7 +674,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           title: Row(
             children: [
-              const Icon(Icons.code_rounded, color: ObsidianUITheme.primaryAccent, size: 22),
+              Icon(Icons.code_rounded, color: ObsidianUITheme.primaryAccent, size: 22),
               const SizedBox(width: 8),
               Text('Revision v$version Schema', style: TextStyle(color: primaryTextColor, fontSize: 17, fontWeight: FontWeight.bold)),
             ],
@@ -772,7 +772,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.history_rounded, color: ObsidianUITheme.primaryAccent, size: 24),
+                          Icon(Icons.history_rounded, color: ObsidianUITheme.primaryAccent, size: 24),
                           const SizedBox(width: 10),
                           Text('Schema Revisions History', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryTextColor)),
                         ],
@@ -795,7 +795,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                       future: historyFuture,
                       builder: (fbCtx, snapshot) {
                         if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent));
+                          return Center(child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent));
                         }
                         final revisions = snapshot.data ?? [];
                         if (revisions.isEmpty) {
@@ -803,7 +803,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.auto_stories_outlined, size: 48, color: ObsidianUITheme.primaryAccent),
+                                Icon(Icons.auto_stories_outlined, size: 48, color: ObsidianUITheme.primaryAccent),
                                 const SizedBox(height: 12),
                                 Text('No Historical Snapshots Recorded Yet', style: TextStyle(fontWeight: FontWeight.bold, color: primaryTextColor, fontSize: 16)),
                                 const SizedBox(height: 4),
@@ -849,7 +849,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                                                 color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
                                                 borderRadius: BorderRadius.circular(6),
                                               ),
-                                              child: Text('v${rev.version}', style: const TextStyle(color: ObsidianUITheme.primaryAccent, fontWeight: FontWeight.bold, fontSize: 12)),
+                                              child: Text('v${rev.version}', style: TextStyle(color: ObsidianUITheme.primaryAccent, fontWeight: FontWeight.bold, fontSize: 12)),
                                             ),
                                             const SizedBox(width: 8),
                                             Expanded(
@@ -1013,7 +1013,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                 future: statusFuture,
                 builder: (fbCtx, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent));
+                    return Center(child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent));
                   }
                   final status = snapshot.data;
                   if (status == null) {
@@ -1047,7 +1047,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.transform_rounded, color: ObsidianUITheme.primaryAccent, size: 24),
+                              Icon(Icons.transform_rounded, color: ObsidianUITheme.primaryAccent, size: 24),
                               const SizedBox(width: 10),
                               Text('Config Data Migration', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryTextColor)),
                             ],
@@ -1213,7 +1213,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                                   children: [
                                     Row(
                                       children: [
-                                        const Icon(Icons.visibility_rounded, size: 18, color: ObsidianUITheme.primaryAccent),
+                                        Icon(Icons.visibility_rounded, size: 18, color: ObsidianUITheme.primaryAccent),
                                         const SizedBox(width: 6),
                                         Text('Transformation Preview', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: primaryTextColor)),
                                       ],
@@ -1241,7 +1241,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                                     child: Row(
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
-                                        const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianUITheme.primaryAccent)),
+                                        SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianUITheme.primaryAccent)),
                                         const SizedBox(width: 12),
                                         Text('Generating live preview...', style: TextStyle(color: secondaryTextColor, fontSize: 13)),
                                       ],
@@ -1309,7 +1309,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                                     ),
                                     child: Row(
                                       children: [
-                                        const Icon(Icons.info_outline_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
+                                        Icon(Icons.info_outline_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
                                         const SizedBox(width: 10),
                                         Expanded(
                                           child: Text(
@@ -1476,7 +1476,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                 hintText: '{\n  "version": 1,\n  "title": "ObsidianScout",\n  "fields": [...]\n}',
                 hintStyle: TextStyle(color: ObsidianUITheme.getTertiaryTextColor(ctx)),
                 enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(ctx))),
-                focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+                focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
               ),
             ),
           ],
@@ -1501,7 +1501,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                 });
                 Navigator.of(ctx).pop();
                 ScaffoldMessenger.of(ctx).showSnackBar(
-                  const SnackBar(content: Text('Config JSON imported successfully!'), backgroundColor: ObsidianUITheme.primaryAccent),
+                  SnackBar(content: Text('Config JSON imported successfully!'), backgroundColor: ObsidianUITheme.primaryAccent),
                 );
               } catch (e) {
                 ScaffoldMessenger.of(ctx).showSnackBar(
@@ -1538,7 +1538,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                     color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Icon(Icons.tune_rounded, color: ObsidianUITheme.primaryAccent, size: 28),
+                  child: Icon(Icons.tune_rounded, color: ObsidianUITheme.primaryAccent, size: 28),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -1593,7 +1593,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
           ],
 
           if (_isLoading)
-            const Center(
+            Center(
               child: Padding(
                 padding: EdgeInsets.all(40),
                 child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent),
@@ -1797,7 +1797,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
           ),
           child: Row(
             children: [
-              const Icon(Icons.info_outline_rounded, size: 18, color: ObsidianUITheme.primaryAccent),
+              Icon(Icons.info_outline_rounded, size: 18, color: ObsidianUITheme.primaryAccent),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -1828,7 +1828,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                         labelStyle: TextStyle(color: secondaryTextColor, fontSize: 12),
                         isDense: true,
                         enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
-                        focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+                        focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
                       ),
                       onChanged: (_) => _syncVisualToRaw(),
                     ),
@@ -1845,7 +1845,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                         labelStyle: TextStyle(color: secondaryTextColor, fontSize: 12),
                         isDense: true,
                         enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
-                        focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+                        focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
                       ),
                       onChanged: (_) => _syncVisualToRaw(),
                     ),
@@ -1906,8 +1906,8 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                     side: BorderSide(color: ObsidianUITheme.getBorderColor(context)),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  icon: const Icon(Icons.title_rounded, size: 16, color: ObsidianUITheme.primaryAccent),
-                  label: const Text('+ Add Section Header', style: TextStyle(color: ObsidianUITheme.primaryAccent, fontSize: 11.5, fontWeight: FontWeight.bold)),
+                  icon: Icon(Icons.title_rounded, size: 16, color: ObsidianUITheme.primaryAccent),
+                  label: Text('+ Add Section Header', style: TextStyle(color: ObsidianUITheme.primaryAccent, fontSize: 11.5, fontWeight: FontWeight.bold)),
                   onPressed: _addSectionHeader,
                 ),
                 ElevatedButton.icon(
@@ -1988,13 +1988,13 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
         decoration: BoxDecoration(
           color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(8),
-          border: const Border(left: BorderSide(color: ObsidianUITheme.primaryAccent, width: 3)),
+          border: Border(left: BorderSide(color: ObsidianUITheme.primaryAccent, width: 3)),
         ),
         child: Row(
           children: [
-            const Icon(Icons.layers_rounded, size: 16, color: ObsidianUITheme.primaryAccent),
+            Icon(Icons.layers_rounded, size: 16, color: ObsidianUITheme.primaryAccent),
             const SizedBox(width: 8),
-            Text(phaseTitle, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: ObsidianUITheme.primaryAccent)),
+            Text(phaseTitle, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: ObsidianUITheme.primaryAccent)),
           ],
         ),
       ),
@@ -2118,7 +2118,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                     labelStyle: TextStyle(color: secondaryTextColor, fontSize: 11),
                     isDense: true,
                     enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
-                    focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+                    focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
                   ),
                   onChanged: (val) {
                     final fields = List<ScoutingFieldModel>.from(_currentConfig.fields);
@@ -2147,7 +2147,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                     labelStyle: TextStyle(color: secondaryTextColor, fontSize: 11),
                     isDense: true,
                     enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
-                    focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+                    focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
                   ),
                   onChanged: (val) {
                     final fields = List<ScoutingFieldModel>.from(_currentConfig.fields);
@@ -2842,8 +2842,8 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                               side: BorderSide(color: ObsidianUITheme.getBorderColor(context)),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
-                            icon: const Icon(Icons.history_rounded, size: 16, color: ObsidianUITheme.primaryAccent),
-                            label: const Text(
+                            icon: Icon(Icons.history_rounded, size: 16, color: ObsidianUITheme.primaryAccent),
+                            label: Text(
                               'Schema History',
                               style: TextStyle(color: ObsidianUITheme.primaryAccent, fontSize: 11.5, fontWeight: FontWeight.bold),
                               overflow: TextOverflow.ellipsis,
@@ -2896,8 +2896,8 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                       side: BorderSide(color: ObsidianUITheme.getBorderColor(context)),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    icon: const Icon(Icons.history_rounded, size: 16, color: ObsidianUITheme.primaryAccent),
-                    label: const Text('Schema History', style: TextStyle(color: ObsidianUITheme.primaryAccent, fontSize: 12, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis, maxLines: 1),
+                    icon: Icon(Icons.history_rounded, size: 16, color: ObsidianUITheme.primaryAccent),
+                    label: Text('Schema History', style: TextStyle(color: ObsidianUITheme.primaryAccent, fontSize: 12, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis, maxLines: 1),
                     onPressed: _showHistoryModal,
                   ),
                 ],
@@ -2916,8 +2916,8 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                     side: BorderSide(color: ObsidianUITheme.getBorderColor(context)),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  icon: const Icon(Icons.copy_rounded, size: 15, color: ObsidianUITheme.secondaryAccent),
-                  label: const Text('Export JSON', style: TextStyle(color: ObsidianUITheme.secondaryAccent, fontSize: 11, fontWeight: FontWeight.w600)),
+                  icon: Icon(Icons.copy_rounded, size: 15, color: ObsidianUITheme.secondaryAccent),
+                  label: Text('Export JSON', style: TextStyle(color: ObsidianUITheme.secondaryAccent, fontSize: 11, fontWeight: FontWeight.w600)),
                   onPressed: _handleExport,
                 ),
               ),
@@ -3064,7 +3064,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.api_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
+              Icon(Icons.api_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -3084,7 +3084,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
             children: [
               Row(
                 children: [
-                  const Icon(Icons.event_note_rounded, size: 18, color: ObsidianUITheme.primaryAccent),
+                  Icon(Icons.event_note_rounded, size: 18, color: ObsidianUITheme.primaryAccent),
                   const SizedBox(width: 8),
                   Text('Event & Season Configuration', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primaryTextColor)),
                 ],
@@ -3102,7 +3102,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                   hintText: 'e.g. 2026',
                   isDense: true,
                   enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
-                  focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+                  focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
                 ),
                 onChanged: (_) => setState(() {}),
               ),
@@ -3125,7 +3125,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                   hintText: 'e.g. okok or 2026nytr',
                   isDense: true,
                   enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
-                  focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+                  focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
                 ),
                 onChanged: (_) => setState(() {}),
               ),
@@ -3146,7 +3146,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                   hintText: 'e.g. America/New_York',
                   isDense: true,
                   enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
-                  focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+                  focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
                 ),
               ),
               const SizedBox(height: 14),
@@ -3161,7 +3161,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                   labelStyle: TextStyle(color: secondaryTextColor, fontSize: 12),
                   isDense: true,
                   enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
-                  focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+                  focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
                 ),
                 items: [
                   DropdownMenuItem(
@@ -3238,7 +3238,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                     hintText: 'Enter TBA Read Key',
                     isDense: true,
                     enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
-                    focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+                    focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
                     suffixIcon: IconButton(
                       icon: Icon(_obscureTbaKey ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 18, color: secondaryTextColor),
                       onPressed: () => setState(() => _obscureTbaKey = !_obscureTbaKey),
@@ -3271,11 +3271,11 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                   icon: _isTestingTba
-                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianUITheme.primaryAccent))
-                      : const Icon(Icons.wifi_protected_setup_rounded, size: 16, color: ObsidianUITheme.primaryAccent),
+                      ? SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianUITheme.primaryAccent))
+                      : Icon(Icons.wifi_protected_setup_rounded, size: 16, color: ObsidianUITheme.primaryAccent),
                   label: Text(
                     isFtc ? 'Test FTC Scout API' : 'Test Connection',
-                    style: const TextStyle(color: ObsidianUITheme.primaryAccent, fontWeight: FontWeight.bold, fontSize: 13),
+                    style: TextStyle(color: ObsidianUITheme.primaryAccent, fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                   onPressed: _isTestingTba ? null : _handleTestTba,
                 ),
@@ -3307,7 +3307,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                   labelStyle: TextStyle(color: secondaryTextColor, fontSize: 12),
                   isDense: true,
                   enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
-                  focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+                  focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
                 ),
               ),
               const SizedBox(height: 12),
@@ -3321,7 +3321,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                   labelStyle: TextStyle(color: secondaryTextColor, fontSize: 12),
                   isDense: true,
                   enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
-                  focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+                  focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
                   suffixIcon: IconButton(
                     icon: Icon(_obscureFirstKey ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 18, color: secondaryTextColor),
                     onPressed: () => setState(() => _obscureFirstKey = !_obscureFirstKey),
@@ -3339,11 +3339,11 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                   icon: _isTestingFirst
-                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianUITheme.primaryAccent))
-                      : const Icon(Icons.security_rounded, size: 16, color: ObsidianUITheme.primaryAccent),
+                      ? SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianUITheme.primaryAccent))
+                      : Icon(Icons.security_rounded, size: 16, color: ObsidianUITheme.primaryAccent),
                   label: Text(
                     isFtc ? 'Test FIRST FTC API' : 'Test FIRST API',
-                    style: const TextStyle(color: ObsidianUITheme.primaryAccent, fontWeight: FontWeight.bold, fontSize: 13),
+                    style: TextStyle(color: ObsidianUITheme.primaryAccent, fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                   onPressed: _isTestingFirst ? null : _handleTestFirst,
                 ),
@@ -3377,7 +3377,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                     hintText: 'https://api.statbotics.io',
                     isDense: true,
                     enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
-                    focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+                    focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -3391,9 +3391,9 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                     icon: _isTestingStatbotics
-                        ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianUITheme.primaryAccent))
-                        : const Icon(Icons.speed_rounded, size: 16, color: ObsidianUITheme.primaryAccent),
-                    label: const Text(
+                        ? SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianUITheme.primaryAccent))
+                        : Icon(Icons.speed_rounded, size: 16, color: ObsidianUITheme.primaryAccent),
+                    label: Text(
                       'Test Statbotics API',
                       style: TextStyle(color: ObsidianUITheme.primaryAccent, fontWeight: FontWeight.bold, fontSize: 13),
                     ),
@@ -3447,7 +3447,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.security_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
+              Icon(Icons.security_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -3467,7 +3467,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
             children: [
               Row(
                 children: [
-                  const Icon(Icons.tune_rounded, size: 18, color: ObsidianUITheme.primaryAccent),
+                  Icon(Icons.tune_rounded, size: 18, color: ObsidianUITheme.primaryAccent),
                   const SizedBox(width: 8),
                   Text('General Permissions', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primaryTextColor)),
                 ],

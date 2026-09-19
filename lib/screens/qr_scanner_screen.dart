@@ -1059,7 +1059,7 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
         ),
         child: Row(
           children: [
-            const Icon(Icons.videocam_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
+            Icon(Icons.videocam_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
             const SizedBox(width: 8),
             Expanded(
               child: DropdownButtonHideUnderline(
@@ -1137,7 +1137,7 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.assignment_returned_rounded, color: ObsidianUITheme.primaryAccent),
+            icon: Icon(Icons.assignment_returned_rounded, color: ObsidianUITheme.primaryAccent),
             tooltip: 'Paste from Clipboard (PC)',
             onPressed: _pasteFromClipboard,
           ),
@@ -1200,7 +1200,7 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
                           children: [
                             if (_isDesktopWindows) ...[
                               if (_isInitializingCamera)
-                                const Center(child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent))
+                                Center(child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent))
                               else if (_desktopCameraController != null && _desktopCameraController!.value.isInitialized)
                                 Center(
                                   child: AspectRatio(
@@ -1245,7 +1245,7 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
                                   ),
                                 ),
                             ] else if (_isCheckingPermission)
-                              const Center(child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent))
+                              Center(child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent))
                             else if (!_hasCameraPermission)
                               _buildPermissionDeniedCard(borderColor, primaryTextColor)
                             else if (_isScanning)
@@ -1325,7 +1325,7 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
                                   border: Border.all(color: ObsidianUITheme.primaryAccent, width: 2.5),
                                   borderRadius: BorderRadius.circular(16.0),
                                 ),
-                                child: const Align(
+                                child: Align(
                                   alignment: Alignment.bottomCenter,
                                   child: Padding(
                                     padding: EdgeInsets.only(bottom: 6.0),
@@ -1360,7 +1360,7 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
                           onPressed: _safeSwitchCamera,
                         ),
                         IconButton(
-                          icon: const Icon(Icons.assignment_turned_in_rounded, color: ObsidianUITheme.primaryAccent),
+                          icon: Icon(Icons.assignment_turned_in_rounded, color: ObsidianUITheme.primaryAccent),
                           tooltip: 'Paste Clipboard Code',
                           onPressed: _pasteFromClipboard,
                         ),
@@ -1378,7 +1378,7 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
                         hintText: 'OSC:... or {"type":"match-scout",...}',
                         hintStyle: TextStyle(color: faintTextColor),
                         enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
-                        focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+                        focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
                       ),
                     ),
                     const SizedBox(height: 12.0),
@@ -1422,7 +1422,7 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'SCANNED QUEUE',
                   style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, letterSpacing: 1.0),
                 ),
@@ -1445,7 +1445,7 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
               onTap: _isUploading || pendingCount == 0 ? null : _uploadQueue,
               child: Center(
                 child: _isUploading
-                    ? const CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)
+                    ? CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)
                     : Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [

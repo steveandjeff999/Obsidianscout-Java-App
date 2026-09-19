@@ -139,7 +139,7 @@ class _TeamsListScreenState extends State<TeamsListScreen> {
                         shape: BoxShape.circle,
                         color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.2),
                       ),
-                      child: const Icon(Icons.groups_rounded, color: ObsidianUITheme.primaryAccent, size: 22),
+                      child: Icon(Icons.groups_rounded, color: ObsidianUITheme.primaryAccent, size: 22),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -163,7 +163,7 @@ class _TeamsListScreenState extends State<TeamsListScreen> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.refresh_rounded, color: ObsidianUITheme.primaryAccent),
+                      icon: Icon(Icons.refresh_rounded, color: ObsidianUITheme.primaryAccent),
                       tooltip: context.tr('dashboard.quick_sync'),
                       onPressed: _loadTeams,
                     ),
@@ -175,7 +175,7 @@ class _TeamsListScreenState extends State<TeamsListScreen> {
                   decoration: InputDecoration(
                     hintText: context.tr('alliance-selection.placeholder_search_team_number_or_name'),
                     hintStyle: TextStyle(color: secondaryTextColor, fontSize: 13),
-                    prefixIcon: const Icon(Icons.search_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
+                    prefixIcon: Icon(Icons.search_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
                     filled: true,
                     fillColor: surfaceColor,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -189,7 +189,7 @@ class _TeamsListScreenState extends State<TeamsListScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: ObsidianUITheme.primaryAccent),
+                      borderSide: BorderSide(color: ObsidianUITheme.primaryAccent),
                     ),
                   ),
                   onChanged: (v) => setState(() => _searchQuery = v),
@@ -242,7 +242,7 @@ class _TeamsListScreenState extends State<TeamsListScreen> {
         // Teams list
         Expanded(
           child: _isLoading
-              ? const Center(child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent))
+              ? Center(child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent))
               : _filteredSorted.isEmpty
                   ? Center(
                       child: Column(
@@ -325,7 +325,7 @@ class _TeamsListScreenState extends State<TeamsListScreen> {
             child: Center(
               child: Text(
                 '${team.teamNumber}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
                   color: ObsidianUITheme.primaryAccent,

@@ -192,7 +192,7 @@ class _ContactScreenState extends State<ContactScreen> {
                             width: 1.0,
                           ),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.contact_support_rounded,
                           color: ObsidianUITheme.primaryAccent,
                           size: 26.0,
@@ -263,7 +263,7 @@ class _ContactScreenState extends State<ContactScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12.0),
-                              borderSide: const BorderSide(color: ObsidianUITheme.primaryAccent, width: 1.5),
+                              borderSide: BorderSide(color: ObsidianUITheme.primaryAccent, width: 1.5),
                             ),
                           ),
                           validator: (value) {
@@ -301,7 +301,7 @@ class _ContactScreenState extends State<ContactScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12.0),
-                              borderSide: const BorderSide(color: ObsidianUITheme.primaryAccent, width: 1.5),
+                              borderSide: BorderSide(color: ObsidianUITheme.primaryAccent, width: 1.5),
                             ),
                           ),
                           validator: (value) {
@@ -376,7 +376,7 @@ class _ContactScreenState extends State<ContactScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12.0),
-                              borderSide: const BorderSide(color: ObsidianUITheme.primaryAccent, width: 1.5),
+                              borderSide: BorderSide(color: ObsidianUITheme.primaryAccent, width: 1.5),
                             ),
                           ),
                           items: [
@@ -431,7 +431,7 @@ class _ContactScreenState extends State<ContactScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12.0),
-                              borderSide: const BorderSide(color: ObsidianUITheme.primaryAccent, width: 1.5),
+                              borderSide: BorderSide(color: ObsidianUITheme.primaryAccent, width: 1.5),
                             ),
                           ),
                           validator: (value) {

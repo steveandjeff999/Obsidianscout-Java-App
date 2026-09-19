@@ -487,7 +487,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                                     backgroundColor: ObsidianUITheme.primaryAccent.withValues(alpha: 0.2),
                                     child: Text(
                                       '#${idx + 1}',
-                                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent),
+                                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent),
                                     ),
                                   ),
                                   title: Text(
@@ -557,7 +557,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
               if (team.nickname != null || team.name != null)
                 Text(
                   team.nickname ?? team.name ?? '',
-                  style: const TextStyle(color: ObsidianUITheme.primaryAccent, fontSize: 13, fontWeight: FontWeight.w600),
+                  style: TextStyle(color: ObsidianUITheme.primaryAccent, fontSize: 13, fontWeight: FontWeight.w600),
                 ),
               const SizedBox(height: 16),
               Row(
@@ -782,7 +782,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
         // Main Layout: Split Screen on Wide Screen, Tabs on Mobile
         Expanded(
           child: _isLoading
-              ? const Center(child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent))
+              ? Center(child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent))
               : isWideScreen
                   ? Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -1102,7 +1102,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                               backgroundColor: ObsidianUITheme.primaryAccent.withValues(alpha: 0.2),
                               child: Text(
                                 '${idx + 1}',
-                                style: const TextStyle(fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, fontSize: 10),
+                                style: TextStyle(fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, fontSize: 10),
                               ),
                             ),
                             title: Text(

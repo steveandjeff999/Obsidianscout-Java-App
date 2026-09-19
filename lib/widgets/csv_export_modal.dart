@@ -174,7 +174,7 @@ class _CsvExportModalState extends State<CsvExportModal> {
                     color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(10.0),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.table_chart_rounded,
                     color: ObsidianUITheme.primaryAccent,
                     size: 22,
@@ -273,7 +273,7 @@ class _CsvExportModalState extends State<CsvExportModal> {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.preview_rounded, size: 16, color: ObsidianUITheme.primaryAccent),
+                          Icon(Icons.preview_rounded, size: 16, color: ObsidianUITheme.primaryAccent),
                           const SizedBox(width: 6),
                           Text(
                             'Data Structure Preview',
@@ -299,7 +299,7 @@ class _CsvExportModalState extends State<CsvExportModal> {
                         ),
                         label: Text(
                           _showRawText ? 'Table View' : 'Raw CSV',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
                             color: ObsidianUITheme.primaryAccent,
                             fontWeight: FontWeight.w600,
@@ -363,7 +363,7 @@ class _CsvExportModalState extends State<CsvExportModal> {
                         ),
                         child: Text(
                           h,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 10.5,
                             fontWeight: FontWeight.w500,
                             color: ObsidianUITheme.primaryAccent,

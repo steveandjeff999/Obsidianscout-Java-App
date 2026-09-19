@@ -254,7 +254,7 @@ class _ChatScreenState extends State<ChatScreen> {
             hintText: 'Group name (e.g. strategy, scouting)',
             hintStyle: TextStyle(color: faintTextColor),
             enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
-            focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+            focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
           ),
         ),
         actions: [
@@ -533,7 +533,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                 isDense: true,
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                 enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
-                                focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+                                focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
                               ),
                               onChanged: (val) {
                                 setModalState(() {
@@ -856,7 +856,7 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
               if (!isMe)
                 ListTile(
-                  leading: const Icon(Icons.add_reaction_outlined, color: ObsidianUITheme.primaryAccent),
+                  leading: Icon(Icons.add_reaction_outlined, color: ObsidianUITheme.primaryAccent),
                   title: Text(context.tr('chat.add_reaction'), style: TextStyle(color: primaryTextColor)),
                   onTap: () {
                     Navigator.of(ctx).pop();
@@ -881,7 +881,7 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
               if (isMe)
                 ListTile(
-                  leading: const Icon(Icons.edit_outlined, color: ObsidianUITheme.primaryAccent),
+                  leading: Icon(Icons.edit_outlined, color: ObsidianUITheme.primaryAccent),
                   title: Text(context.tr('chat.edit_message'), style: TextStyle(color: primaryTextColor)),
                   onTap: () {
                     Navigator.of(ctx).pop();
@@ -926,7 +926,7 @@ class _ChatScreenState extends State<ChatScreen> {
             hintText: context.tr('chat.input_placeholder'),
             hintStyle: TextStyle(color: faintTextColor),
             enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
-            focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+            focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
           ),
         ),
         actions: [
@@ -1020,7 +1020,7 @@ class _ChatScreenState extends State<ChatScreen> {
     if (_isLoading) {
       return Scaffold(
         backgroundColor: scaffoldBg,
-        body: const Center(
+        body: Center(
           child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent),
         ),
       );
@@ -1122,7 +1122,7 @@ class _ChatScreenState extends State<ChatScreen> {
             color: ObsidianUITheme.isDark(context) ? const Color(0x30121620) : const Color(0xF0F1F5F9),
             child: Row(
               children: [
-                const Icon(Icons.tag_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
+                Icon(Icons.tag_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
                 const SizedBox(width: 6),
                 Expanded(
                   child: PopupMenuButton<String>(
@@ -1190,7 +1190,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                     _showChannelSettingsModal(context, group);
                                   },
                                   borderRadius: BorderRadius.circular(12),
-                                  child: const Padding(
+                                  child: Padding(
                                     padding: EdgeInsets.all(4),
                                     child: Icon(Icons.settings_outlined, size: 18, color: ObsidianUITheme.primaryAccent),
                                   ),
@@ -1217,12 +1217,12 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
                 if (_currentUserRole?.toUpperCase() == 'ADMIN' || _currentUserRole?.toUpperCase() == 'SUPERADMIN')
                   IconButton(
-                    icon: const Icon(Icons.settings_outlined, color: ObsidianUITheme.primaryAccent, size: 22),
+                    icon: Icon(Icons.settings_outlined, color: ObsidianUITheme.primaryAccent, size: 22),
                     tooltip: context.tr('chat.channel_settings'),
                     onPressed: () => _showChannelSettingsModal(context, _currentGroup),
                   ),
                 IconButton(
-                  icon: const Icon(Icons.add_circle_outline_rounded, color: ObsidianUITheme.primaryAccent, size: 22),
+                  icon: Icon(Icons.add_circle_outline_rounded, color: ObsidianUITheme.primaryAccent, size: 22),
                   tooltip: 'Create Channel',
                   onPressed: _showCreateGroupDialog,
                 ),
