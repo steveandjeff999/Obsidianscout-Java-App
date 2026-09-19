@@ -10,6 +10,8 @@ class ApiResponse<T> {
   final T? data;
   final bool isOffline;
 
+  bool get isSuccess => success;
+
   const ApiResponse({
     required this.success,
     this.statusCode,
