@@ -80,11 +80,19 @@ class EventModel {
   final String eventKey;
   final String name;
   final int? year;
+  final String? eventCode;
+  final String? startDate;
+  final String? endDate;
+  final String? timezone;
 
   EventModel({
     required this.eventKey,
     required this.name,
     this.year,
+    this.eventCode,
+    this.startDate,
+    this.endDate,
+    this.timezone,
   });
 
   factory EventModel.fromJson(Map<String, dynamic> json) {
@@ -92,7 +100,23 @@ class EventModel {
       eventKey: json['eventKey']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
       year: (json['year'] as num?)?.toInt(),
+      eventCode: json['eventCode']?.toString(),
+      startDate: json['startDate']?.toString(),
+      endDate: json['endDate']?.toString(),
+      timezone: json['timezone']?.toString(),
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'eventKey': eventKey,
+      'name': name,
+      if (year != null) 'year': year,
+      if (eventCode != null) 'eventCode': eventCode,
+      if (startDate != null) 'startDate': startDate,
+      if (endDate != null) 'endDate': endDate,
+      if (timezone != null) 'timezone': timezone,
+    };
   }
 
   @override

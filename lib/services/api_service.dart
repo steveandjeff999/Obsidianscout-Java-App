@@ -3154,24 +3154,30 @@ class ApiService {
   }
 
   Future<List<EventModel>> fetchEvents({int? year}) async {
-    final targetYear = year ?? DateTime.now().year;
+    final targetYear = year ?? _currentSettings?.year ?? DateTime.now().year;
     final cacheKey = "cache_events_$targetYear";
     final prefs = await SharedPreferences.getInstance();
 
     if (_isOnline) {
       try {
-        final response = await http
-            .get(Uri.parse('$_currentServerUrl/api/events?year=$targetYear&cached=1'), headers: _headers)
-            .timeout(requestTimeout);
+        final queryParams = <String, String>{
+          if (year != null) 'year': '$year',
+          'cached': '1',
+        };
+        final uri = Uri.parse('$_currentServerUrl/api/events').replace(
+          queryParameters: queryParams.isNotEmpty ? queryParams : null,
+        );
+        final response = await http.get(uri, headers: _headers).timeout(requestTimeout);
         if (response.statusCode == 200) {
           final List data = jsonDecode(response.body);
           await prefs.setString(cacheKey, response.body);
+          await prefs.setString('cache_events_all', response.body);
           return data.map((e) => EventModel.fromJson(e)).toList();
         }
       } catch (_) {}
     }
 
-    final cached = prefs.getString(cacheKey);
+    final cached = prefs.getString(cacheKey) ?? prefs.getString('cache_events_all');
     if (cached != null && cached.isNotEmpty) {
       try {
         final List data = jsonDecode(cached);
@@ -3179,6 +3185,102 @@ class ApiService {
       } catch (_) {}
     }
     return [];
+  }
+
+  Future<ApiResponse<String>> syncEvents() async {
+    if (!_isOnline) {
+      return const ApiResponse.error(isOffline: true, message: 'Cannot sync events while offline');
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/integrations/sync/events'),
+        headers: _headers,
+      ).timeout(heavyRequestTimeout);
+      _checkResponse(response);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        String msg = 'Events synced successfully';
+        try {
+          final decoded = jsonDecode(response.body);
+          if (decoded is Map && decoded['message'] != null) {
+            msg = decoded['message'].toString();
+          }
+        } catch (_) {}
+        return ApiResponse.success(msg, statusCode: response.statusCode, message: msg);
+      }
+      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to sync events');
+    } catch (e) {
+      return ApiResponse.error(message: e.toString());
+    }
+  }
+
+  Future<ApiResponse<bool>> createEvent(EventModel event) async {
+    if (!_isOnline) {
+      return const ApiResponse.error(isOffline: true, message: 'Cannot create event while offline');
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/events'),
+        headers: _headers,
+        body: jsonEncode(event.toJson()),
+      ).timeout(requestTimeout);
+      _checkResponse(response);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return ApiResponse.success(true, statusCode: response.statusCode, message: 'Event saved successfully');
+      }
+      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to create event');
+    } catch (e) {
+      return ApiResponse.error(message: e.toString());
+    }
+  }
+
+  Future<ApiResponse<bool>> updateEvent({required String oldKey, required EventModel event}) async {
+    if (!_isOnline) {
+      return const ApiResponse.error(isOffline: true, message: 'Cannot update event while offline');
+    }
+
+    try {
+      final response = await http.put(
+        Uri.parse('$_currentServerUrl/api/events'),
+        headers: _headers,
+        body: jsonEncode({
+          'oldKey': oldKey,
+          'event': event.toJson(),
+        }),
+      ).timeout(requestTimeout);
+      _checkResponse(response);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return ApiResponse.success(true, statusCode: response.statusCode, message: 'Event updated successfully');
+      }
+      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to update event');
+    } catch (e) {
+      return ApiResponse.error(message: e.toString());
+    }
+  }
+
+  Future<ApiResponse<bool>> deleteEvent(String eventKey) async {
+    if (!_isOnline) {
+      return const ApiResponse.error(isOffline: true, message: 'Cannot delete event while offline');
+    }
+
+    try {
+      final response = await http.delete(
+        Uri.parse('$_currentServerUrl/api/events?eventKey=$eventKey'),
+        headers: _headers,
+      ).timeout(requestTimeout);
+      _checkResponse(response);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return ApiResponse.success(true, statusCode: response.statusCode, message: 'Event deleted successfully');
+      }
+      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to delete event');
+    } catch (e) {
+      return ApiResponse.error(message: e.toString());
+    }
   }
 
   Future<ValidationSummaryModel?> fetchValidationData({
