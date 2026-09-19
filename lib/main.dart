@@ -40,6 +40,9 @@ import 'screens/event_predictor_screen.dart';
 import 'screens/users_screen.dart';
 import 'screens/cluster_management_screen.dart';
 import 'screens/error_reports_screen.dart';
+import 'screens/events_screen.dart';
+import 'screens/rankings_screen.dart';
+import 'screens/qual_rankings_screen.dart';
 import 'services/api_service.dart';
 import 'services/auth_storage_service.dart';
 import 'services/biometric_auth_service.dart';
@@ -296,6 +299,12 @@ class _MainShellState extends State<MainShell> {
         return Icons.hub_rounded;
       case 24:
         return Icons.bug_report_rounded;
+      case 25:
+        return Icons.event_rounded;
+      case 26:
+        return Icons.leaderboard_rounded;
+      case 27:
+        return Icons.stars_rounded;
       default:
         return Icons.dashboard_rounded;
     }
@@ -353,6 +362,12 @@ class _MainShellState extends State<MainShell> {
         return context.tr('nav.cluster-management', context.tr('nav.cluster_management', 'Cluster'));
       case 24:
         return context.tr('nav.error-reports', context.tr('nav.error_reports', 'Error Reports'));
+      case 25:
+        return context.tr('events.title', 'Events');
+      case 26:
+        return context.tr('rankings.title', 'Team Rankings');
+      case 27:
+        return context.tr('qual_rankings.title', 'Qualitative Rankings');
       default:
         return 'Dashboard';
     }
@@ -610,6 +625,9 @@ class _MainShellState extends State<MainShell> {
     'nav.users',
     'nav.cluster_management',
     'nav.error_reports',
+    'events.title',
+    'rankings.title',
+    'qual_rankings.title',
   ];
   final List<String> _subtitleKeys = [
     'subtitle.dashboard',
@@ -637,6 +655,9 @@ class _MainShellState extends State<MainShell> {
     'subtitle.users',
     'subtitle.cluster_management',
     'subtitle.error_reports',
+    'events.notice',
+    'rankings.notice',
+    'qual_rankings.notice',
   ];
 
   String _getPageIdForIndex(int index) {
@@ -691,6 +712,12 @@ class _MainShellState extends State<MainShell> {
         return 'cluster-management';
       case 24:
         return 'error-reports';
+      case 25:
+        return 'events';
+      case 26:
+        return 'rankings';
+      case 27:
+        return 'qual-rankings';
       default:
         return 'dashboard';
     }
@@ -949,6 +976,9 @@ class _MainShellState extends State<MainShell> {
         isBarsVisible: _isBarsVisible,
         onNavigateCluster: () => _navigateScreen(23),
       ),
+      EventsScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 25, isBarsVisible: _isBarsVisible),
+      RankingsScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 26, isBarsVisible: _isBarsVisible),
+      QualRankingsScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 27, isBarsVisible: _isBarsVisible),
     ];
   }
 

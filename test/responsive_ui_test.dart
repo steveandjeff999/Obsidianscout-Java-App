@@ -12,6 +12,7 @@ import 'package:obsidianscout_app/services/api_service.dart';
 import 'package:obsidianscout_app/theme/obsidian_responsive.dart';
 import 'package:obsidianscout_app/widgets/obsidian_desktop_sidebar.dart';
 import 'package:obsidianscout_app/widgets/obsidian_desktop_app_bar.dart';
+import 'package:obsidianscout_app/widgets/obsidian_desktop_tab_bar.dart';
 import 'package:obsidianscout_app/widgets/dynamic_field_widget.dart';
 import 'package:obsidianscout_app/widgets/obsidian_bottom_nav.dart';
 
@@ -185,9 +186,9 @@ void main() {
       await tester.pumpWidget(createTestApp(MainShell(apiService: mockApi)));
       await tester.pumpAndSettle();
 
-      // Desktop layout should have ObsidianDesktopSidebar and ObsidianDesktopAppBar, and NO bottom navigation bar
+      // Desktop layout should have ObsidianDesktopSidebar and ObsidianDesktopAppBar / ObsidianDesktopTabBar, and NO bottom navigation bar
       expect(find.byType(ObsidianDesktopSidebar), findsOneWidget);
-      expect(find.byType(ObsidianDesktopAppBar), findsOneWidget);
+      expect(find.byWidgetPredicate((w) => w is ObsidianDesktopAppBar || w is ObsidianDesktopTabBar), findsOneWidget);
       expect(find.byType(ObsidianBottomNav), findsNothing);
     });
     testWidgets('Screen rotation does not unmount active screens and preserves state', (tester) async {

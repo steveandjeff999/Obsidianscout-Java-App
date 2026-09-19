@@ -173,6 +173,20 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
             'subKey': 'subtitle.teams',
           },
           {
+            'pageId': 'rankings',
+            'index': 26,
+            'icon': Icons.leaderboard_rounded,
+            'labelKey': 'rankings.title',
+            'subKey': 'rankings.notice',
+          },
+          {
+            'pageId': 'qual-rankings',
+            'index': 27,
+            'icon': Icons.stars_rounded,
+            'labelKey': 'qual_rankings.title',
+            'subKey': 'qual_rankings.notice',
+          },
+          {
             'pageId': 'matches',
             'index': 9,
             'icon': Icons.event_note_rounded,
@@ -210,6 +224,13 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
       {
         'titleKey': 'sidebar.section.admin',
         'items': [
+          {
+            'pageId': 'events',
+            'index': 25,
+            'icon': Icons.event_rounded,
+            'labelKey': 'events.title',
+            'subKey': 'events.notice',
+          },
           {
             'pageId': 'chat',
             'index': 6,
