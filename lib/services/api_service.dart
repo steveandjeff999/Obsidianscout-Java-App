@@ -12,6 +12,7 @@ import '../models/chat_models.dart';
 import '../models/validation_models.dart';
 import '../models/custom_analytics_models.dart';
 import '../models/predictor_models.dart';
+import '../models/error_report_models.dart';
 import 'auth_storage_service.dart';
 import 'scout_history_service.dart';
 
@@ -22,6 +23,7 @@ class ApiService {
   static const String keySavedUsername = "obsidianscout_saved_username";
   static const String keyThemeMode = "obsidianscout_theme_mode";
   static const String keyUiMode = "obsidianscout_ui_mode";
+  static const String keyDesktopTabs = "obsidianscout_desktop_tabs_enabled";
   static const String keyLocale = "obsidianscout_locale";
   static const String keyRequestTimeoutSeconds = "obsidianscout_request_timeout_seconds";
   static const int defaultRequestTimeoutSeconds = 6;
@@ -40,6 +42,7 @@ class ApiService {
 
   final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier<ThemeMode>(ThemeMode.dark);
   final ValueNotifier<String> uiModeNotifier = ValueNotifier<String>('auto'); // 'auto', 'mobile', 'desktop'
+  final ValueNotifier<bool> desktopTabsNotifier = ValueNotifier<bool>(true);
   final ValueNotifier<Locale> localeNotifier = ValueNotifier<Locale>(const Locale('en'));
   final ValueNotifier<int> timeoutNotifier = ValueNotifier<int>(defaultRequestTimeoutSeconds);
 
@@ -91,6 +94,7 @@ class ApiService {
   Stream<String> get onSessionRevoked => _sessionRevokedController.stream;
   ThemeMode get themeMode => themeNotifier.value;
   String get uiMode => uiModeNotifier.value;
+  bool get desktopTabsEnabled => desktopTabsNotifier.value;
   Locale get currentLocale => localeNotifier.value;
   int get requestTimeoutSeconds => _requestTimeoutSeconds;
   Duration get requestTimeout => Duration(seconds: _requestTimeoutSeconds);
@@ -106,6 +110,12 @@ class ApiService {
     uiModeNotifier.value = mode;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(keyUiMode, mode);
+  }
+
+  Future<void> setDesktopTabsEnabled(bool enabled) async {
+    desktopTabsNotifier.value = enabled;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(keyDesktopTabs, enabled);
   }
 
   Future<void> setLocale(Locale locale) async {
@@ -157,6 +167,9 @@ class ApiService {
 
     final savedUiMode = prefs.getString(keyUiMode) ?? 'auto';
     uiModeNotifier.value = savedUiMode;
+
+    final savedDesktopTabs = prefs.getBool(keyDesktopTabs) ?? true;
+    desktopTabsNotifier.value = savedDesktopTabs;
 
     _requestTimeoutSeconds = prefs.getInt(keyRequestTimeoutSeconds) ?? defaultRequestTimeoutSeconds;
     timeoutNotifier.value = _requestTimeoutSeconds;
@@ -4058,6 +4071,171 @@ class ApiService {
           jsonDecode(response.body) as Map<String, dynamic>);
     } catch (e) {
       return ActionResultResponse(success: false, message: e.toString());
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Error Reports Management — mirrors /api/admin/errors
+  // ---------------------------------------------------------------------------
+
+  Future<ReportedErrorsListResponse?> fetchReportedErrors({
+    String? type,
+    String? status,
+    String? search,
+    int limit = 500,
+    int offset = 0,
+  }) async {
+    if (!_isOnline) return null;
+    try {
+      final queryParams = <String, String>{
+        'limit': limit.toString(),
+        'offset': offset.toString(),
+      };
+      if (type != null && type.isNotEmpty && type != 'ALL') {
+        queryParams['type'] = type;
+      }
+      if (status != null && status.isNotEmpty && status != 'ALL') {
+        queryParams['status'] = status;
+      }
+      if (search != null && search.trim().isNotEmpty) {
+        queryParams['search'] = search.trim();
+      }
+
+      final uri = Uri.parse('$_currentServerUrl/api/admin/errors')
+          .replace(queryParameters: queryParams);
+      final response = await http.get(uri, headers: _headers).timeout(requestTimeout);
+      _checkResponse(response);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final j = jsonDecode(response.body) as Map<String, dynamic>;
+        return ReportedErrorsListResponse.fromJson(j);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('[ApiService] fetchReportedErrors error: $e');
+      return null;
+    }
+  }
+
+  Future<ReportedErrorStatsResponse?> fetchReportedErrorStats() async {
+    if (!_isOnline) return null;
+    try {
+      final uri = Uri.parse('$_currentServerUrl/api/admin/errors/stats');
+      final response = await http.get(uri, headers: _headers).timeout(requestTimeout);
+      _checkResponse(response);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final j = jsonDecode(response.body) as Map<String, dynamic>;
+        return ReportedErrorStatsResponse.fromJson(j);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('[ApiService] fetchReportedErrorStats error: $e');
+      return null;
+    }
+  }
+
+  Future<bool> updateReportedErrorStatus(String id, String newStatus) async {
+    if (!_isOnline) return false;
+    try {
+      final uri = Uri.parse('$_currentServerUrl/api/admin/errors/${Uri.encodeComponent(id)}/status');
+      final response = await http
+          .post(
+            uri,
+            headers: _headers,
+            body: jsonEncode({'status': newStatus}),
+          )
+          .timeout(requestTimeout);
+      _checkResponse(response);
+      return response.statusCode >= 200 && response.statusCode < 300;
+    } catch (e) {
+      debugPrint('[ApiService] updateReportedErrorStatus error: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteReportedError(String id) async {
+    if (!_isOnline) return false;
+    try {
+      final uri = Uri.parse('$_currentServerUrl/api/admin/errors/${Uri.encodeComponent(id)}');
+      final response = await http.delete(uri, headers: _headers).timeout(requestTimeout);
+      _checkResponse(response);
+      return response.statusCode >= 200 && response.statusCode < 300;
+    } catch (e) {
+      debugPrint('[ApiService] deleteReportedError error: $e');
+      return false;
+    }
+  }
+
+  Future<int> updateReportedErrorGroupStatus(List<String> errorIds, String newStatus) async {
+    if (!_isOnline || errorIds.isEmpty) return 0;
+    try {
+      final uri = Uri.parse('$_currentServerUrl/api/admin/errors/group/status');
+      final response = await http
+          .post(
+            uri,
+            headers: _headers,
+            body: jsonEncode({'errorIds': errorIds, 'status': newStatus}),
+          )
+          .timeout(heavyRequestTimeout);
+      _checkResponse(response);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final j = jsonDecode(response.body) as Map<String, dynamic>;
+        return (j['updatedCount'] as num?)?.toInt() ?? errorIds.length;
+      }
+      return 0;
+    } catch (e) {
+      debugPrint('[ApiService] updateReportedErrorGroupStatus error: $e');
+      return 0;
+    }
+  }
+
+  Future<int> deleteReportedErrorGroup(List<String> errorIds) async {
+    if (!_isOnline || errorIds.isEmpty) return 0;
+    try {
+      final uri = Uri.parse('$_currentServerUrl/api/admin/errors/group/delete');
+      final response = await http
+          .post(
+            uri,
+            headers: _headers,
+            body: jsonEncode({'errorIds': errorIds}),
+          )
+          .timeout(heavyRequestTimeout);
+      _checkResponse(response);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final j = jsonDecode(response.body) as Map<String, dynamic>;
+        return (j['deletedCount'] as num?)?.toInt() ?? errorIds.length;
+      }
+      return 0;
+    } catch (e) {
+      debugPrint('[ApiService] deleteReportedErrorGroup error: $e');
+      return 0;
+    }
+  }
+
+  Future<int?> clearReportedErrors(String? statusFilter) async {
+    if (!_isOnline) return null;
+    try {
+      final uri = Uri.parse('$_currentServerUrl/api/admin/errors/clear');
+      final response = await http
+          .post(
+            uri,
+            headers: _headers,
+            body: jsonEncode({'statusFilter': statusFilter}),
+          )
+          .timeout(heavyRequestTimeout);
+      _checkResponse(response);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final j = jsonDecode(response.body) as Map<String, dynamic>;
+        return (j['clearedCount'] as num?)?.toInt() ?? 0;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('[ApiService] clearReportedErrors error: $e');
+      return null;
     }
   }
 }

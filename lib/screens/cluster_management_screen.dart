@@ -15,12 +15,14 @@ class ClusterManagementScreen extends StatefulWidget {
   final ApiService apiService;
   final bool isVisible;
   final bool isBarsVisible;
+  final VoidCallback? onNavigateErrorReports;
 
   const ClusterManagementScreen({
     super.key,
     required this.apiService,
     this.isVisible = true,
     this.isBarsVisible = true,
+    this.onNavigateErrorReports,
   });
 
   @override
@@ -2007,6 +2009,36 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                     },
                   ),
                 ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Error Reports Quick Access Card
+          ObsidianGlassCard(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(children: [
+                  Icon(Icons.bug_report_rounded, color: Color(0xFFEF4444), size: 18),
+                  SizedBox(width: 8),
+                  Text('Cluster Error Reports',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                ]),
+                const SizedBox(height: 4),
+                const Text(
+                  'Inspect and manage unhandled server exceptions and client-side bug reports recorded across all cluster nodes.',
+                  style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+                ),
+                const SizedBox(height: 12),
+                if (widget.onNavigateErrorReports != null)
+                  _actionButton(
+                    icon: Icons.troubleshoot_rounded,
+                    label: 'View Error Reports',
+                    color: const Color(0xFFEF4444),
+                    onPressed: widget.onNavigateErrorReports!,
+                  ),
               ],
             ),
           ),

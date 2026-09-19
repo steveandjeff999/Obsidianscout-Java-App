@@ -12,6 +12,7 @@ class SettingsScreen extends StatefulWidget {
   final VoidCallback onLogout;
   final VoidCallback? onNavigateConfigEditor;
   final VoidCallback? onNavigateUsers;
+  final VoidCallback? onNavigateErrorReports;
   final bool isVisible;
   final bool isBarsVisible;
 
@@ -21,6 +22,7 @@ class SettingsScreen extends StatefulWidget {
     required this.onLogout,
     this.onNavigateConfigEditor,
     this.onNavigateUsers,
+    this.onNavigateErrorReports,
     this.isVisible = true,
     this.isBarsVisible = true,
   });
@@ -740,6 +742,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ],
                 ),
+                Divider(color: borderColor, height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Desktop Multi-Tab Workspace', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: primaryTextColor)),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Enable browser-style tabs on desktop for multitasking across scouting, analytics, and chat.',
+                            style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    ValueListenableBuilder<bool>(
+                      valueListenable: widget.apiService.desktopTabsNotifier,
+                      builder: (context, tabsEnabled, _) {
+                        return Switch(
+                          value: tabsEnabled,
+                          activeColor: ObsidianUITheme.primaryAccent,
+                          onChanged: (value) async {
+                            await widget.apiService.setDesktopTabsEnabled(value);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    value
+                                        ? 'Desktop tabs enabled'
+                                        : 'Desktop tabs disabled (reverted to classic view)',
+                                  ),
+                                  backgroundColor: ObsidianUITheme.primaryAccent,
+                                  duration: const Duration(seconds: 2),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            }
+                          },
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -982,6 +1030,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Divider(color: borderColor, height: 24),
                   Text(
                     'Create scout accounts, manage role permissions (Scout, Analytics, Admin), reset passwords, and update profiles.',
+                    style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // Error & Bug Reports Card (Superadmin access)
+          if (widget.apiService.hasPageAccess('error-reports')) ...[
+            ObsidianGlassCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            const Icon(Icons.bug_report_rounded, color: Color(0xFFF87171)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                context.tr('nav.error_reports', 'Error Reports'),
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      if (widget.onNavigateErrorReports != null)
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFEF4444),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          icon: const Icon(Icons.troubleshoot_rounded, color: Colors.white, size: 18),
+                          label: const Text('View Reports', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                          onPressed: widget.onNavigateErrorReports,
+                        ),
+                    ],
+                  ),
+                  Divider(color: borderColor, height: 24),
+                  Text(
+                    'Inspect cluster server exceptions, client JavaScript error logs, stack traces, and manage resolutions.',
                     style: TextStyle(fontSize: 12, color: secondaryTextColor),
                   ),
                 ],

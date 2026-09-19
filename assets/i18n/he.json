@@ -1407,6 +1407,9 @@
   "bi.edit": "ערוך",
   "bi.delete": "מחק",
   "nav.event_predictor": "מנבא אירועים",
-  "subtitle.predictor": "חיזוי משחקים ראש בראש וסימולטור כוח בריתות",
-  "subtitle.event_predictor": "סימולציה וחיזוי תוצאות לכל משחקי האירוע המתוכננים",`n  "nav.cluster_management": "ניהול אשכול",`n  "subtitle.cluster_management": "ניהול צמתי אשכול CockroachDB, יומנים, מאזן עומסים וגיבוי"
+  "subtitle.event_predictor": "סימולציה וחיזוי תוצאות לכל משחקי האירוע המתוכננים",
+  "nav.cluster_management": "ניהול אשכול",
+  "subtitle.cluster_management": "ניהול צמתי אשכול CockroachDB, יומנים, מאזן עומסים וגיבוי",
+  "nav.error_reports": "דוחות שגיאות",
+  "subtitle.error_reports": "חריגות שרת ודוחות שגיאות לקוח באשכול"
 }
