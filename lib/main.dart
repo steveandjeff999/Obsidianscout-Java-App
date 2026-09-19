@@ -37,6 +37,8 @@ import 'screens/custom_analytics_screen.dart';
 import 'screens/contact_screen.dart';
 import 'screens/predictor_screen.dart';
 import 'screens/event_predictor_screen.dart';
+import 'screens/users_screen.dart';
+import 'screens/cluster_management_screen.dart';
 import 'services/api_service.dart';
 import 'services/auth_storage_service.dart';
 import 'services/biometric_auth_service.dart';
@@ -371,6 +373,8 @@ class _MainShellState extends State<MainShell> {
     'nav.contact',
     'nav.predictor',
     'nav.event_predictor',
+    'nav.users',
+    'nav.cluster_management',
   ];
   final List<String> _subtitleKeys = [
     'subtitle.dashboard',
@@ -395,6 +399,8 @@ class _MainShellState extends State<MainShell> {
     'subtitle.contact',
     'subtitle.predictor',
     'subtitle.event_predictor',
+    'subtitle.users',
+    'subtitle.cluster_management',
   ];
 
   String _getPageIdForIndex(int index) {
@@ -443,6 +449,10 @@ class _MainShellState extends State<MainShell> {
         return 'predictor';
       case 21:
         return 'event-predictor';
+      case 22:
+        return 'users';
+      case 23:
+        return 'cluster-management';
       default:
         return 'dashboard';
     }
@@ -637,6 +647,7 @@ class _MainShellState extends State<MainShell> {
         apiService: widget.apiService,
         onLogout: _handleLogout,
         onNavigateConfigEditor: () => _navigateScreen(10),
+        onNavigateUsers: () => _navigateScreen(22),
         isVisible: _currentIndex == 5,
         isBarsVisible: _isBarsVisible,
       ),
@@ -661,6 +672,8 @@ class _MainShellState extends State<MainShell> {
       ContactScreen(apiService: widget.apiService, isVisible: _currentIndex == 19, isBarsVisible: _isBarsVisible),
       PredictorScreen(apiService: widget.apiService, isVisible: _currentIndex == 20, isBarsVisible: _isBarsVisible),
       EventPredictorScreen(apiService: widget.apiService, isVisible: _currentIndex == 21, isBarsVisible: _isBarsVisible),
+      UsersScreen(apiService: widget.apiService, isVisible: _currentIndex == 22, isBarsVisible: _isBarsVisible),
+      ClusterManagementScreen(apiService: widget.apiService, isVisible: _currentIndex == 23, isBarsVisible: _isBarsVisible),
     ];    final isDesktop = ObsidianResponsive.isDesktop(context, overrideMode: widget.apiService.uiMode);
 
     final mainIndexedStack = ObsidianAnimatedIndexedStack(

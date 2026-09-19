@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/api_response.dart';
+import '../models/cluster_models.dart';
 import '../models/config_models.dart';
 import '../models/team_match_models.dart';
 import '../models/chat_models.dart';
@@ -1121,6 +1122,169 @@ class ApiService {
         }
       }
       return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'API test failed');
+    } catch (e) {
+      return ApiResponse.error(message: e.toString());
+    }
+  }
+
+  Future<ApiResponse<List<UserModel>>> getAdminUsers({
+    String? q,
+    int? teamNumber,
+    String? program,
+    String? role,
+    int limit = 50,
+    int offset = 0,
+    String? sortBy,
+    String? sortDir,
+  }) async {
+    if (!_isOnline) {
+      final cached = await _getCache("cache_admin_users");
+      if (cached != null && cached.isNotEmpty) {
+        try {
+          final List decoded = jsonDecode(cached);
+          final users = decoded.map((e) => UserModel.fromJson(e as Map<String, dynamic>)).toList();
+          return ApiResponse.success(users);
+        } catch (_) {}
+      }
+      return const ApiResponse.error(isOffline: true, message: 'Offline and no cached users');
+    }
+
+    try {
+      final params = <String, String>{
+        'limit': limit.toString(),
+        'offset': offset.toString(),
+      };
+      if (q != null && q.trim().isNotEmpty) params['q'] = q.trim();
+      if (teamNumber != null) params['teamNumber'] = teamNumber.toString();
+      if (program != null && program.trim().isNotEmpty) params['program'] = program.trim();
+      if (role != null && role.trim().isNotEmpty) params['role'] = role.trim();
+      if (sortBy != null && sortBy.trim().isNotEmpty) params['sortBy'] = sortBy.trim();
+      if (sortDir != null && sortDir.trim().isNotEmpty) params['sortDir'] = sortDir.trim();
+
+      final uri = Uri.parse('$_currentServerUrl/api/admin/users').replace(queryParameters: params);
+      final response = await http.get(uri, headers: _headers).timeout(requestTimeout);
+      _checkResponse(response);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is List) {
+          final users = decoded.map((e) => UserModel.fromJson(e as Map<String, dynamic>)).toList();
+          if (offset == 0 && (q == null || q.isEmpty) && teamNumber == null && (role == null || role.isEmpty)) {
+            await _setCache("cache_admin_users", response.body);
+          }
+          return ApiResponse.success(users, statusCode: response.statusCode);
+        }
+      }
+      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to fetch users');
+    } catch (e) {
+      return ApiResponse.error(message: e.toString());
+    }
+  }
+
+  Future<ApiResponse<UserModel>> createAdminUser({
+    required String username,
+    required int teamNumber,
+    required String password,
+    String? email,
+    String? program,
+    required String role,
+  }) async {
+    if (!_isOnline) {
+      return const ApiResponse.error(isOffline: true, message: 'Cannot create user while offline');
+    }
+
+    try {
+      final body = <String, dynamic>{
+        'username': username.trim(),
+        'teamNumber': teamNumber,
+        'password': password,
+        'role': role.toUpperCase(),
+      };
+      if (email != null && email.trim().isNotEmpty) body['email'] = email.trim();
+      if (program != null && program.trim().isNotEmpty) body['program'] = program.trim();
+
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/admin/users'),
+        headers: _headers,
+        body: jsonEncode(body),
+      ).timeout(requestTimeout);
+      _checkResponse(response);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final decoded = jsonDecode(response.body);
+        final user = UserModel.fromJson(decoded as Map<String, dynamic>);
+        return ApiResponse.success(user, statusCode: response.statusCode, message: 'User created successfully');
+      }
+      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to create user');
+    } catch (e) {
+      return ApiResponse.error(message: e.toString());
+    }
+  }
+
+  Future<ApiResponse<UserModel>> updateAdminUser(
+    String userId, {
+    String? username,
+    String? password,
+    String? role,
+    String? email,
+    String? profilePicture,
+    bool clearProfilePicture = false,
+  }) async {
+    if (!_isOnline) {
+      return const ApiResponse.error(isOffline: true, message: 'Cannot update user while offline');
+    }
+
+    try {
+      final body = <String, dynamic>{};
+      if (username != null && username.trim().isNotEmpty) body['username'] = username.trim();
+      if (password != null && password.isNotEmpty) body['password'] = password;
+      if (role != null && role.isNotEmpty) body['role'] = role.toUpperCase();
+      if (email != null) body['email'] = email.trim();
+      if (clearProfilePicture) {
+        body['clearProfilePicture'] = true;
+      } else if (profilePicture != null) {
+        body['profilePicture'] = profilePicture;
+      }
+
+      final response = await http.put(
+        Uri.parse('$_currentServerUrl/api/admin/users/$userId'),
+        headers: _headers,
+        body: jsonEncode(body),
+      ).timeout(heavyRequestTimeout);
+      _checkResponse(response);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final decoded = jsonDecode(response.body);
+        final user = UserModel.fromJson(decoded as Map<String, dynamic>);
+        if (user.id == _currentUser?.id) {
+          _currentUser = user;
+          await _setCache("cache_auth_me", response.body);
+          permissionsNotifier.value++;
+        }
+        return ApiResponse.success(user, statusCode: response.statusCode, message: 'User updated successfully');
+      }
+      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to update user');
+    } catch (e) {
+      return ApiResponse.error(message: e.toString());
+    }
+  }
+
+  Future<ApiResponse<bool>> deleteAdminUser(String userId) async {
+    if (!_isOnline) {
+      return const ApiResponse.error(isOffline: true, message: 'Cannot delete user while offline');
+    }
+
+    try {
+      final response = await http.delete(
+        Uri.parse('$_currentServerUrl/api/admin/users/$userId'),
+        headers: _headers,
+      ).timeout(requestTimeout);
+      _checkResponse(response);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return ApiResponse.success(true, statusCode: response.statusCode, message: 'User deleted successfully');
+      }
+      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to delete user');
     } catch (e) {
       return ApiResponse.error(message: e.toString());
     }
@@ -3122,4 +3286,779 @@ class ApiService {
       return ApiResponse.error(message: e.toString());
     }
   }
+
+  // =========================================================================
+  // Cluster Management API
+  // =========================================================================
+
+  Future<ClusterNodesResponse?> fetchClusterNodes() async {
+    if (!_isOnline) return null;
+    try {
+      final response = await http
+          .get(Uri.parse('$_currentServerUrl/api/admin/cluster/nodes'),
+              headers: _headers)
+          .timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      if (response.statusCode == 200) {
+        final j = jsonDecode(response.body) as Map<String, dynamic>;
+        return ClusterNodesResponse.fromJson(j);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<List<ServerLogEntry>> fetchNodeLogs(String nodeIp,
+      {int limit = 500, String? filter}) async {
+    if (!_isOnline) return [];
+    try {
+      final queryParams = {'limit': limit.toString()};
+      if (filter != null && filter.isNotEmpty) queryParams['filter'] = filter;
+      final uri = Uri.parse(
+              '$_currentServerUrl/api/admin/cluster/nodes/${Uri.encodeComponent(nodeIp)}/logs')
+          .replace(queryParameters: queryParams);
+      final response =
+          await http.get(uri, headers: _headers).timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      if (response.statusCode == 200) {
+        final j = jsonDecode(response.body) as Map<String, dynamic>;
+        final logs = j['logs'] as List<dynamic>? ?? [];
+        return logs
+            .map((e) => ServerLogEntry.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<List<ServerLogEntry>> fetchAllClusterLogs(
+      {int limit = 500, String? filter}) async {
+    if (!_isOnline) return [];
+    try {
+      final queryParams = {'limit': limit.toString()};
+      if (filter != null && filter.isNotEmpty) queryParams['filter'] = filter;
+      final uri =
+          Uri.parse('$_currentServerUrl/api/admin/cluster/logs-all').replace(
+        queryParameters: queryParams,
+      );
+      final response =
+          await http.get(uri, headers: _headers).timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      if (response.statusCode == 200) {
+        final j = jsonDecode(response.body) as Map<String, dynamic>;
+        final logs = j['logs'] as List<dynamic>? ?? [];
+        return logs
+            .map((e) => ServerLogEntry.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<AppConfigPayload?> fetchNodeAppConfig(String nodeIp) async {
+    if (!_isOnline) return null;
+    try {
+      final response = await http
+          .get(
+              Uri.parse(
+                  '$_currentServerUrl/api/admin/cluster/nodes/${Uri.encodeComponent(nodeIp)}/app-config'),
+              headers: _headers)
+          .timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      if (response.statusCode == 200) {
+        return AppConfigPayload.fromJson(
+            jsonDecode(response.body) as Map<String, dynamic>);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<ActionResultResponse> saveNodeAppConfig(
+      String nodeIp, String rawJson) async {
+    if (!_isOnline) {
+      return const ActionResultResponse(
+          success: false, message: 'Device is offline');
+    }
+    try {
+      final response = await http
+          .put(
+              Uri.parse(
+                  '$_currentServerUrl/api/admin/cluster/nodes/${Uri.encodeComponent(nodeIp)}/app-config'),
+              headers: _headers,
+              body: rawJson)
+          .timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      return ActionResultResponse.fromJson(
+          jsonDecode(response.body) as Map<String, dynamic>);
+    } catch (e) {
+      return ActionResultResponse(success: false, message: e.toString());
+    }
+  }
+
+  Future<ActionResultResponse> rebootNode(String nodeIp) async {
+    if (!_isOnline) {
+      return const ActionResultResponse(
+          success: false, message: 'Device is offline');
+    }
+    try {
+      final url = nodeIp == 'all'
+          ? '$_currentServerUrl/api/admin/cluster/reboot-all'
+          : '$_currentServerUrl/api/admin/cluster/nodes/${Uri.encodeComponent(nodeIp)}/reboot';
+      final response = await http
+          .post(Uri.parse(url), headers: _headers)
+          .timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      return ActionResultResponse.fromJson(
+          jsonDecode(response.body) as Map<String, dynamic>);
+    } catch (e) {
+      return ActionResultResponse(success: false, message: e.toString());
+    }
+  }
+
+  Future<ActionResultResponse> reinstallNode(String nodeIp) async {
+    if (!_isOnline) {
+      return const ActionResultResponse(
+          success: false, message: 'Device is offline');
+    }
+    try {
+      final url = nodeIp == 'all'
+          ? '$_currentServerUrl/api/admin/cluster/reinstall-update-all'
+          : '$_currentServerUrl/api/admin/cluster/nodes/${Uri.encodeComponent(nodeIp)}/reinstall-update';
+      final response = await http
+          .post(Uri.parse(url), headers: _headers)
+          .timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      return ActionResultResponse.fromJson(
+          jsonDecode(response.body) as Map<String, dynamic>);
+    } catch (e) {
+      return ActionResultResponse(success: false, message: e.toString());
+    }
+  }
+
+  Future<ActionResultResponse> regenerateKeys() async {
+    if (!_isOnline) {
+      return const ActionResultResponse(
+          success: false, message: 'Device is offline');
+    }
+    try {
+      final response = await http
+          .post(
+              Uri.parse('$_currentServerUrl/api/admin/cluster/regenerate-keys'),
+              headers: _headers)
+          .timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      return ActionResultResponse.fromJson(
+          jsonDecode(response.body) as Map<String, dynamic>);
+    } catch (e) {
+      return ActionResultResponse(success: false, message: e.toString());
+    }
+  }
+
+  // Load Balancer
+  Future<LoadBalancerStatus?> fetchLoadBalancerStatus() async {
+    if (!_isOnline) return null;
+    try {
+      final response = await http
+          .get(
+              Uri.parse(
+                  '$_currentServerUrl/api/admin/cluster/load-balancer/status'),
+              headers: _headers)
+          .timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      if (response.statusCode == 200) {
+        return LoadBalancerStatus.fromJson(
+            jsonDecode(response.body) as Map<String, dynamic>);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<LoadBalancerSettings?> fetchLoadBalancerSettings() async {
+    if (!_isOnline) return null;
+    try {
+      final response = await http
+          .get(
+              Uri.parse(
+                  '$_currentServerUrl/api/admin/cluster/load-balancer/settings'),
+              headers: _headers)
+          .timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      if (response.statusCode == 200) {
+        return LoadBalancerSettings.fromJson(
+            jsonDecode(response.body) as Map<String, dynamic>);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<ActionResultResponse> saveLoadBalancerSettings(
+      LoadBalancerSettings settings) async {
+    if (!_isOnline) {
+      return const ActionResultResponse(
+          success: false, message: 'Device is offline');
+    }
+    try {
+      final response = await http
+          .put(
+              Uri.parse(
+                  '$_currentServerUrl/api/admin/cluster/load-balancer/settings'),
+              headers: _headers,
+              body: jsonEncode(settings.toJson()))
+          .timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      return ActionResultResponse.fromJson(
+          jsonDecode(response.body) as Map<String, dynamic>);
+    } catch (e) {
+      return ActionResultResponse(success: false, message: e.toString());
+    }
+  }
+
+  // Stress Test
+  Future<ActionResultResponse> startStressTest() async {
+    if (!_isOnline) {
+      return const ActionResultResponse(
+          success: false, message: 'Device is offline');
+    }
+    try {
+      final response = await http
+          .post(
+              Uri.parse('$_currentServerUrl/api/admin/cluster/stress/start'),
+              headers: _headers)
+          .timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      return ActionResultResponse.fromJson(
+          jsonDecode(response.body) as Map<String, dynamic>);
+    } catch (e) {
+      return ActionResultResponse(success: false, message: e.toString());
+    }
+  }
+
+  Future<ActionResultResponse> stopStressTest() async {
+    if (!_isOnline) {
+      return const ActionResultResponse(
+          success: false, message: 'Device is offline');
+    }
+    try {
+      final response = await http
+          .post(Uri.parse('$_currentServerUrl/api/admin/cluster/stress/stop'),
+              headers: _headers)
+          .timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      return ActionResultResponse.fromJson(
+          jsonDecode(response.body) as Map<String, dynamic>);
+    } catch (e) {
+      return ActionResultResponse(success: false, message: e.toString());
+    }
+  }
+
+  Future<StressTestStatus?> fetchStressTestStatus() async {
+    if (!_isOnline) return null;
+    try {
+      final response = await http
+          .get(
+              Uri.parse('$_currentServerUrl/api/admin/cluster/stress/status'),
+              headers: _headers)
+          .timeout(requestTimeout);
+      _checkResponse(response);
+      if (response.statusCode == 200) {
+        return StressTestStatus.fromJson(
+            jsonDecode(response.body) as Map<String, dynamic>);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // Node Down Alerts
+  Future<NodeAlertsEnrollment?> fetchNodeAlertsEnrollment() async {
+    if (!_isOnline) return null;
+    try {
+      final response = await http
+          .get(
+              Uri.parse(
+                  '$_currentServerUrl/api/admin/cluster/notifications/enrollment'),
+              headers: _headers)
+          .timeout(requestTimeout);
+      _checkResponse(response);
+      if (response.statusCode == 200) {
+        return NodeAlertsEnrollment.fromJson(
+            jsonDecode(response.body) as Map<String, dynamic>);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<ActionResultResponse> toggleNodeAlertsEnrollment(
+      bool enrolled) async {
+    if (!_isOnline) {
+      return const ActionResultResponse(
+          success: false, message: 'Device is offline');
+    }
+    try {
+      final response = await http
+          .put(
+              Uri.parse(
+                  '$_currentServerUrl/api/admin/cluster/notifications/enrollment'),
+              headers: _headers,
+              body: jsonEncode({'enrolled': enrolled}))
+          .timeout(requestTimeout);
+      _checkResponse(response);
+      return ActionResultResponse.fromJson(
+          jsonDecode(response.body) as Map<String, dynamic>);
+    } catch (e) {
+      return ActionResultResponse(success: false, message: e.toString());
+    }
+  }
+
+  Future<ActionResultResponse> sendTestNodeAlert() async {
+    if (!_isOnline) {
+      return const ActionResultResponse(
+          success: false, message: 'Device is offline');
+    }
+    try {
+      final response = await http
+          .post(
+              Uri.parse(
+                  '$_currentServerUrl/api/admin/cluster/notifications/test'),
+              headers: _headers)
+          .timeout(requestTimeout);
+      _checkResponse(response);
+      return ActionResultResponse.fromJson(
+          jsonDecode(response.body) as Map<String, dynamic>);
+    } catch (e) {
+      return ActionResultResponse(success: false, message: e.toString());
+    }
+  }
+
+  // Server Error Alerts
+  Future<ServerErrorAlertsSettings?> fetchErrorAlertSettings() async {
+    if (!_isOnline) return null;
+    try {
+      final response = await http
+          .get(
+              Uri.parse(
+                  '$_currentServerUrl/api/admin/cluster/error-alerts'),
+              headers: _headers)
+          .timeout(requestTimeout);
+      _checkResponse(response);
+      if (response.statusCode == 200) {
+        return ServerErrorAlertsSettings.fromJson(
+            jsonDecode(response.body) as Map<String, dynamic>);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<ActionResultResponse> saveErrorAlertSettings(
+      ServerErrorAlertsSettings settings) async {
+    if (!_isOnline) {
+      return const ActionResultResponse(
+          success: false, message: 'Device is offline');
+    }
+    try {
+      final response = await http
+          .put(
+              Uri.parse(
+                  '$_currentServerUrl/api/admin/cluster/error-alerts'),
+              headers: _headers,
+              body: jsonEncode(settings.toJson()))
+          .timeout(requestTimeout);
+      _checkResponse(response);
+      return ActionResultResponse.fromJson(
+          jsonDecode(response.body) as Map<String, dynamic>);
+    } catch (e) {
+      return ActionResultResponse(success: false, message: e.toString());
+    }
+  }
+
+  Future<ActionResultResponse> sendTestErrorAlert() async {
+    if (!_isOnline) {
+      return const ActionResultResponse(
+          success: false, message: 'Device is offline');
+    }
+    try {
+      final response = await http
+          .post(
+              Uri.parse(
+                  '$_currentServerUrl/api/admin/cluster/error-alerts/test'),
+              headers: _headers)
+          .timeout(requestTimeout);
+      _checkResponse(response);
+      return ActionResultResponse.fromJson(
+          jsonDecode(response.body) as Map<String, dynamic>);
+    } catch (e) {
+      return ActionResultResponse(success: false, message: e.toString());
+    }
+  }
+
+  // Quorum Fallback
+  Future<List<QuorumFallbackNodeStatus>> fetchQuorumFallbackStatus() async {
+    if (!_isOnline) return [];
+    try {
+      final response = await http
+          .get(
+              Uri.parse(
+                  '$_currentServerUrl/api/admin/cluster/quorum-fallback'),
+              headers: _headers)
+          .timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        final list = body is List ? body : (body['nodes'] as List? ?? []);
+        return list
+            .map((e) => QuorumFallbackNodeStatus.fromJson(
+                e as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<ActionResultResponse> toggleQuorumFallback(
+      String nodeIp, bool enabled) async {
+    if (!_isOnline) {
+      return const ActionResultResponse(
+          success: false, message: 'Device is offline');
+    }
+    try {
+      final response = await http
+          .post(
+              Uri.parse(
+                  '$_currentServerUrl/api/admin/cluster/quorum-fallback/toggle'),
+              headers: _headers,
+              body: jsonEncode({'targetIp': nodeIp, 'enabled': enabled}))
+          .timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      return ActionResultResponse.fromJson(
+          jsonDecode(response.body) as Map<String, dynamic>);
+    } catch (e) {
+      return ActionResultResponse(success: false, message: e.toString());
+    }
+  }
+
+  Future<ActionResultResponse> purgeQuorumFallback(String nodeIp) async {
+    if (!_isOnline) {
+      return const ActionResultResponse(
+          success: false, message: 'Device is offline');
+    }
+    try {
+      final response = await http
+          .post(
+              Uri.parse(
+                  '$_currentServerUrl/api/admin/cluster/quorum-fallback/purge'),
+              headers: _headers,
+              body: jsonEncode({'targetIp': nodeIp}))
+          .timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      return ActionResultResponse.fromJson(
+          jsonDecode(response.body) as Map<String, dynamic>);
+    } catch (e) {
+      return ActionResultResponse(success: false, message: e.toString());
+    }
+  }
+
+  Future<ActionResultResponse> syncQuorumFallback(String nodeIp) async {
+    if (!_isOnline) {
+      return const ActionResultResponse(
+          success: false, message: 'Device is offline');
+    }
+    try {
+      final response = await http
+          .post(
+              Uri.parse(
+                  '$_currentServerUrl/api/admin/cluster/quorum-fallback/sync'),
+              headers: _headers,
+              body: jsonEncode({'targetIp': nodeIp}))
+          .timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      return ActionResultResponse.fromJson(
+          jsonDecode(response.body) as Map<String, dynamic>);
+    } catch (e) {
+      return ActionResultResponse(success: false, message: e.toString());
+    }
+  }
+
+  Future<QuorumFallbackInspection?> inspectQuorumFallback(String nodeIp) async {
+    if (!_isOnline) return null;
+    try {
+      final uri = Uri.parse(
+              '$_currentServerUrl/api/admin/cluster/quorum-fallback/inspect')
+          .replace(queryParameters: {'targetIp': nodeIp});
+      final response =
+          await http.get(uri, headers: _headers).timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      if (response.statusCode == 200) {
+        return QuorumFallbackInspection.fromJson(
+            jsonDecode(response.body) as Map<String, dynamic>);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<ActionResultResponse> saveQuorumFallbackConfig(
+      String targetIp, QuorumFallbackConfigDetails config) async {
+    if (!_isOnline) {
+      return const ActionResultResponse(
+          success: false, message: 'Device is offline');
+    }
+    try {
+      final response = await http
+          .put(
+              Uri.parse(
+                  '$_currentServerUrl/api/admin/cluster/quorum-fallback/config'),
+              headers: _headers,
+              body: jsonEncode(config.toJson(targetIp: targetIp)))
+          .timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      return ActionResultResponse.fromJson(
+          jsonDecode(response.body) as Map<String, dynamic>);
+    } catch (e) {
+      return ActionResultResponse(success: false, message: e.toString());
+    }
+  }
+
+  // Auto Backup & Snapshots
+  Future<AutoBackupCombinedStatus?> fetchAutoBackupStatus() async {
+    if (!_isOnline) return null;
+    try {
+      // 1. Fetch local node snapshots & settings
+      AutoBackupNodeStatus? localStatus;
+      try {
+        final localResp = await http
+            .get(Uri.parse('$_currentServerUrl/api/admin/snapshots'),
+                headers: _headers)
+            .timeout(heavyRequestTimeout);
+        _checkResponse(localResp);
+        if (localResp.statusCode == 200) {
+          localStatus = AutoBackupNodeStatus.fromJson(
+              jsonDecode(localResp.body) as Map<String, dynamic>);
+        }
+      } catch (_) {}
+
+      // 2. Fetch cluster-wide auto backup nodes status
+      List<AutoBackupNodeStatus> clusterNodes = [];
+      try {
+        final clusterResp = await http
+            .get(Uri.parse('$_currentServerUrl/api/admin/cluster/auto-backup'),
+                headers: _headers)
+            .timeout(heavyRequestTimeout);
+        _checkResponse(clusterResp);
+        if (clusterResp.statusCode == 200) {
+          final decoded = jsonDecode(clusterResp.body);
+          final list = decoded is List
+              ? decoded
+              : (decoded is Map && decoded['nodes'] is List
+                  ? decoded['nodes'] as List
+                  : []);
+          clusterNodes = list
+              .map((e) =>
+                  AutoBackupNodeStatus.fromJson(e as Map<String, dynamic>))
+              .toList();
+        }
+      } catch (_) {}
+
+      final fallbackLocal = localStatus ??
+          const AutoBackupNodeStatus(nodeIp: 'local', isLocal: true, enabled: false);
+
+      return AutoBackupCombinedStatus(
+        localNodeStatus: fallbackLocal,
+        clusterNodes: clusterNodes,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<ActionResultResponse> saveLocalBackupConfig(
+      bool enabled, int retentionDays) async {
+    if (!_isOnline) {
+      return const ActionResultResponse(
+          success: false, message: 'Device is offline');
+    }
+    try {
+      final response = await http
+          .put(
+              Uri.parse('$_currentServerUrl/api/admin/snapshots/config'),
+              headers: _headers,
+              body: jsonEncode({
+                'enabled': enabled,
+                'retentionDays': retentionDays,
+              }))
+          .timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      if (response.statusCode == 200) {
+        return const ActionResultResponse(
+            success: true, message: 'Auto-backup settings saved.');
+      }
+      return ActionResultResponse.fromJson(
+          jsonDecode(response.body) as Map<String, dynamic>);
+    } catch (e) {
+      return ActionResultResponse(success: false, message: e.toString());
+    }
+  }
+
+  Future<ActionResultResponse> createLocalSnapshot() async {
+    if (!_isOnline) {
+      return const ActionResultResponse(
+          success: false, message: 'Device is offline');
+    }
+    try {
+      final response = await http
+          .post(Uri.parse('$_currentServerUrl/api/admin/snapshots/create'),
+              headers: _headers)
+          .timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      if (response.statusCode == 200) {
+        final j = jsonDecode(response.body) as Map<String, dynamic>;
+        final fn = j['fileName']?.toString() ?? 'snapshot';
+        return ActionResultResponse(
+            success: true, message: 'Snapshot "$fn" created successfully.');
+      }
+      return const ActionResultResponse(
+          success: false, message: 'Failed to create snapshot.');
+    } catch (e) {
+      return ActionResultResponse(success: false, message: e.toString());
+    }
+  }
+
+  Future<ActionResultResponse> deleteSnapshot(String fileName) async {
+    if (!_isOnline) {
+      return const ActionResultResponse(
+          success: false, message: 'Device is offline');
+    }
+    try {
+      final response = await http
+          .delete(
+              Uri.parse(
+                  '$_currentServerUrl/api/admin/snapshots/${Uri.encodeComponent(fileName)}'),
+              headers: _headers)
+          .timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      if (response.statusCode == 200) {
+        return const ActionResultResponse(
+            success: true, message: 'Snapshot deleted.');
+      }
+      return const ActionResultResponse(
+          success: false, message: 'Failed to delete snapshot.');
+    } catch (e) {
+      return ActionResultResponse(success: false, message: e.toString());
+    }
+  }
+
+  Future<ActionResultResponse> restoreSnapshot(String fileName) async {
+    if (!_isOnline) {
+      return const ActionResultResponse(
+          success: false, message: 'Device is offline');
+    }
+    try {
+      final response = await http
+          .post(
+              Uri.parse(
+                  '$_currentServerUrl/api/admin/snapshots/restore/${Uri.encodeComponent(fileName)}'),
+              headers: _headers)
+          .timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      if (response.statusCode == 200) {
+        final j = jsonDecode(response.body) as Map<String, dynamic>;
+        final count = j['totalRecordsRestored'] ?? 0;
+        return ActionResultResponse(
+            success: true,
+            message: 'Database restored successfully ($count records restored).');
+      }
+      return const ActionResultResponse(
+          success: false, message: 'Failed to restore database.');
+    } catch (e) {
+      return ActionResultResponse(success: false, message: e.toString());
+    }
+  }
+
+  Future<ActionResultResponse> toggleNodeAutoBackup(
+      String nodeIp, bool enabled) async {
+    if (!_isOnline) {
+      return const ActionResultResponse(
+          success: false, message: 'Device is offline');
+    }
+    try {
+      final response = await http
+          .post(
+              Uri.parse(
+                  '$_currentServerUrl/api/admin/cluster/auto-backup/toggle'),
+              headers: _headers,
+              body: jsonEncode({'targetIp': nodeIp, 'enabled': enabled}))
+          .timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      return ActionResultResponse.fromJson(
+          jsonDecode(response.body) as Map<String, dynamic>);
+    } catch (e) {
+      return ActionResultResponse(success: false, message: e.toString());
+    }
+  }
+
+  Future<ActionResultResponse> saveNodeAutoBackupConfig(
+      String nodeIp, int retentionDays, {bool? enabled}) async {
+    if (!_isOnline) {
+      return const ActionResultResponse(
+          success: false, message: 'Device is offline');
+    }
+    try {
+      final response = await http
+          .put(
+              Uri.parse(
+                  '$_currentServerUrl/api/admin/cluster/auto-backup/config'),
+              headers: _headers,
+              body: jsonEncode({
+                'targetIp': nodeIp,
+                'retentionDays': retentionDays,
+                if (enabled != null) 'enabled': enabled,
+              }))
+          .timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      return ActionResultResponse.fromJson(
+          jsonDecode(response.body) as Map<String, dynamic>);
+    } catch (e) {
+      return ActionResultResponse(success: false, message: e.toString());
+    }
+  }
+
+  Future<ActionResultResponse> createNodeSnapshot(String nodeIp) async {
+    if (!_isOnline) {
+      return const ActionResultResponse(
+          success: false, message: 'Device is offline');
+    }
+    try {
+      final response = await http
+          .post(
+              Uri.parse(
+                  '$_currentServerUrl/api/admin/cluster/auto-backup/create'),
+              headers: _headers,
+              body: jsonEncode({'targetIp': nodeIp}))
+          .timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      return ActionResultResponse.fromJson(
+          jsonDecode(response.body) as Map<String, dynamic>);
+    } catch (e) {
+      return ActionResultResponse(success: false, message: e.toString());
+    }
+  }
 }
+

@@ -136,4 +136,49 @@ class ImageProcessingUtils {
       return null;
     }
   }
+
+  /// Picks and processes an avatar image: centre-crops to a square, resizes to size px, and encodes to data URL.
+  static Future<ProcessedImageResult?> pickAndProcessAvatar({
+    required ImageSource source,
+    int size = 384,
+    int quality = 80,
+  }) async {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: source,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 90,
+      );
+
+      if (pickedFile == null) return null;
+
+      final Uint8List rawBytes = await pickedFile.readAsBytes();
+      img.Image? decoded = img.decodeImage(rawBytes);
+      if (decoded == null) return null;
+
+      decoded = img.bakeOrientation(decoded);
+
+      // Centre crop to square
+      final int minDim = decoded.width < decoded.height ? decoded.width : decoded.height;
+      final int x = (decoded.width - minDim) ~/ 2;
+      final int y = (decoded.height - minDim) ~/ 2;
+
+      img.Image cropped = img.copyCrop(decoded, x: x, y: y, width: minDim, height: minDim);
+      img.Image resized = img.copyResize(cropped, width: size, height: size, interpolation: img.Interpolation.linear);
+
+      final Uint8List pngBytes = Uint8List.fromList(img.encodePng(resized));
+      final String base64Str = base64Encode(pngBytes);
+      final String dataUrl = 'data:image/png;base64,$base64Str';
+
+      return ProcessedImageResult(
+        dataUrl: dataUrl,
+        width: size,
+        height: size,
+        sizeBytes: pngBytes.length,
+      );
+    } catch (e) {
+      return null;
+    }
+  }
 }

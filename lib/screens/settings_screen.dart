@@ -11,6 +11,7 @@ class SettingsScreen extends StatefulWidget {
   final ApiService apiService;
   final VoidCallback onLogout;
   final VoidCallback? onNavigateConfigEditor;
+  final VoidCallback? onNavigateUsers;
   final bool isVisible;
   final bool isBarsVisible;
 
@@ -19,6 +20,7 @@ class SettingsScreen extends StatefulWidget {
     required this.apiService,
     required this.onLogout,
     this.onNavigateConfigEditor,
+    this.onNavigateUsers,
     this.isVisible = true,
     this.isBarsVisible = true,
   });
@@ -932,6 +934,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
                     ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // User Management Card (Admin access)
+          if (widget.apiService.hasPageAccess('users')) ...[
+            ObsidianGlassCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            const Icon(Icons.manage_accounts_rounded, color: ObsidianUITheme.primaryAccent),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                context.tr('users.title', 'User Management'),
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      if (widget.onNavigateUsers != null)
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: ObsidianUITheme.primaryAccent,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          icon: const Icon(Icons.people_alt_rounded, color: Colors.white, size: 18),
+                          label: Text(context.tr('users.manage_users', 'Manage Users'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                          onPressed: widget.onNavigateUsers,
+                        ),
+                    ],
+                  ),
+                  Divider(color: borderColor, height: 24),
+                  Text(
+                    'Create scout accounts, manage role permissions (Scout, Analytics, Admin), reset passwords, and update profiles.',
+                    style: TextStyle(fontSize: 12, color: secondaryTextColor),
                   ),
                 ],
               ),

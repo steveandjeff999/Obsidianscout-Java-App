@@ -210,6 +210,13 @@ class ObsidianNavigationDrawer extends StatelessWidget {
             'subKey': 'subtitle.config_editor',
           },
           {
+            'pageId': 'users',
+            'index': 22,
+            'icon': Icons.manage_accounts_rounded,
+            'labelKey': 'nav.users',
+            'subKey': 'subtitle.users',
+          },
+          {
             'pageId': 'settings',
             'index': 5,
             'icon': Icons.settings_suggest_rounded,
@@ -222,6 +229,13 @@ class ObsidianNavigationDrawer extends StatelessWidget {
             'icon': Icons.contact_support_rounded,
             'labelKey': 'nav.contact',
             'subKey': 'subtitle.contact',
+          },
+          {
+            'pageId': 'cluster-management',
+            'index': 23,
+            'icon': Icons.hub_rounded,
+            'labelKey': 'nav.cluster_management',
+            'subKey': 'subtitle.cluster_management',
           },
         ],
       },

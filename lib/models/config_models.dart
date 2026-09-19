@@ -448,6 +448,8 @@ class UserModel {
   final String? email;
   final String? profilePicture;
   final String? notificationPreference;
+  final String? createdAt;
+  final String? lastLogin;
 
   UserModel({
     required this.id,
@@ -458,11 +460,34 @@ class UserModel {
     this.email,
     this.profilePicture,
     this.notificationPreference,
+    this.createdAt,
+    this.lastLogin,
   });
 
   bool get isSuperAdmin => role.toUpperCase() == 'SUPERADMIN';
   bool get isAdmin => isSuperAdmin || role.toUpperCase() == 'ADMIN';
   bool get canAccessAnalytics => isAdmin || role.toUpperCase() == 'ANALYTICS';
+
+  bool canEdit(UserModel targetUser) {
+    if (isSuperAdmin) return true;
+    if (isAdmin) {
+      return !targetUser.isSuperAdmin && targetUser.teamNumber == teamNumber;
+    }
+    return false;
+  }
+
+  bool canChangeUsername(UserModel targetUser) {
+    if (isSuperAdmin) return true;
+    return false;
+  }
+
+  bool canChangeRole(UserModel targetUser) {
+    if (isSuperAdmin) return true;
+    if (isAdmin) {
+      return !targetUser.isSuperAdmin;
+    }
+    return false;
+  }
 
   String get roleDisplayLabel {
     final r = role.toUpperCase();
@@ -481,6 +506,8 @@ class UserModel {
       email: json['email']?.toString(),
       profilePicture: json['profilePicture']?.toString(),
       notificationPreference: json['notificationPreference']?.toString(),
+      createdAt: json['createdAt']?.toString(),
+      lastLogin: json['lastLogin']?.toString(),
     );
   }
 
@@ -494,6 +521,8 @@ class UserModel {
       'email': email,
       'profilePicture': profilePicture,
       'notificationPreference': notificationPreference,
+      'createdAt': createdAt,
+      'lastLogin': lastLogin,
     };
   }
 }
