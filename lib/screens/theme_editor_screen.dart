@@ -129,7 +129,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
     _lightAccent3Ctrl.text = preset.lightAccent3.isNotEmpty ? preset.lightAccent3 : '#255a9c';
     _lightInkCtrl.text = preset.lightInk.isNotEmpty ? preset.lightInk : '#1d1a17';
     _lightMutedCtrl.text = preset.lightMuted.isNotEmpty ? preset.lightMuted : '#5f5b55';
-    _lightRadius = preset.btnRadius.isNotEmpty ? preset.btnRadius : '999px';
+    _lightRadius = preset.lightRadius.isNotEmpty ? preset.lightRadius : (preset.btnRadius.isNotEmpty ? preset.btnRadius : '999px');
     _parseAndPopulateBg(isDark: false, bgValue: preset.lightBg);
 
     _darkAccentCtrl.text = preset.darkAccent.isNotEmpty ? preset.darkAccent : '#3ccfc0';
@@ -137,7 +137,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
     _darkAccent3Ctrl.text = preset.darkAccent3.isNotEmpty ? preset.darkAccent3 : '#6aa2ff';
     _darkInkCtrl.text = preset.darkInk.isNotEmpty ? preset.darkInk : '#f4f2ed';
     _darkMutedCtrl.text = preset.darkMuted.isNotEmpty ? preset.darkMuted : '#c3bfb8';
-    _darkRadius = preset.btnRadius.isNotEmpty ? preset.btnRadius : '999px';
+    _darkRadius = preset.darkRadius.isNotEmpty ? preset.darkRadius : (preset.btnRadius.isNotEmpty ? preset.btnRadius : '999px');
     _parseAndPopulateBg(isDark: true, bgValue: preset.darkBg);
   }
 
@@ -202,13 +202,15 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
       lightInk: _lightInkCtrl.text.trim(),
       lightMuted: _lightMutedCtrl.text.trim(),
       lightBg: _lightBgCtrl.text.trim(),
-      btnRadius: _lightRadius,
+      lightRadius: _lightRadius,
       darkAccent: _darkAccentCtrl.text.trim(),
       darkAccent2: _darkAccent2Ctrl.text.trim(),
       darkAccent3: _darkAccent3Ctrl.text.trim(),
       darkInk: _darkInkCtrl.text.trim(),
       darkMuted: _darkMutedCtrl.text.trim(),
       darkBg: _darkBgCtrl.text.trim(),
+      darkRadius: _darkRadius,
+      btnRadius: _darkRadius,
     );
   }
 
@@ -874,35 +876,57 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
           // Button radius selector
           Text('Button Style (Radius)', style: TextStyle(color: secondaryText, fontSize: 12, fontWeight: FontWeight.bold)),
           const SizedBox(height: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: ObsidianUITheme.getInputFillColor(context),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: radiusVal,
-                isExpanded: true,
-                dropdownColor: ObsidianUITheme.getSurfaceColor(context),
-                style: TextStyle(color: primaryText, fontWeight: FontWeight.bold, fontSize: 13),
-                items: const [
-                  DropdownMenuItem(value: '0px', child: Text('Square (0px)')),
-                  DropdownMenuItem(value: '6px', child: Text('Subtle Rounded (6px)')),
-                  DropdownMenuItem(value: '12px', child: Text('Standard Rounded (12px)')),
-                  DropdownMenuItem(value: '999px', child: Text('Fully Rounded / Pill (999px)')),
-                ],
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() {
-                      _lightRadius = val;
-                      _darkRadius = val;
-                    });
-                  }
-                },
-              ),
-            ),
+          Builder(
+            builder: (ctx) {
+              final availableRadii = <String, String>{
+                '0px': 'Square (0px)',
+                '6px': 'Subtle Rounded (6px)',
+                '8px': 'Standard Rounded (8px)',
+                '12px': 'Standard Rounded (12px)',
+                '999px': 'Fully Rounded / Pill (999px)',
+              };
+
+              final effectiveRadiusVal = radiusVal.trim().isEmpty ? '999px' : radiusVal.trim();
+              if (!availableRadii.containsKey(effectiveRadiusVal)) {
+                availableRadii[effectiveRadiusVal] = 'Custom ($effectiveRadiusVal)';
+              }
+
+              final radiusItems = availableRadii.entries.map((e) {
+                return DropdownMenuItem<String>(
+                  value: e.key,
+                  child: Text(e.value),
+                );
+              }).toList();
+
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: ObsidianUITheme.getInputFillColor(context),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: effectiveRadiusVal,
+                    isExpanded: true,
+                    dropdownColor: ObsidianUITheme.getSurfaceColor(context),
+                    style: TextStyle(color: primaryText, fontWeight: FontWeight.bold, fontSize: 13),
+                    items: radiusItems,
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() {
+                          if (isDarkModeConfig) {
+                            _darkRadius = val;
+                          } else {
+                            _lightRadius = val;
+                          }
+                        });
+                      }
+                    },
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),
