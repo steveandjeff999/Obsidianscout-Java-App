@@ -71,7 +71,10 @@ class ObsidianUITheme {
   static double getButtonRadius(BuildContext context, {double fallback = 12.0}) {
     final custom = activeCustomTheme;
     if (custom != null) {
-      return parseRadius(custom.btnRadius, fallback: fallback);
+      final rStr = isDark(context)
+          ? (custom.darkRadius.isNotEmpty ? custom.darkRadius : custom.btnRadius)
+          : (custom.lightRadius.isNotEmpty ? custom.lightRadius : custom.btnRadius);
+      return parseRadius(rStr, fallback: fallback);
     }
     return fallback;
   }
@@ -160,11 +163,14 @@ class ObsidianUITheme {
     final bgSolid = (custom != null ? parseHex(custom.darkBg) : null) ?? defaultBackground;
     final ink = (custom != null ? parseHex(custom.darkInk) : null) ?? Colors.white;
     final muted = (custom != null ? parseHex(custom.darkMuted) : null) ?? Colors.white70;
-    final radius = custom != null ? parseRadius(custom.btnRadius, fallback: 12.0) : 12.0;
+    final radiusStr = custom != null
+        ? (custom.darkRadius.isNotEmpty ? custom.darkRadius : custom.btnRadius)
+        : '12px';
+    final radius = parseRadius(radiusStr, fallback: 12.0);
     final cardRadius = custom != null
-        ? (parseRadius(custom.btnRadius, fallback: 20.0) >= 999.0
+        ? (parseRadius(radiusStr, fallback: 20.0) >= 999.0
             ? 20.0
-            : parseRadius(custom.btnRadius, fallback: 20.0).clamp(0.0, 24.0))
+            : parseRadius(radiusStr, fallback: 20.0).clamp(0.0, 24.0))
         : 20.0;
 
     return ThemeData(
@@ -313,11 +319,14 @@ class ObsidianUITheme {
     final bgSolid = (custom != null ? parseHex(custom.lightBg) : null) ?? defaultBackgroundLight;
     final ink = (custom != null ? parseHex(custom.lightInk) : null) ?? const Color(0xFF0F172A);
     final muted = (custom != null ? parseHex(custom.lightMuted) : null) ?? const Color(0xFF334155);
-    final radius = custom != null ? parseRadius(custom.btnRadius, fallback: 12.0) : 12.0;
+    final radiusStr = custom != null
+        ? (custom.lightRadius.isNotEmpty ? custom.lightRadius : custom.btnRadius)
+        : '12px';
+    final radius = parseRadius(radiusStr, fallback: 12.0);
     final cardRadius = custom != null
-        ? (parseRadius(custom.btnRadius, fallback: 20.0) >= 999.0
+        ? (parseRadius(radiusStr, fallback: 20.0) >= 999.0
             ? 20.0
-            : parseRadius(custom.btnRadius, fallback: 20.0).clamp(0.0, 24.0))
+            : parseRadius(radiusStr, fallback: 20.0).clamp(0.0, 24.0))
         : 20.0;
 
     return ThemeData(
@@ -569,7 +578,10 @@ class ObsidianUITheme {
   static double getCardBorderRadius(BuildContext context, {double defaultRadius = 24.0}) {
     final custom = activeCustomTheme;
     if (custom != null) {
-      final parsed = parseRadius(custom.btnRadius, fallback: defaultRadius);
+      final rStr = isDark(context)
+          ? (custom.darkRadius.isNotEmpty ? custom.darkRadius : custom.btnRadius)
+          : (custom.lightRadius.isNotEmpty ? custom.lightRadius : custom.btnRadius);
+      final parsed = parseRadius(rStr, fallback: defaultRadius);
       if (parsed >= 999.0) {
         return defaultRadius.clamp(0.0, 24.0);
       }

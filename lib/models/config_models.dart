@@ -581,6 +581,8 @@ class ThemePresetModel {
   final String darkBg;
   final String darkInk;
   final String darkMuted;
+  final String lightRadius;
+  final String darkRadius;
   final String btnRadius;
 
   const ThemePresetModel({
@@ -591,12 +593,14 @@ class ThemePresetModel {
     this.lightBg = '#ffffff',
     this.lightInk = '#1d1a17',
     this.lightMuted = '#5f5b55',
+    this.lightRadius = '999px',
     this.darkAccent = '#3ccfc0',
     this.darkAccent2 = '#f2a353',
     this.darkAccent3 = '#6aa2ff',
     this.darkBg = '#09090b',
     this.darkInk = '#f4f2ed',
     this.darkMuted = '#c3bfb8',
+    this.darkRadius = '999px',
     this.btnRadius = '999px',
   });
 
@@ -609,12 +613,14 @@ class ThemePresetModel {
       lightBg: json['lightBg']?.toString() ?? '#ffffff',
       lightInk: json['lightInk']?.toString() ?? '#1d1a17',
       lightMuted: json['lightMuted']?.toString() ?? '#5f5b55',
+      lightRadius: json['lightRadius']?.toString() ?? json['btnRadius']?.toString() ?? '999px',
       darkAccent: json['darkAccent']?.toString() ?? '#3ccfc0',
       darkAccent2: json['darkAccent2']?.toString() ?? '#f2a353',
       darkAccent3: json['darkAccent3']?.toString() ?? '#6aa2ff',
       darkBg: json['darkBg']?.toString() ?? '#09090b',
       darkInk: json['darkInk']?.toString() ?? '#f4f2ed',
       darkMuted: json['darkMuted']?.toString() ?? '#c3bfb8',
+      darkRadius: json['darkRadius']?.toString() ?? json['btnRadius']?.toString() ?? '999px',
       btnRadius: json['btnRadius']?.toString() ?? '999px',
     );
   }
@@ -628,13 +634,15 @@ class ThemePresetModel {
       'lightBg': lightBg,
       'lightInk': lightInk,
       'lightMuted': lightMuted,
+      'lightRadius': lightRadius,
       'darkAccent': darkAccent,
       'darkAccent2': darkAccent2,
       'darkAccent3': darkAccent3,
       'darkBg': darkBg,
       'darkInk': darkInk,
       'darkMuted': darkMuted,
-      'btnRadius': btnRadius,
+      'darkRadius': darkRadius,
+      'btnRadius': darkRadius.isNotEmpty ? darkRadius : btnRadius,
     };
   }
 
@@ -646,12 +654,14 @@ class ThemePresetModel {
     String? lightBg,
     String? lightInk,
     String? lightMuted,
+    String? lightRadius,
     String? darkAccent,
     String? darkAccent2,
     String? darkAccent3,
     String? darkBg,
     String? darkInk,
     String? darkMuted,
+    String? darkRadius,
     String? btnRadius,
   }) {
     return ThemePresetModel(
@@ -662,12 +672,14 @@ class ThemePresetModel {
       lightBg: lightBg ?? this.lightBg,
       lightInk: lightInk ?? this.lightInk,
       lightMuted: lightMuted ?? this.lightMuted,
+      lightRadius: lightRadius ?? this.lightRadius,
       darkAccent: darkAccent ?? this.darkAccent,
       darkAccent2: darkAccent2 ?? this.darkAccent2,
       darkAccent3: darkAccent3 ?? this.darkAccent3,
       darkBg: darkBg ?? this.darkBg,
       darkInk: darkInk ?? this.darkInk,
       darkMuted: darkMuted ?? this.darkMuted,
+      darkRadius: darkRadius ?? this.darkRadius,
       btnRadius: btnRadius ?? this.btnRadius,
     );
   }
