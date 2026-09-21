@@ -80,6 +80,8 @@
   "nav.alliance-selection": "Selección de Alianzas",
   "nav.users": "Usuarios",
   "nav.banners": "Banners",
+  "nav.theme_editor": "Personalizador de Tema",
+  "subtitle.theme_editor": "Crea y personaliza temas visuales de equipo",
   "subtitle.users": "Administrar Cuentas, Roles y Permisos de Scouts",
   "users.title": "Gestión de Usuarios",
   "users.notice": "Necesitas acceso de administrador para gestionar usuarios.",

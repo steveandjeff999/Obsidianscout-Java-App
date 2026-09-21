@@ -79,6 +79,8 @@
   "nav.alliance-selection": "Alliance Selection",
   "nav.users": "Users",
   "nav.banners": "Banners",
+  "nav.theme_editor": "Theme Customizer",
+  "subtitle.theme_editor": "Create and customize visual team themes",
   "subtitle.users": "Manage Accounts, Roles & Scout Permissions",
   "users.title": "User Management",
   "users.notice": "You need admin access to manage users.",
