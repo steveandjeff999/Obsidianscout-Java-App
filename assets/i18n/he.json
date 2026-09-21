@@ -79,6 +79,8 @@
   "nav.alliance-selection": "בחירת בריתות",
   "nav.users": "משתמשים",
   "nav.banners": "באנרים",
+  "nav.theme_editor": "התאמת ערכת נושא",
+  "subtitle.theme_editor": "יצירה והתאמה אישית של ערכות נושא",
   "subtitle.users": "ניהול חשבונות, תפקידים והרשאות סקאוטים",
   "users.title": "ניהול משתמשים",
   "users.notice": "נדרשת גישת מנהל לניהול משתמשים.",

@@ -594,21 +594,9 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
 
     final isAdmin = widget.apiService.isAdmin;
 
-    return Scaffold(
-      backgroundColor: ObsidianUITheme.getBackgroundColor(context),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: primaryTextColor),
-          onPressed: widget.onBack ?? () => Navigator.maybePop(context),
-        ),
-        title: Text(
-          'Team Theme Customizer',
-          style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.bold, fontSize: 18),
-        ),
-      ),
-      body: _isLoading
+    return Container(
+      color: Colors.transparent,
+      child: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : !isAdmin
               ? _buildAdminLockedView(primaryTextColor, secondaryTextColor)
@@ -617,6 +605,25 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Back to Settings button if provided
+                      if (widget.onBack != null) ...[
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: TextButton.icon(
+                            style: TextButton.styleFrom(
+                              foregroundColor: primaryTextColor,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              visualDensity: VisualDensity.compact,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            onPressed: widget.onBack,
+                            icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                            label: const Text('Back to Settings', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+
                       // Header Notice
                       Text(
                         'Create and configure custom visual styles for your team. You can save multiple presets and toggle them dynamically.',
@@ -659,37 +666,73 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
 
                       const SizedBox(height: 24),
 
-                      // Action Buttons
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: primaryAccent,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      // Action Buttons (Responsive Layout)
+                      LayoutBuilder(
+                        builder: (ctx, constraints) {
+                          if (constraints.maxWidth < 450) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: primaryAccent,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                  onPressed: _isSaving ? null : _handleSaveAll,
+                                  icon: _isSaving
+                                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                      : const Icon(Icons.save_rounded),
+                                  label: Text(_isSaving ? 'Saving...' : 'Save Theme Settings', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                ),
+                                const SizedBox(height: 10),
+                                OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: primaryTextColor,
+                                    side: BorderSide(color: ObsidianUITheme.getBorderColor(context)),
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                  onPressed: _handleResetPreset,
+                                  icon: const Icon(Icons.restart_alt_rounded),
+                                  label: const Text('Reset Defaults'),
+                                ),
+                              ],
+                            );
+                          }
+                          return Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: primaryAccent,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                  onPressed: _isSaving ? null : _handleSaveAll,
+                                  icon: _isSaving
+                                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                      : const Icon(Icons.save_rounded),
+                                  label: Text(_isSaving ? 'Saving...' : 'Save Theme Settings', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                ),
                               ),
-                              onPressed: _isSaving ? null : _handleSaveAll,
-                              icon: _isSaving
-                                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                  : const Icon(Icons.save_rounded),
-                              label: Text(_isSaving ? 'Saving...' : 'Save Theme Settings', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: primaryTextColor,
-                              side: BorderSide(color: ObsidianUITheme.getBorderColor(context)),
-                              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            onPressed: _handleResetPreset,
-                            icon: const Icon(Icons.restart_alt_rounded),
-                            label: const Text('Reset Defaults'),
-                          ),
-                        ],
+                              const SizedBox(width: 12),
+                              OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: primaryTextColor,
+                                  side: BorderSide(color: ObsidianUITheme.getBorderColor(context)),
+                                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                onPressed: _handleResetPreset,
+                                icon: const Icon(Icons.restart_alt_rounded),
+                                label: const Text('Reset Defaults'),
+                              ),
+                            ],
+                          );
+                        },
                       ),
                       const SizedBox(height: 32),
                     ],
@@ -1243,8 +1286,11 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
             children: [
               Text('Visual Theme Preview', style: TextStyle(color: primaryText, fontWeight: FontWeight.bold, fontSize: 16)),
               OutlinedButton.icon(
@@ -1252,7 +1298,8 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
                   foregroundColor: primaryText,
                   side: BorderSide(color: ObsidianUITheme.getBorderColor(context)),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  visualDensity: VisualDensity.compact,
                 ),
                 onPressed: () => setState(() => _previewIsDark = !_previewIsDark),
                 icon: Icon(_previewIsDark ? Icons.light_mode : Icons.dark_mode, size: 16),

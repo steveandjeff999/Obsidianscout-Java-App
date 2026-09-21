@@ -640,6 +640,7 @@ class _MainShellState extends State<MainShell> {
     'events.title',
     'rankings.title',
     'qual_rankings.title',
+    'nav.theme_editor',
   ];
   final List<String> _subtitleKeys = [
     'subtitle.dashboard',
@@ -670,6 +671,7 @@ class _MainShellState extends State<MainShell> {
     'events.notice',
     'rankings.notice',
     'qual_rankings.notice',
+    'subtitle.theme_editor',
   ];
 
   String _getPageIdForIndex(int index) {
@@ -1134,8 +1136,8 @@ class _MainShellState extends State<MainShell> {
                             duration: const Duration(milliseconds: 300),
                             curve: Curves.fastOutSlowIn,
                             child: ObsidianGlassAppBar(
-                              title: context.tr(_titleKeys[_currentIndex]),
-                              subtitle: context.tr(_subtitleKeys[_currentIndex]),
+                              title: context.tr(_currentIndex >= 0 && _currentIndex < _titleKeys.length ? _titleKeys[_currentIndex] : 'nav.dashboard'),
+                              subtitle: context.tr(_currentIndex >= 0 && _currentIndex < _subtitleKeys.length ? _subtitleKeys[_currentIndex] : 'subtitle.dashboard'),
                               isOnline: _isOnline,
                               actions: [
                                 IconButton(
@@ -1252,8 +1254,8 @@ class _MainShellState extends State<MainShell> {
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
                                   ObsidianDesktopAppBar(
-                                    title: context.tr(_titleKeys[_currentIndex]),
-                                    subtitle: context.tr(_subtitleKeys[_currentIndex]),
+                                    title: context.tr(_currentIndex >= 0 && _currentIndex < _titleKeys.length ? _titleKeys[_currentIndex] : 'nav.dashboard'),
+                                    subtitle: context.tr(_currentIndex >= 0 && _currentIndex < _subtitleKeys.length ? _subtitleKeys[_currentIndex] : 'subtitle.dashboard'),
                                     isOnline: _isOnline,
                                     apiService: widget.apiService,
                                     onOpenQrScanner: _openQrScanner,

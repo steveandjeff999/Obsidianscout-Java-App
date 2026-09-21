@@ -79,6 +79,8 @@
   "nav.alliance-selection": "İttifak Seçimi",
   "nav.users": "Kullanıcılar",
   "nav.banners": "Bannerlar",
+  "nav.theme_editor": "Tema Özelleştirici",
+  "subtitle.theme_editor": "Takım görsel temalarını oluşturun ve özelleştirin",
   "subtitle.users": "Hesapları, Rolleri ve İzci İzinlerini Yönetin",
   "users.title": "Kullanıcı Yönetimi",
   "users.notice": "Kullanıcıları yönetmek için yönetici erişimine ihtiyacınız var.",
