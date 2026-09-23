@@ -109,6 +109,13 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
             'subKey': 'scanner.scan_qr',
           },
           {
+            'pageId': 'my-assignments',
+            'index': 29,
+            'icon': Icons.assignment_ind_rounded,
+            'labelKey': 'nav.my_assignments',
+            'subKey': 'subtitle.my_assignments',
+          },
+          {
             'pageId': 'scout-history',
             'index': 17,
             'icon': Icons.history_rounded,
@@ -234,6 +241,13 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
             'icon': Icons.event_rounded,
             'labelKey': 'events.title',
             'subKey': 'events.notice',
+          },
+          {
+            'pageId': 'scout-assignments',
+            'index': 30,
+            'icon': Icons.assignment_rounded,
+            'labelKey': 'nav.scout_assignments',
+            'subKey': 'subtitle.scout_assignments',
           },
           {
             'pageId': 'chat',

@@ -16,12 +16,22 @@ class QualScoutScreen extends StatefulWidget {
   final ApiService apiService;
   final bool isVisible;
   final bool isBarsVisible;
+  final String? initialMatchKey;
+  final int? initialMatchNumber;
+  final String? initialAllianceColor;
+  final int? initialTargetTeamNumber;
+  final String? sourceAssignmentId;
 
   const QualScoutScreen({
     super.key,
     required this.apiService,
     this.isVisible = true,
     this.isBarsVisible = true,
+    this.initialMatchKey,
+    this.initialMatchNumber,
+    this.initialAllianceColor,
+    this.initialTargetTeamNumber,
+    this.sourceAssignmentId,
   });
 
   @override
@@ -53,6 +63,16 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
   @override
   void didUpdateWidget(covariant QualScoutScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final hasNewInitialParams = widget.initialMatchKey != oldWidget.initialMatchKey ||
+        widget.initialMatchNumber != oldWidget.initialMatchNumber ||
+        widget.initialAllianceColor != oldWidget.initialAllianceColor ||
+        widget.initialTargetTeamNumber != oldWidget.initialTargetTeamNumber ||
+        widget.sourceAssignmentId != oldWidget.sourceAssignmentId;
+
+    if (hasNewInitialParams) {
+      _applyInitialSelections(force: true);
+    }
+
     if (widget.isVisible && !oldWidget.isVisible) {
       _loadQualData();
     }
@@ -79,6 +99,7 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
         if (_formData.isEmpty) {
           _resetFormData(cachedConfig!);
         }
+        _applyInitialSelections();
       });
     }
 
@@ -130,9 +151,41 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
         if (_config != null && _formData.isEmpty) {
           _resetFormData(_config!);
         }
+        _applyInitialSelections();
       });
     } catch (_) {
       if (mounted && _isLoading) setState(() => _isLoading = false);
+    }
+  }
+
+  void _applyInitialSelections({bool force = false}) {
+    if ((force || _selectedMatch == null) && _matches.isNotEmpty) {
+      if (widget.initialMatchKey != null && widget.initialMatchKey!.isNotEmpty) {
+        final match = _matches.where((m) => m.matchKey.toLowerCase() == widget.initialMatchKey!.toLowerCase()).firstOrNull;
+        if (match != null) _selectedMatch = match;
+      } else if (widget.initialMatchNumber != null) {
+        final match = _matches.where((m) => m.matchNumber == widget.initialMatchNumber).firstOrNull;
+        if (match != null) _selectedMatch = match;
+      }
+    }
+
+    if (widget.initialAllianceColor != null && widget.initialAllianceColor!.isNotEmpty) {
+      final color = widget.initialAllianceColor!.toLowerCase();
+      if (color == 'red') {
+        _scope = QualScoutScope.redAlliance;
+      } else if (color == 'blue') {
+        _scope = QualScoutScope.blueAlliance;
+      } else if (color == 'both') {
+        _scope = QualScoutScope.bothAlliances;
+      }
+    }
+
+    if (widget.initialTargetTeamNumber != null) {
+      _scope = QualScoutScope.singleTeam;
+      if ((force || _selectedTeam == null) && _teams.isNotEmpty) {
+        final team = _teams.where((t) => t.teamNumber == widget.initialTargetTeamNumber).firstOrNull;
+        if (team != null) _selectedTeam = team;
+      }
     }
   }
 
@@ -574,6 +627,9 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
           message: 'Qualitative scouting data saved successfully (HTTP ${response.statusCode ?? 200})',
           statusCode: response.statusCode ?? 200,
         );
+        if (widget.sourceAssignmentId != null && widget.sourceAssignmentId!.isNotEmpty) {
+          widget.apiService.updateAssignmentStatus(widget.sourceAssignmentId!, 'COMPLETED');
+        }
         _resetForm();
       } else if (response.isOffline) {
         ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
@@ -589,6 +645,9 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
           title: 'Saved to Offline Cache',
           message: 'Device offline. Saved to offline cache and will sync when online.',
         );
+        if (widget.sourceAssignmentId != null && widget.sourceAssignmentId!.isNotEmpty) {
+          widget.apiService.updateAssignmentStatus(widget.sourceAssignmentId!, 'COMPLETED');
+        }
         _resetForm();
       } else {
         ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
@@ -651,6 +710,9 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
           message: 'Saved qualitative scouting data for $scopeLabel (${allianceTeams.length} teams).',
           statusCode: response.statusCode ?? 200,
         );
+        if (widget.sourceAssignmentId != null && widget.sourceAssignmentId!.isNotEmpty) {
+          widget.apiService.updateAssignmentStatus(widget.sourceAssignmentId!, 'COMPLETED');
+        }
         _resetForm();
       } else if (response.isOffline) {
         for (final p in payloads) {
@@ -668,6 +730,9 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
           title: 'Saved to Offline Cache',
           message: 'Device offline. Saved ${allianceTeams.length} team entries to offline cache.',
         );
+        if (widget.sourceAssignmentId != null && widget.sourceAssignmentId!.isNotEmpty) {
+          widget.apiService.updateAssignmentStatus(widget.sourceAssignmentId!, 'COMPLETED');
+        }
         _resetForm();
       } else {
         for (final p in payloads) {

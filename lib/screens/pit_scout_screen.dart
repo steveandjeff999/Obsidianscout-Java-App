@@ -15,12 +15,16 @@ class PitScoutScreen extends StatefulWidget {
   final ApiService apiService;
   final bool isVisible;
   final bool isBarsVisible;
+  final int? initialTargetTeamNumber;
+  final String? sourceAssignmentId;
 
   const PitScoutScreen({
     super.key,
     required this.apiService,
     this.isVisible = true,
     this.isBarsVisible = true,
+    this.initialTargetTeamNumber,
+    this.sourceAssignmentId,
   });
 
   @override
@@ -47,6 +51,13 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
   @override
   void didUpdateWidget(covariant PitScoutScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final hasNewInitialParams = widget.initialTargetTeamNumber != oldWidget.initialTargetTeamNumber ||
+        widget.sourceAssignmentId != oldWidget.sourceAssignmentId;
+
+    if (hasNewInitialParams) {
+      _applyInitialSelections(force: true);
+    }
+
     if (widget.isVisible && !oldWidget.isVisible) {
       _loadPitData();
     }
@@ -67,6 +78,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
         if (cachedConfig != null && _formData.isEmpty) {
           _resetFormData(cachedConfig);
         }
+        _applyInitialSelections();
       });
     }
 
@@ -99,9 +111,17 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
         if (_config != null && _formData.isEmpty) {
           _resetFormData(_config!);
         }
+        _applyInitialSelections();
       });
     } catch (_) {
       if (mounted && _isLoading) setState(() => _isLoading = false);
+    }
+  }
+
+  void _applyInitialSelections({bool force = false}) {
+    if ((force || _selectedTeam == null) && _teams.isNotEmpty && widget.initialTargetTeamNumber != null) {
+      final team = _teams.where((t) => t.teamNumber == widget.initialTargetTeamNumber).firstOrNull;
+      if (team != null) _selectedTeam = team;
     }
   }
 
@@ -294,6 +314,9 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
         message: 'Pit scouting data saved successfully (HTTP ${response.statusCode ?? 200})',
         statusCode: response.statusCode ?? 200,
       );
+      if (widget.sourceAssignmentId != null && widget.sourceAssignmentId!.isNotEmpty) {
+        widget.apiService.updateAssignmentStatus(widget.sourceAssignmentId!, 'COMPLETED');
+      }
       _resetForm();
     } else if (response.isOffline) {
       ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
@@ -309,6 +332,9 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
         title: 'Saved to Offline Cache',
         message: 'Device offline. Saved to offline cache and will sync when online.',
       );
+      if (widget.sourceAssignmentId != null && widget.sourceAssignmentId!.isNotEmpty) {
+        widget.apiService.updateAssignmentStatus(widget.sourceAssignmentId!, 'COMPLETED');
+      }
       _resetForm();
     } else {
       ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
