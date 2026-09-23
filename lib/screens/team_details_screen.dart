@@ -715,7 +715,7 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Match ${item.matchNumber} Breakdown',
+                        '${item.shortLabel} Breakdown',
                         style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.bold,
@@ -774,7 +774,7 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
                 child: GestureDetector(
                   onTap: () => showMatchDetailsModal(item),
                   child: Tooltip(
-                    message: 'Match ${item.matchNumber}: ${item.totalPoints.toStringAsFixed(0)} pts\nAuto: ${item.autoPoints.toStringAsFixed(0)} • Teleop: ${item.teleopPoints.toStringAsFixed(0)} • Endgame: ${item.endgamePoints.toStringAsFixed(0)}\n(Tap for breakdown)',
+                    message: '${item.shortLabel}: ${item.totalPoints.toStringAsFixed(0)} pts\nAuto: ${item.autoPoints.toStringAsFixed(0)} • Teleop: ${item.teleopPoints.toStringAsFixed(0)} • Endgame: ${item.endgamePoints.toStringAsFixed(0)}\n(Tap for breakdown)',
                     child: Container(
                       width: _matchScoreSummaries.length <= 4
                           ? (MediaQuery.of(context).size.width - 90) / _matchScoreSummaries.length
@@ -813,7 +813,7 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'M${item.matchNumber}',
+                            item.shortLabel,
                             style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: secondaryTextColor),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -1442,6 +1442,11 @@ class _MatchScoreSummary {
   final double teleopPoints;
   final double endgamePoints;
   final double totalPoints;
+
+  String get shortLabel => MatchFormatUtils.formatShortMatch(
+        matchKey: matchKey,
+        matchNumber: matchNumber,
+      );
 
   _MatchScoreSummary({
     required this.matchKey,

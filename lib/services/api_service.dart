@@ -13,6 +13,7 @@ import '../models/validation_models.dart';
 import '../models/custom_analytics_models.dart';
 import '../models/predictor_models.dart';
 import '../models/error_report_models.dart';
+import '../models/assignment_models.dart';
 import '../theme/obsidian_ui_theme.dart';
 import 'auth_storage_service.dart';
 import 'scout_history_service.dart';
@@ -330,6 +331,8 @@ class ApiService {
         fetchPrescoutQualScoutingEntries(),
         fetchAnalyticsWidgets(),
         fetchBanners(),
+        fetchMyAssignments(eventKey),
+        if (isAdmin) fetchAllAssignments(eventKey),
       ]);
     } catch (_) {
     } finally {
@@ -1924,12 +1927,13 @@ class ApiService {
           }
         }
         if (matchMap.isNotEmpty) {
-          return matchMap.values.toList();
+          final sorted = matchMap.values.toList()..sort(MatchModel.compareMatches);
+          return sorted;
         }
       }
     } catch (_) {}
 
-    return cachedList;
+    return cachedList..sort(MatchModel.compareMatches);
   }
 
   Future<MatchPredictionResponse?> fetchMatchPrediction(
@@ -4404,5 +4408,328 @@ class ApiService {
       return null;
     }
   }
+
+  // ==========================================
+  // SCOUT ASSIGNMENTS API & CACHE
+  // ==========================================
+
+  Future<List<ScoutingAssignment>> getCachedMyAssignments(String? eventKey) async {
+    final effectiveKey = (eventKey != null && eventKey.isNotEmpty)
+        ? eventKey
+        : (_currentSettings?.eventKey ?? '');
+    final candidateKeys = [
+      if (effectiveKey.isNotEmpty) "cache_my_assignments_$effectiveKey",
+      "cache_my_assignments_all",
+      "cache_my_assignments_",
+      "cache_my_assignments_current",
+    ];
+
+    for (final key in candidateKeys) {
+      final cached = await _getCache(key);
+      if (cached != null && cached.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(cached);
+          final List list = decoded is List
+              ? decoded
+              : (decoded is Map && decoded['assignments'] is List
+                  ? decoded['assignments'] as List
+                  : []);
+          if (list.isNotEmpty) {
+            return list
+                .map((e) => ScoutingAssignment.fromJson(e as Map<String, dynamic>))
+                .toList();
+          }
+        } catch (_) {}
+      }
+    }
+    return [];
+  }
+
+  Future<List<ScoutingAssignment>> fetchMyAssignments(String? eventKey) async {
+    final effectiveKey = (eventKey != null && eventKey.isNotEmpty)
+        ? eventKey
+        : (_currentSettings?.eventKey ?? '');
+    final cacheKey = "cache_my_assignments_${effectiveKey.isNotEmpty ? effectiveKey : 'all'}";
+    final cachedList = await getCachedMyAssignments(effectiveKey);
+
+    if (!_isOnline) return cachedList;
+
+    try {
+      final url = effectiveKey.isNotEmpty
+          ? '$_currentServerUrl/api/assignments/my?eventKey=$effectiveKey'
+          : '$_currentServerUrl/api/assignments/my';
+      final response = await http.get(Uri.parse(url), headers: _headers).timeout(heavyRequestTimeout);
+      _checkResponse(response);
+
+      if (response.statusCode == 200) {
+        await _setCache(cacheKey, response.body);
+        await _setCache("cache_my_assignments_all", response.body);
+        if (effectiveKey.isNotEmpty) {
+          await _setCache("cache_my_assignments_$effectiveKey", response.body);
+        }
+        final decoded = jsonDecode(response.body);
+        final List list = decoded is List
+            ? decoded
+            : (decoded is Map && decoded['assignments'] is List
+                ? decoded['assignments'] as List
+                : []);
+        return list
+            .map((e) => ScoutingAssignment.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+    } catch (e) {
+      debugPrint('[ApiService] fetchMyAssignments error: $e');
+    }
+    return cachedList;
+  }
+
+  Future<List<ScoutingAssignment>> getCachedAllAssignments(String? eventKey) async {
+    final effectiveKey = (eventKey != null && eventKey.isNotEmpty)
+        ? eventKey
+        : (_currentSettings?.eventKey ?? '');
+    final candidateKeys = [
+      if (effectiveKey.isNotEmpty) "cache_all_assignments_$effectiveKey",
+      "cache_all_assignments_all",
+      "cache_all_assignments_",
+      "cache_all_assignments_current",
+    ];
+
+    for (final key in candidateKeys) {
+      final cached = await _getCache(key);
+      if (cached != null && cached.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(cached);
+          final List list = decoded is List
+              ? decoded
+              : (decoded is Map && decoded['assignments'] is List
+                  ? decoded['assignments'] as List
+                  : []);
+          if (list.isNotEmpty) {
+            return list
+                .map((e) => ScoutingAssignment.fromJson(e as Map<String, dynamic>))
+                .toList();
+          }
+        } catch (_) {}
+      }
+    }
+    return [];
+  }
+
+  Future<List<ScoutingAssignment>> fetchAllAssignments(String? eventKey) async {
+    final effectiveKey = (eventKey != null && eventKey.isNotEmpty)
+        ? eventKey
+        : (_currentSettings?.eventKey ?? '');
+    final cacheKey = "cache_all_assignments_${effectiveKey.isNotEmpty ? effectiveKey : 'all'}";
+    final cachedList = await getCachedAllAssignments(effectiveKey);
+
+    if (!_isOnline) return cachedList;
+
+    try {
+      final url = effectiveKey.isNotEmpty
+          ? '$_currentServerUrl/api/assignments?eventKey=$effectiveKey'
+          : '$_currentServerUrl/api/assignments';
+      final response = await http.get(Uri.parse(url), headers: _headers).timeout(heavyRequestTimeout);
+      _checkResponse(response);
+
+      if (response.statusCode == 200) {
+        await _setCache(cacheKey, response.body);
+        await _setCache("cache_all_assignments_all", response.body);
+        if (effectiveKey.isNotEmpty) {
+          await _setCache("cache_all_assignments_$effectiveKey", response.body);
+        }
+        final decoded = jsonDecode(response.body);
+        final List list = decoded is List
+            ? decoded
+            : (decoded is Map && decoded['assignments'] is List
+                ? decoded['assignments'] as List
+                : []);
+        return list
+            .map((e) => ScoutingAssignment.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+    } catch (e) {
+      debugPrint('[ApiService] fetchAllAssignments error: $e');
+    }
+    return cachedList;
+  }
+
+  Future<List<ConflictItemDto>> fetchAssignmentConflicts(String? eventKey) async {
+    final effectiveKey = (eventKey != null && eventKey.isNotEmpty)
+        ? eventKey
+        : (_currentSettings?.eventKey ?? '');
+    if (!_isOnline) return [];
+
+    try {
+      final url = effectiveKey.isNotEmpty
+          ? '$_currentServerUrl/api/assignments/conflicts?eventKey=$effectiveKey'
+          : '$_currentServerUrl/api/assignments/conflicts';
+      final response = await http.get(Uri.parse(url), headers: _headers).timeout(heavyRequestTimeout);
+      _checkResponse(response);
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map && decoded['conflicts'] is List) {
+          return (decoded['conflicts'] as List)
+              .map((e) => ConflictItemDto.fromJson(e as Map<String, dynamic>))
+              .toList();
+        } else if (decoded is List) {
+          return decoded
+              .map((e) => ConflictItemDto.fromJson(e as Map<String, dynamic>))
+              .toList();
+        }
+      }
+    } catch (e) {
+      debugPrint('[ApiService] fetchAssignmentConflicts error: $e');
+    }
+    return [];
+  }
+
+  Future<ScoutingAssignment?> createAssignment(CreateAssignmentRequest req) async {
+    if (!_isOnline) return null;
+    try {
+      final uri = Uri.parse('$_currentServerUrl/api/assignments');
+      final response = await http
+          .post(
+            uri,
+            headers: _headers,
+            body: jsonEncode(req.toJson()),
+          )
+          .timeout(heavyRequestTimeout);
+      _checkResponse(response);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final j = jsonDecode(response.body);
+        final asgnJson = (j is Map && j['assignment'] is Map)
+            ? j['assignment'] as Map<String, dynamic>
+            : (j is Map ? j as Map<String, dynamic> : <String, dynamic>{});
+        return ScoutingAssignment.fromJson(asgnJson);
+      }
+    } catch (e) {
+      debugPrint('[ApiService] createAssignment error: $e');
+      rethrow;
+    }
+    return null;
+  }
+
+  Future<List<ScoutingAssignment>> bulkCreateAssignments(BulkCreateAssignmentsRequest req) async {
+    if (!_isOnline) return [];
+    try {
+      final uri = Uri.parse('$_currentServerUrl/api/assignments/bulk');
+      final response = await http
+          .post(
+            uri,
+            headers: _headers,
+            body: jsonEncode(req.toJson()),
+          )
+          .timeout(heavyRequestTimeout);
+      _checkResponse(response);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final j = jsonDecode(response.body);
+        final List list = j is List
+            ? j
+            : (j is Map && j['assignments'] is List
+                ? j['assignments'] as List
+                : []);
+        return list
+            .map((e) => ScoutingAssignment.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+    } catch (e) {
+      debugPrint('[ApiService] bulkCreateAssignments error: $e');
+      rethrow;
+    }
+    return [];
+  }
+
+  Future<ScoutingAssignment?> updateAssignment(String id, UpdateAssignmentRequest req) async {
+    if (!_isOnline) return null;
+    try {
+      final uri = Uri.parse('$_currentServerUrl/api/assignments/$id');
+      final response = await http
+          .put(
+            uri,
+            headers: _headers,
+            body: jsonEncode(req.toJson()),
+          )
+          .timeout(heavyRequestTimeout);
+      _checkResponse(response);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final j = jsonDecode(response.body);
+        final asgnJson = (j is Map && j['assignment'] is Map)
+            ? j['assignment'] as Map<String, dynamic>
+            : (j is Map ? j as Map<String, dynamic> : <String, dynamic>{});
+        return ScoutingAssignment.fromJson(asgnJson);
+      }
+    } catch (e) {
+      debugPrint('[ApiService] updateAssignment error: $e');
+      rethrow;
+    }
+    return null;
+  }
+
+  Future<bool> updateAssignmentStatus(String id, String status) async {
+    if (!_isOnline) return false;
+    try {
+      final uri = Uri.parse('$_currentServerUrl/api/assignments/$id/status');
+      final response = await http
+          .patch(
+            uri,
+            headers: _headers,
+            body: jsonEncode({'status': status}),
+          )
+          .timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      return response.statusCode >= 200 && response.statusCode < 300;
+    } catch (e) {
+      debugPrint('[ApiService] updateAssignmentStatus error: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteAssignment(String id) async {
+    if (!_isOnline) return false;
+    try {
+      final uri = Uri.parse('$_currentServerUrl/api/assignments/$id');
+      final response = await http.delete(uri, headers: _headers).timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      return response.statusCode >= 200 && response.statusCode < 300;
+    } catch (e) {
+      debugPrint('[ApiService] deleteAssignment error: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteAllAssignments(String eventKey, {List<String>? specificIds}) async {
+    if (!_isOnline) return false;
+    try {
+      if (specificIds != null && specificIds.isNotEmpty) {
+        await Future.wait(specificIds.map((id) => deleteAssignment(id)));
+        return true;
+      }
+      final uri = Uri.parse('$_currentServerUrl/api/assignments?eventKey=$eventKey');
+      final response = await http.delete(uri, headers: _headers).timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      return response.statusCode >= 200 && response.statusCode < 300;
+    } catch (e) {
+      debugPrint('[ApiService] deleteAllAssignments error: $e');
+      return false;
+    }
+  }
+
+  Future<bool> sendAssignmentReminder(String id) async {
+    if (!_isOnline) return false;
+    try {
+      final uri = Uri.parse('$_currentServerUrl/api/assignments/$id/remind');
+      final response = await http.post(uri, headers: _headers).timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      return response.statusCode >= 200 && response.statusCode < 300;
+    } catch (e) {
+      debugPrint('[ApiService] sendAssignmentReminder error: $e');
+      return false;
+    }
+  }
 }
+
 

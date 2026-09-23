@@ -44,6 +44,8 @@ import 'screens/events_screen.dart';
 import 'screens/rankings_screen.dart';
 import 'screens/qual_rankings_screen.dart';
 import 'screens/theme_editor_screen.dart';
+import 'screens/my_assignments_screen.dart';
+import 'screens/scout_assignments_screen.dart';
 import 'services/api_service.dart';
 import 'services/auth_storage_service.dart';
 import 'services/biometric_auth_service.dart';
@@ -115,6 +117,32 @@ class ObsidianBouncingScrollBehavior extends MaterialScrollBehavior {
   }
 }
 
+class _MatchScoutParams {
+  final String? matchKey;
+  final int? matchNumber;
+  final int? targetTeamNumber;
+  final String? sourceAssignmentId;
+
+  _MatchScoutParams({this.matchKey, this.matchNumber, this.targetTeamNumber, this.sourceAssignmentId});
+}
+
+class _PitScoutParams {
+  final int? targetTeamNumber;
+  final String? sourceAssignmentId;
+
+  _PitScoutParams({this.targetTeamNumber, this.sourceAssignmentId});
+}
+
+class _QualScoutParams {
+  final String? matchKey;
+  final int? matchNumber;
+  final String? allianceColor;
+  final int? targetTeamNumber;
+  final String? sourceAssignmentId;
+
+  _QualScoutParams({this.matchKey, this.matchNumber, this.allianceColor, this.targetTeamNumber, this.sourceAssignmentId});
+}
+
 class MainShell extends StatefulWidget {
   final ApiService apiService;
 
@@ -139,6 +167,45 @@ class _MainShellState extends State<MainShell> {
   final Map<String, GlobalKey<NavigatorState>> _tabNavigatorKeys = {};
   String _activeTabId = 'tab_0';
   int _tabCounter = 1;
+
+  _MatchScoutParams? _pendingMatchParams;
+  _PitScoutParams? _pendingPitParams;
+  _QualScoutParams? _pendingQualParams;
+
+  void _navigateToMatchScout({String? matchKey, int? matchNumber, int? targetTeamNumber, String? sourceAssignmentId}) {
+    setState(() {
+      _pendingMatchParams = _MatchScoutParams(
+        matchKey: matchKey,
+        matchNumber: matchNumber,
+        targetTeamNumber: targetTeamNumber,
+        sourceAssignmentId: sourceAssignmentId,
+      );
+    });
+    _navigateScreen(1);
+  }
+
+  void _navigateToPitScout({int? targetTeamNumber, String? sourceAssignmentId}) {
+    setState(() {
+      _pendingPitParams = _PitScoutParams(
+        targetTeamNumber: targetTeamNumber,
+        sourceAssignmentId: sourceAssignmentId,
+      );
+    });
+    _navigateScreen(2);
+  }
+
+  void _navigateToQualScout({String? matchKey, int? matchNumber, String? allianceColor, int? targetTeamNumber, String? sourceAssignmentId}) {
+    setState(() {
+      _pendingQualParams = _QualScoutParams(
+        matchKey: matchKey,
+        matchNumber: matchNumber,
+        allianceColor: allianceColor,
+        targetTeamNumber: targetTeamNumber,
+        sourceAssignmentId: sourceAssignmentId,
+      );
+    });
+    _navigateScreen(3);
+  }
 
   GlobalKey<NavigatorState> _getTabNavigatorKey(String tabId) {
     return _tabNavigatorKeys.putIfAbsent(tabId, () => GlobalKey<NavigatorState>());
@@ -315,6 +382,10 @@ class _MainShellState extends State<MainShell> {
         return Icons.stars_rounded;
       case 28:
         return Icons.palette_rounded;
+      case 29:
+        return Icons.assignment_ind_rounded;
+      case 30:
+        return Icons.assignment_rounded;
       default:
         return Icons.dashboard_rounded;
     }
@@ -380,6 +451,10 @@ class _MainShellState extends State<MainShell> {
         return context.tr('qual_rankings.title', 'Qualitative Rankings');
       case 28:
         return 'Theme Customizer';
+      case 29:
+        return context.tr('nav.my_assignments', 'My Assignments');
+      case 30:
+        return context.tr('nav.scout_assignments', 'Scout Assignments');
       default:
         return 'Dashboard';
     }
@@ -641,6 +716,8 @@ class _MainShellState extends State<MainShell> {
     'rankings.title',
     'qual_rankings.title',
     'nav.theme_editor',
+    'nav.my_assignments',
+    'nav.scout_assignments',
   ];
   final List<String> _subtitleKeys = [
     'subtitle.dashboard',
@@ -672,6 +749,8 @@ class _MainShellState extends State<MainShell> {
     'rankings.notice',
     'qual_rankings.notice',
     'subtitle.theme_editor',
+    'subtitle.my_assignments',
+    'subtitle.scout_assignments',
   ];
 
   String _getPageIdForIndex(int index) {
@@ -734,6 +813,10 @@ class _MainShellState extends State<MainShell> {
         return 'qual-rankings';
       case 28:
         return 'theme-editor';
+      case 29:
+        return 'my-assignments';
+      case 30:
+        return 'scout-assignments';
       default:
         return 'dashboard';
     }
@@ -945,9 +1028,32 @@ class _MainShellState extends State<MainShell> {
         isVisible: isTabActive && screenIndex == 0,
         isBarsVisible: _isBarsVisible,
       ),
-      MatchScoutScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 1, isBarsVisible: _isBarsVisible),
-      PitScoutScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 2, isBarsVisible: _isBarsVisible),
-      QualScoutScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 3, isBarsVisible: _isBarsVisible),
+      MatchScoutScreen(
+        apiService: widget.apiService,
+        isVisible: isTabActive && screenIndex == 1,
+        isBarsVisible: _isBarsVisible,
+        initialMatchKey: _pendingMatchParams?.matchKey,
+        initialMatchNumber: _pendingMatchParams?.matchNumber,
+        initialTargetTeamNumber: _pendingMatchParams?.targetTeamNumber,
+        sourceAssignmentId: _pendingMatchParams?.sourceAssignmentId,
+      ),
+      PitScoutScreen(
+        apiService: widget.apiService,
+        isVisible: isTabActive && screenIndex == 2,
+        isBarsVisible: _isBarsVisible,
+        initialTargetTeamNumber: _pendingPitParams?.targetTeamNumber,
+        sourceAssignmentId: _pendingPitParams?.sourceAssignmentId,
+      ),
+      QualScoutScreen(
+        apiService: widget.apiService,
+        isVisible: isTabActive && screenIndex == 3,
+        isBarsVisible: _isBarsVisible,
+        initialMatchKey: _pendingQualParams?.matchKey,
+        initialMatchNumber: _pendingQualParams?.matchNumber,
+        initialAllianceColor: _pendingQualParams?.allianceColor,
+        initialTargetTeamNumber: _pendingQualParams?.targetTeamNumber,
+        sourceAssignmentId: _pendingQualParams?.sourceAssignmentId,
+      ),
       GraphsScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 4, isBarsVisible: _isBarsVisible),
       SettingsScreen(
         apiService: widget.apiService,
@@ -999,6 +1105,39 @@ class _MainShellState extends State<MainShell> {
       ThemeEditorScreen(
         apiService: widget.apiService,
         onBack: () => _navigateScreen(5),
+      ),
+      MyAssignmentsScreen(
+        apiService: widget.apiService,
+        isVisible: isTabActive && screenIndex == 29,
+        isBarsVisible: _isBarsVisible,
+        onNavigateMatch: (matchKey, matchNum, teamNum, assignmentId) {
+          _navigateToMatchScout(
+            matchKey: matchKey,
+            matchNumber: matchNum,
+            targetTeamNumber: teamNum,
+            sourceAssignmentId: assignmentId,
+          );
+        },
+        onNavigatePit: (teamNum, assignmentId) {
+          _navigateToPitScout(
+            targetTeamNumber: teamNum,
+            sourceAssignmentId: assignmentId,
+          );
+        },
+        onNavigateQual: (matchKey, matchNum, allianceColor, teamNum, assignmentId) {
+          _navigateToQualScout(
+            matchKey: matchKey,
+            matchNumber: matchNum,
+            allianceColor: allianceColor,
+            targetTeamNumber: teamNum,
+            sourceAssignmentId: assignmentId,
+          );
+        },
+      ),
+      ScoutAssignmentsScreen(
+        apiService: widget.apiService,
+        isVisible: isTabActive && screenIndex == 30,
+        isBarsVisible: _isBarsVisible,
       ),
     ];
   }

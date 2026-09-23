@@ -464,6 +464,8 @@ class UserModel {
     this.lastLogin,
   });
 
+  String get displayName => username;
+
   bool get isSuperAdmin => role.toUpperCase() == 'SUPERADMIN';
   bool get isAdmin => isSuperAdmin || role.toUpperCase() == 'ADMIN';
   bool get canAccessAnalytics => isAdmin || role.toUpperCase() == 'ANALYTICS';

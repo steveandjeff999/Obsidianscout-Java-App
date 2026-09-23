@@ -15,12 +15,20 @@ class MatchScoutScreen extends StatefulWidget {
   final ApiService apiService;
   final bool isVisible;
   final bool isBarsVisible;
+  final String? initialMatchKey;
+  final int? initialMatchNumber;
+  final int? initialTargetTeamNumber;
+  final String? sourceAssignmentId;
 
   const MatchScoutScreen({
     super.key,
     required this.apiService,
     this.isVisible = true,
     this.isBarsVisible = true,
+    this.initialMatchKey,
+    this.initialMatchNumber,
+    this.initialTargetTeamNumber,
+    this.sourceAssignmentId,
   });
 
   @override
@@ -52,6 +60,15 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
   @override
   void didUpdateWidget(covariant MatchScoutScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final hasNewInitialParams = widget.initialMatchKey != oldWidget.initialMatchKey ||
+        widget.initialMatchNumber != oldWidget.initialMatchNumber ||
+        widget.initialTargetTeamNumber != oldWidget.initialTargetTeamNumber ||
+        widget.sourceAssignmentId != oldWidget.sourceAssignmentId;
+
+    if (hasNewInitialParams) {
+      _applyInitialSelections(force: true);
+    }
+
     if (widget.isVisible && !oldWidget.isVisible) {
       _loadPageData();
     }
@@ -74,6 +91,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
         if (cachedConfig != null && _formData.isEmpty) {
           _resetFormData(cachedConfig);
         }
+        _applyInitialSelections();
       });
     }
 
@@ -121,9 +139,28 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
         if (_config != null && _formData.isEmpty) {
           _resetFormData(_config!);
         }
+        _applyInitialSelections();
       });
     } catch (_) {
       if (mounted && _isLoading) setState(() => _isLoading = false);
+    }
+  }
+
+  void _applyInitialSelections({bool force = false}) {
+    if ((force || _selectedMatch == null) && _matches.isNotEmpty) {
+      if (widget.initialMatchKey != null && widget.initialMatchKey!.isNotEmpty) {
+        final match = _matches.where((m) => m.matchKey.toLowerCase() == widget.initialMatchKey!.toLowerCase()).firstOrNull;
+        if (match != null) _selectedMatch = match;
+      } else if (widget.initialMatchNumber != null) {
+        final match = _matches.where((m) => m.matchNumber == widget.initialMatchNumber).firstOrNull;
+        if (match != null) _selectedMatch = match;
+      }
+    }
+    if ((force || _selectedTeam == null) && _teams.isNotEmpty) {
+      if (widget.initialTargetTeamNumber != null) {
+        final team = _teams.where((t) => t.teamNumber == widget.initialTargetTeamNumber).firstOrNull;
+        if (team != null) _selectedTeam = team;
+      }
     }
   }
 
@@ -413,6 +450,9 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
         message: 'Match scouting data saved successfully (HTTP ${response.statusCode ?? 200})',
         statusCode: response.statusCode ?? 200,
       );
+      if (widget.sourceAssignmentId != null && widget.sourceAssignmentId!.isNotEmpty) {
+        widget.apiService.updateAssignmentStatus(widget.sourceAssignmentId!, 'COMPLETED');
+      }
       _resetForm();
     } else if (response.isOffline) {
       ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
@@ -428,6 +468,9 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
         title: 'Saved to Offline Cache',
         message: 'Device offline. Saved to offline cache and will sync when online.',
       );
+      if (widget.sourceAssignmentId != null && widget.sourceAssignmentId!.isNotEmpty) {
+        widget.apiService.updateAssignmentStatus(widget.sourceAssignmentId!, 'COMPLETED');
+      }
       _resetForm();
     } else {
       ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
