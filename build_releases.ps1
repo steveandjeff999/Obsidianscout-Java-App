@@ -216,6 +216,52 @@ Categories=Utility;Sports;
 EOF
 
 dpkg-deb --build "`$DEB_DIR" '$wslPath/build/linux/x64/release/obsidianscout.deb'
+
+if command -v rpmbuild >/dev/null 2>&1; then
+    RPM_ROOT=/tmp/obsidianscout_rpm
+    rm -rf "`$RPM_ROOT"
+    mkdir -p "`$RPM_ROOT/BUILD" "`$RPM_ROOT/RPMS" "`$RPM_ROOT/SOURCES" "`$RPM_ROOT/SPECS" "`$RPM_ROOT/SRPMS"
+    BUILDROOT="`$RPM_ROOT/BUILDROOT/obsidianscout-$displayVersion-1.x86_64"
+    mkdir -p "`$BUILDROOT/usr/lib/obsidianscout" "`$BUILDROOT/usr/bin" "`$BUILDROOT/usr/share/applications" "`$BUILDROOT/usr/share/pixmaps"
+    cp -r '$wslPath/build/linux/x64/release/bundle/'* "`$BUILDROOT/usr/lib/obsidianscout/"
+    ln -sf /usr/lib/obsidianscout/obsidianscout_app "`$BUILDROOT/usr/bin/obsidianscout"
+    cp '$wslPath/assets/images/obsidian-512.png' "`$BUILDROOT/usr/share/pixmaps/obsidianscout.png"
+    cp "`$DEB_DIR/usr/share/applications/obsidianscout.desktop" "`$BUILDROOT/usr/share/applications/obsidianscout.desktop"
+
+    cat << EOF > "`$RPM_ROOT/SPECS/obsidianscout.spec"
+%global _enable_debug_package 0
+%define debug_package %{nil}
+%define _build_id_links none
+%define _binary_payload w19.zstdio
+
+Name:           obsidianscout
+Version:        $displayVersion
+Release:        1
+Summary:        ObsidianScout Scouting App
+License:        Proprietary
+BuildArch:      x86_64
+AutoReqProv:    no
+
+%description
+ObsidianScout Scouting App
+
+%prep
+
+%build
+
+%install
+
+%files
+/usr/lib/obsidianscout
+/usr/bin/obsidianscout
+/usr/share/applications/obsidianscout.desktop
+/usr/share/pixmaps/obsidianscout.png
+
+EOF
+
+    rpmbuild --define "_topdir `$RPM_ROOT" --buildroot "`$BUILDROOT" --target "x86_64" -bb "`$RPM_ROOT/SPECS/obsidianscout.spec"
+    cp "`$RPM_ROOT"/RPMS/x86_64/*.rpm '$wslPath/build/linux/x64/release/obsidianscout.rpm'
+fi
 "@
         $wslDebFile = Join-Path $appDir "build_deb.sh"
         Set-Content -Path $wslDebFile -Value $wslDebScript -Encoding ASCII
@@ -245,6 +291,13 @@ if (Test-Path $wslDebPath) {
     Write-Host "Linux .deb Installer created: $(Split-Path $debTarget -Leaf)" -ForegroundColor Green
 } else {
     Write-Host "Note: Skipping Linux .deb packaging." -ForegroundColor Yellow
+}
+
+$wslRpmPath = Join-Path $appDir "build\linux\x64\release\obsidianscout.rpm"
+if (Test-Path $wslRpmPath) {
+    $rpmTarget = Join-Path $stagingDir "ObsidianScout-v$displayVersion-Linux.rpm"
+    Copy-Item -Path $wslRpmPath -Destination $rpmTarget -Force
+    Write-Host "Linux .rpm Installer created: $(Split-Path $rpmTarget -Leaf)" -ForegroundColor Green
 }
 
 # 8. Generate SHA-256 Checksums

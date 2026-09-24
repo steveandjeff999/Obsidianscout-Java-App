@@ -175,7 +175,7 @@ jobs:
           path: windows_out/*
 
   build-linux:
-    name: Build Linux App & .deb Installer
+    name: Build Linux App, .deb & .rpm Installers
     needs: [auto-tag]
     runs-on: ubuntu-latest
 
@@ -186,7 +186,7 @@ jobs:
       - name: Install Linux Build Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libsecret-1-dev libjsoncpp-dev
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libsecret-1-dev libjsoncpp-dev rpm
 
       - name: Set up Flutter SDK
         uses: subosito/flutter-action@v2
@@ -199,13 +199,14 @@ jobs:
       - name: Build Linux Desktop Application
         run: flutter build linux --release
 
-      - name: Package Linux .tar.gz and .deb Package
+      - name: Package Linux .tar.gz, .deb and .rpm Packages
         run: |
           mkdir -p linux_out
           cd build/linux/x64/release/bundle
           tar -czf ../../../../../linux_out/ObsidianScout-Linux.tar.gz .
           cd ../../../../../
 
+          # 1. Build .deb package
           DEB_DIR="/tmp/obsidianscout_deb"
           rm -rf "$DEB_DIR"
           mkdir -p "$DEB_DIR/DEBIAN" "$DEB_DIR/usr/lib/obsidianscout" "$DEB_DIR/usr/bin" "$DEB_DIR/usr/share/applications" "$DEB_DIR/usr/share/pixmaps"
@@ -213,9 +214,14 @@ jobs:
           ln -sf /usr/lib/obsidianscout/obsidianscout_app "$DEB_DIR/usr/bin/obsidianscout"
           cp assets/images/obsidian-512.png "$DEB_DIR/usr/share/pixmaps/obsidianscout.png"
 
-          cat << 'EOF' > "$DEB_DIR/DEBIAN/control"
+          RAW_VER="${{ needs.auto-tag.outputs.new_tag }}"
+          PKG_VER="${RAW_VER#v}"
+          PKG_VER="${PKG_VER//-/_}"
+          PKG_VER="${PKG_VER:-1.0.0}"
+
+          cat << EOF > "$DEB_DIR/DEBIAN/control"
           Package: obsidianscout
-          Version: 1.0.0
+          Version: ${PKG_VER}
           Architecture: amd64
           Maintainer: ObsidianScout Team
           Description: ObsidianScout Scouting Companion App
@@ -233,6 +239,51 @@ jobs:
           EOF
 
           dpkg-deb --build "$DEB_DIR" "linux_out/ObsidianScout-Linux.deb"
+
+          # 2. Build .rpm package
+          RPM_ROOT="/tmp/obsidianscout_rpm"
+          rm -rf "$RPM_ROOT"
+          mkdir -p "$RPM_ROOT/BUILD" "$RPM_ROOT/RPMS" "$RPM_ROOT/SOURCES" "$RPM_ROOT/SPECS" "$RPM_ROOT/SRPMS"
+          BUILDROOT="$RPM_ROOT/BUILDROOT/obsidianscout-${PKG_VER}-1.x86_64"
+          mkdir -p "$BUILDROOT/usr/lib/obsidianscout" "$BUILDROOT/usr/bin" "$BUILDROOT/usr/share/applications" "$BUILDROOT/usr/share/pixmaps"
+          cp -r build/linux/x64/release/bundle/* "$BUILDROOT/usr/lib/obsidianscout/"
+          ln -sf /usr/lib/obsidianscout/obsidianscout_app "$BUILDROOT/usr/bin/obsidianscout"
+          cp assets/images/obsidian-512.png "$BUILDROOT/usr/share/pixmaps/obsidianscout.png"
+          cp "$DEB_DIR/usr/share/applications/obsidianscout.desktop" "$BUILDROOT/usr/share/applications/obsidianscout.desktop"
+
+          cat << EOF > "$RPM_ROOT/SPECS/obsidianscout.spec"
+          %global _enable_debug_package 0
+          %define debug_package %{nil}
+          %define _build_id_links none
+          %define _binary_payload w19.zstdio
+
+          Name:           obsidianscout
+          Version:        ${PKG_VER}
+          Release:        1
+          Summary:        ObsidianScout Scouting Companion App
+          License:        Proprietary
+          BuildArch:      x86_64
+          AutoReqProv:    no
+
+          %description
+          ObsidianScout Scouting Companion App
+
+          %prep
+
+          %build
+
+          %install
+
+          %files
+          /usr/lib/obsidianscout
+          /usr/bin/obsidianscout
+          /usr/share/applications/obsidianscout.desktop
+          /usr/share/pixmaps/obsidianscout.png
+
+          EOF
+
+          rpmbuild --define "_topdir $RPM_ROOT" --buildroot "$BUILDROOT" --target "x86_64" -bb "$RPM_ROOT/SPECS/obsidianscout.spec"
+          cp "$RPM_ROOT"/RPMS/x86_64/*.rpm linux_out/ObsidianScout-Linux.rpm
 
       - name: Upload Linux Artifacts
         uses: actions/upload-artifact@v4
