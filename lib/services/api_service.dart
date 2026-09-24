@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -29,11 +31,14 @@ class ApiService {
   static const String keyDesktopTabs = "obsidianscout_desktop_tabs_enabled";
   static const String keyLocale = "obsidianscout_locale";
   static const String keyRequestTimeoutSeconds = "obsidianscout_request_timeout_seconds";
+  static const String keyDeviceId = "obsidianscout_device_id";
   static const int defaultRequestTimeoutSeconds = 6;
   static const String defaultUrl = "https://kotlin.obsidianscout.com";
 
   String _currentServerUrl = defaultUrl;
   String? _sessionCookie;
+  String? _deviceId;
+  int _authEpoch = 0;
   bool _keepMeLoggedIn = false;
   String _savedUsername = '';
   int _requestTimeoutSeconds = defaultRequestTimeoutSeconds;
@@ -184,6 +189,12 @@ class ApiService {
     _currentServerUrl = prefs.getString(keyServerUrl) ?? defaultUrl;
     _keepMeLoggedIn = prefs.getBool(keyKeepMeLoggedIn) ?? false;
     _savedUsername = prefs.getString(keySavedUsername) ?? '';
+
+    _deviceId = prefs.getString(keyDeviceId);
+    if (_deviceId == null || _deviceId!.isEmpty) {
+      _deviceId = _generateUuidV4();
+      await prefs.setString(keyDeviceId, _deviceId!);
+    }
 
     final savedThemeStr = prefs.getString(keyThemeMode) ?? 'dark';
     if (savedThemeStr == 'light') {
@@ -614,6 +625,33 @@ class ApiService {
     return [];
   }
 
+  static String _generateUuidV4() {
+    final random = Random.secure();
+    final values = List<int>.generate(16, (i) => random.nextInt(256));
+    values[6] = (values[6] & 0x0f) | 0x40; // version 4
+    values[8] = (values[8] & 0x3f) | 0x80; // variant
+    final hex = values.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20, 32)}';
+  }
+
+  String _getDeviceName() {
+    if (kIsWeb) return 'ObsidianScout Web App';
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return 'ObsidianScout Android App';
+      case TargetPlatform.iOS:
+        return 'ObsidianScout iOS App';
+      case TargetPlatform.windows:
+        return 'ObsidianScout Windows App';
+      case TargetPlatform.macOS:
+        return 'ObsidianScout macOS App';
+      case TargetPlatform.linux:
+        return 'ObsidianScout Linux App';
+      default:
+        return 'ObsidianScout App';
+    }
+  }
+
   Future<bool> _verifySession() async {
     try {
       final response = await http
@@ -624,7 +662,13 @@ class ApiService {
           .timeout(requestTimeout);
       if (response.statusCode == 200) {
         _updateCookiesFromResponse(response);
-        return true;
+        try {
+          final decoded = jsonDecode(response.body);
+          if (decoded is Map && decoded['loggedIn'] == true) {
+            return true;
+          }
+        } catch (_) {}
+        return false;
       }
       return false;
     } catch (_) {
@@ -643,11 +687,21 @@ class ApiService {
         'Content-Type': 'application/json',
         'X-Requested-With': 'XMLHttpRequest',
         'X-Mobile-App': 'true',
+        if (_deviceId != null && _deviceId!.isNotEmpty) 'X-Device-Id': _deviceId!,
+        'X-Device-Name': _getDeviceName(),
         ...?_sessionCookie == null ? null : {'Cookie': _sessionCookie!},
       };
 
-  void _handleUnauthorized([String reason = 'Session has been revoked']) {
+  void _handleUnauthorized([
+    String reason = 'Your session has expired. Please log in again.',
+    int? epoch,
+    String? requestCookie,
+  ]) {
     if (_handlingRevocation || !isLoggedIn) return;
+    // Guard against race conditions from old in-flight requests made before latest login
+    if (epoch != null && epoch != _authEpoch) return;
+    if (requestCookie != null && _sessionCookie != null && requestCookie != _sessionCookie) return;
+
     _handlingRevocation = true;
     _syncTimer?.cancel();
     _sessionCookie = null;
@@ -662,16 +716,23 @@ class ApiService {
     _sessionRevokedController.add(reason);
   }
 
-  void _checkResponse(http.Response response) {
+  void _checkResponse(http.Response response, {int? epoch, String? requestCookie}) {
     if (response.statusCode == 401) {
-      _handleUnauthorized('Session has been revoked');
+      String reason = 'Your session has expired or was revoked. Please log in again.';
+      try {
+        final body = jsonDecode(response.body);
+        if (body is Map && body['error'] is String && (body['error'] as String).isNotEmpty) {
+          reason = body['error'] as String;
+        }
+      } catch (_) {}
+      _handleUnauthorized(reason, epoch, requestCookie);
     } else if (response.statusCode >= 500) {
       _serverErrorController.add(response.statusCode);
     }
   }
 
-  void _checkResponseForServerError(http.Response response) {
-    _checkResponse(response);
+  void _checkResponseForServerError(http.Response response, {int? epoch, String? requestCookie}) {
+    _checkResponse(response, epoch: epoch, requestCookie: requestCookie);
   }
 
   void _updateCookiesFromResponse(http.Response response) {
@@ -698,7 +759,9 @@ class ApiService {
       if (kv.length >= 2) {
         final name = kv[0].trim();
         final value = kv.sublist(1).join('=').trim();
-        if (value.isNotEmpty && value != 'deleted') {
+        if (value.isEmpty || value == 'deleted') {
+          cookieMap.remove(name);
+        } else {
           cookieMap[name] = value;
         }
       }
@@ -706,6 +769,8 @@ class ApiService {
 
     if (cookieMap.isNotEmpty) {
       _sessionCookie = cookieMap.entries.map((e) => '${e.key}=${e.value}').join('; ');
+    } else {
+      _sessionCookie = null;
     }
   }
 
@@ -730,6 +795,7 @@ class ApiService {
       );
 
       if (response.statusCode == 200 || response.statusCode == 302) {
+        _authEpoch++;
         _handlingRevocation = false;
         _updateCookiesFromResponse(response);
         _keepMeLoggedIn = keepMeLoggedIn;
@@ -785,6 +851,7 @@ class ApiService {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 302) {
+        _authEpoch++;
         _handlingRevocation = false;
         _updateCookiesFromResponse(response);
         _keepMeLoggedIn = keepMeLoggedIn;
@@ -1247,18 +1314,101 @@ class ApiService {
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final decoded = jsonDecode(response.body);
-        if (decoded is List) {
-          final users = decoded.map((e) => UserModel.fromJson(e as Map<String, dynamic>)).toList();
-          if (offset == 0 && (q == null || q.isEmpty) && teamNumber == null && (role == null || role.isEmpty)) {
-            await _setCache("cache_admin_users", response.body);
-          }
-          return ApiResponse.success(users, statusCode: response.statusCode);
+        final rawList = decoded is List
+            ? decoded
+            : (decoded is Map<String, dynamic>
+                ? (decoded['users'] as List? ?? decoded['data'] as List? ?? [])
+                : []);
+        final users = rawList
+            .whereType<Map<String, dynamic>>()
+            .map((e) => UserModel.fromJson(e))
+            .toList();
+        if (offset == 0 && (q == null || q.isEmpty) && teamNumber == null && (role == null || role.isEmpty)) {
+          await _setCache("cache_admin_users", jsonEncode(users.map((u) => u.toJson()).toList()));
         }
+        return ApiResponse.success(users, statusCode: response.statusCode);
       }
       return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to fetch users');
     } catch (e) {
       return ApiResponse.error(message: e.toString());
     }
+  }
+
+  Future<List<UserModel>> fetchTeamMembers({int? teamNumber, String? program}) async {
+    final activeTeam = teamNumber ?? _currentUser?.teamNumber ?? 0;
+    final activeProgram = program ?? currentProgram;
+    final cacheKey = "cache_team_members_${activeTeam}_$activeProgram";
+
+    if (!_isOnline) {
+      final cached = await _getCache(cacheKey) ?? await _getCache("cache_admin_users");
+      if (cached != null && cached.isNotEmpty) {
+        try {
+          final List decoded = jsonDecode(cached);
+          return decoded.map((e) => UserModel.fromJson(e as Map<String, dynamic>)).toList();
+        } catch (_) {}
+      }
+      return [];
+    }
+
+    try {
+      // 1. Try getAdminUsers if admin
+      final adminRes = await getAdminUsers(
+        teamNumber: activeTeam > 0 ? activeTeam : null,
+        program: activeProgram.isNotEmpty ? activeProgram : null,
+        limit: 200,
+      );
+      if (adminRes.data != null && adminRes.data!.isNotEmpty) {
+        var list = adminRes.data!;
+        if (activeTeam > 0) {
+          list = list.where((u) => u.teamNumber == activeTeam || u.teamNumber == 0).toList();
+        }
+        if (activeProgram.isNotEmpty) {
+          list = list
+              .where((u) => u.program.isEmpty || u.program.toUpperCase() == activeProgram.toUpperCase())
+              .toList();
+        }
+        if (list.isNotEmpty) {
+          await _setCache(cacheKey, jsonEncode(list.map((u) => u.toJson()).toList()));
+          return list;
+        }
+      }
+
+      // 2. Fallback to /api/team-members
+      final uri = Uri.parse('$_currentServerUrl/api/team-members');
+      final response = await http.get(uri, headers: _headers).timeout(requestTimeout);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final decoded = jsonDecode(response.body);
+        final rawList = decoded is List
+            ? decoded
+            : (decoded is Map<String, dynamic>
+                ? (decoded['members'] as List? ?? decoded['users'] as List? ?? [])
+                : []);
+        final users = rawList
+            .whereType<Map<String, dynamic>>()
+            .map((e) => UserModel.fromJson({
+                  ...e,
+                  'teamNumber': activeTeam,
+                  'program': activeProgram,
+                }))
+            .toList();
+        if (users.isNotEmpty) {
+          await _setCache(cacheKey, jsonEncode(users.map((u) => u.toJson()).toList()));
+          return users;
+        }
+      }
+    } catch (e) {
+      debugPrint('[ApiService] fetchTeamMembers error: $e');
+    }
+
+    // Return cached if network attempts failed
+    final cached = await _getCache(cacheKey) ?? await _getCache("cache_admin_users");
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        final List decoded = jsonDecode(cached);
+        return decoded.map((e) => UserModel.fromJson(e as Map<String, dynamic>)).toList();
+      } catch (_) {}
+    }
+    return [];
   }
 
   Future<ApiResponse<UserModel>> createAdminUser({
@@ -4435,9 +4585,10 @@ class ApiService {
                   ? decoded['assignments'] as List
                   : []);
           if (list.isNotEmpty) {
-            return list
+            final parsed = list
                 .map((e) => ScoutingAssignment.fromJson(e as Map<String, dynamic>))
                 .toList();
+            return await ScoutHistoryService.applyLocalScoutStatus(parsed, eventKey: effectiveKey);
           }
         } catch (_) {}
       }
@@ -4473,9 +4624,10 @@ class ApiService {
             : (decoded is Map && decoded['assignments'] is List
                 ? decoded['assignments'] as List
                 : []);
-        return list
+        final parsed = list
             .map((e) => ScoutingAssignment.fromJson(e as Map<String, dynamic>))
             .toList();
+        return await ScoutHistoryService.applyLocalScoutStatus(parsed, eventKey: effectiveKey);
       }
     } catch (e) {
       debugPrint('[ApiService] fetchMyAssignments error: $e');
@@ -4505,9 +4657,10 @@ class ApiService {
                   ? decoded['assignments'] as List
                   : []);
           if (list.isNotEmpty) {
-            return list
+            final parsed = list
                 .map((e) => ScoutingAssignment.fromJson(e as Map<String, dynamic>))
                 .toList();
+            return await ScoutHistoryService.applyLocalScoutStatus(parsed, eventKey: effectiveKey);
           }
         } catch (_) {}
       }
@@ -4543,9 +4696,10 @@ class ApiService {
             : (decoded is Map && decoded['assignments'] is List
                 ? decoded['assignments'] as List
                 : []);
-        return list
+        final parsed = list
             .map((e) => ScoutingAssignment.fromJson(e as Map<String, dynamic>))
             .toList();
+        return await ScoutHistoryService.applyLocalScoutStatus(parsed, eventKey: effectiveKey);
       }
     } catch (e) {
       debugPrint('[ApiService] fetchAllAssignments error: $e');
@@ -4585,7 +4739,7 @@ class ApiService {
   }
 
   Future<ScoutingAssignment?> createAssignment(CreateAssignmentRequest req) async {
-    if (!_isOnline) return null;
+    if (!_isOnline) throw Exception('Cannot create assignment while offline.');
     try {
       final uri = Uri.parse('$_currentServerUrl/api/assignments');
       final response = await http
@@ -4604,15 +4758,20 @@ class ApiService {
             : (j is Map ? j as Map<String, dynamic> : <String, dynamic>{});
         return ScoutingAssignment.fromJson(asgnJson);
       }
+      String msg = 'Failed to create assignment (${response.statusCode})';
+      try {
+        final j = jsonDecode(response.body);
+        if (j is Map && j['error'] != null) msg = j['error'].toString();
+      } catch (_) {}
+      throw Exception(msg);
     } catch (e) {
       debugPrint('[ApiService] createAssignment error: $e');
       rethrow;
     }
-    return null;
   }
 
   Future<List<ScoutingAssignment>> bulkCreateAssignments(BulkCreateAssignmentsRequest req) async {
-    if (!_isOnline) return [];
+    if (!_isOnline) throw Exception('Cannot create assignments while offline.');
     try {
       final uri = Uri.parse('$_currentServerUrl/api/assignments/bulk');
       final response = await http
@@ -4621,7 +4780,7 @@ class ApiService {
             headers: _headers,
             body: jsonEncode(req.toJson()),
           )
-          .timeout(heavyRequestTimeout);
+          .timeout(const Duration(seconds: 45));
       _checkResponse(response);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -4635,15 +4794,94 @@ class ApiService {
             .map((e) => ScoutingAssignment.fromJson(e as Map<String, dynamic>))
             .toList();
       }
+      String msg = 'Failed to create bulk assignments (${response.statusCode})';
+      try {
+        final j = jsonDecode(response.body);
+        if (j is Map && j['error'] != null) msg = j['error'].toString();
+      } catch (_) {}
+      throw Exception(msg);
     } catch (e) {
       debugPrint('[ApiService] bulkCreateAssignments error: $e');
       rethrow;
     }
-    return [];
+  }
+
+  Future<AutoGenerateAssignmentsResponse> autoGenerateAssignments(AutoGenerateAssignmentsRequest req) async {
+    if (!_isOnline) throw Exception('Cannot generate assignments while offline.');
+    try {
+      final uri = Uri.parse('$_currentServerUrl/api/assignments/auto-generate');
+      final response = await http
+          .post(
+            uri,
+            headers: _headers,
+            body: jsonEncode(req.toJson()),
+          )
+          .timeout(const Duration(seconds: 45));
+      _checkResponse(response);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final j = jsonDecode(response.body);
+        if (j is Map<String, dynamic>) {
+          return AutoGenerateAssignmentsResponse.fromJson(j);
+        }
+        return AutoGenerateAssignmentsResponse(
+          success: true,
+          createdCount: 0,
+          deletedCount: 0,
+          message: 'Assignments generated successfully.',
+        );
+      }
+      String msg = 'Failed to generate assignments (${response.statusCode})';
+      try {
+        final j = jsonDecode(response.body);
+        if (j is Map && j['error'] != null) msg = j['error'].toString();
+      } catch (_) {}
+      throw Exception(msg);
+    } catch (e) {
+      debugPrint('[ApiService] autoGenerateAssignments error: $e');
+      rethrow;
+    }
+  }
+
+  Future<AutoResolveConflictsResponse> autoResolveConflicts(String eventKey) async {
+    if (!_isOnline) throw Exception('Cannot resolve conflicts while offline.');
+    try {
+      final uri = Uri.parse('$_currentServerUrl/api/assignments/auto-resolve-conflicts');
+      final response = await http
+          .post(
+            uri,
+            headers: _headers,
+            body: jsonEncode({'eventKey': eventKey}),
+          )
+          .timeout(const Duration(seconds: 30));
+      _checkResponse(response);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final j = jsonDecode(response.body);
+        if (j is Map<String, dynamic>) {
+          return AutoResolveConflictsResponse.fromJson(j);
+        }
+        return AutoResolveConflictsResponse(
+          success: true,
+          resolvedCount: 0,
+          message: 'Conflicts resolved successfully.',
+          deletedIds: [],
+        );
+      }
+      String msg = 'Failed to resolve conflicts (${response.statusCode})';
+      try {
+        final j = jsonDecode(response.body);
+        if (j is Map && j['error'] != null) msg = j['error'].toString();
+      } catch (_) {}
+      throw Exception(msg);
+    } catch (e) {
+      debugPrint('[ApiService] autoResolveConflicts error: $e');
+      rethrow;
+    }
   }
 
   Future<ScoutingAssignment?> updateAssignment(String id, UpdateAssignmentRequest req) async {
-    if (!_isOnline) return null;
+    if (!_isOnline) throw Exception('Cannot update assignment while offline.');
     try {
       final uri = Uri.parse('$_currentServerUrl/api/assignments/$id');
       final response = await http
@@ -4662,11 +4900,16 @@ class ApiService {
             : (j is Map ? j as Map<String, dynamic> : <String, dynamic>{});
         return ScoutingAssignment.fromJson(asgnJson);
       }
+      String msg = 'Failed to update assignment (${response.statusCode})';
+      try {
+        final j = jsonDecode(response.body);
+        if (j is Map && j['error'] != null) msg = j['error'].toString();
+      } catch (_) {}
+      throw Exception(msg);
     } catch (e) {
       debugPrint('[ApiService] updateAssignment error: $e');
       rethrow;
     }
-    return null;
   }
 
   Future<bool> updateAssignmentStatus(String id, String status) async {
@@ -4674,7 +4917,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_currentServerUrl/api/assignments/$id/status');
       final response = await http
-          .patch(
+          .post(
             uri,
             headers: _headers,
             body: jsonEncode({'status': status}),
@@ -4689,32 +4932,61 @@ class ApiService {
   }
 
   Future<bool> deleteAssignment(String id) async {
-    if (!_isOnline) return false;
+    if (!_isOnline) throw Exception('Cannot delete assignment while offline.');
     try {
-      final uri = Uri.parse('$_currentServerUrl/api/assignments/$id');
-      final response = await http.delete(uri, headers: _headers).timeout(heavyRequestTimeout);
+      final cleanId = Uri.encodeComponent(id.trim());
+      final uri = Uri.parse('$_currentServerUrl/api/assignments/$cleanId');
+      final headers = Map<String, String>.from(_headers);
+      headers['Accept'] = 'application/json, text/plain, */*';
+      final response = await http.delete(uri, headers: headers).timeout(heavyRequestTimeout);
       _checkResponse(response);
-      return response.statusCode >= 200 && response.statusCode < 300;
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return true;
+      }
+      String msg = 'Failed to delete assignment (${response.statusCode})';
+      try {
+        final j = jsonDecode(response.body);
+        if (j is Map && (j['error'] != null || j['message'] != null)) {
+          msg = (j['error'] ?? j['message']).toString();
+        }
+      } catch (_) {}
+      throw Exception(msg);
     } catch (e) {
       debugPrint('[ApiService] deleteAssignment error: $e');
-      return false;
+      rethrow;
     }
   }
 
   Future<bool> deleteAllAssignments(String eventKey, {List<String>? specificIds}) async {
-    if (!_isOnline) return false;
+    if (!_isOnline) throw Exception('Cannot delete assignments while offline.');
     try {
       if (specificIds != null && specificIds.isNotEmpty) {
-        await Future.wait(specificIds.map((id) => deleteAssignment(id)));
+        final uniqueIds = specificIds.toSet().toList();
+        final results = await Future.wait(uniqueIds.map((id) => deleteAssignment(id)));
+        return results.any((r) => r);
+      }
+      final cleanKey = Uri.encodeQueryComponent(eventKey.trim());
+      final uri = Uri.parse('$_currentServerUrl/api/assignments?eventKey=$cleanKey');
+      final headers = Map<String, String>.from(_headers);
+      headers['Accept'] = 'application/json, text/plain, */*';
+      final response = await http.delete(uri, headers: headers).timeout(heavyRequestTimeout);
+      _checkResponse(response);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
         return true;
       }
-      final uri = Uri.parse('$_currentServerUrl/api/assignments?eventKey=$eventKey');
-      final response = await http.delete(uri, headers: _headers).timeout(heavyRequestTimeout);
-      _checkResponse(response);
-      return response.statusCode >= 200 && response.statusCode < 300;
+      String msg = 'Failed to delete assignments (${response.statusCode})';
+      try {
+        final j = jsonDecode(response.body);
+        if (j is Map && (j['error'] != null || j['message'] != null)) {
+          msg = (j['error'] ?? j['message']).toString();
+        }
+      } catch (_) {}
+      throw Exception(msg);
     } catch (e) {
       debugPrint('[ApiService] deleteAllAssignments error: $e');
-      return false;
+      rethrow;
     }
   }
 

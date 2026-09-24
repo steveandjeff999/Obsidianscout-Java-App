@@ -52,6 +52,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
   // Stage filters for Matrix tabs
   String _matrixStage = 'all'; // all, qm, pr, playoffs
   String _qualMatrixStage = 'all';
+  String _pitFilter = 'all'; // all, unassigned, assigned, completed, conflicts
 
   @override
   void initState() {
@@ -80,7 +81,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
 
   void _startPolling() {
     _pollTimer?.cancel();
-    _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+    _pollTimer = Timer.periodic(const Duration(seconds: 20), (_) {
       if (mounted && widget.isVisible && !_isModalOpen && widget.apiService.isOnline) {
         _pollAssignmentsSilently();
       }
@@ -144,21 +145,12 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
       final activeTeam = me?.teamNumber ?? 0;
       final activeProgram = widget.apiService.currentProgram;
 
-      final res = await widget.apiService.getAdminUsers(
+      final list = await widget.apiService.fetchTeamMembers(
         teamNumber: activeTeam > 0 ? activeTeam : null,
         program: activeProgram.isNotEmpty ? activeProgram : null,
-        limit: 200,
       );
-      if (mounted && res.data != null) {
-        var list = res.data!;
-        if (activeTeam > 0) {
-          list = list.where((u) => u.teamNumber == activeTeam).toList();
-        }
-        if (activeProgram.isNotEmpty) {
-          list = list
-              .where((u) => u.program.toUpperCase() == activeProgram.toUpperCase())
-              .toList();
-        }
+
+      if (mounted && list.isNotEmpty) {
         setState(() {
           _users = list;
         });
@@ -275,14 +267,23 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
     );
 
     if (confirmed == true) {
-      await widget.apiService.deleteAllAssignments(
-        _currentEventKey ?? '',
-        specificIds: toDelete,
-      );
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Resolved ${toDelete.length} conflict(s)!')),
-      );
+      try {
+        final res = await widget.apiService.autoResolveConflicts(_currentEventKey ?? '');
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(res.message.isNotEmpty
+                ? res.message
+                : 'Auto-resolved ${res.resolvedCount} conflict(s)!'),
+          ),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        final msg = e.toString().replaceAll('Exception: ', '');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(msg)),
+        );
+      }
       _loadEventData();
     }
   }
@@ -307,19 +308,30 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
       onRefresh: _loadEventData,
       color: ObsidianUITheme.primaryAccent,
       backgroundColor: ObsidianUITheme.getSurfaceColor(context),
-      child: ListView(
-        padding: EdgeInsets.only(
-          top: topPadding,
-          bottom: bottomPadding,
-          left: 16.0,
-          right: 16.0,
-        ),
-        children: [
-          _buildHeaderCard(conflictCount),
-          const SizedBox(height: 16),
-          _buildTabBar(),
-          const SizedBox(height: 16),
-          _buildActiveTabContent(),
+      child: CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: EdgeInsets.only(
+              top: topPadding,
+              left: 16.0,
+              right: 16.0,
+            ),
+            sliver: SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeaderCard(conflictCount),
+                  const SizedBox(height: 16),
+                  _buildTabBar(),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
+          ),
+          ..._buildActiveTabSlivers(),
+          SliverToBoxAdapter(
+            child: SizedBox(height: bottomPadding),
+          ),
         ],
       ),
     );
@@ -544,25 +556,39 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
     );
   }
 
-  Widget _buildActiveTabContent() {
+  List<Widget> _buildActiveTabSlivers() {
     if (_isLoading) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 40),
-        child: Center(child: CircularProgressIndicator()),
-      );
+      return const [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 40),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        ),
+      ];
     }
 
     switch (_tabController.index) {
       case 0:
-        return _buildMatchMatrixTab();
+        return [
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            sliver: SliverToBoxAdapter(child: _buildMatchMatrixTab()),
+          ),
+        ];
       case 1:
-        return _buildQualMatrixTab();
+        return [
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            sliver: SliverToBoxAdapter(child: _buildQualMatrixTab()),
+          ),
+        ];
       case 2:
-        return _buildAssignmentsListTab();
+        return _buildAssignmentsListSlivers();
       case 3:
-        return _buildPitCoverageTab();
+        return _buildPitCoverageSlivers();
       default:
-        return const SizedBox.shrink();
+        return const [];
     }
   }
 
@@ -1136,9 +1162,9 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
   }
 
   // ==========================================
-  // TAB 2: ASSIGNMENTS LIST VIEW
+  // TAB 2: ASSIGNMENTS LIST VIEW (SLIVERS)
   // ==========================================
-  Widget _buildAssignmentsListTab() {
+  List<Widget> _buildAssignmentsListSlivers() {
     final filtered = _assignments.where((a) {
       if (_filterType.isNotEmpty && a.assignmentType != _filterType) return false;
       if (_filterScouter.isNotEmpty && a.assignedUserId != _filterScouter) return false;
@@ -1151,108 +1177,116 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
       return true;
     }).toList();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Filter bar
-        ObsidianGlassCard(
-          padding: const EdgeInsets.all(12),
+    return [
+      SliverPadding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        sliver: SliverToBoxAdapter(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search by team, match, or scouter...',
-                  prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                  isDense: true,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                onChanged: (val) => setState(() => _filterSearch = val),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _filterType.isEmpty ? null : _filterType,
-                      decoration: const InputDecoration(isDense: true, labelText: 'Type'),
-                      items: const [
-                        DropdownMenuItem(value: '', child: Text('All Types')),
-                        DropdownMenuItem(value: 'MATCH', child: Text('Match')),
-                        DropdownMenuItem(value: 'PIT', child: Text('Pit')),
-                        DropdownMenuItem(value: 'QUALITATIVE', child: Text('Qualitative')),
-                      ],
-                      onChanged: (val) => setState(() => _filterType = val ?? ''),
+              // Filter bar
+              ObsidianGlassCard(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: 'Search by team, match, or scouter...',
+                        prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                        isDense: true,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      onChanged: (val) => setState(() => _filterSearch = val),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _filterScouter.isEmpty ? null : _filterScouter,
-                      decoration: const InputDecoration(isDense: true, labelText: 'Scouter'),
-                      items: [
-                        const DropdownMenuItem(value: '', child: Text('All Scouters')),
-                        ..._users.map((u) => DropdownMenuItem(
-                          value: u.id,
-                          child: Text(
-                            u.displayName.isNotEmpty ? u.displayName : u.username,
-                            overflow: TextOverflow.ellipsis,
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            initialValue: _filterType.isEmpty ? null : _filterType,
+                            decoration: const InputDecoration(isDense: true, labelText: 'Type'),
+                            items: const [
+                              DropdownMenuItem(value: '', child: Text('All Types')),
+                              DropdownMenuItem(value: 'MATCH', child: Text('Match')),
+                              DropdownMenuItem(value: 'PIT', child: Text('Pit')),
+                              DropdownMenuItem(value: 'QUALITATIVE', child: Text('Qualitative')),
+                            ],
+                            onChanged: (val) => setState(() => _filterType = val ?? ''),
                           ),
-                        )),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            initialValue: _filterScouter.isEmpty ? null : _filterScouter,
+                            decoration: const InputDecoration(isDense: true, labelText: 'Scouter'),
+                            items: [
+                              const DropdownMenuItem(value: '', child: Text('All Scouters')),
+                              ..._users.map((u) => DropdownMenuItem(
+                                value: u.id,
+                                child: Text(
+                                  u.displayName.isNotEmpty ? u.displayName : u.username,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              )),
+                            ],
+                            onChanged: (val) => setState(() => _filterScouter = val ?? ''),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            initialValue: _filterStatus.isEmpty ? null : _filterStatus,
+                            decoration: const InputDecoration(isDense: true, labelText: 'Status'),
+                            items: const [
+                              DropdownMenuItem(value: '', child: Text('All Statuses')),
+                              DropdownMenuItem(value: 'PENDING', child: Text('Pending')),
+                              DropdownMenuItem(value: 'IN_PROGRESS', child: Text('In Progress')),
+                              DropdownMenuItem(value: 'COMPLETED', child: Text('Completed')),
+                            ],
+                            onChanged: (val) => setState(() => _filterStatus = val ?? ''),
+                          ),
+                        ),
                       ],
-                      onChanged: (val) => setState(() => _filterScouter = val ?? ''),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _filterStatus.isEmpty ? null : _filterStatus,
-                      decoration: const InputDecoration(isDense: true, labelText: 'Status'),
-                      items: const [
-                        DropdownMenuItem(value: '', child: Text('All Statuses')),
-                        DropdownMenuItem(value: 'PENDING', child: Text('Pending')),
-                        DropdownMenuItem(value: 'IN_PROGRESS', child: Text('In Progress')),
-                        DropdownMenuItem(value: 'COMPLETED', child: Text('Completed')),
-                      ],
-                      onChanged: (val) => setState(() => _filterStatus = val ?? ''),
-                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Showing ${filtered.length} assignments', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  TextButton.icon(
+                    style: TextButton.styleFrom(foregroundColor: const Color(0xFFEF4444)),
+                    icon: const Icon(Icons.delete_sweep_rounded, size: 18),
+                    label: Text(filtered.length != _assignments.length ? 'Delete Filtered' : 'Delete All'),
+                    onPressed: () => _confirmDeleteFiltered(filtered),
                   ),
                 ],
               ),
+              const SizedBox(height: 8),
+              if (filtered.isEmpty)
+                const ObsidianGlassCard(
+                  padding: EdgeInsets.all(32),
+                  child: Center(child: Text('No assignments matching filter criteria.')),
+                ),
             ],
           ),
         ),
-        const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Showing ${filtered.length} assignments', style: const TextStyle(fontWeight: FontWeight.bold)),
-            TextButton.icon(
-              style: TextButton.styleFrom(foregroundColor: const Color(0xFFEF4444)),
-              icon: const Icon(Icons.delete_sweep_rounded, size: 18),
-              label: Text(filtered.length != _assignments.length ? 'Delete Filtered' : 'Delete All'),
-              onPressed: () => _confirmDeleteFiltered(filtered),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        if (filtered.isEmpty)
-          const ObsidianGlassCard(
-            padding: EdgeInsets.all(32),
-            child: Center(child: Text('No assignments matching filter criteria.')),
-          )
-        else
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
+      ),
+      if (filtered.isNotEmpty)
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          sliver: SliverList.builder(
             itemCount: filtered.length,
             itemBuilder: (context, index) {
               final a = filtered[index];
               return _buildAssignmentListTile(a);
             },
           ),
-      ],
-    );
+        ),
+    ];
   }
 
   Widget _buildAssignmentListTile(ScoutingAssignment a) {
@@ -1360,164 +1394,383 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
   }
 
   // ==========================================
-  // TAB 3: PIT COVERAGE
+  // TAB 3: PIT COVERAGE (SLIVERS)
   // ==========================================
-  Widget _buildPitCoverageTab() {
+  List<Widget> _buildPitCoverageSlivers() {
     final search = _pitSearchController.text.trim().toLowerCase();
 
+    final totalTeams = _teams.length;
+    int completedCount = 0;
+    int assignedCount = 0;
+    int unassignedCount = 0;
+    int conflictCount = 0;
+
+    for (final team in _teams) {
+      final matching = _index.getPitTeam(team.teamNumber);
+      if (matching.length > 1) {
+        conflictCount++;
+      } else if (matching.any((a) => a.status == 'COMPLETED')) {
+        completedCount++;
+      } else if (matching.isNotEmpty) {
+        assignedCount++;
+      } else {
+        unassignedCount++;
+      }
+    }
+
     final filteredTeams = _teams.where((t) {
-      if (search.isEmpty) return true;
-      return t.teamNumber.toString().contains(search) ||
-          (t.nickname ?? '').toLowerCase().contains(search) ||
-          (t.name ?? '').toLowerCase().contains(search);
+      if (search.isNotEmpty) {
+        final matchesQuery = t.teamNumber.toString().contains(search) ||
+            (t.nickname ?? '').toLowerCase().contains(search) ||
+            (t.name ?? '').toLowerCase().contains(search);
+        if (!matchesQuery) return false;
+      }
+
+      final matching = _index.getPitTeam(t.teamNumber);
+      if (_pitFilter == 'unassigned') {
+        return matching.isEmpty;
+      } else if (_pitFilter == 'assigned') {
+        return matching.isNotEmpty && !matching.any((a) => a.status == 'COMPLETED') && matching.length == 1;
+      } else if (_pitFilter == 'completed') {
+        return matching.any((a) => a.status == 'COMPLETED');
+      } else if (_pitFilter == 'conflicts') {
+        return matching.length > 1;
+      }
+      return true;
     }).toList();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        TextField(
-          controller: _pitSearchController,
-          decoration: InputDecoration(
-            hintText: 'Search pit teams...',
-            prefixIcon: const Icon(Icons.search_rounded, size: 20),
-            isDense: true,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-          onChanged: (_) => setState(() {}),
-        ),
-        const SizedBox(height: 12),
-        if (filteredTeams.isEmpty)
-          const ObsidianGlassCard(
-            padding: EdgeInsets.all(32),
-            child: Center(child: Text('No teams found.')),
-          )
-        else
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final crossAxisCount = constraints.maxWidth > 900
-                  ? 4
-                  : (constraints.maxWidth > 600 ? 3 : 2);
+    final progress = totalTeams > 0 ? (completedCount / totalTeams) : 0.0;
 
-              return GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: crossAxisCount,
-                  childAspectRatio: 1.8,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                ),
-                itemCount: filteredTeams.length,
-                itemBuilder: (context, index) {
-                  final team = filteredTeams[index];
-                  final matching = _index.getPitTeam(team.teamNumber);
-
-                  final isConflict = matching.length > 1;
-                  final isAssigned = matching.length == 1;
-                  final asgn = isAssigned ? matching.first : null;
-                  final isDone = asgn?.status == 'COMPLETED';
-
-                  final statusLabel = isConflict
-                      ? '${matching.length} Scouts (Fix)'
-                      : (isDone
-                          ? '✓ Scouted'
-                          : (isAssigned ? (asgn?.assignedUserDisplayName ?? asgn?.assignedUsername ?? 'Assigned') : 'Unassigned'));
-
-                  final color = isConflict
-                      ? const Color(0xFFEF4444)
-                      : (isDone
-                          ? const Color(0xFF10B981)
-                          : (isAssigned ? const Color(0xFF8B5CF6) : const Color(0xFFF59E0B)));
-
-                  final pitSlotKey = 'PIT:${team.teamNumber}';
-                  final pitTooltip = isConflict
-                      ? (_index.getSlotConflictTooltip(pitSlotKey) ??
-                          'Conflict: Multiple scouts assigned to Pit Scouting for Team #${team.teamNumber}.\nClick to resolve.')
-                      : (isDone
-                          ? 'Team #${team.teamNumber}: Pit scouting completed\nClick to edit'
-                          : (isAssigned
-                              ? 'Team #${team.teamNumber}: Pit assigned to @${asgn?.assignedUserDisplayName ?? asgn?.assignedUsername} (Status: ${asgn?.status ?? "PENDING"})\nClick to edit'
-                              : 'Team #${team.teamNumber}: Unassigned in pit\nClick to assign'));
-
-                  return Tooltip(
-                    message: pitTooltip,
-                    waitDuration: const Duration(milliseconds: 250),
-                    child: InkWell(
-                      onTap: () {
-                        if (isConflict) {
-                          _openConflictResolverModal(matching, title: 'Pit Scouting - Team #${team.teamNumber}');
-                        } else if (isAssigned) {
-                          _openCreateEditModal(asgn: asgn);
-                        } else {
-                          _openCreateEditModal(
-                            defaultType: 'PIT',
-                            defaultTeamNumber: team.teamNumber,
-                          );
-                        }
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: ObsidianUITheme.getSurfaceColor(context),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: color.withValues(alpha: isConflict ? 0.9 : 0.5)),
+    return [
+      SliverPadding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        sliver: SliverToBoxAdapter(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Pit Progress Overview Card
+              ObsidianGlassCard(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Pit Scouting Progress',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    if (isConflict) ...[
-                                      const Icon(Icons.warning_amber_rounded, size: 14, color: Color(0xFFEF4444)),
-                                      const SizedBox(width: 4),
-                                    ],
-                                    Text(
-                                      '#${team.teamNumber}',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                        color: isConflict ? const Color(0xFFEF4444) : null,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: color.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    statusLabel,
-                                    style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Text(
-                              team.nickname ?? team.name ?? '',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: ObsidianUITheme.getSecondaryTextColor(context),
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
+                        Text(
+                          '$completedCount / $totalTeams scouted (${(progress * 100).toStringAsFixed(0)}%)',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: progress == 1.0 ? const Color(0xFF10B981) : ObsidianUITheme.primaryAccent,
+                          ),
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        backgroundColor: Colors.white10,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          progress == 1.0 ? const Color(0xFF10B981) : ObsidianUITheme.primaryAccent,
+                        ),
+                        minHeight: 6,
                       ),
                     ),
-                  );
-                },
-              );
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              // Search & Filter Row
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _pitSearchController,
+                      decoration: InputDecoration(
+                        hintText: 'Search pit teams...',
+                        prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              // Quick Filter Chips
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildPitFilterChip('all', 'All ($totalTeams)'),
+                    const SizedBox(width: 8),
+                    _buildPitFilterChip('unassigned', 'Unassigned ($unassignedCount)', const Color(0xFFF59E0B)),
+                    const SizedBox(width: 8),
+                    _buildPitFilterChip('assigned', 'Assigned ($assignedCount)', const Color(0xFF8B5CF6)),
+                    const SizedBox(width: 8),
+                    _buildPitFilterChip('completed', 'Scouted ($completedCount)', const Color(0xFF10B981)),
+                    if (conflictCount > 0) ...[
+                      const SizedBox(width: 8),
+                      _buildPitFilterChip('conflicts', 'Conflicts ($conflictCount)', const Color(0xFFEF4444)),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (filteredTeams.isEmpty)
+                const ObsidianGlassCard(
+                  padding: EdgeInsets.all(32),
+                  child: Center(child: Text('No teams match the current pit filter.')),
+                ),
+            ],
+          ),
+        ),
+      ),
+      if (filteredTeams.isNotEmpty)
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          sliver: SliverGrid.builder(
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 310,
+              mainAxisExtent: 110,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+            ),
+            itemCount: filteredTeams.length,
+            itemBuilder: (context, index) {
+              final team = filteredTeams[index];
+              return _buildPitTeamCard(team);
             },
           ),
-      ],
+        ),
+    ];
+  }
+
+  Widget _buildPitFilterChip(String filterKey, String label, [Color? activeColor]) {
+    final isSelected = _pitFilter == filterKey;
+    final color = activeColor ?? ObsidianUITheme.primaryAccent;
+
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      labelStyle: TextStyle(
+        fontSize: 11.5,
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        color: isSelected ? (activeColor ?? ObsidianUITheme.primaryAccent) : null,
+      ),
+      selectedColor: color.withValues(alpha: 0.2),
+      onSelected: (_) => setState(() => _pitFilter = filterKey),
+    );
+  }
+
+  Widget _buildPitTeamCard(TeamModel team) {
+    final matching = _index.getPitTeam(team.teamNumber);
+
+    final isConflict = matching.length > 1;
+    final isAssigned = matching.length == 1;
+    final asgn = isAssigned ? matching.first : null;
+    final isDone = asgn?.status == 'COMPLETED';
+
+    final statusLabel = isConflict
+        ? 'Conflict'
+        : (isDone
+            ? '✓ Scouted'
+            : (isAssigned ? (asgn?.status == 'IN_PROGRESS' ? 'In Progress' : 'Assigned') : 'Unassigned'));
+
+    final color = isConflict
+        ? const Color(0xFFEF4444)
+        : (isDone
+            ? const Color(0xFF10B981)
+            : (isAssigned ? const Color(0xFF8B5CF6) : const Color(0xFFF59E0B)));
+
+    final pitSlotKey = 'PIT:${team.teamNumber}';
+    final pitTooltip = isConflict
+        ? (_index.getSlotConflictTooltip(pitSlotKey) ??
+            'Conflict: Multiple scouts assigned to Pit Scouting for Team #${team.teamNumber}.\nClick to resolve.')
+        : (isDone
+            ? 'Team #${team.teamNumber}: Pit scouting completed\nClick to edit'
+            : (isAssigned
+                ? 'Team #${team.teamNumber}: Pit assigned to @${asgn?.assignedUserDisplayName ?? asgn?.assignedUsername} (Status: ${asgn?.status ?? "PENDING"})\nClick to edit'
+                : 'Team #${team.teamNumber}: Unassigned in pit\nClick to assign'));
+
+    final scouterDisplayName = asgn?.assignedUserDisplayName ?? asgn?.assignedUsername ?? '';
+
+    return Tooltip(
+      message: pitTooltip,
+      waitDuration: const Duration(milliseconds: 250),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () {
+            if (isConflict) {
+              _openConflictResolverModal(matching, title: 'Pit Scouting - Team #${team.teamNumber}');
+            } else if (isAssigned) {
+              _openCreateEditModal(asgn: asgn);
+            } else {
+              _openCreateEditModal(
+                defaultType: 'PIT',
+                defaultTeamNumber: team.teamNumber,
+              );
+            }
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: ObsidianUITheme.getSurfaceColor(context),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isConflict
+                    ? const Color(0xFFEF4444)
+                    : (isDone
+                        ? const Color(0xFF10B981).withValues(alpha: 0.5)
+                        : (isAssigned
+                            ? const Color(0xFF8B5CF6).withValues(alpha: 0.4)
+                            : ObsidianUITheme.getBorderColor(context).withValues(alpha: 0.6))),
+                width: isConflict ? 1.4 : 1.0,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Top Row: Team Number & Status Pill
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (isConflict) ...[
+                          const Icon(Icons.warning_amber_rounded, size: 15, color: Color(0xFFEF4444)),
+                          const SizedBox(width: 4),
+                        ],
+                        Text(
+                          '#${team.teamNumber}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                            color: isConflict
+                                ? const Color(0xFFEF4444)
+                                : ObsidianUITheme.getPrimaryTextColor(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: color.withValues(alpha: 0.35)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isDone) ...[
+                            const Icon(Icons.check_rounded, size: 11, color: Color(0xFF10B981)),
+                            const SizedBox(width: 2),
+                          ],
+                          Text(
+                            statusLabel,
+                            style: TextStyle(
+                              color: color,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                // Middle Row: Team Name / Nickname
+                Text(
+                  team.nickname?.isNotEmpty == true
+                      ? team.nickname!
+                      : (team.name ?? 'Team #${team.teamNumber}'),
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: ObsidianUITheme.getSecondaryTextColor(context),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                // Bottom Row: Interactive Scout Assignment Action Pill
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isConflict
+                        ? const Color(0xFFEF4444).withValues(alpha: 0.12)
+                        : (isDone
+                            ? const Color(0xFF10B981).withValues(alpha: 0.08)
+                            : (isAssigned
+                                ? const Color(0xFF8B5CF6).withValues(alpha: 0.12)
+                                : ObsidianUITheme.primaryAccent.withValues(alpha: 0.08))),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: isConflict
+                          ? const Color(0xFFEF4444).withValues(alpha: 0.4)
+                          : (isDone
+                              ? const Color(0xFF10B981).withValues(alpha: 0.25)
+                              : (isAssigned
+                                  ? const Color(0xFF8B5CF6).withValues(alpha: 0.3)
+                                  : ObsidianUITheme.primaryAccent.withValues(alpha: 0.25))),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        isConflict
+                            ? Icons.warning_amber_rounded
+                            : (isDone
+                                ? Icons.task_alt_rounded
+                                : (isAssigned ? Icons.person_rounded : Icons.person_add_alt_1_rounded)),
+                        size: 13,
+                        color: color,
+                      ),
+                      const SizedBox(width: 5),
+                      Expanded(
+                        child: Text(
+                          isConflict
+                              ? 'Resolve ${matching.length} scouts'
+                              : (isAssigned
+                                  ? '@$scouterDisplayName'
+                                  : (isDone ? 'Completed' : 'Assign Scout')),
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: isAssigned || isDone || isConflict ? FontWeight.bold : FontWeight.w600,
+                            color: color,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Icon(
+                        isConflict
+                            ? Icons.build_circle_outlined
+                            : (isAssigned ? Icons.edit_rounded : Icons.arrow_forward_ios_rounded),
+                        size: isAssigned || isConflict ? 12 : 9,
+                        color: color.withValues(alpha: 0.7),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -1634,9 +1887,31 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
                     style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.primaryAccent),
                     onPressed: () async {
                       final toDelete = conflicted.where((item) => item.id != a.id).map((i) => i.id).toList();
-                      await widget.apiService.deleteAllAssignments(_currentEventKey ?? '', specificIds: toDelete);
-                      if (!ctx.mounted) return;
-                      Navigator.pop(ctx);
+                      try {
+                        await widget.apiService.deleteAllAssignments(_currentEventKey ?? '', specificIds: toDelete);
+                        if (!ctx.mounted) return;
+                        final delSet = toDelete.toSet();
+                        if (mounted) {
+                          setState(() {
+                            _assignments.removeWhere((item) => delSet.contains(item.id));
+                            _recomputeIndex();
+                          });
+                        }
+                        Navigator.pop(ctx);
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Conflict resolved! Kept selected scouter.')),
+                          );
+                        }
+                      } catch (e) {
+                        if (!ctx.mounted) return;
+                        final msg = e.toString().replaceAll('Exception: ', '');
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(msg)),
+                          );
+                        }
+                      }
                       _loadEventData();
                     },
                     child: const Text('Keep This Scout', style: TextStyle(color: Colors.black, fontSize: 11)),
@@ -1651,9 +1926,31 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
             style: TextButton.styleFrom(foregroundColor: const Color(0xFFEF4444)),
             onPressed: () async {
               final toDelete = conflicted.map((i) => i.id).toList();
-              await widget.apiService.deleteAllAssignments(_currentEventKey ?? '', specificIds: toDelete);
-              if (!ctx.mounted) return;
-              Navigator.pop(ctx);
+              try {
+                await widget.apiService.deleteAllAssignments(_currentEventKey ?? '', specificIds: toDelete);
+                if (!ctx.mounted) return;
+                final delSet = toDelete.toSet();
+                if (mounted) {
+                  setState(() {
+                    _assignments.removeWhere((item) => delSet.contains(item.id));
+                    _recomputeIndex();
+                  });
+                }
+                Navigator.pop(ctx);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Cleared all assignments in slot.')),
+                  );
+                }
+              } catch (e) {
+                if (!ctx.mounted) return;
+                final msg = e.toString().replaceAll('Exception: ', '');
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(msg)),
+                  );
+                }
+              }
               _loadEventData();
             },
             child: const Text('Clear All In Slot'),
@@ -1686,7 +1983,31 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
     );
 
     if (confirmed == true) {
-      await widget.apiService.deleteAssignment(id);
+      try {
+        final success = await widget.apiService.deleteAssignment(id);
+        if (mounted) {
+          if (success) {
+            setState(() {
+              _assignments.removeWhere((a) => a.id == id);
+              _recomputeIndex();
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Assignment deleted')),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Failed to delete assignment.')),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          final msg = e.toString().replaceAll('Exception: ', '');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(msg)),
+          );
+        }
+      }
       _loadEventData();
     }
   }
@@ -1715,13 +2036,39 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
     );
 
     if (confirmed == true) {
-      if (isAll) {
-        await widget.apiService.deleteAllAssignments(_currentEventKey ?? '');
-      } else {
-        await widget.apiService.deleteAllAssignments(
-          _currentEventKey ?? '',
-          specificIds: filtered.map((a) => a.id).toList(),
-        );
+      try {
+        bool success;
+        if (isAll) {
+          success = await widget.apiService.deleteAllAssignments(_currentEventKey ?? '');
+        } else {
+          success = await widget.apiService.deleteAllAssignments(
+            _currentEventKey ?? '',
+            specificIds: filtered.map((a) => a.id).toList(),
+          );
+        }
+        if (mounted) {
+          if (success) {
+            final deletedIds = filtered.map((a) => a.id).toSet();
+            setState(() {
+              _assignments.removeWhere((a) => isAll || deletedIds.contains(a.id));
+              _recomputeIndex();
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(isAll ? 'Deleted all assignments' : 'Deleted ${filtered.length} filtered assignment(s)')),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Failed to delete assignments.')),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          final msg = e.toString().replaceAll('Exception: ', '');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(msg)),
+          );
+        }
       }
       _loadEventData();
     }
@@ -2263,6 +2610,7 @@ class _BulkWizardBottomSheetState extends State<_BulkWizardBottomSheet> {
   String? _endMatchKey;
   int _consecutiveBlocks = 5;
   bool _overwrite = false;
+  String _pitScope = 'unassigned';
   final Set<String> _selectedScouterIds = {};
   bool _isGenerating = false;
 
@@ -2312,372 +2660,30 @@ class _BulkWizardBottomSheetState extends State<_BulkWizardBottomSheet> {
       return;
     }
 
-    final pool = _selectedScouterIds.toList();
-
-    if (_bulkType == 'PIT_AUTO') {
-      final pitAssignments = widget.existingAssignments.where((a) => a.assignmentType == 'PIT').toList();
-      final targetTeams = widget.teams;
-      if (targetTeams.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No teams found to assign.')),
-        );
-        return;
-      }
-
-      setState(() => _isGenerating = true);
-      try {
-        if (_overwrite) {
-          final existingToDelete = pitAssignments
-              .where((a) => targetTeams.any((t) => t.teamNumber == a.targetTeamNumber))
-              .map((a) => a.id)
-              .toList();
-          if (existingToDelete.isNotEmpty) {
-            await widget.apiService.deleteAllAssignments(
-              widget.eventKey,
-              specificIds: existingToDelete,
-            );
-          }
-        }
-
-        final items = targetTeams.asMap().entries.map((entry) {
-          final idx = entry.key;
-          final team = entry.value;
-          final scouterId = pool[idx % pool.length];
-          return BulkAssignmentItem(
-            assignedUserId: scouterId,
-            assignmentType: 'PIT',
-            targetTeamNumber: team.teamNumber,
-            notes: team.nickname != null ? 'Pit Scouting - ${team.nickname}' : 'Pit Scouting',
-          );
-        }).toList();
-
-        await widget.apiService.bulkCreateAssignments(
-          BulkCreateAssignmentsRequest(
-            eventKey: widget.eventKey,
-            assignments: items,
-          ),
-        );
-
-        if (mounted) {
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Successfully assigned ${items.length} teams across ${pool.length} pit scouters!')),
-          );
-          widget.onGenerated();
-        }
-      } catch (e) {
-        if (mounted) {
-          setState(() => _isGenerating = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Pit auto-assignment failed: $e')),
-          );
-        }
-      }
-      return;
-    }
-
-    final available = _stageMatches;
-    final startIdx = available.indexWhere((m) => m.matchKey == _startMatchKey);
-    final endIdx = available.indexWhere((m) => m.matchKey == _endMatchKey);
-
-    if (startIdx < 0 || endIdx < 0 || startIdx > endIdx) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a valid match range.')),
-      );
-      return;
-    }
-
-    final targetMatches = available.sublist(startIdx, endIdx + 1);
-    final existingToDelete = <String>[];
-    final items = <BulkAssignmentItem>[];
-
     setState(() => _isGenerating = true);
 
     try {
-      // Helper to pick next available scouter from pool avoiding conflict in the same match
-      String pickScouterForMatch(
-        int preferredIdx,
-        Set<String> busyScoutsInMatch,
-      ) {
-        final preferredId = pool[preferredIdx % pool.length];
-        if (!busyScoutsInMatch.contains(preferredId)) {
-          busyScoutsInMatch.add(preferredId);
-          return preferredId;
-        }
+      final req = AutoGenerateAssignmentsRequest(
+        eventKey: widget.eventKey,
+        assignmentType: _bulkType,
+        scouterUserIds: _selectedScouterIds.toList(),
+        stageFilter: _stage,
+        startMatchKey: _startMatchKey,
+        endMatchKey: _endMatchKey,
+        consecutiveMatches: _consecutiveBlocks,
+        overwrite: _overwrite,
+        pitScope: _pitScope,
+      );
 
-        // Find an alternative scouter from the pool who is NOT busy in this match
-        for (int offset = 1; offset < pool.length; offset++) {
-          final altIdx = (preferredIdx + offset) % pool.length;
-          final altId = pool[altIdx];
-          if (!busyScoutsInMatch.contains(altId)) {
-            busyScoutsInMatch.add(altId);
-            return altId;
-          }
-        }
-
-        // If all selected scouters are already busy in this match, fallback with overlap
-        busyScoutsInMatch.add(preferredId);
-        return preferredId;
-      }
-
-      if (_bulkType == 'MATCH') {
-        for (int mIdx = 0; mIdx < targetMatches.length; mIdx++) {
-          final m = targetMatches[mIdx];
-          final block = mIdx ~/ _consecutiveBlocks;
-          final redTeams = m.redTeams;
-          final blueTeams = m.blueTeams;
-          final allTeams = [...redTeams, ...blueTeams];
-
-          // Find scouts already assigned in this match
-          final busyScoutsInMatch = <String>{};
-          for (final a in widget.existingAssignments) {
-            if (a.isMatchFor(m)) {
-              if (a.assignmentType == 'MATCH' && _overwrite) {
-                // Overwriting
-              } else if (a.assignedUserId.isNotEmpty) {
-                busyScoutsInMatch.add(a.assignedUserId);
-              }
-            }
-          }
-
-          for (int sIdx = 0; sIdx < allTeams.length; sIdx++) {
-            final tKey = allTeams[sIdx];
-            final teamNum = int.tryParse(tKey.replaceAll(RegExp(r'[^0-9]'), ''));
-            if (teamNum == null) continue;
-
-            final existing = widget.existingAssignments.where((a) {
-              return a.assignmentType == 'MATCH' && a.isForSlot(m, teamNum);
-            }).toList();
-
-            if (existing.isNotEmpty) {
-              if (!_overwrite) {
-                continue; // skip already assigned slot!
-              } else {
-                for (final ea in existing) {
-                  existingToDelete.add(ea.id);
-                }
-              }
-            }
-
-            final preferredIdx = block * allTeams.length + sIdx;
-            final scouterId = pickScouterForMatch(preferredIdx, busyScoutsInMatch);
-
-            items.add(BulkAssignmentItem(
-              assignedUserId: scouterId,
-              assignmentType: 'MATCH',
-              matchKey: m.matchKey,
-              matchNumber: m.matchNumber,
-              compLevel: m.compLevel,
-              targetTeamNumber: teamNum,
-              allianceColor: sIdx < redTeams.length ? 'RED' : 'BLUE',
-            ));
-          }
-        }
-      } else if (_bulkType == 'QUALITATIVE_BOTH') {
-        for (int mIdx = 0; mIdx < targetMatches.length; mIdx++) {
-          final m = targetMatches[mIdx];
-          final block = mIdx ~/ _consecutiveBlocks;
-
-          final busyScoutsInMatch = <String>{};
-          for (final a in widget.existingAssignments) {
-            if (a.isMatchFor(m)) {
-              if (a.assignmentType == 'QUALITATIVE' && _overwrite) {
-                // Overwriting
-              } else if (a.assignedUserId.isNotEmpty) {
-                busyScoutsInMatch.add(a.assignedUserId);
-              }
-            }
-          }
-
-          final existingQual = widget.existingAssignments.where((a) {
-            return a.assignmentType == 'QUALITATIVE' && a.isMatchFor(m);
-          }).toList();
-
-          if (existingQual.isNotEmpty) {
-            if (!_overwrite) {
-              continue; // Skip already assigned match
-            } else {
-              for (final ea in existingQual) {
-                existingToDelete.add(ea.id);
-              }
-            }
-          }
-
-          final preferredIdx = block;
-          final scouterId = pickScouterForMatch(preferredIdx, busyScoutsInMatch);
-
-          items.add(BulkAssignmentItem(
-            assignedUserId: scouterId,
-            assignmentType: 'QUALITATIVE',
-            matchKey: m.matchKey,
-            matchNumber: m.matchNumber,
-            compLevel: m.compLevel,
-            allianceColor: 'RED',
-            targetAlliance: 'RED',
-            notes: 'Qualitative scouting for RED alliance (Both Alliances)',
-          ));
-
-          items.add(BulkAssignmentItem(
-            assignedUserId: scouterId,
-            assignmentType: 'QUALITATIVE',
-            matchKey: m.matchKey,
-            matchNumber: m.matchNumber,
-            compLevel: m.compLevel,
-            allianceColor: 'BLUE',
-            targetAlliance: 'BLUE',
-            notes: 'Qualitative scouting for BLUE alliance (Both Alliances)',
-          ));
-        }
-      } else if (_bulkType == 'QUALITATIVE_RED' || _bulkType == 'QUALITATIVE_BLUE') {
-        final alliance = _bulkType == 'QUALITATIVE_RED' ? 'RED' : 'BLUE';
-
-        for (int mIdx = 0; mIdx < targetMatches.length; mIdx++) {
-          final m = targetMatches[mIdx];
-          final block = mIdx ~/ _consecutiveBlocks;
-
-          final busyScoutsInMatch = <String>{};
-          for (final a in widget.existingAssignments) {
-            if (a.isMatchFor(m)) {
-              if (a.assignmentType == 'QUALITATIVE' && _overwrite) {
-                // Overwriting
-              } else if (a.assignedUserId.isNotEmpty) {
-                busyScoutsInMatch.add(a.assignedUserId);
-              }
-            }
-          }
-
-          final teamKeys = alliance == 'RED' ? m.redTeams : m.blueTeams;
-          final teamNums = teamKeys
-              .map((k) => int.tryParse(k.replaceAll(RegExp(r'[^0-9]'), '')))
-              .whereType<int>()
-              .toList();
-
-          final existingAlliance = widget.existingAssignments.where((a) {
-            return a.assignmentType == 'QUALITATIVE' && a.isForQualAlliance(m, alliance);
-          }).toList();
-
-          final existingTeams = widget.existingAssignments.where((a) {
-            return a.assignmentType == 'QUALITATIVE' &&
-                a.isMatchFor(m) &&
-                a.targetTeamNumber != null &&
-                teamNums.contains(a.targetTeamNumber);
-          }).toList();
-
-          final allConflicted = [...existingAlliance, ...existingTeams];
-
-          if (allConflicted.isNotEmpty) {
-            if (!_overwrite) {
-              continue; // Skip this alliance in this match!
-            } else {
-              for (final ea in allConflicted) {
-                existingToDelete.add(ea.id);
-              }
-            }
-          }
-
-          final preferredIdx = block;
-          final scouterId = pickScouterForMatch(preferredIdx, busyScoutsInMatch);
-
-          items.add(BulkAssignmentItem(
-            assignedUserId: scouterId,
-            assignmentType: 'QUALITATIVE',
-            matchKey: m.matchKey,
-            matchNumber: m.matchNumber,
-            compLevel: m.compLevel,
-            allianceColor: alliance,
-            targetAlliance: alliance,
-            notes: 'Qualitative scouting for $alliance alliance',
-          ));
-        }
-      } else if (_bulkType == 'QUALITATIVE_TEAMS') {
-        for (int mIdx = 0; mIdx < targetMatches.length; mIdx++) {
-          final m = targetMatches[mIdx];
-          final block = mIdx ~/ _consecutiveBlocks;
-          final redTeams = m.redTeams;
-          final blueTeams = m.blueTeams;
-          final allTeams = [...redTeams, ...blueTeams];
-
-          final busyScoutsInMatch = <String>{};
-          for (final a in widget.existingAssignments) {
-            if (a.isMatchFor(m)) {
-              if (a.assignmentType == 'QUALITATIVE' && _overwrite) {
-                // Overwriting
-              } else if (a.assignedUserId.isNotEmpty) {
-                busyScoutsInMatch.add(a.assignedUserId);
-              }
-            }
-          }
-
-          for (int sIdx = 0; sIdx < allTeams.length; sIdx++) {
-            final tKey = allTeams[sIdx];
-            final teamNum = int.tryParse(tKey.replaceAll(RegExp(r'[^0-9]'), ''));
-            if (teamNum == null) continue;
-
-            final alliance = sIdx < redTeams.length ? 'RED' : 'BLUE';
-
-            // 1. Existing individual team qualitative assignment
-            final existingTeam = widget.existingAssignments.where((a) {
-              return a.assignmentType == 'QUALITATIVE' && a.isForSlot(m, teamNum);
-            }).toList();
-
-            // 2. Existing alliance-level qualitative assignment for this team's alliance
-            final existingAlliance = widget.existingAssignments.where((a) {
-              return a.assignmentType == 'QUALITATIVE' && a.isForQualAlliance(m, alliance);
-            }).toList();
-
-            final allConflicted = [...existingTeam, ...existingAlliance];
-
-            if (allConflicted.isNotEmpty) {
-              if (!_overwrite) {
-                continue; // Skip already assigned / covered slot!
-              } else {
-                for (final ea in allConflicted) {
-                  existingToDelete.add(ea.id);
-                }
-              }
-            }
-
-            final preferredIdx = block * allTeams.length + sIdx;
-            final scouterId = pickScouterForMatch(preferredIdx, busyScoutsInMatch);
-
-            items.add(BulkAssignmentItem(
-              assignedUserId: scouterId,
-              assignmentType: 'QUALITATIVE',
-              matchKey: m.matchKey,
-              matchNumber: m.matchNumber,
-              compLevel: m.compLevel,
-              targetTeamNumber: teamNum,
-              allianceColor: alliance,
-              targetAlliance: alliance,
-              notes: 'Qualitative scouting for Team #$teamNum',
-            ));
-          }
-        }
-      }
-
-      if (_overwrite && existingToDelete.isNotEmpty) {
-        await widget.apiService.deleteAllAssignments(
-          widget.eventKey,
-          specificIds: existingToDelete,
-        );
-      }
-
-      if (items.isNotEmpty) {
-        await widget.apiService.bulkCreateAssignments(
-          BulkCreateAssignmentsRequest(
-            eventKey: widget.eventKey,
-            assignments: items,
-          ),
-        );
-      }
+      final res = await widget.apiService.autoGenerateAssignments(req);
 
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(items.isEmpty
-                ? 'No new slots needed assignment (already assigned).'
-                : 'Successfully created ${items.length} bulk assignments!'),
+            content: Text(res.message.isNotEmpty
+                ? res.message
+                : 'Successfully created ${res.createdCount} assignments!'),
           ),
         );
         widget.onGenerated();
@@ -2811,6 +2817,16 @@ class _BulkWizardBottomSheetState extends State<_BulkWizardBottomSheet> {
                 ],
               ),
             ] else ...[
+              DropdownButtonFormField<String>(
+                initialValue: _pitScope,
+                decoration: const InputDecoration(labelText: 'Teams Scope', isDense: true),
+                items: const [
+                  DropdownMenuItem(value: 'unassigned', child: Text('Unassigned Teams Only')),
+                  DropdownMenuItem(value: 'all', child: Text('All Attending Teams')),
+                ],
+                onChanged: (val) => setState(() => _pitScope = val ?? 'unassigned'),
+              ),
+              const SizedBox(height: 10),
               Row(
                 children: [
                   Checkbox(value: _overwrite, onChanged: (v) => setState(() => _overwrite = v ?? false)),
@@ -2932,57 +2948,26 @@ class _PitAutoBottomSheetState extends State<_PitAutoBottomSheet> {
       return;
     }
 
-    final pitAssignments = widget.existingAssignments.where((a) => a.assignmentType == 'PIT').toList();
-    final targetTeams = _scope == 'unassigned'
-        ? widget.teams.where((t) => !pitAssignments.any((a) => a.targetTeamNumber == t.teamNumber)).toList()
-        : widget.teams;
-
-    if (targetTeams.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No teams to assign for selected scope.')),
-      );
-      return;
-    }
-
-    final pool = _selectedScouterIds.toList();
-    final items = targetTeams.asMap().entries.map((entry) {
-      final idx = entry.key;
-      final team = entry.value;
-      final scouterId = pool[idx % pool.length];
-      return BulkAssignmentItem(
-        assignedUserId: scouterId,
-        assignmentType: 'PIT',
-        targetTeamNumber: team.teamNumber,
-        notes: team.nickname != null ? 'Pit Scouting - ${team.nickname}' : 'Pit Scouting',
-      );
-    }).toList();
-
     setState(() => _isGenerating = true);
     try {
-      if (_overwrite) {
-        final existingToDelete = pitAssignments
-            .where((a) => targetTeams.any((t) => t.teamNumber == a.targetTeamNumber))
-            .map((a) => a.id)
-            .toList();
-        if (existingToDelete.isNotEmpty) {
-          await widget.apiService.deleteAllAssignments(
-            widget.eventKey,
-            specificIds: existingToDelete,
-          );
-        }
-      }
-
-      await widget.apiService.bulkCreateAssignments(
-        BulkCreateAssignmentsRequest(
-          eventKey: widget.eventKey,
-          assignments: items,
-        ),
+      final req = AutoGenerateAssignmentsRequest(
+        eventKey: widget.eventKey,
+        assignmentType: 'PIT_AUTO',
+        scouterUserIds: _selectedScouterIds.toList(),
+        pitScope: _scope,
+        overwrite: _overwrite,
       );
+
+      final res = await widget.apiService.autoGenerateAssignments(req);
 
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Successfully assigned ${items.length} teams across ${pool.length} pit scouters!')),
+          SnackBar(
+            content: Text(res.message.isNotEmpty
+                ? res.message
+                : 'Successfully assigned ${res.createdCount} teams across ${_selectedScouterIds.length} pit scouters!'),
+          ),
         );
         widget.onGenerated();
       }
@@ -3168,36 +3153,101 @@ class _AssignmentIndex {
     final qualTeamMap = <String, List<ScoutingAssignment>>{};
     final pitTeamMap = <int, List<ScoutingAssignment>>{};
 
-    for (final a in assignments) {
-      if (a.assignmentType == 'MATCH') {
-        matchAssignments.add(a);
-      } else if (a.assignmentType == 'QUALITATIVE') {
-        qualAssignments.add(a);
-      } else if (a.assignmentType == 'PIT') {
-        pitAssignments.add(a);
-        if (a.targetTeamNumber != null) {
-          pitTeamMap.putIfAbsent(a.targetTeamNumber!, () => []).add(a);
+    // Fast O(1) match lookup table by matchKey and normalized (compLevel + matchNumber)
+    final matchByKey = <String, MatchModel>{};
+    for (final m in matches) {
+      final k = m.matchKey.trim().toLowerCase();
+      if (k.isNotEmpty) {
+        matchByKey[k] = m;
+      }
+      final normLvl = MatchFormatUtils.normalizeCompLevel(m.compLevel);
+      if (m.matchNumber != null) {
+        matchByKey['${normLvl}_${m.matchNumber}'] = m;
+        final setNum = MatchFormatUtils.extractSetNumber(m.matchKey);
+        if (setNum != null) {
+          matchByKey['${normLvl}_${setNum}_${m.matchNumber}'] = m;
         }
       }
     }
 
-    for (final m in matches) {
-      final mKey = m.matchKey.toLowerCase();
-      for (final a in matchAssignments) {
-        if (a.isMatchFor(m) && a.targetTeamNumber != null) {
-          matchSlotMap.putIfAbsent('${mKey}_${a.targetTeamNumber}', () => []).add(a);
+    MatchModel? resolveMatch(ScoutingAssignment a) {
+      final k = (a.matchKey ?? '').trim().toLowerCase();
+      if (k.isNotEmpty && matchByKey.containsKey(k)) {
+        return matchByKey[k];
+      }
+      final cLvl = MatchFormatUtils.normalizeCompLevel(a.compLevel);
+      final mNum = a.matchNumber ?? MatchFormatUtils.extractMatchNumber(a.matchKey, null);
+      if (mNum != null) {
+        final setNum = MatchFormatUtils.extractSetNumber(a.matchKey);
+        if (setNum != null && matchByKey.containsKey('${cLvl}_${setNum}_$mNum')) {
+          return matchByKey['${cLvl}_${setNum}_$mNum'];
+        }
+        if (matchByKey.containsKey('${cLvl}_$mNum')) {
+          return matchByKey['${cLvl}_$mNum'];
         }
       }
+      return null;
+    }
 
-      for (final a in qualAssignments) {
-        if (a.isMatchFor(m)) {
-          final alliance = (a.allianceColor ?? a.targetAlliance ?? '').toUpperCase();
-          if (alliance == 'RED' || alliance == 'BLUE') {
-            qualAllianceMap.putIfAbsent('${mKey}_$alliance', () => []).add(a);
+    final rawSlotGroups = <String, List<ScoutingAssignment>>{};
+    final qualAllianceByMatch = <String, Map<String, List<ScoutingAssignment>>>{};
+    final qualTeamsByMatch = <String, Map<int, List<ScoutingAssignment>>>{};
+    final userAssignmentsByMatch = <String, Map<String, List<ScoutingAssignment>>>{};
+
+    for (final a in assignments) {
+      final resolved = resolveMatch(a);
+      final mKey = (resolved?.matchKey ?? a.matchKey ?? '').trim().toLowerCase();
+      final cLvl = MatchFormatUtils.normalizeCompLevel(a.compLevel != null && a.compLevel!.isNotEmpty ? a.compLevel : resolved?.compLevel);
+      final mNum = a.matchNumber ?? resolved?.matchNumber ?? MatchFormatUtils.extractMatchNumber(mKey, null);
+      final matchIdentifier = mKey.isNotEmpty ? mKey : '${cLvl}_$mNum';
+
+      if (a.assignmentType == 'MATCH') {
+        matchAssignments.add(a);
+        if (a.targetTeamNumber != null) {
+          matchSlotMap.putIfAbsent('${mKey}_${a.targetTeamNumber}', () => []).add(a);
+          rawSlotGroups.putIfAbsent('MATCH:$matchIdentifier:${a.targetTeamNumber}', () => []).add(a);
+        }
+        if (mKey.isNotEmpty && a.assignedUserId.isNotEmpty) {
+          userAssignmentsByMatch
+              .putIfAbsent(mKey, () => {})
+              .putIfAbsent(a.assignedUserId, () => [])
+              .add(a);
+        }
+      } else if (a.assignmentType == 'QUALITATIVE') {
+        qualAssignments.add(a);
+        final rawAlliance = (a.allianceColor ?? a.targetAlliance ?? '').trim().toUpperCase();
+        final alliance = (rawAlliance == 'RED' || rawAlliance == 'BLUE') ? rawAlliance : '';
+
+        if (a.targetTeamNumber != null) {
+          qualTeamMap.putIfAbsent('${mKey}_${a.targetTeamNumber}', () => []).add(a);
+          rawSlotGroups.putIfAbsent('QUAL:$matchIdentifier:team_${a.targetTeamNumber}', () => []).add(a);
+          if (mKey.isNotEmpty) {
+            qualTeamsByMatch
+                .putIfAbsent(mKey, () => {})
+                .putIfAbsent(a.targetTeamNumber!, () => [])
+                .add(a);
           }
-          if (a.targetTeamNumber != null) {
-            qualTeamMap.putIfAbsent('${mKey}_${a.targetTeamNumber}', () => []).add(a);
+        } else if (alliance.isNotEmpty) {
+          qualAllianceMap.putIfAbsent('${mKey}_$alliance', () => []).add(a);
+          rawSlotGroups.putIfAbsent('QUAL:$matchIdentifier:alliance_${alliance.toLowerCase()}', () => []).add(a);
+          if (mKey.isNotEmpty) {
+            qualAllianceByMatch
+                .putIfAbsent(mKey, () => {})
+                .putIfAbsent(alliance, () => [])
+                .add(a);
           }
+        }
+        if (mKey.isNotEmpty && a.assignedUserId.isNotEmpty) {
+          userAssignmentsByMatch
+              .putIfAbsent(mKey, () => {})
+              .putIfAbsent(a.assignedUserId, () => [])
+              .add(a);
+        }
+      } else if (a.assignmentType == 'PIT') {
+        pitAssignments.add(a);
+        if (a.targetTeamNumber != null) {
+          pitTeamMap.putIfAbsent(a.targetTeamNumber!, () => []).add(a);
+          rawSlotGroups.putIfAbsent('PIT:${a.targetTeamNumber}', () => []).add(a);
         }
       }
     }
@@ -3207,27 +3257,6 @@ class _AssignmentIndex {
     final slotConflictTooltips = <String, String>{};
 
     // 1. Same-slot duplicate assignments
-    final rawSlotGroups = <String, List<ScoutingAssignment>>{};
-    for (final a in assignments) {
-      final mKey = (a.matchKey ?? '').toLowerCase().trim();
-      final cLvl = MatchFormatUtils.normalizeCompLevel(a.compLevel);
-      final mNum = a.matchNumber ?? MatchFormatUtils.extractMatchNumber(mKey, null);
-      final matchIdentifier = mKey.isNotEmpty ? mKey : '${cLvl}_$mNum';
-
-      String slotKey = '';
-      if (a.assignmentType == 'MATCH') {
-        slotKey = 'MATCH:$matchIdentifier:${a.targetTeamNumber}';
-      } else if (a.assignmentType == 'PIT') {
-        slotKey = 'PIT:${a.targetTeamNumber}';
-      } else if (a.assignmentType == 'QUALITATIVE') {
-        final alliance = (a.allianceColor ?? a.targetAlliance ?? '').toLowerCase().trim();
-        slotKey = 'QUAL:$matchIdentifier:${alliance.isNotEmpty ? "alliance_$alliance" : "team_${a.targetTeamNumber}"}';
-      }
-      if (slotKey.isNotEmpty) {
-        rawSlotGroups.putIfAbsent(slotKey, () => []).add(a);
-      }
-    }
-
     for (final entry in rawSlotGroups.entries) {
       final list = entry.value;
       if (list.length > 1) {
@@ -3247,7 +3276,9 @@ class _AssignmentIndex {
             ? 'Team #${list.first.targetTeamNumber}'
             : (entry.key.startsWith('PIT:')
                 ? 'Pit Team #${list.first.targetTeamNumber}'
-                : 'Qualitative ${list.first.allianceColor ?? list.first.targetAlliance ?? "#${list.first.targetTeamNumber}"}');
+                : (list.first.targetTeamNumber != null
+                    ? 'Qualitative Team #${list.first.targetTeamNumber}'
+                    : 'Qualitative ${list.first.allianceColor ?? list.first.targetAlliance ?? "Alliance"}'));
 
         final errorMsg = '$slotDesc has ${list.length} scouts assigned ($names)';
         slotConflictTooltips[entry.key] = errorMsg;
@@ -3267,10 +3298,14 @@ class _AssignmentIndex {
     // 2. Redundant qualitative scouting (Alliance + Individual team)
     for (final match in matches) {
       final mKey = match.matchKey.toLowerCase();
-      final matchQual = qualAssignments.where((a) => !toDelete.contains(a.id) && a.isMatchFor(match)).toList();
+      final allianceMap = qualAllianceByMatch[mKey];
+      final teamMap = qualTeamsByMatch[mKey];
+      if (allianceMap == null || teamMap == null) continue;
 
       for (final alliance in ['RED', 'BLUE']) {
-        final allianceAsgn = matchQual.where((a) => a.isForQualAlliance(match, alliance)).firstOrNull;
+        final allianceAsgns = allianceMap[alliance];
+        if (allianceAsgns == null || allianceAsgns.isEmpty) continue;
+        final allianceAsgn = allianceAsgns.where((a) => !toDelete.contains(a.id)).firstOrNull;
         if (allianceAsgn == null) continue;
 
         final teamKeys = alliance == 'RED' ? match.redTeams : match.blueTeams;
@@ -3279,18 +3314,22 @@ class _AssignmentIndex {
             .whereType<int>()
             .toList();
 
-        final teamAsgns = matchQual
-            .where((a) => a.targetTeamNumber != null && teamNums.contains(a.targetTeamNumber))
-            .toList();
+        final teamAsgns = <ScoutingAssignment>[];
+        for (final tn in teamNums) {
+          final tList = teamMap[tn];
+          if (tList != null) {
+            teamAsgns.addAll(tList.where((a) => !toDelete.contains(a.id)));
+          }
+        }
 
         if (teamAsgns.isNotEmpty) {
           final teamNames = teamAsgns.map((t) => '#${t.targetTeamNumber} (@${t.assignedUserDisplayName ?? t.assignedUsername})').join(', ');
           final errorMsg = '$alliance Alliance qualitative is assigned to @${allianceAsgn.assignedUserDisplayName ?? allianceAsgn.assignedUsername}, but individual team scout(s) are also assigned: $teamNames';
 
           matchConflicts.putIfAbsent(mKey, () => []).add(errorMsg);
-          slotConflictTooltips['QUAL:${match.matchKey.toLowerCase()}:alliance_${alliance.toLowerCase()}'] = errorMsg;
+          slotConflictTooltips['QUAL:$mKey:alliance_${alliance.toLowerCase()}'] = errorMsg;
           for (final t in teamAsgns) {
-            slotConflictTooltips['QUAL:${match.matchKey.toLowerCase()}:team_${t.targetTeamNumber}'] = errorMsg;
+            slotConflictTooltips['QUAL:$mKey:team_${t.targetTeamNumber}'] = errorMsg;
           }
 
           final completedTeam = teamAsgns.where((t) => t.status == 'COMPLETED').firstOrNull;
@@ -3308,29 +3347,24 @@ class _AssignmentIndex {
     // 3. Dual-scouter match overlaps
     for (final match in matches) {
       final mKey = match.matchKey.toLowerCase();
-      final activeMatchAsgns = assignments
-          .where((a) => !toDelete.contains(a.id) && a.isMatchFor(match) && a.assignedUserId.isNotEmpty)
-          .toList();
-
-      final userGroups = <String, List<ScoutingAssignment>>{};
-      for (final a in activeMatchAsgns) {
-        userGroups.putIfAbsent(a.assignedUserId, () => []).add(a);
-      }
+      final userGroups = userAssignmentsByMatch[mKey];
+      if (userGroups == null) continue;
 
       for (final userAsgns in userGroups.values) {
-        final isBothAlliancesQualPair = userAsgns.length == 2 &&
-            userAsgns.every((a) => a.assignmentType == 'QUALITATIVE' && a.targetTeamNumber == null) &&
-            ((userAsgns[0].allianceColor ?? userAsgns[0].targetAlliance ?? '').toUpperCase() !=
-                (userAsgns[1].allianceColor ?? userAsgns[1].targetAlliance ?? '').toUpperCase());
+        final activeUserAsgns = userAsgns.where((a) => !toDelete.contains(a.id)).toList();
+        final isBothAlliancesQualPair = activeUserAsgns.length == 2 &&
+            activeUserAsgns.every((a) => a.assignmentType == 'QUALITATIVE' && a.targetTeamNumber == null) &&
+            ((activeUserAsgns[0].allianceColor ?? activeUserAsgns[0].targetAlliance ?? '').toUpperCase() !=
+                (activeUserAsgns[1].allianceColor ?? activeUserAsgns[1].targetAlliance ?? '').toUpperCase());
 
-        if (userAsgns.length > 1 && !isBothAlliancesQualPair) {
-          final uName = userAsgns.first.assignedUserDisplayName ?? userAsgns.first.assignedUsername;
-          final roleDescs = userAsgns.map((a) => a.assignmentType == 'MATCH' ? 'Match #${a.targetTeamNumber}' : (a.targetAlliance != null ? '${a.targetAlliance} Qual' : 'Team #${a.targetTeamNumber} Qual')).join(' and ');
+        if (activeUserAsgns.length > 1 && !isBothAlliancesQualPair) {
+          final uName = activeUserAsgns.first.assignedUserDisplayName ?? activeUserAsgns.first.assignedUsername;
+          final roleDescs = activeUserAsgns.map((a) => a.assignmentType == 'MATCH' ? 'Match #${a.targetTeamNumber}' : (a.targetAlliance != null ? '${a.targetAlliance} Qual' : 'Team #${a.targetTeamNumber} Qual')).join(' and ');
           final errorMsg = 'Scouter @$uName is assigned to multiple overlapping roles in ${match.shortLabel}: $roleDescs';
 
           matchConflicts.putIfAbsent(mKey, () => []).add(errorMsg);
 
-          final sorted = List<ScoutingAssignment>.from(userAsgns)..sort((x, y) {
+          final sorted = List<ScoutingAssignment>.from(activeUserAsgns)..sort((x, y) {
             if ((x.status == 'COMPLETED') != (y.status == 'COMPLETED')) {
               return x.status == 'COMPLETED' ? -1 : 1;
             }

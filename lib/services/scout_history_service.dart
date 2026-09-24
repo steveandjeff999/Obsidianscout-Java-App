@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../models/assignment_models.dart';
 import '../models/scout_history_models.dart';
 
 /// Persists scouting history entries on-device via SharedPreferences.
@@ -238,6 +239,194 @@ class ScoutHistoryService {
       scoutedBy: resolvedScoutedBy,
       scoutedById: resolvedScoutedById,
     );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Local Scouting & Assignment Completion Matching
+  // ---------------------------------------------------------------------------
+
+  /// Checks whether an assignment has matching scouted data locally on this device.
+  static bool isAssignmentScoutedLocally(
+    ScoutingAssignment a, {
+    List<ScoutHistoryEntry>? history,
+    List<dynamic>? cachedMatch,
+    List<dynamic>? cachedPit,
+    List<dynamic>? cachedQual,
+  }) {
+    if (a.status == 'COMPLETED') return true;
+
+    final type = a.assignmentType.toUpperCase();
+    final eventKey = a.eventKey.trim().toLowerCase();
+    final matchKey = a.matchKey?.trim().toLowerCase();
+    final matchNum = a.matchNumber;
+    final teamNum = a.targetTeamNumber;
+    final alliance = (a.allianceColor ?? a.targetAlliance)?.trim().toUpperCase();
+
+    // 1. Check ScoutHistoryEntry records
+    if (history != null && history.isNotEmpty) {
+      for (final h in history) {
+        final hEvent = h.eventKey.trim().toLowerCase();
+        if (eventKey.isNotEmpty && hEvent.isNotEmpty && hEvent != eventKey) {
+          continue;
+        }
+
+        if (type == 'MATCH' && h.type.toLowerCase() == 'match') {
+          final hMatchKey = h.matchKey?.trim().toLowerCase();
+          final hMatchNum = h.matchNumber;
+          final hTeam = h.teamNumber;
+
+          final matchMatches = (matchKey != null && hMatchKey != null && matchKey == hMatchKey) ||
+              (matchNum != null && hMatchNum != null && matchNum == hMatchNum);
+          final teamMatches = teamNum != null && hTeam == teamNum;
+
+          if (matchMatches && teamMatches) {
+            return true;
+          }
+        } else if (type == 'PIT' && h.type.toLowerCase() == 'pit') {
+          final hTeam = h.teamNumber;
+          if (teamNum != null && hTeam == teamNum) {
+            return true;
+          }
+        } else if (type == 'QUALITATIVE' && (h.type.toLowerCase() == 'qual' || h.type.toLowerCase() == 'qualitative')) {
+          final hMatchKey = h.matchKey?.trim().toLowerCase();
+          final hMatchNum = h.matchNumber;
+          final matchMatches = (matchKey != null && hMatchKey != null && matchKey == hMatchKey) ||
+              (matchNum != null && hMatchNum != null && matchNum == hMatchNum);
+
+          if (matchMatches) {
+            if (teamNum != null && h.teamNumber == teamNum) {
+              return true;
+            }
+            if (alliance != null) {
+              final hAlliance = (h.payload['alliance'] ?? h.payload['allianceColor'] ?? h.payload['alliance_color'])?.toString().trim().toUpperCase();
+              if (hAlliance == alliance) {
+                return true;
+              }
+            }
+            if (teamNum == null && alliance == null) {
+              return true;
+            }
+          }
+        }
+      }
+    }
+
+    // 2. Check cached match entries list
+    if (type == 'MATCH' && cachedMatch != null && cachedMatch.isNotEmpty) {
+      for (final item in cachedMatch) {
+        if (item is! Map) continue;
+        final map = Map<String, dynamic>.from(item);
+        final eKey = (map['eventKey'] ?? map['event_key'])?.toString().trim().toLowerCase() ?? '';
+        if (eventKey.isNotEmpty && eKey.isNotEmpty && eKey != eventKey) continue;
+
+        final mKey = (map['matchKey'] ?? map['match_key'])?.toString().trim().toLowerCase();
+        final mNum = _extractInt(map, ['matchNumber', 'match_number']);
+        final tNum = _extractInt(map, ['targetTeamNumber', 'teamNumber', 'team_number']);
+
+        final matchMatches = (matchKey != null && mKey != null && matchKey == mKey) ||
+            (matchNum != null && mNum != 0 && matchNum == mNum);
+        final teamMatches = teamNum != null && tNum == teamNum;
+        if (matchMatches && teamMatches) return true;
+      }
+    }
+
+    // 3. Check cached pit entries list
+    if (type == 'PIT' && cachedPit != null && cachedPit.isNotEmpty) {
+      for (final item in cachedPit) {
+        if (item is! Map) continue;
+        final map = Map<String, dynamic>.from(item);
+        final eKey = (map['eventKey'] ?? map['event_key'])?.toString().trim().toLowerCase() ?? '';
+        if (eventKey.isNotEmpty && eKey.isNotEmpty && eKey != eventKey) continue;
+
+        final tNum = _extractInt(map, ['targetTeamNumber', 'teamNumber', 'team_number']);
+        if (teamNum != null && tNum == teamNum) return true;
+      }
+    }
+
+    // 4. Check cached qual entries list
+    if (type == 'QUALITATIVE' && cachedQual != null && cachedQual.isNotEmpty) {
+      for (final item in cachedQual) {
+        if (item is! Map) continue;
+        final map = Map<String, dynamic>.from(item);
+        final eKey = (map['eventKey'] ?? map['event_key'])?.toString().trim().toLowerCase() ?? '';
+        if (eventKey.isNotEmpty && eKey.isNotEmpty && eKey != eventKey) continue;
+
+        final mKey = (map['matchKey'] ?? map['match_key'])?.toString().trim().toLowerCase();
+        final mNum = _extractInt(map, ['matchNumber', 'match_number']);
+        final tNum = _extractInt(map, ['targetTeamNumber', 'teamNumber', 'team_number']);
+        final aColor = (map['alliance'] ?? map['allianceColor'] ?? map['alliance_color'])?.toString().trim().toUpperCase();
+
+        final matchMatches = (matchKey != null && mKey != null && matchKey == mKey) ||
+            (matchNum != null && mNum != 0 && matchNum == mNum);
+
+        if (matchMatches) {
+          if (teamNum != null && tNum == teamNum) return true;
+          if (alliance != null && aColor == alliance) return true;
+          if (teamNum == null && alliance == null) return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /// Merges local scouting history and cached offline submissions with assignments,
+  /// updating any assignment to COMPLETED if matching local scout data is found.
+  static Future<List<ScoutingAssignment>> applyLocalScoutStatus(
+    List<ScoutingAssignment> assignments, {
+    String? eventKey,
+  }) async {
+    if (assignments.isEmpty) return assignments;
+    try {
+      final history = await loadAll(pruneExpired: false);
+      final prefs = await SharedPreferences.getInstance();
+
+      List<dynamic>? cachedMatch;
+      final rawMatch = prefs.getString('cache_scouting') ?? prefs.getString('cache_prescout_scouting');
+      if (rawMatch != null && rawMatch.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(rawMatch);
+          if (decoded is List) cachedMatch = decoded;
+          if (decoded is Map && decoded['entries'] is List) cachedMatch = decoded['entries'] as List;
+        } catch (_) {}
+      }
+
+      List<dynamic>? cachedPit;
+      final rawPit = prefs.getString('cache_pit_scouting') ?? prefs.getString('cache_prescout_pit_scouting');
+      if (rawPit != null && rawPit.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(rawPit);
+          if (decoded is List) cachedPit = decoded;
+          if (decoded is Map && decoded['entries'] is List) cachedPit = decoded['entries'] as List;
+        } catch (_) {}
+      }
+
+      List<dynamic>? cachedQual;
+      final rawQual = prefs.getString('cache_qual_scouting') ?? prefs.getString('cache_prescout_qual_scouting');
+      if (rawQual != null && rawQual.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(rawQual);
+          if (decoded is List) cachedQual = decoded;
+          if (decoded is Map && decoded['entries'] is List) cachedQual = decoded['entries'] as List;
+        } catch (_) {}
+      }
+
+      return assignments.map((a) {
+        if (a.status == 'COMPLETED') return a;
+        if (isAssignmentScoutedLocally(
+          a,
+          history: history,
+          cachedMatch: cachedMatch,
+          cachedPit: cachedPit,
+          cachedQual: cachedQual,
+        )) {
+          return a.copyWith(status: 'COMPLETED');
+        }
+        return a;
+      }).toList();
+    } catch (_) {
+      return assignments;
+    }
   }
 
   static int _extractInt(Map<String, dynamic> map, List<String> keys) {
