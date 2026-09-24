@@ -4,6 +4,7 @@ import '../l10n/app_localizations.dart';
 import '../models/assignment_models.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
+import '../services/scout_history_service.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
 import 'match_scout_screen.dart';
@@ -42,6 +43,13 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
   List<TeamModel> _teams = [];
   List<MatchModel> _matches = [];
 
+  List<ScoutingAssignment> _cachedActive = [];
+  List<ScoutingAssignment> _cachedCompleted = [];
+  List<ScoutingAssignment> _cachedAll = [];
+  ScoutingAssignment? _cachedNextUp;
+  Map<String, MatchModel> _matchesByKey = {};
+  Map<int, TeamModel> _teamsByNumber = {};
+
   bool _isLoading = true;
   bool _isRefreshing = false;
 
@@ -69,11 +77,65 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
   }
 
   void _startCountdownTimer() {
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+    _countdownTimer?.cancel();
+    _countdownTimer = Timer.periodic(const Duration(seconds: 20), (_) {
       if (mounted && widget.isVisible) {
         setState(() {});
       }
     });
+  }
+
+  void _recomputeCachedLists() {
+    _matchesByKey = {for (final m in _matches) m.matchKey.toLowerCase(): m};
+    _teamsByNumber = {for (final t in _teams) t.teamNumber: t};
+
+    _cachedActive = _assignments
+        .where((a) => a.status == 'PENDING' || a.status == 'IN_PROGRESS')
+        .toList()
+      ..sort((a, b) {
+        final timeA = a.effectiveScheduledTime;
+        final timeB = b.effectiveScheduledTime;
+        if (timeA == null && timeB == null) return 0;
+        if (timeA == null) return 1;
+        if (timeB == null) return -1;
+        return timeA.compareTo(timeB);
+      });
+
+    _cachedCompleted = _assignments
+        .where((a) => a.status == 'COMPLETED' || a.status == 'SKIPPED')
+        .toList()
+      ..sort((a, b) => (b.effectiveScheduledTime ?? 0).compareTo(a.effectiveScheduledTime ?? 0));
+
+    _cachedAll = List.from(_assignments)
+      ..sort((a, b) {
+        final timeA = a.effectiveScheduledTime;
+        final timeB = b.effectiveScheduledTime;
+        if (timeA == null && timeB == null) return 0;
+        if (timeA == null) return 1;
+        if (timeB == null) return -1;
+        return timeA.compareTo(timeB);
+      });
+
+    if (_cachedActive.isEmpty) {
+      _cachedNextUp = null;
+    } else {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      ScoutingAssignment? next;
+      for (final a in _cachedActive) {
+        final time = a.effectiveScheduledTime;
+        if (time != null) {
+          final diff = time - now;
+          if (diff > -12 * 3600 * 1000 && diff <= 2 * 3600 * 1000) {
+            next = a;
+            break;
+          }
+        } else {
+          next = a;
+          break;
+        }
+      }
+      _cachedNextUp = next ?? _cachedActive.firstOrNull;
+    }
   }
 
   Future<void> _loadData() async {
@@ -81,15 +143,20 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
     final cachedEventKey = await widget.apiService.getCachedEventKey();
     final cachedAssignments =
         await widget.apiService.getCachedMyAssignments(cachedEventKey);
+    final hydratedAssignments = await ScoutHistoryService.applyLocalScoutStatus(
+      cachedAssignments,
+      eventKey: cachedEventKey,
+    );
     final cachedTeams = await widget.apiService.getCachedTeams(cachedEventKey);
     final cachedMatches = await widget.apiService.getCachedMatches(cachedEventKey);
 
-    if (mounted && cachedAssignments.isNotEmpty) {
+    if (mounted && hydratedAssignments.isNotEmpty) {
       setState(() {
         _eventKey = cachedEventKey;
-        _assignments = cachedAssignments;
+        _assignments = hydratedAssignments;
         _teams = cachedTeams;
         _matches = cachedMatches;
+        _recomputeCachedLists();
         _isLoading = false;
       });
     }
@@ -110,11 +177,18 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
 
       if (!mounted) return;
 
+      final fetchedAssignments = results[0] as List<ScoutingAssignment>;
+      final hydratedFetched = await ScoutHistoryService.applyLocalScoutStatus(
+        fetchedAssignments,
+        eventKey: eventKey,
+      );
+
       setState(() {
         _eventKey = eventKey;
-        _assignments = results[0] as List<ScoutingAssignment>;
+        _assignments = hydratedFetched;
         _teams = results[1] as List<TeamModel>;
         _matches = results[2] as List<MatchModel>;
+        _recomputeCachedLists();
         _isLoading = false;
         _isRefreshing = false;
       });
@@ -134,55 +208,10 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
   }
 
   // Filter & sort assignments for tabs
-  List<ScoutingAssignment> get _activeAssignments {
-    return _assignments
-        .where((a) => a.status == 'PENDING' || a.status == 'IN_PROGRESS')
-        .toList()
-      ..sort((a, b) {
-        if (a.scheduledTime == null && b.scheduledTime == null) return 0;
-        if (a.scheduledTime == null) return 1;
-        if (b.scheduledTime == null) return -1;
-        return a.scheduledTime!.compareTo(b.scheduledTime!);
-      });
-  }
-
-  List<ScoutingAssignment> get _completedAssignments {
-    return _assignments
-        .where((a) => a.status == 'COMPLETED' || a.status == 'SKIPPED')
-        .toList()
-      ..sort((a, b) => (b.scheduledTime ?? 0).compareTo(a.scheduledTime ?? 0));
-  }
-
-  List<ScoutingAssignment> get _allAssignments {
-    return List.from(_assignments)
-      ..sort((a, b) {
-        if (a.scheduledTime == null && b.scheduledTime == null) return 0;
-        if (a.scheduledTime == null) return 1;
-        if (b.scheduledTime == null) return -1;
-        return a.scheduledTime!.compareTo(b.scheduledTime!);
-      });
-  }
-
-  // Hero Up Next logic: next pending within 2h future or 12h past
-  ScoutingAssignment? get _nextUpAssignment {
-    final active = _activeAssignments;
-    if (active.isEmpty) return null;
-
-    final now = DateTime.now().millisecondsSinceEpoch;
-    for (final a in active) {
-      if (a.scheduledTime != null) {
-        final diff = a.scheduledTime! - now;
-        // Up to 2 hours in future or within past 12 hours
-        if (diff > -12 * 3600 * 1000 && diff <= 2 * 3600 * 1000) {
-          return a;
-        }
-      } else {
-        // If no scheduled time but it is the first pending task, show it
-        return a;
-      }
-    }
-    return active.firstOrNull;
-  }
+  List<ScoutingAssignment> get _activeAssignments => _cachedActive;
+  List<ScoutingAssignment> get _completedAssignments => _cachedCompleted;
+  List<ScoutingAssignment> get _allAssignments => _cachedAll;
+  ScoutingAssignment? get _nextUpAssignment => _cachedNextUp;
 
   void _startScouting(ScoutingAssignment a) async {
     // Mark as in-progress on start
@@ -313,7 +342,7 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
 
   String _getAssignmentTargetTitle(ScoutingAssignment a) {
     if (a.assignmentType == 'MATCH') {
-      final matchedObj = _matches.where((m) => m.matchKey == a.matchKey).firstOrNull;
+      final matchedObj = _matchesByKey[(a.matchKey ?? '').toLowerCase()];
       final matchLabel = matchedObj?.shortLabel ?? a.formattedMatchName;
       final teamLabel =
           a.targetTeamNumber != null ? 'Team ${a.targetTeamNumber}' : '';
@@ -321,12 +350,13 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
     } else if (a.assignmentType == 'PIT') {
       return 'Pit Scouting • Team ${a.targetTeamNumber ?? '—'}';
     } else if (a.assignmentType == 'QUALITATIVE') {
-      final matchedObj = _matches.where((m) => m.matchKey == a.matchKey).firstOrNull;
+      final matchedObj = _matchesByKey[(a.matchKey ?? '').toLowerCase()];
       final matchLabel = matchedObj?.shortLabel ?? a.formattedMatchName;
-      final target = a.allianceColor ?? a.targetAlliance;
-      final targetText = target != null && target.isNotEmpty
-          ? '${target.toUpperCase()} Alliance'
-          : (a.targetTeamNumber != null ? 'Team ${a.targetTeamNumber}' : 'Target');
+      final targetText = a.targetTeamNumber != null
+          ? 'Team #${a.targetTeamNumber}${a.allianceColor != null ? " (${a.allianceColor!.toUpperCase()})" : ""}'
+          : ((a.allianceColor ?? a.targetAlliance)?.isNotEmpty == true
+              ? '${(a.allianceColor ?? a.targetAlliance)!.toUpperCase()} Alliance'
+              : 'Alliance');
       return 'Qualitative • $matchLabel ($targetText)';
     }
     return 'Scout Assignment';
@@ -334,7 +364,7 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
 
   String? _getTeamNickname(int? teamNumber) {
     if (teamNumber == null) return null;
-    final team = _teams.where((t) => t.teamNumber == teamNumber).firstOrNull;
+    final team = _teamsByNumber[teamNumber];
     return team?.nickname ?? team?.name;
   }
 
@@ -387,23 +417,34 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
       onRefresh: _handleRefresh,
       color: ObsidianUITheme.primaryAccent,
       backgroundColor: ObsidianUITheme.getSurfaceColor(context),
-      child: ListView(
-        padding: EdgeInsets.only(
-          top: topPadding,
-          bottom: bottomPadding,
-          left: 16.0,
-          right: 16.0,
-        ),
-        children: [
-          _buildHeader(),
-          const SizedBox(height: 16),
-          if (_nextUpAssignment != null) ...[
-            _buildHeroUpNextCard(_nextUpAssignment!),
-            const SizedBox(height: 20),
-          ],
-          _buildTabBar(),
-          const SizedBox(height: 16),
-          _buildTabContent(),
+      child: CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: EdgeInsets.only(
+              top: topPadding,
+              left: 16.0,
+              right: 16.0,
+            ),
+            sliver: SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(),
+                  const SizedBox(height: 16),
+                  if (_nextUpAssignment != null) ...[
+                    _buildHeroUpNextCard(_nextUpAssignment!),
+                    const SizedBox(height: 20),
+                  ],
+                  _buildTabBar(),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
+          ),
+          ..._buildTabSlivers(),
+          SliverToBoxAdapter(
+            child: SizedBox(height: bottomPadding),
+          ),
         ],
       ),
     );
@@ -459,9 +500,9 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
     final typeColor = _getTypeColor(a.assignmentType);
     final targetTitle = _getAssignmentTargetTitle(a);
     final nickname = _getTeamNickname(a.targetTeamNumber);
-    final countdownStr = _formatCountdown(a.scheduledTime);
-    final isImminent = a.scheduledTime != null &&
-        (a.scheduledTime! - DateTime.now().millisecondsSinceEpoch < 600000);
+    final countdownStr = _formatCountdown(a.effectiveScheduledTime);
+    final isImminent = a.effectiveScheduledTime != null &&
+        (a.effectiveScheduledTime! - DateTime.now().millisecondsSinceEpoch < 600000);
 
     return Container(
       decoration: BoxDecoration(
@@ -530,13 +571,19 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
                         : Colors.white24,
                   ),
                 ),
-                child: Text(
-                  countdownStr,
-                  style: TextStyle(
-                    color: isImminent ? const Color(0xFFEF4444) : Colors.white70,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      countdownStr,
+                      style: TextStyle(
+                        color: isImminent ? const Color(0xFFEF4444) : Colors.white70,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    _buildOffsetBadge(a.scheduleOffsetSeconds),
+                  ],
                 ),
               ),
             ],
@@ -633,12 +680,16 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
     );
   }
 
-  Widget _buildTabContent() {
+  List<Widget> _buildTabSlivers() {
     if (_isLoading) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 40),
-        child: Center(child: CircularProgressIndicator()),
-      );
+      return const [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 40),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        ),
+      ];
     }
 
     final currentTabIndex = _tabController.index;
@@ -657,58 +708,69 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
     }
 
     if (displayList.isEmpty) {
-      return ObsidianGlassCard(
-        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.assignment_turned_in_rounded,
-                size: 48,
-                color: ObsidianUITheme.getTertiaryTextColor(context),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                emptyMessage,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: ObsidianUITheme.getSecondaryTextColor(context),
+      return [
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          sliver: SliverToBoxAdapter(
+            child: ObsidianGlassCard(
+              padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.assignment_turned_in_rounded,
+                      size: 48,
+                      color: ObsidianUITheme.getTertiaryTextColor(context),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      emptyMessage,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: ObsidianUITheme.getSecondaryTextColor(context),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
         ),
-      );
+      ];
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final crossAxisCount = constraints.maxWidth > 900
-            ? 3
-            : (constraints.maxWidth > 600 ? 2 : 1);
+    return [
+      SliverPadding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        sliver: SliverLayoutBuilder(
+          builder: (context, constraints) {
+            final crossAxisCount = constraints.crossAxisExtent > 900
+                ? 3
+                : (constraints.crossAxisExtent > 600 ? 2 : 1);
 
-        if (crossAxisCount == 1) {
-          return Column(
-            children: displayList.map((a) => _buildAssignmentCard(a)).toList(),
-          );
-        }
+            if (crossAxisCount == 1) {
+              return SliverList.builder(
+                itemCount: displayList.length,
+                itemBuilder: (context, index) => _buildAssignmentCard(displayList[index]),
+              );
+            }
 
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            childAspectRatio: 1.6,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-          ),
-          itemCount: displayList.length,
-          itemBuilder: (context, index) => _buildAssignmentCard(displayList[index]),
-        );
-      },
-    );
+            return SliverGrid.builder(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                childAspectRatio: 1.6,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+              ),
+              itemCount: displayList.length,
+              itemBuilder: (context, index) => _buildAssignmentCard(displayList[index]),
+            );
+          },
+        ),
+      ),
+    ];
   }
 
   Widget _buildAssignmentCard(ScoutingAssignment a) {
@@ -716,7 +778,7 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
     final statusColor = _getStatusColor(a.status);
     final targetTitle = _getAssignmentTargetTitle(a);
     final nickname = _getTeamNickname(a.targetTeamNumber);
-    final countdownStr = _formatCountdown(a.scheduledTime);
+    final countdownStr = _formatCountdown(a.effectiveScheduledTime);
     final isDone = a.status == 'COMPLETED';
 
     return Container(
@@ -796,13 +858,19 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
                             ),
                           ),
                           const Spacer(),
-                          Text(
-                            countdownStr,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: ObsidianUITheme.getSecondaryTextColor(context),
-                            ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                countdownStr,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: ObsidianUITheme.getSecondaryTextColor(context),
+                                ),
+                              ),
+                              _buildOffsetBadge(a.scheduleOffsetSeconds),
+                            ],
                           ),
                         ],
                       ),
@@ -875,6 +943,32 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOffsetBadge(int? offsetSeconds) {
+    if (offsetSeconds == null || offsetSeconds == 0) return const SizedBox.shrink();
+    final offsetMins = (offsetSeconds / 60).round();
+    if (offsetMins.abs() < 1) return const SizedBox.shrink();
+    final isLate = offsetMins > 0;
+    final color = isLate ? const Color(0xFFF59E0B) : const Color(0xFF06B6D4);
+    final sign = isLate ? '+' : '';
+    return Container(
+      margin: const EdgeInsets.only(left: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withValues(alpha: 0.4), width: 0.8),
+      ),
+      child: Text(
+        '$sign${offsetMins}m',
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );

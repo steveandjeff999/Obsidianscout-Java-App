@@ -24,7 +24,11 @@ class ScoutingAssignment {
   final String? updatedAt;
   final String? completedAt;
   final int? scheduledTime;
+  final int? predictedTime;
+  final int? scheduleOffsetSeconds;
   final int? reminderMinutesBefore;
+
+  int? get effectiveScheduledTime => predictedTime ?? scheduledTime;
 
   String get formattedMatchName => MatchFormatUtils.formatShortMatch(
         matchKey: matchKey,
@@ -81,6 +85,8 @@ class ScoutingAssignment {
     this.updatedAt,
     this.completedAt,
     this.scheduledTime,
+    this.predictedTime,
+    this.scheduleOffsetSeconds,
     this.reminderMinutesBefore,
   });
 
@@ -91,6 +97,30 @@ class ScoutingAssignment {
         parsedScheduledTime = (json['scheduledTime'] as num).toInt();
       } else if (json['scheduledTime'] is String) {
         parsedScheduledTime = int.tryParse(json['scheduledTime']);
+      }
+      if (parsedScheduledTime != null && parsedScheduledTime > 0 && parsedScheduledTime < 10000000000) {
+        parsedScheduledTime = parsedScheduledTime * 1000;
+      }
+    }
+
+    int? parsedPredictedTime;
+    if (json['predictedTime'] != null) {
+      if (json['predictedTime'] is num) {
+        parsedPredictedTime = (json['predictedTime'] as num).toInt();
+      } else if (json['predictedTime'] is String) {
+        parsedPredictedTime = int.tryParse(json['predictedTime']);
+      }
+      if (parsedPredictedTime != null && parsedPredictedTime > 0 && parsedPredictedTime < 10000000000) {
+        parsedPredictedTime = parsedPredictedTime * 1000;
+      }
+    }
+
+    int? parsedOffset;
+    if (json['scheduleOffsetSeconds'] != null) {
+      if (json['scheduleOffsetSeconds'] is num) {
+        parsedOffset = (json['scheduleOffsetSeconds'] as num).toInt();
+      } else if (json['scheduleOffsetSeconds'] is String) {
+        parsedOffset = int.tryParse(json['scheduleOffsetSeconds']);
       }
     }
 
@@ -122,6 +152,8 @@ class ScoutingAssignment {
       updatedAt: json['updatedAt']?.toString(),
       completedAt: json['completedAt']?.toString(),
       scheduledTime: parsedScheduledTime,
+      predictedTime: parsedPredictedTime,
+      scheduleOffsetSeconds: parsedOffset,
       reminderMinutesBefore: (json['reminderMinutesBefore'] as num?)?.toInt(),
     );
   }
@@ -151,6 +183,8 @@ class ScoutingAssignment {
       'updatedAt': updatedAt,
       'completedAt': completedAt,
       'scheduledTime': scheduledTime,
+      'predictedTime': predictedTime,
+      'scheduleOffsetSeconds': scheduleOffsetSeconds,
       'reminderMinutesBefore': reminderMinutesBefore,
     };
   }
@@ -179,6 +213,8 @@ class ScoutingAssignment {
     String? updatedAt,
     String? completedAt,
     int? scheduledTime,
+    int? predictedTime,
+    int? scheduleOffsetSeconds,
     int? reminderMinutesBefore,
   }) {
     return ScoutingAssignment(
@@ -205,6 +241,8 @@ class ScoutingAssignment {
       updatedAt: updatedAt ?? this.updatedAt,
       completedAt: completedAt ?? this.completedAt,
       scheduledTime: scheduledTime ?? this.scheduledTime,
+      predictedTime: predictedTime ?? this.predictedTime,
+      scheduleOffsetSeconds: scheduleOffsetSeconds ?? this.scheduleOffsetSeconds,
       reminderMinutesBefore: reminderMinutesBefore ?? this.reminderMinutesBefore,
     );
   }
@@ -439,3 +477,94 @@ class AssignmentConflictDto {
     );
   }
 }
+
+class AutoGenerateAssignmentsRequest {
+  final String eventKey;
+  final String assignmentType;
+  final List<String> scouterUserIds;
+  final String stageFilter;
+  final String? startMatchKey;
+  final String? endMatchKey;
+  final int consecutiveMatches;
+  final bool overwrite;
+  final String pitScope;
+  final int? reminderMinutesBefore;
+
+  AutoGenerateAssignmentsRequest({
+    required this.eventKey,
+    required this.assignmentType,
+    required this.scouterUserIds,
+    this.stageFilter = 'all',
+    this.startMatchKey,
+    this.endMatchKey,
+    this.consecutiveMatches = 5,
+    this.overwrite = false,
+    this.pitScope = 'unassigned',
+    this.reminderMinutesBefore,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'eventKey': eventKey,
+      'assignmentType': assignmentType,
+      'scouterUserIds': scouterUserIds,
+      'stageFilter': stageFilter,
+      if (startMatchKey != null) 'startMatchKey': startMatchKey,
+      if (endMatchKey != null) 'endMatchKey': endMatchKey,
+      'consecutiveMatches': consecutiveMatches,
+      'overwrite': overwrite,
+      'pitScope': pitScope,
+      if (reminderMinutesBefore != null) 'reminderMinutesBefore': reminderMinutesBefore,
+    };
+  }
+}
+
+class AutoGenerateAssignmentsResponse {
+  final bool success;
+  final int createdCount;
+  final int deletedCount;
+  final String message;
+
+  AutoGenerateAssignmentsResponse({
+    required this.success,
+    required this.createdCount,
+    required this.deletedCount,
+    required this.message,
+  });
+
+  factory AutoGenerateAssignmentsResponse.fromJson(Map<String, dynamic> json) {
+    return AutoGenerateAssignmentsResponse(
+      success: json['success'] == true,
+      createdCount: (json['createdCount'] as num?)?.toInt() ?? 0,
+      deletedCount: (json['deletedCount'] as num?)?.toInt() ?? 0,
+      message: json['message']?.toString() ?? '',
+    );
+  }
+}
+
+class AutoResolveConflictsResponse {
+  final bool success;
+  final int resolvedCount;
+  final String message;
+  final List<String> deletedIds;
+
+  AutoResolveConflictsResponse({
+    required this.success,
+    required this.resolvedCount,
+    required this.message,
+    required this.deletedIds,
+  });
+
+  factory AutoResolveConflictsResponse.fromJson(Map<String, dynamic> json) {
+    return AutoResolveConflictsResponse(
+      success: json['success'] == true,
+      resolvedCount: (json['resolvedCount'] as num?)?.toInt() ?? 0,
+      message: json['message']?.toString() ?? '',
+      deletedIds: (json['deletedIds'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+    );
+  }
+}
+

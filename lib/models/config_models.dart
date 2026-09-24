@@ -499,12 +499,18 @@ class UserModel {
   }
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
+    String roleVal = 'SCOUT';
+    if (json['role'] != null && json['role'].toString().trim().isNotEmpty) {
+      roleVal = json['role'].toString().toUpperCase();
+    } else if (json['roles'] is List && (json['roles'] as List).isNotEmpty) {
+      roleVal = (json['roles'] as List).first.toString().toUpperCase();
+    }
     return UserModel(
       id: json['id']?.toString() ?? json['userId']?.toString() ?? '',
-      username: json['username']?.toString() ?? '',
+      username: json['username']?.toString() ?? json['name']?.toString() ?? '',
       teamNumber: (json['teamNumber'] as num?)?.toInt() ?? 0,
       program: json['program']?.toString() ?? 'FRC',
-      role: json['role']?.toString().toUpperCase() ?? 'SCOUT',
+      role: roleVal,
       email: json['email']?.toString(),
       profilePicture: json['profilePicture']?.toString(),
       notificationPreference: json['notificationPreference']?.toString(),
