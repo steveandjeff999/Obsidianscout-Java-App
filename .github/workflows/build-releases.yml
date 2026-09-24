@@ -244,12 +244,6 @@ jobs:
           RPM_ROOT="/tmp/obsidianscout_rpm"
           rm -rf "$RPM_ROOT"
           mkdir -p "$RPM_ROOT/BUILD" "$RPM_ROOT/RPMS" "$RPM_ROOT/SOURCES" "$RPM_ROOT/SPECS" "$RPM_ROOT/SRPMS"
-          BUILDROOT="$RPM_ROOT/BUILDROOT/obsidianscout-${PKG_VER}-1.x86_64"
-          mkdir -p "$BUILDROOT/usr/lib/obsidianscout" "$BUILDROOT/usr/bin" "$BUILDROOT/usr/share/applications" "$BUILDROOT/usr/share/pixmaps"
-          cp -r build/linux/x64/release/bundle/* "$BUILDROOT/usr/lib/obsidianscout/"
-          ln -sf /usr/lib/obsidianscout/obsidianscout_app "$BUILDROOT/usr/bin/obsidianscout"
-          cp assets/images/obsidian-512.png "$BUILDROOT/usr/share/pixmaps/obsidianscout.png"
-          cp "$DEB_DIR/usr/share/applications/obsidianscout.desktop" "$BUILDROOT/usr/share/applications/obsidianscout.desktop"
 
           cat << EOF > "$RPM_ROOT/SPECS/obsidianscout.spec"
           %global _enable_debug_package 0
@@ -273,6 +267,15 @@ jobs:
           %build
 
           %install
+          mkdir -p %{buildroot}/usr/lib/obsidianscout
+          mkdir -p %{buildroot}/usr/bin
+          mkdir -p %{buildroot}/usr/share/applications
+          mkdir -p %{buildroot}/usr/share/pixmaps
+
+          cp -r ${GITHUB_WORKSPACE}/build/linux/x64/release/bundle/* %{buildroot}/usr/lib/obsidianscout/
+          ln -sf /usr/lib/obsidianscout/obsidianscout_app %{buildroot}/usr/bin/obsidianscout
+          cp ${GITHUB_WORKSPACE}/assets/images/obsidian-512.png %{buildroot}/usr/share/pixmaps/obsidianscout.png
+          cp ${DEB_DIR}/usr/share/applications/obsidianscout.desktop %{buildroot}/usr/share/applications/obsidianscout.desktop
 
           %files
           /usr/lib/obsidianscout
@@ -282,7 +285,7 @@ jobs:
 
           EOF
 
-          rpmbuild --define "_topdir $RPM_ROOT" --buildroot "$BUILDROOT" --target "x86_64" -bb "$RPM_ROOT/SPECS/obsidianscout.spec"
+          rpmbuild --define "_topdir $RPM_ROOT" --target "x86_64" -bb "$RPM_ROOT/SPECS/obsidianscout.spec"
           cp "$RPM_ROOT"/RPMS/x86_64/*.rpm linux_out/ObsidianScout-Linux.rpm
 
       - name: Upload Linux Artifacts
