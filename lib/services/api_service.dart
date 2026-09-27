@@ -304,7 +304,7 @@ class ApiService {
     });
 
     _healthCheckTimer?.cancel();
-    _healthCheckTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+    _healthCheckTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       checkServerHealth();
     });
     checkServerHealth();
@@ -391,7 +391,7 @@ class ApiService {
 
   // Instant Stale-While-Revalidate Synchronous & Async Cache Accessors
   Future<String?> getCachedEventKey() async {
-    if (_currentSettings?.eventKey != null && _currentSettings!.eventKey!.isNotEmpty) {
+    if (_currentSettings != null && _currentSettings!.eventKey.isNotEmpty) {
       return _currentSettings!.eventKey;
     }
     final cachedSettings = await getCachedSettings();

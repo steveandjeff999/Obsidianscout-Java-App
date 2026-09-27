@@ -6,11 +6,13 @@ import '../theme/obsidian_ui_theme.dart';
 class ObsidianBannerWidget extends StatefulWidget {
   final ApiService apiService;
   final bool isBarsVisible;
+  final Duration refreshInterval;
 
   const ObsidianBannerWidget({
     super.key,
     required this.apiService,
     this.isBarsVisible = true,
+    this.refreshInterval = const Duration(seconds: 10),
   });
 
   @override
@@ -30,8 +32,8 @@ class _ObsidianBannerWidgetState extends State<ObsidianBannerWidget> {
   void initState() {
     super.initState();
     _loadBanners();
-    _timer = Timer.periodic(const Duration(seconds: 10), (_) {
-      if (mounted) {
+    _timer = Timer.periodic(widget.refreshInterval, (_) {
+      if (mounted && widget.apiService.isOnline) {
         _loadBanners();
       }
     });

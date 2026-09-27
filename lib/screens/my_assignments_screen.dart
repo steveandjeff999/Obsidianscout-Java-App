@@ -65,7 +65,11 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
   void didUpdateWidget(covariant MyAssignmentsScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isVisible && !oldWidget.isVisible) {
+      _startCountdownTimer();
       _loadData();
+    } else if (!widget.isVisible && oldWidget.isVisible) {
+      _countdownTimer?.cancel();
+      _countdownTimer = null;
     }
   }
 
@@ -78,6 +82,7 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
 
   void _startCountdownTimer() {
     _countdownTimer?.cancel();
+    if (!widget.isVisible) return;
     _countdownTimer = Timer.periodic(const Duration(seconds: 20), (_) {
       if (mounted && widget.isVisible) {
         setState(() {});
