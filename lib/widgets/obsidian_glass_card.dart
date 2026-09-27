@@ -27,15 +27,11 @@ class _ObsidianGlassCardState extends State<ObsidianGlassCard> {
   @override
   Widget build(BuildContext context) {
     final isDark = ObsidianUITheme.isDark(context);
-    final cardBgColor = ObsidianUITheme.getGlassSurfaceColor(context);
-    final borderColor = ObsidianUITheme.getGlassBorderColor(context);
+    final cardBgColor = ObsidianUITheme.getSurfaceColor(context);
+    final borderColor = ObsidianUITheme.getBorderColor(context);
     final shadowColor = isDark
-        ? Colors.black.withValues(alpha: 0.35)
-        : Colors.black.withValues(alpha: 0.06);
-
-    final gradientColors = isDark
-        ? const [Color(0x22FFFFFF), Color(0x06FFFFFF)]
-        : const [Color(0xFFFFFFFF), Color(0xF0F8FAFC)];
+        ? Colors.black.withValues(alpha: 0.25)
+        : Colors.black.withValues(alpha: 0.04);
 
     final content = Material(
       color: Colors.transparent,
@@ -63,18 +59,13 @@ class _ObsidianGlassCardState extends State<ObsidianGlassCard> {
           color: cardBgColor,
           border: Border.all(
             color: borderColor,
-            width: 1.2,
-          ),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: gradientColors,
+            width: 1.0,
           ),
           boxShadow: [
             BoxShadow(
               color: shadowColor,
-              blurRadius: isDark ? 16 : 12,
-              offset: const Offset(0, 6),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
@@ -89,8 +80,8 @@ class _ObsidianGlassCardState extends State<ObsidianGlassCard> {
       onTapUp: (_) => setState(() => _isPressed = false),
       onTapCancel: () => setState(() => _isPressed = false),
       child: AnimatedScale(
-        scale: _isPressed ? 0.98 : 1.0,
-        duration: const Duration(milliseconds: 120),
+        scale: _isPressed ? 0.985 : 1.0,
+        duration: const Duration(milliseconds: 100),
         curve: Curves.easeOutCubic,
         child: Container(
           margin: widget.margin,
@@ -103,18 +94,13 @@ class _ObsidianGlassCardState extends State<ObsidianGlassCard> {
               color: _isPressed
                   ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.6)
                   : borderColor,
-              width: 1.2,
-            ),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: gradientColors,
+              width: 1.0,
             ),
             boxShadow: [
               BoxShadow(
-                color: _isPressed ? shadowColor.withValues(alpha: 0.15) : shadowColor,
-                blurRadius: _isPressed ? 8 : (isDark ? 16 : 12),
-                offset: _isPressed ? const Offset(0, 2) : const Offset(0, 6),
+                color: shadowColor,
+                blurRadius: _isPressed ? 2 : 6,
+                offset: _isPressed ? const Offset(0, 1) : const Offset(0, 2),
               ),
             ],
           ),

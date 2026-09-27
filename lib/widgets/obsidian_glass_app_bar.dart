@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../theme/obsidian_ui_theme.dart';
 
@@ -22,30 +21,27 @@ class ObsidianGlassAppBar extends StatelessWidget implements PreferredSizeWidget
   @override
   Widget build(BuildContext context) {
     final isDark = ObsidianUITheme.isDark(context);
-    final bgColor = isDark ? const Color(0x15000000) : const Color(0x99FFFFFF);
-    final borderColor = ObsidianUITheme.getGlassBorderColor(context);
+    final bgColor = ObsidianUITheme.getSurfaceColor(context);
+    final borderColor = ObsidianUITheme.getBorderColor(context);
     final titleColor = ObsidianUITheme.getPrimaryTextColor(context);
 
-    return ClipRRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 8.0, sigmaY: 8.0),
-        child: Container(
-          padding: EdgeInsets.only(
-            top: MediaQuery.of(context).padding.top + 8.0,
-            left: 20.0,
-            right: 20.0,
-            bottom: 12.0,
+    return Container(
+      padding: EdgeInsets.only(
+        top: MediaQuery.of(context).padding.top + 8.0,
+        left: 20.0,
+        right: 20.0,
+        bottom: 12.0,
+      ),
+      decoration: BoxDecoration(
+        color: bgColor,
+        border: Border(
+          bottom: BorderSide(
+            color: borderColor,
+            width: 1.0,
           ),
-          decoration: BoxDecoration(
-            color: bgColor,
-            border: Border(
-              bottom: BorderSide(
-                color: borderColor,
-                width: 0.8,
-              ),
-            ),
-          ),
-          child: Row(
+        ),
+      ),
+      child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -124,8 +120,6 @@ class ObsidianGlassAppBar extends StatelessWidget implements PreferredSizeWidget
               ],
             ],
           ),
-        ),
-      ),
-    );
+        );
   }
 }

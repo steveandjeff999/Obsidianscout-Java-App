@@ -66,7 +66,11 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
   void didUpdateWidget(covariant ScoutAssignmentsScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isVisible && !oldWidget.isVisible) {
+      _startPolling();
       _loadEventData();
+    } else if (!widget.isVisible && oldWidget.isVisible) {
+      _pollTimer?.cancel();
+      _pollTimer = null;
     }
   }
 
@@ -81,6 +85,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
 
   void _startPolling() {
     _pollTimer?.cancel();
+    if (!widget.isVisible) return;
     _pollTimer = Timer.periodic(const Duration(seconds: 20), (_) {
       if (mounted && widget.isVisible && !_isModalOpen && widget.apiService.isOnline) {
         _pollAssignmentsSilently();

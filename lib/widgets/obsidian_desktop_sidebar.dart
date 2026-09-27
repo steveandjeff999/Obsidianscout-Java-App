@@ -339,6 +339,8 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
                           'assets/images/obsidian-512.png',
                           width: 28.0,
                           height: 28.0,
+                          cacheWidth: 56,
+                          cacheHeight: 56,
                           fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) => Icon(
                             Icons.shield_rounded,

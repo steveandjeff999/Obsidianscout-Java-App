@@ -345,7 +345,9 @@ class _ObsidianChartInteractiveWrapperState
                       child: SizedBox(
                         width: targetWidth,
                         height: widget.chartHeight,
-                        child: widget.chart,
+                        child: RepaintBoundary(
+                          child: widget.chart,
+                        ),
                       ),
                     ),
                   ),

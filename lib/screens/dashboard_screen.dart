@@ -63,6 +63,8 @@ class DashboardScreen extends StatelessWidget {
                       'assets/images/obsidian-512.png',
                       width: 40.0,
                       height: 40.0,
+                      cacheWidth: 80,
+                      cacheHeight: 80,
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) => Icon(
                         Icons.shield_outlined,
@@ -458,6 +460,8 @@ class DashboardScreen extends StatelessWidget {
                   'assets/images/obsidian-512.png',
                   width: 48.0,
                   height: 48.0,
+                  cacheWidth: 96,
+                  cacheHeight: 96,
                   fit: BoxFit.contain,
                   errorBuilder: (context, error, stackTrace) => Icon(
                     Icons.shield_rounded,
