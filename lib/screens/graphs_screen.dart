@@ -82,12 +82,13 @@ class _GraphsScreenState extends State<GraphsScreen> {
   GraphMetric? _selectedMetric;
   Set<int> _selectedTeams = {};
   Set<String> _selectedGraphTypes = {'bar'};
-  String _datasource = 'scouted'; // scouted, epa, opr, all
+  String _datasource = 'scouted'; // scouted, epa, exp, opr, all
   String _dataView = 'averages'; // averages, matches
   String _sort = 'value_desc'; // value_desc, value_asc, team_asc, team_desc
-  bool _forcePrescout = false;
+  bool _includePrescout = false;
   String _teamSearch = '';
   bool _graphGenerated = false;
+  StatsHistoryModel? _statsHistory;
 
   // Interactive Graph Controls
   bool _showDataLabels = false;
@@ -131,6 +132,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
     final cachedEntriesRaw = await widget.apiService.getCachedScoutingEntries();
     final cachedEvents = await widget.apiService.getCachedEvents(year: cachedSettings?.year);
     final cachedTeams = await widget.apiService.getCachedTeams(cachedEventKey);
+    final cachedStatsHistory = await widget.apiService.getCachedStatsHistory(cachedEventKey);
 
     if (mounted && (cachedEntriesRaw.isNotEmpty || cachedTeams.isNotEmpty || cachedConfig != null)) {
       final entries = cachedEntriesRaw
@@ -153,6 +155,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
         _entries = entries;
         _teams = cachedTeams;
         _teamMap = teamMap;
+        _statsHistory = cachedStatsHistory;
         _metrics = metrics;
         if (_selectedMetric == null && metrics.isNotEmpty) _selectedMetric = metrics.first;
         if (_selectedTeams.isEmpty) {
@@ -189,22 +192,24 @@ class _GraphsScreenState extends State<GraphsScreen> {
       final config = results[2] as ScoutingConfigModel?;
       final rawEntries = results[3] as List<dynamic>;
 
+      final effectiveKey = (eventKey != null && eventKey.isNotEmpty) ? eventKey : (settings?.eventKey ?? '');
+
       final eventsAndTeams = await Future.wait([
         widget.apiService.fetchEvents(year: settings?.year),
-        widget.apiService.fetchTeams(eventKey),
+        widget.apiService.fetchTeams(effectiveKey.isNotEmpty ? effectiveKey : null),
+        widget.apiService.fetchStatsHistory(effectiveKey.isNotEmpty ? effectiveKey : null),
       ]);
 
       final events = eventsAndTeams[0] as List<EventModel>;
       final teams = eventsAndTeams[1] as List<TeamModel>;
+      final statsHistory = eventsAndTeams[2] as StatsHistoryModel?;
 
       final entries = rawEntries
           .map((e) => ScoutingEntryModel.fromJson(e as Map<String, dynamic>))
           .toList();
 
-      // Build metrics list from config matching web graphs.js
       final metrics = _buildMetrics(config);
 
-      // Summary stats
       final teamSet = entries.map((e) => e.targetTeamNumber).whereType<int>().toSet();
       final matchSet = entries.map((e) => e.matchKey).whereType<String>().toSet();
       final eventSet = entries.map((e) => e.eventKey).whereType<String>().toSet();
@@ -219,11 +224,12 @@ class _GraphsScreenState extends State<GraphsScreen> {
       setState(() {
         _settings = settings;
         _events = events;
-        _eventKey = (eventKey != null && eventKey.isNotEmpty) ? eventKey : (settings?.eventKey ?? '');
+        _eventKey = effectiveKey;
         _config = config;
         _entries = entries;
         _teams = teams;
         _teamMap = teamMap;
+        _statsHistory = statsHistory;
         _metrics = metrics;
         if (_selectedMetric == null || !metrics.any((m) => m.id == _selectedMetric?.id)) {
           _selectedMetric = metrics.isNotEmpty ? metrics.first : null;
@@ -253,7 +259,14 @@ class _GraphsScreenState extends State<GraphsScreen> {
       _isLoading = true;
     });
 
-    final teams = await widget.apiService.fetchTeams(effectiveKey.isNotEmpty ? effectiveKey : null);
+    final targetKey = effectiveKey.isNotEmpty ? effectiveKey : null;
+    final results = await Future.wait([
+      widget.apiService.fetchTeams(targetKey),
+      widget.apiService.fetchStatsHistory(targetKey),
+    ]);
+    final teams = results[0] as List<TeamModel>;
+    final statsHistory = results[1] as StatsHistoryModel?;
+
     final teamMap = <int, TeamModel>{};
     for (final t in teams) {
       teamMap[t.teamNumber] = t;
@@ -264,7 +277,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
     setState(() {
       _teams = teams;
       _teamMap = teamMap;
-      // Retain selected teams that exist in the new event (if event is filtered)
+      _statsHistory = statsHistory;
       if (effectiveKey.isNotEmpty && teams.isNotEmpty) {
         final validNums = teams.map((t) => t.teamNumber).toSet();
         _selectedTeams = _selectedTeams.intersection(validNums);
@@ -273,7 +286,45 @@ class _GraphsScreenState extends State<GraphsScreen> {
     });
   }
 
+  void _updateDatasource(String newSource) {
+    setState(() {
+      _datasource = newSource;
+      if (newSource == 'epa' || newSource == 'opr') {
+        _dataView = 'averages';
+      }
+      _metrics = _buildMetrics(_config);
+      if (_selectedMetric == null || !_metrics.any((m) => m.id == _selectedMetric?.id)) {
+        _selectedMetric = _metrics.isNotEmpty ? _metrics.first : null;
+      }
+      _updateGraphTypeAvailability();
+    });
+  }
+
+  void _updateGraphTypeAvailability() {
+    final isAverages = _dataView == 'averages' || _datasource == 'epa' || _datasource == 'opr';
+    if (isAverages && _selectedGraphTypes.contains('line')) {
+      _selectedGraphTypes.remove('line');
+    }
+  }
+
   List<GraphMetric> _buildMetrics([ScoutingConfigModel? overrideConfig]) {
+    if (_datasource == 'exp') {
+      return const [
+        GraphMetric(id: 'score_total', label: 'Total EXP', kind: 'score', scope: 'total'),
+        GraphMetric(id: 'score_auto', label: 'Auto EXP', kind: 'score', scope: 'auto'),
+        GraphMetric(id: 'score_teleop', label: 'Teleop EXP', kind: 'score', scope: 'teleop'),
+        GraphMetric(id: 'score_endgame', label: 'Endgame EXP', kind: 'score', scope: 'endgame'),
+      ];
+    }
+    if (_datasource == 'all') {
+      return const [
+        GraphMetric(id: 'score_total', label: 'Total points', kind: 'score', scope: 'total'),
+        GraphMetric(id: 'score_auto', label: 'Auto points', kind: 'score', scope: 'auto'),
+        GraphMetric(id: 'score_teleop', label: 'Teleop points', kind: 'score', scope: 'teleop'),
+        GraphMetric(id: 'score_endgame', label: 'Endgame points', kind: 'score', scope: 'endgame'),
+      ];
+    }
+
     final config = overrideConfig ?? _config;
     final metrics = <GraphMetric>[
       const GraphMetric(id: 'score_total', label: 'Total points', kind: 'score', scope: 'total'),
@@ -372,35 +423,34 @@ class _GraphsScreenState extends State<GraphsScreen> {
     return null;
   }
 
+  bool _isMatchingEvent(String? keyA, String? keyB) {
+    if (keyA == null || keyB == null || keyA.isEmpty || keyB.isEmpty) return true;
+    final a = keyA.trim().toLowerCase();
+    final b = keyB.trim().toLowerCase();
+    return a == b || a.replaceAll(RegExp(r'^[0-9]+'), '') == b.replaceAll(RegExp(r'^[0-9]+'), '');
+  }
+
   List<ScoutingEntryModel> _getFilteredEntriesForTeams() {
     final selectedTeams = _selectedTeams.toList();
     final result = <ScoutingEntryModel>[];
 
     for (final teamNum in selectedTeams) {
-      final currentEventEntries = _entries.where((entry) {
-        if (entry.targetTeamNumber != teamNum) return false;
-        if (entry.isPrescout) return false;
-        if (_eventKey == null || _eventKey!.isEmpty) return true;
-        final entryKey = entry.eventKey?.trim().toLowerCase() ?? '';
-        final targetKey = _eventKey!.trim().toLowerCase();
-        return entryKey == targetKey ||
-            entryKey.replaceAll(RegExp(r'^[0-9]+'), '') == targetKey.replaceAll(RegExp(r'^[0-9]+'), '');
-      }).toList();
-
-      final prescoutEntries = _entries.where((entry) =>
+      final currentEventEntries = _entries.where((entry) =>
           entry.targetTeamNumber == teamNum &&
-          entry.isPrescout).toList();
+          (_eventKey == null || _eventKey!.isEmpty || _isMatchingEvent(entry.eventKey, _eventKey)) &&
+          !entry.isPrescout).toList();
+      result.addAll(currentEventEntries);
 
-      if (_forcePrescout || currentEventEntries.length < 3) {
-        result.addAll(currentEventEntries);
+      if (_includePrescout) {
+        final prescoutEntries = _entries.where((entry) =>
+            entry.targetTeamNumber == teamNum &&
+            entry.isPrescout).toList();
         result.addAll(prescoutEntries);
-      } else {
-        result.addAll(currentEventEntries);
       }
 
-      // Fallback: if no entries matched for this event, grab all entries for this team
+      // Fallback: if no entries matched for this event, grab all non-prescout entries for this team
       if (result.where((e) => e.targetTeamNumber == teamNum).isEmpty) {
-        final anyEntries = _entries.where((entry) => entry.targetTeamNumber == teamNum).toList();
+        final anyEntries = _entries.where((entry) => entry.targetTeamNumber == teamNum && (_includePrescout || !entry.isPrescout)).toList();
         result.addAll(anyEntries);
       }
     }
@@ -408,33 +458,28 @@ class _GraphsScreenState extends State<GraphsScreen> {
   }
 
   List<ScoutingEntryModel> _getFilteredEntriesForEvent() {
-    if (_eventKey == null || _eventKey!.isEmpty) return _entries;
+    if (_eventKey == null || _eventKey!.isEmpty) {
+      return _includePrescout ? _entries : _entries.where((e) => !e.isPrescout).toList();
+    }
     final teamNums = _entries.map((e) => e.targetTeamNumber).whereType<int>().toSet();
     final result = <ScoutingEntryModel>[];
 
     for (final teamNum in teamNums) {
-      final currentEventEntries = _entries.where((entry) {
-        if (entry.targetTeamNumber != teamNum) return false;
-        if (entry.isPrescout) return false;
-        final entryKey = entry.eventKey?.trim().toLowerCase() ?? '';
-        final targetKey = _eventKey!.trim().toLowerCase();
-        return entryKey == targetKey ||
-            entryKey.replaceAll(RegExp(r'^[0-9]+'), '') == targetKey.replaceAll(RegExp(r'^[0-9]+'), '');
-      }).toList();
-
-      final prescoutEntries = _entries.where((entry) =>
+      final currentEventEntries = _entries.where((entry) =>
           entry.targetTeamNumber == teamNum &&
-          entry.isPrescout).toList();
+          _isMatchingEvent(entry.eventKey, _eventKey) &&
+          !entry.isPrescout).toList();
+      result.addAll(currentEventEntries);
 
-      if (_forcePrescout || currentEventEntries.length < 3) {
-        result.addAll(currentEventEntries);
+      if (_includePrescout) {
+        final prescoutEntries = _entries.where((entry) =>
+            entry.targetTeamNumber == teamNum &&
+            entry.isPrescout).toList();
         result.addAll(prescoutEntries);
-      } else {
-        result.addAll(currentEventEntries);
       }
 
       if (result.where((e) => e.targetTeamNumber == teamNum).isEmpty) {
-        final anyEntries = _entries.where((entry) => entry.targetTeamNumber == teamNum).toList();
+        final anyEntries = _entries.where((entry) => entry.targetTeamNumber == teamNum && (_includePrescout || !entry.isPrescout)).toList();
         result.addAll(anyEntries);
       }
     }
@@ -718,15 +763,27 @@ class _GraphsScreenState extends State<GraphsScreen> {
   }
 
   void _selectTopN(int n) {
+    if (_datasource == 'epa') {
+      final sorted = List<TeamModel>.from(_teams)..sort((a, b) => (b.epa ?? 0.0).compareTo(a.epa ?? 0.0));
+      setState(() => _selectedTeams = sorted.take(n).map((t) => t.teamNumber).toSet());
+      return;
+    }
+    if (_datasource == 'exp') {
+      final sorted = List<TeamModel>.from(_teams)..sort((a, b) => (b.exp ?? 0.0).compareTo(a.exp ?? 0.0));
+      setState(() => _selectedTeams = sorted.take(n).map((t) => t.teamNumber).toSet());
+      return;
+    }
+    if (_datasource == 'opr') {
+      final sorted = List<TeamModel>.from(_teams)..sort((a, b) => (b.opr ?? 0.0).compareTo(a.opr ?? 0.0));
+      setState(() => _selectedTeams = sorted.take(n).map((t) => t.teamNumber).toSet());
+      return;
+    }
     final metric = _selectedMetric;
     if (metric == null) return;
     final filteredEntries = _getFilteredEntriesForEvent();
     final teamStats = _buildTeamStats(filteredEntries, metric);
-    final topTeams = teamStats
-        .sortDescending((a, b) => a.$2.compareTo(b.$2))
-        .take(n)
-        .map((item) => item.$1)
-        .toSet();
+    teamStats.sort((a, b) => b.$2.compareTo(a.$2));
+    final topTeams = teamStats.take(n).map((item) => item.$1).toSet();
     setState(() => _selectedTeams = topTeams);
   }
 
@@ -737,10 +794,12 @@ class _GraphsScreenState extends State<GraphsScreen> {
   }
 
   String _getDatasourceLabel(String ds) {
+    final isFtc = _settings?.program == 'FTC';
     switch (ds) {
       case 'epa': return 'Statbotics EPA';
-      case 'opr': return 'TBA OPR';
-      case 'all': return 'All Three';
+      case 'exp': return 'Match 13 EXP';
+      case 'opr': return isFtc ? 'FTC Scout OPR' : 'TBA OPR';
+      case 'all': return 'All Sources';
       default: return 'Scouted Data';
     }
   }
@@ -756,9 +815,12 @@ class _GraphsScreenState extends State<GraphsScreen> {
       return q.isEmpty || t.displayName.toLowerCase().contains(q) || t.teamNumber.toString().contains(q);
     }).toList();
 
-    final hasStatbotics = _settings?.useStatboticsEpa == true;
-    final hasTbaOpr = _settings?.useTbaOpr == true;
-    final showDatasource = hasStatbotics || hasTbaOpr;
+    final isFtc = (_settings?.program ?? widget.apiService.currentProgram).toUpperCase() == 'FTC';
+    final effectiveUseEpa = !isFtc && (_settings?.useStatboticsEpa == true || widget.apiService.currentSettings?.useStatboticsEpa == true);
+    final effectiveUseExp = !isFtc && (_settings?.useMatch13Exp == true || widget.apiService.currentSettings?.useMatch13Exp == true);
+    final effectiveUseOpr = _settings?.useTbaOpr == true || widget.apiService.currentSettings?.useTbaOpr == true;
+    final showDatasource = effectiveUseEpa || effectiveUseExp || effectiveUseOpr;
+    final isAverages = _dataView == 'averages' || _datasource == 'epa' || _datasource == 'opr';
 
     return SingleChildScrollView(
       controller: _scrollController,
@@ -975,7 +1037,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                // Datasource (Statbotics / TBA OPR / All)
+                // Datasource (Statbotics / Match 13 / TBA OPR / All / Scouted)
                 if (showDatasource) ...[
                   DropdownButtonFormField<String>(
                     isExpanded: true,
@@ -989,21 +1051,22 @@ class _GraphsScreenState extends State<GraphsScreen> {
                       enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
                     ),
                     items: [
-                      if (hasStatbotics && hasTbaOpr)
-                        const DropdownMenuItem(value: 'all', child: Text('All Three (Scouted, EPA, OPR)', overflow: TextOverflow.ellipsis)),
+                      const DropdownMenuItem(value: 'all', child: Text('All Sources', overflow: TextOverflow.ellipsis)),
                       const DropdownMenuItem(value: 'scouted', child: Text('Scouted Data', overflow: TextOverflow.ellipsis)),
-                      if (hasStatbotics)
+                      if (effectiveUseEpa)
                         const DropdownMenuItem(value: 'epa', child: Text('Statbotics EPA', overflow: TextOverflow.ellipsis)),
-                      if (hasTbaOpr)
-                        const DropdownMenuItem(value: 'opr', child: Text('TBA OPR', overflow: TextOverflow.ellipsis)),
+                      if (effectiveUseExp)
+                        const DropdownMenuItem(value: 'exp', child: Text('Match 13 EXP', overflow: TextOverflow.ellipsis)),
+                      if (effectiveUseOpr)
+                        DropdownMenuItem(value: 'opr', child: Text(isFtc ? 'FTC Scout OPR' : 'TBA OPR', overflow: TextOverflow.ellipsis)),
                     ],
-                    onChanged: (v) => setState(() => _datasource = v ?? 'scouted'),
+                    onChanged: (v) => _updateDatasource(v ?? 'scouted'),
                   ),
                   const SizedBox(height: 12),
                 ],
 
-                // Metric dropdown (only for scouted data)
-                if (_datasource == 'scouted') ...[
+                // Metric dropdown (for scouted, exp, and all)
+                if (_datasource == 'scouted' || _datasource == 'exp' || _datasource == 'all') ...[
                   DropdownButtonFormField<GraphMetric>(
                     isExpanded: true,
                     initialValue: _metrics.contains(_selectedMetric) ? _selectedMetric : (_metrics.isNotEmpty ? _metrics.first : null),
@@ -1029,7 +1092,12 @@ class _GraphsScreenState extends State<GraphsScreen> {
                       ButtonSegment(value: 'matches', label: Text(context.tr('graphs.match_by_match'))),
                     ],
                     selected: {_dataView},
-                    onSelectionChanged: (s) => setState(() => _dataView = s.first),
+                    onSelectionChanged: (s) {
+                      setState(() {
+                        _dataView = s.first;
+                        _updateGraphTypeAvailability();
+                      });
+                    },
                     style: ButtonStyle(
                       backgroundColor: WidgetStateProperty.resolveWith((states) {
                         if (states.contains(WidgetState.selected)) return ObsidianUITheme.primaryAccent;
@@ -1062,16 +1130,16 @@ class _GraphsScreenState extends State<GraphsScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                // Force use prescout checkbox
+                // Prescout data checkbox (only for scouted data)
                 if (_datasource == 'scouted') ...[
                   CheckboxListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    title: Text(context.tr('graphs.force_use_prescout_data'),
+                    title: Text(context.tr('graphs.include_prescout_data', 'Include prescout data'),
                         style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context), fontSize: 13)),
-                    value: _forcePrescout,
+                    value: _includePrescout,
                     activeColor: ObsidianUITheme.primaryAccent,
-                    onChanged: (val) => setState(() => _forcePrescout = val ?? false),
+                    onChanged: (val) => setState(() => _includePrescout = val ?? false),
                   ),
                   const SizedBox(height: 8),
                 ],
@@ -1083,24 +1151,37 @@ class _GraphsScreenState extends State<GraphsScreen> {
                   spacing: 8,
                   runSpacing: 8,
                   children: kGraphTypes.map((type) {
+                    final isLineDisabled = type.id == 'line' && isAverages;
                     final selected = _selectedGraphTypes.contains(type.id);
-                    return FilterChip(
-                      selected: selected,
-                      avatar: Icon(type.icon, size: 16, color: selected ? Colors.white : ObsidianUITheme.getSecondaryTextColor(context)),
-                      label: Text(type.label, style: TextStyle(color: selected ? Colors.white : ObsidianUITheme.getPrimaryTextColor(context), fontSize: 12, fontWeight: selected ? FontWeight.bold : FontWeight.normal)),
-                      backgroundColor: ObsidianUITheme.getSurfaceColor(context),
-                      selectedColor: ObsidianUITheme.primaryAccent,
-                      checkmarkColor: Colors.white,
-                      side: BorderSide(color: selected ? ObsidianUITheme.primaryAccent : ObsidianUITheme.getBorderColor(context)),
-                      onSelected: (val) {
-                        setState(() {
-                          if (val) {
-                            _selectedGraphTypes.add(type.id);
-                          } else {
-                            _selectedGraphTypes.remove(type.id);
-                          }
-                        });
-                      },
+                    return Opacity(
+                      opacity: isLineDisabled ? 0.4 : 1.0,
+                      child: FilterChip(
+                        selected: selected && !isLineDisabled,
+                        avatar: Icon(type.icon, size: 16, color: (selected && !isLineDisabled) ? Colors.white : ObsidianUITheme.getSecondaryTextColor(context)),
+                        label: Text(
+                          type.label,
+                          style: TextStyle(
+                            color: (selected && !isLineDisabled) ? Colors.white : ObsidianUITheme.getPrimaryTextColor(context),
+                            fontSize: 12,
+                            fontWeight: (selected && !isLineDisabled) ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                        backgroundColor: ObsidianUITheme.getSurfaceColor(context),
+                        selectedColor: ObsidianUITheme.primaryAccent,
+                        checkmarkColor: Colors.white,
+                        side: BorderSide(color: (selected && !isLineDisabled) ? ObsidianUITheme.primaryAccent : ObsidianUITheme.getBorderColor(context)),
+                        onSelected: isLineDisabled
+                            ? null
+                            : (val) {
+                                setState(() {
+                                  if (val) {
+                                    _selectedGraphTypes.add(type.id);
+                                  } else {
+                                    _selectedGraphTypes.remove(type.id);
+                                  }
+                                });
+                              },
+                      ),
                     );
                   }).toList(),
                 ),
@@ -1110,7 +1191,12 @@ class _GraphsScreenState extends State<GraphsScreen> {
                 Row(
                   children: [
                     _quickChip(context.tr('graphs.select_all'), Icons.done_all_rounded, () {
-                      setState(() => _selectedGraphTypes = kGraphTypes.map((g) => g.id).toSet());
+                      setState(() {
+                        _selectedGraphTypes = kGraphTypes
+                            .map((g) => g.id)
+                            .where((id) => !isAverages || id != 'line')
+                            .toSet();
+                      });
                     }),
                     const SizedBox(width: 8),
                     _quickChip(context.tr('graphs.clear_types'), Icons.clear_rounded, () {
@@ -1220,11 +1306,30 @@ class _GraphsScreenState extends State<GraphsScreen> {
   Widget _buildSingleGraphCard(String graphType) {
     final metric = _selectedMetric;
     final isScouted = _datasource == 'scouted';
-    final title = isScouted
-        ? '${metric?.label ?? "Metric"} — ${graphType.toUpperCase()}'
-        : '${_getDatasourceLabel(_datasource)} — ${graphType.toUpperCase()}';
+    final metricLabel = metric?.label ?? 'Metric';
+    final viewTitle = _dataView == 'matches' ? 'Match-by-match' : 'Team averages';
 
-    // 1. Check Non-scouted distributions
+    final title = (_datasource == 'exp' || _datasource == 'all')
+        ? '${_getDatasourceLabel(_datasource)} ($metricLabel) — ${graphType.toUpperCase()} ($viewTitle)'
+        : (isScouted
+            ? '$metricLabel — ${graphType.toUpperCase()}'
+            : '${_getDatasourceLabel(_datasource)} — ${graphType.toUpperCase()} ($viewTitle)');
+
+    // 1. Line graph restriction for averages
+    if (graphType == 'line' && (_dataView == 'averages' || _datasource == 'epa' || _datasource == 'opr')) {
+      return ObsidianGlassCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: ObsidianUITheme.getPrimaryTextColor(context))),
+            const SizedBox(height: 12),
+            _buildNotice(context.tr('graphs.line_not_supported_averages', 'Line graphs are not supported for Team averages because they require multiple data points across matches. Switch to Match-by-match view to use Line graphs.')),
+          ],
+        ),
+      );
+    }
+
+    // 2. Check Non-scouted distributions
     if (!isScouted && (graphType == 'box' || graphType == 'violin' || graphType == 'histogram')) {
       return ObsidianGlassCard(
         child: Column(
@@ -1238,7 +1343,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
       );
     }
 
-    // 2. Check Category metric rules
+    // 3. Check Category metric rules
     if (isScouted && metric?.kind == 'category' && graphType != 'bar') {
       return ObsidianGlassCard(
         child: Column(
@@ -1252,14 +1357,14 @@ class _GraphsScreenState extends State<GraphsScreen> {
       );
     }
 
-    // 3. Render Non-scouted Graphs
+    // 4. Render Non-scouted Graphs
     if (!isScouted) {
       return ObsidianGlassCard(
         child: _renderNonScoutedGraph(graphType, title: title),
       );
     }
 
-    // 4. Render Scouted Graphs
+    // 5. Render Scouted Graphs
     final entries = _getFilteredEntriesForTeams();
 
     return ObsidianGlassCard(
@@ -1269,12 +1374,139 @@ class _GraphsScreenState extends State<GraphsScreen> {
 
   Widget _renderNonScoutedGraph(String graphType, {String title = ''}) {
     final selectedNums = _selectedTeams.toList();
+    final isFtc = (_settings?.program ?? widget.apiService.currentProgram).toUpperCase() == 'FTC';
+    final effectiveUseEpa = !isFtc && (_settings?.useStatboticsEpa == true || widget.apiService.currentSettings?.useStatboticsEpa == true);
+    final effectiveUseExp = !isFtc && (_settings?.useMatch13Exp == true || widget.apiService.currentSettings?.useMatch13Exp == true);
+    final effectiveUseOpr = _settings?.useTbaOpr == true || widget.apiService.currentSettings?.useTbaOpr == true;
+    final rawMatch13History = _statsHistory?.match13History ?? [];
+
+    // --- MATCH-BY-MATCH RENDERING ---
+    if (_dataView == 'matches') {
+      if (_datasource == 'exp') {
+        if (rawMatch13History.isEmpty) {
+          return _buildNotice('No Match 13 match data available for this event.');
+        }
+
+        final seriesList = <GraphSeries>[];
+        for (final teamNum in selectedNums) {
+          final teamMatches = <({String label, double value, int sortWeight})>[];
+          for (final matchObj in rawMatch13History) {
+            final teamData = extractTeamExpData(matchObj, teamNum);
+            if (teamData == null) continue;
+
+            final matchKey = (matchObj is Map) ? (matchObj['key'] ?? matchObj['matchKey'] ?? matchObj['match_key'] ?? matchObj['match'] ?? '').toString() : '';
+            final label = formatMatchKeyToLabel(matchKey);
+            final sortWeight = getMatchSortWeightFromLabel(label);
+            final val = getTeamExpMetricValue(teamData, _selectedMetric?.id ?? 'score_total');
+            teamMatches.add((label: label, value: val, sortWeight: sortWeight));
+          }
+
+          teamMatches.sort((a, b) => a.sortWeight.compareTo(b.sortWeight));
+
+          if (teamMatches.isNotEmpty) {
+            seriesList.add(GraphSeries(
+              name: 'Team $teamNum',
+              x: teamMatches.map((m) => m.label).toList(),
+              y: teamMatches.map((m) => m.value).toList(),
+            ));
+          }
+        }
+
+        if (seriesList.isEmpty) {
+          return _buildNotice('No Match 13 match data found for the selected teams.');
+        }
+
+        if (graphType == 'bar') {
+          return _buildGroupedBarChart(seriesList, title: title);
+        } else if (graphType == 'line' || graphType == 'scatter' || graphType == 'area') {
+          return _buildLineOrScatterChart(seriesList, mode: graphType, title: title);
+        } else {
+          return _buildNotice('Unsupported graph type for Match-by-match view.');
+        }
+      }
+
+      if (_datasource == 'all') {
+        final metric = _selectedMetric ?? const GraphMetric(id: 'score_total', label: 'Total points', kind: 'score', scope: 'total');
+        final filteredEntries = _getFilteredEntriesForTeams();
+        final seriesList = <GraphSeries>[];
+
+        for (final teamNum in selectedNums) {
+          // 1. Scouted series
+          final teamEntries = filteredEntries.where((e) => e.targetTeamNumber == teamNum).toList();
+          final validScouted = teamEntries
+              .where((e) => _metricValue(e, metric) != null)
+              .toList()
+            ..sort((a, b) {
+              if (a.matchPlayedTime != null && b.matchPlayedTime != null) {
+                return a.matchPlayedTime!.compareTo(b.matchPlayedTime!);
+              }
+              final aEvent = a.eventKey ?? '';
+              final bEvent = b.eventKey ?? '';
+              if (aEvent != bEvent) return aEvent.compareTo(bEvent);
+              return _matchSortKey(a.matchKey, a.matchNumber).compareTo(_matchSortKey(b.matchKey, b.matchNumber));
+            });
+
+          if (validScouted.isNotEmpty) {
+            seriesList.add(GraphSeries(
+              name: 'Team $teamNum (Scouted)',
+              x: validScouted.asMap().entries.map((e) {
+                final entry = e.value;
+                final matchLabel = _matchLabel(entry.matchKey, entry.matchNumber, e.key);
+                final eventLabel = entry.isPrescout ? (entry.eventKey ?? 'Prescout') : '';
+                return eventLabel.isNotEmpty ? '$matchLabel ($eventLabel)' : matchLabel;
+              }).toList(),
+              y: validScouted.map((e) => _metricValue(e, metric) ?? 0.0).toList(),
+            ));
+          }
+
+          // 2. Match 13 EXP series
+          if (effectiveUseExp && rawMatch13History.isNotEmpty) {
+            final expMatches = <({String label, double value, int sortWeight})>[];
+            for (final matchObj in rawMatch13History) {
+              final teamData = extractTeamExpData(matchObj, teamNum);
+              if (teamData == null) continue;
+
+              final matchKey = (matchObj is Map) ? (matchObj['key'] ?? matchObj['matchKey'] ?? matchObj['match_key'] ?? matchObj['match'] ?? '').toString() : '';
+              final label = formatMatchKeyToLabel(matchKey);
+              final sortWeight = getMatchSortWeightFromLabel(label);
+              final val = getTeamExpMetricValue(teamData, metric.id);
+              expMatches.add((label: label, value: val, sortWeight: sortWeight));
+            }
+
+            expMatches.sort((a, b) => a.sortWeight.compareTo(b.sortWeight));
+
+            if (expMatches.isNotEmpty) {
+              seriesList.add(GraphSeries(
+                name: 'Team $teamNum (Match 13 EXP)',
+                x: expMatches.map((m) => m.label).toList(),
+                y: expMatches.map((m) => m.value).toList(),
+              ));
+            }
+          }
+        }
+
+        if (seriesList.isEmpty) {
+          return _buildNotice('No match data found for the selected teams.');
+        }
+
+        if (graphType == 'bar') {
+          return _buildGroupedBarChart(seriesList, title: title);
+        } else if (graphType == 'line' || graphType == 'scatter' || graphType == 'area') {
+          return _buildLineOrScatterChart(seriesList, mode: graphType, title: title);
+        } else {
+          return _buildNotice('Unsupported graph type for Match-by-match view.');
+        }
+      }
+    }
+
+    // --- TEAM AVERAGES RENDERING ---
     final data = selectedNums.map((teamNum) {
       final team = _teamMap[teamNum];
       return (
         num: teamNum,
         label: 'Team $teamNum',
         epa: team?.epa ?? 0.0,
+        exp: team?.exp ?? (team?.match13Exp ?? 0.0),
         opr: team?.opr ?? 0.0,
         scouted: team?.averagePoints ?? 0.0,
       );
@@ -1284,42 +1516,67 @@ class _GraphsScreenState extends State<GraphsScreen> {
     data.sort((a, b) {
       if (_sort == 'team_asc') return a.num.compareTo(b.num);
       if (_sort == 'team_desc') return b.num.compareTo(a.num);
-      final valA = _datasource == 'epa' ? a.epa : (_datasource == 'opr' ? a.opr : a.scouted);
-      final valB = _datasource == 'epa' ? b.epa : (_datasource == 'opr' ? b.opr : b.scouted);
+      double valA = a.scouted;
+      double valB = b.scouted;
+      if (_datasource == 'epa') {
+        valA = a.epa;
+        valB = b.epa;
+      } else if (_datasource == 'exp') {
+        valA = a.exp;
+        valB = b.exp;
+      } else if (_datasource == 'opr') {
+        valA = a.opr;
+        valB = b.opr;
+      } else if (_datasource == 'all') {
+        valA = effectiveUseEpa ? a.epa : (effectiveUseExp ? a.exp : (effectiveUseOpr ? a.opr : a.scouted));
+        valB = effectiveUseEpa ? b.epa : (effectiveUseExp ? b.exp : (effectiveUseOpr ? b.opr : b.scouted));
+      }
       if (_sort == 'value_asc') return valA.compareTo(valB);
-      return valB.compareTo(a.scouted);
+      return valB.compareTo(valA);
     });
+
+    final labels = data.map((d) => d.label).toList();
 
     if (graphType == 'bar') {
       if (_datasource == 'all') {
-        // Grouped multi-bar for Scouted, EPA, OPR
         final seriesList = <GraphSeries>[
-          GraphSeries(name: 'Scouted Average', x: data.map((d) => d.label).toList(), y: data.map((d) => d.scouted).toList()),
-          if (_settings?.useStatboticsEpa == true)
-            GraphSeries(name: 'Statbotics EPA', x: data.map((d) => d.label).toList(), y: data.map((d) => d.epa).toList()),
-          if (_settings?.useTbaOpr == true)
-            GraphSeries(name: 'TBA OPR', x: data.map((d) => d.label).toList(), y: data.map((d) => d.opr).toList()),
+          GraphSeries(name: 'Scouted Average', x: labels, y: data.map((d) => d.scouted).toList()),
+          if (effectiveUseEpa)
+            GraphSeries(name: 'Statbotics EPA', x: labels, y: data.map((d) => d.epa).toList()),
+          if (effectiveUseExp)
+            GraphSeries(name: 'Match 13 EXP', x: labels, y: data.map((d) => d.exp).toList()),
+          if (effectiveUseOpr)
+            GraphSeries(name: isFtc ? 'FTC Scout OPR' : 'TBA OPR', x: labels, y: data.map((d) => d.opr).toList()),
         ];
         return _buildGroupedBarChart(seriesList, title: title);
       } else {
-        final valExtractor = _datasource == 'epa' ? (d) => d.epa : (d) => d.opr;
+        double Function(dynamic d) valExtractor;
+        if (_datasource == 'epa') {
+          valExtractor = (d) => d.epa;
+        } else if (_datasource == 'exp') {
+          valExtractor = (d) => d.exp;
+        } else {
+          valExtractor = (d) => d.opr;
+        }
         final points = data.map((d) => GraphPoint(d.label, valExtractor(d))).toList();
         return _buildHorizontalBarChart(points, title: title);
       }
     }
 
-    if (graphType == 'line' || graphType == 'scatter' || graphType == 'area') {
-      final labels = data.map((d) => d.label).toList();
+    if (graphType == 'scatter' || graphType == 'area') {
       final seriesList = <GraphSeries>[];
 
       if (_datasource == 'scouted' || _datasource == 'all') {
         seriesList.add(GraphSeries(name: 'Scouted Average', x: labels, y: data.map((d) => d.scouted).toList()));
       }
-      if ((_datasource == 'epa' || _datasource == 'all') && _settings?.useStatboticsEpa == true) {
+      if ((_datasource == 'epa' || _datasource == 'all') && effectiveUseEpa) {
         seriesList.add(GraphSeries(name: 'Statbotics EPA', x: labels, y: data.map((d) => d.epa).toList()));
       }
-      if ((_datasource == 'opr' || _datasource == 'all') && _settings?.useTbaOpr == true) {
-        seriesList.add(GraphSeries(name: 'TBA OPR', x: labels, y: data.map((d) => d.opr).toList()));
+      if ((_datasource == 'exp' || _datasource == 'all') && effectiveUseExp) {
+        seriesList.add(GraphSeries(name: 'Match 13 EXP', x: labels, y: data.map((d) => d.exp).toList()));
+      }
+      if ((_datasource == 'opr' || _datasource == 'all') && effectiveUseOpr) {
+        seriesList.add(GraphSeries(name: isFtc ? 'FTC Scout OPR' : 'TBA OPR', x: labels, y: data.map((d) => d.opr).toList()));
       }
 
       return _buildLineOrScatterChart(seriesList, mode: graphType, title: title);
@@ -1560,19 +1817,25 @@ class _GraphsScreenState extends State<GraphsScreen> {
   Widget _buildHorizontalBarChart(List<GraphPoint> points, {String title = ''}) {
     if (points.isEmpty) return _buildNotice('No data yet.');
 
-    final maxVal = points.map((p) => p.value).fold(0.0, max);
+    final allVals = points.map((p) => p.value).toList();
+    final rawMaxVal = allVals.isNotEmpty ? allVals.reduce(max) : 10.0;
+    final rawMinVal = allVals.isNotEmpty ? allVals.reduce(min) : 0.0;
+    final minY = rawMinVal < 0 ? (rawMinVal * 1.18).clamp(-double.infinity, -0.1) : 0.0;
+    final maxY = rawMaxVal > 0 ? (rawMaxVal * 1.18).clamp(1.0, double.infinity) : 10.0;
     final avgVal = points.isNotEmpty
         ? points.map((p) => p.value).reduce((a, b) => a + b) / points.length
         : 0.0;
     final palette = _chartPalette();
 
-    final minContentWidth = max(points.length * 52.0 + 40.0, 300.0);
+    final minContentWidth = max(points.length * 36.0 + 40.0, 300.0);
 
     Widget buildChartWidget(BuildContext ctx, {bool isFullscreen = false}) {
       return BarChart(
         BarChartData(
           alignment: BarChartAlignment.spaceAround,
-          maxY: maxVal > 0 ? maxVal * 1.18 : 10.0,
+          minY: minY,
+          maxY: maxY,
+          groupsSpace: 6.0,
           barTouchData: BarTouchData(
             touchTooltipData: BarTouchTooltipData(
               getTooltipColor: (_) => ObsidianUITheme.getSurfaceColor(context),
@@ -1614,7 +1877,13 @@ class _GraphsScreenState extends State<GraphsScreen> {
           ),
           extraLinesData: ExtraLinesData(
             horizontalLines: [
-              if (_showBenchmark && avgVal > 0)
+              if (minY < 0)
+                HorizontalLine(
+                  y: 0,
+                  color: Colors.white38,
+                  strokeWidth: 1.2,
+                ),
+              if (_showBenchmark && avgVal != 0)
                 HorizontalLine(
                   y: avgVal,
                   color: ObsidianUITheme.primaryAccent,
@@ -1693,8 +1962,10 @@ class _GraphsScreenState extends State<GraphsScreen> {
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
                   ),
-                  width: max(8.0, min(28.0, 280.0 / points.length)),
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                  width: max(6.0, min(24.0, (points.length > 25 ? 14.0 : 280.0 / points.length))),
+                  borderRadius: points[i].value < 0
+                      ? const BorderRadius.vertical(bottom: Radius.circular(4))
+                      : const BorderRadius.vertical(top: Radius.circular(4)),
                 ),
               ],
             );
@@ -1726,12 +1997,20 @@ class _GraphsScreenState extends State<GraphsScreen> {
     final allX = seriesList.expand((s) => s.x).toSet().toList();
     if (allX.isEmpty) return _buildNotice('No data yet.');
 
+    // Sort chronologically by match key when in match-by-match view
+    if (_dataView == 'matches') {
+      allX.sort((a, b) => getMatchSortWeightFromLabel(a).compareTo(getMatchSortWeightFromLabel(b)));
+    }
+
     final visibleSeries = seriesList
         .where((s) => !_hiddenSeries.contains(s.name))
         .toList();
 
     final allY = visibleSeries.expand((s) => s.y).toList();
-    final maxY = allY.isNotEmpty ? allY.reduce(max) * 1.18 : 10.0;
+    final rawMaxY = allY.isNotEmpty ? allY.reduce(max) : 10.0;
+    final rawMinY = allY.isNotEmpty ? allY.reduce(min) : 0.0;
+    final minY = rawMinY < 0 ? (rawMinY * 1.18).clamp(-double.infinity, -0.1) : 0.0;
+    final maxY = rawMaxY > 0 ? (rawMaxY * 1.18).clamp(1.0, double.infinity) : 10.0;
     final avgY = allY.isNotEmpty ? allY.reduce((a, b) => a + b) / allY.length : 0.0;
     final palette = _chartPalette();
 
@@ -1747,22 +2026,62 @@ class _GraphsScreenState extends State<GraphsScreen> {
       );
     }).toList();
 
-    final minContentWidth = max(allX.length * (max(1, visibleSeries.length) * 32.0 + 36.0), 300.0);
+    final isMatchView = _dataView == 'matches';
+    final groupSeriesMap = <int, List<({int seriesIdx, GraphSeries series, double val, Color color})>>{};
+
+    for (int xIdx = 0; xIdx < allX.length; xIdx++) {
+      final xLabel = allX[xIdx];
+      final items = <({int seriesIdx, GraphSeries series, double val, Color color})>[];
+
+      for (int sIdx = 0; sIdx < visibleSeries.length; sIdx++) {
+        final s = visibleSeries[sIdx];
+        final pos = s.x.indexOf(xLabel);
+        if (pos >= 0 && pos < s.y.length) {
+          final val = s.y[pos];
+          final origIdx = seriesList.indexOf(s);
+          final color = palette[(origIdx >= 0 ? origIdx : sIdx) % palette.length];
+          items.add((seriesIdx: sIdx, series: s, val: val, color: color));
+        } else if (!isMatchView) {
+          final origIdx = seriesList.indexOf(s);
+          final color = palette[(origIdx >= 0 ? origIdx : sIdx) % palette.length];
+          items.add((seriesIdx: sIdx, series: s, val: 0.0, color: color));
+        }
+      }
+      groupSeriesMap[xIdx] = items;
+    }
+
+    final maxItemsInGroup = groupSeriesMap.values
+        .map((l) => l.length)
+        .fold(1, max);
+
+    // Compact group width with a clean gap between matches
+    final double minGroupWidth = isMatchView
+        ? max(34.0, min(70.0, maxItemsInGroup * 12.0 + 10.0))
+        : max(44.0, min(110.0, maxItemsInGroup * 16.0 + 14.0));
+    final minContentWidth = max(allX.length * (minGroupWidth + 6.0) + 40.0, 300.0);
+    final rodWidth = max(4.0, min(13.0, (minGroupWidth - 6.0) / max(1, maxItemsInGroup)));
 
     Widget buildChartWidget(BuildContext ctx, {bool isFullscreen = false}) {
       return BarChart(
         BarChartData(
           alignment: BarChartAlignment.spaceAround,
+          minY: minY,
           maxY: maxY,
+          groupsSpace: 6.0,
           barTouchData: BarTouchData(
             touchTooltipData: BarTouchTooltipData(
               getTooltipColor: (_) => ObsidianUITheme.getSurfaceColor(context),
               getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                final sName = visibleSeries.length > rodIndex ? visibleSeries[rodIndex].name : '';
-                return BarTooltipItem(
-                  '$sName: ${rod.toY.toStringAsFixed(rod.toY == rod.toY.truncate() ? 0 : 2)}\n(Tap to Inspect)',
-                  TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context), fontSize: 12),
-                );
+                final items = groupSeriesMap[groupIndex];
+                if (items != null && rodIndex >= 0 && rodIndex < items.length) {
+                  final item = items[rodIndex];
+                  final valStr = item.val.toStringAsFixed(item.val == item.val.truncate() ? 0 : 2);
+                  return BarTooltipItem(
+                    '${item.series.name}\n$valStr\n(Tap to Inspect)',
+                    TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context), fontSize: 12),
+                  );
+                }
+                return null;
               },
             ),
             touchCallback: (event, response) {
@@ -1770,19 +2089,25 @@ class _GraphsScreenState extends State<GraphsScreen> {
                 final spot = response!.spot!;
                 final groupIdx = spot.touchedBarGroupIndex;
                 final rodIdx = spot.touchedRodDataIndex;
-                if (groupIdx >= 0 && groupIdx < allX.length) {
-                  final xLabel = allX[groupIdx];
-                  final sName = (rodIdx >= 0 && rodIdx < visibleSeries.length) ? visibleSeries[rodIdx].name : '';
-                  final teamLabel = _resolveTeamLabel(seriesName: sName, xLabel: xLabel);
-                  final val = spot.touchedRodData.toY;
-                  _showTeamInspectFromLabel(teamLabel, val);
+                final items = groupSeriesMap[groupIdx];
+                if (items != null && rodIdx >= 0 && rodIdx < items.length) {
+                  final item = items[rodIdx];
+                  final xLabel = (groupIdx >= 0 && groupIdx < allX.length) ? allX[groupIdx] : '';
+                  final teamLabel = _resolveTeamLabel(seriesName: item.series.name, xLabel: xLabel);
+                  _showTeamInspectFromLabel(teamLabel, item.val);
                 }
               }
             },
           ),
           extraLinesData: ExtraLinesData(
             horizontalLines: [
-              if (_showBenchmark && avgY > 0)
+              if (minY < 0)
+                HorizontalLine(
+                  y: 0,
+                  color: Colors.white38,
+                  strokeWidth: 1.2,
+                ),
+              if (_showBenchmark && avgY != 0)
                 HorizontalLine(
                   y: avgY,
                   color: ObsidianUITheme.primaryAccent,
@@ -1824,8 +2149,13 @@ class _GraphsScreenState extends State<GraphsScreen> {
                     padding: const EdgeInsets.only(top: 6),
                     child: Text(
                       allX[idx],
-                      style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context), fontSize: 10),
+                      style: TextStyle(
+                        color: ObsidianUITheme.getSecondaryTextColor(context),
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w500,
+                      ),
                       overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
                     ),
                   );
                 },
@@ -1842,22 +2172,37 @@ class _GraphsScreenState extends State<GraphsScreen> {
           ),
           borderData: FlBorderData(show: false),
           barGroups: List.generate(allX.length, (xIdx) {
-            final xLabel = allX[xIdx];
+            final items = groupSeriesMap[xIdx] ?? [];
+
+            if (items.isEmpty) {
+              return BarChartGroupData(
+                x: xIdx,
+                barRods: [
+                  BarChartRodData(
+                    toY: 0,
+                    width: rodWidth,
+                    color: Colors.transparent,
+                  ),
+                ],
+              );
+            }
+
             return BarChartGroupData(
               x: xIdx,
-              barRods: visibleSeries.asMap().entries.map((entry) {
-                final sIdx = entry.key;
-                final s = entry.value;
-                final pos = s.x.indexOf(xLabel);
-                final val = pos >= 0 && pos < s.y.length ? s.y[pos] : 0.0;
-                final color = palette[sIdx % palette.length];
-                final isDimmed = _hoveredSeriesIndex != null && _hoveredSeriesIndex != sIdx;
+              barsSpace: 1.5,
+              barRods: items.map((item) {
+                final isDimmed = _hoveredSeriesIndex != null &&
+                    _hoveredSeriesIndex != item.seriesIdx;
 
                 return BarChartRodData(
-                  toY: val,
-                  color: isDimmed ? color.withValues(alpha: 0.25) : color,
-                  width: max(4.0, min(24.0, 36.0 / max(1, visibleSeries.length))),
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(3)),
+                  toY: item.val,
+                  color: isDimmed
+                      ? item.color.withValues(alpha: 0.25)
+                      : item.color,
+                  width: rodWidth,
+                  borderRadius: item.val < 0
+                      ? const BorderRadius.vertical(bottom: Radius.circular(3))
+                      : const BorderRadius.vertical(top: Radius.circular(3)),
                 );
               }).toList(),
             );
@@ -1901,25 +2246,9 @@ class _GraphsScreenState extends State<GraphsScreen> {
 
     final palette = _chartPalette();
 
-    // Unify x-axis and preserve order
-    const levelOrder = {'PM': 0, 'QM': 1, 'EF': 2, 'SF': 3, 'F': 4};
-    int labelSortKey(String label) {
-      final clean = label.toUpperCase();
-      int pri = 1;
-      for (final entry in levelOrder.entries) {
-        if (clean.contains(entry.key)) {
-          pri = entry.value;
-          break;
-        }
-      }
-      final numStr = label.replaceAll(RegExp(r'[^0-9]'), '');
-      final num = int.tryParse(numStr) ?? 0;
-      return pri * 10000 + num;
-    }
-
     final allX = seriesList.expand((s) => s.x).toSet().toList();
     if (mode == 'matches' || _dataView == 'matches') {
-      allX.sort((a, b) => labelSortKey(a).compareTo(labelSortKey(b)));
+      allX.sort((a, b) => getMatchSortWeightFromLabel(a).compareTo(getMatchSortWeightFromLabel(b)));
     }
 
     final visibleSeries = seriesList
@@ -1932,7 +2261,10 @@ class _GraphsScreenState extends State<GraphsScreen> {
       visibleSeries.addAll(seriesList);
     }
     final safeY = visibleSeries.expand((s) => s.y).toList();
-    final maxY = safeY.isNotEmpty ? (safeY.reduce(max) * 1.18).clamp(1.0, double.infinity) : 10.0;
+    final rawMaxY = safeY.isNotEmpty ? safeY.reduce(max) : 10.0;
+    final rawMinY = safeY.isNotEmpty ? safeY.reduce(min) : 0.0;
+    final minY = rawMinY < 0 ? (rawMinY * 1.18).clamp(-double.infinity, -0.1) : 0.0;
+    final maxY = rawMaxY > 0 ? (rawMaxY * 1.18).clamp(1.0, double.infinity) : 10.0;
     final avgY = safeY.isNotEmpty ? safeY.reduce((a, b) => a + b) / safeY.length : 0.0;
 
     final isScatter = mode == 'scatter';
@@ -1950,7 +2282,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
       );
     }).toList();
 
-    final minContentWidth = max(allX.length * 44.0 + 40.0, 300.0);
+    final minContentWidth = max(allX.length * 32.0 + 40.0, 300.0);
 
     Widget buildChartWidget(BuildContext ctx, {bool isFullscreen = false}) {
       final lineBarsData = visibleSeries.asMap().entries.map((entry) {
@@ -1962,7 +2294,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
         final spots = List.generate(series.x.length, (j) {
           final xIdx = allX.indexOf(series.x[j]).toDouble();
           return FlSpot(xIdx < 0 ? j.toDouble() : xIdx, series.y[j]);
-        });
+        })..sort((a, b) => a.x.compareTo(b.x));
 
         return LineChartBarData(
           spots: spots,
@@ -1989,6 +2321,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
 
       return LineChart(
         LineChartData(
+          minY: minY,
           maxY: maxY,
           lineTouchData: LineTouchData(
             handleBuiltInTouches: true,
@@ -2015,7 +2348,13 @@ class _GraphsScreenState extends State<GraphsScreen> {
           ),
           extraLinesData: ExtraLinesData(
             horizontalLines: [
-              if (_showBenchmark && avgY > 0)
+              if (minY < 0)
+                HorizontalLine(
+                  y: 0,
+                  color: Colors.white38,
+                  strokeWidth: 1.2,
+                ),
+              if (_showBenchmark && avgY != 0)
                 HorizontalLine(
                   y: avgY,
                   color: ObsidianUITheme.primaryAccent,
@@ -2058,7 +2397,11 @@ class _GraphsScreenState extends State<GraphsScreen> {
                     padding: const EdgeInsets.only(top: 6),
                     child: Text(
                       allX[idx],
-                      style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context), fontSize: 10),
+                      style: TextStyle(
+                        color: ObsidianUITheme.getSecondaryTextColor(context),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   );
                 },
@@ -2339,14 +2682,6 @@ class _GraphsScreenState extends State<GraphsScreen> {
   ];
 }
 
-extension _IterableExt<T> on Iterable<T> {
-  List<T> sortDescending(int Function(T a, T b) compare) {
-    final list = toList();
-    list.sort((a, b) => compare(b, a));
-    return list;
-  }
-}
-
 /// Interactive graphical chart for Box Plots and Violin Plots
 class ObsidianDistributionChart extends StatefulWidget {
   final List<DistributionStats> statsList;
@@ -2584,6 +2919,9 @@ class _DistributionPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    canvas.save();
+    canvas.clipRect(Rect.fromLTWH(0, 0, size.width, size.height));
+
     const leftMargin = 46.0;
     const rightMargin = 16.0;
     const topMargin = 16.0;
@@ -2624,7 +2962,10 @@ class _DistributionPainter extends CustomPainter {
       textPainter.paint(canvas, Offset(leftMargin - textPainter.width - 6, yPos - textPainter.height / 2));
     }
 
-    if (statsList.isEmpty) return;
+    if (statsList.isEmpty) {
+      canvas.restore();
+      return;
+    }
 
     final colWidth = chartWidth / statsList.length;
 
@@ -2668,6 +3009,8 @@ class _DistributionPainter extends CustomPainter {
         Offset(centerX - labelPainter.width / 2, size.height - bottomMargin + 8),
       );
     }
+
+    canvas.restore();
   }
 
   void _paintBoxPlot(

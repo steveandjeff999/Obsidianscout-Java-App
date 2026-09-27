@@ -16,6 +16,7 @@ import '../models/custom_analytics_models.dart';
 import '../models/predictor_models.dart';
 import '../models/error_report_models.dart';
 import '../models/assignment_models.dart';
+import '../models/graph_models.dart';
 import '../theme/obsidian_ui_theme.dart';
 import 'auth_storage_service.dart';
 import 'scout_history_service.dart';
@@ -1237,6 +1238,8 @@ class ApiService {
     String? firstUsername,
     String? firstKey,
     String? statboticsBaseUrl,
+    String? match13BaseUrl,
+    String? match13Key,
   }) async {
     if (!_isOnline) {
       return const ApiResponse.error(isOffline: true, message: 'Cannot test API while offline');
@@ -1248,6 +1251,8 @@ class ApiService {
       if (firstUsername != null) body['firstUsername'] = firstUsername;
       if (firstKey != null) body['firstKey'] = firstKey;
       if (statboticsBaseUrl != null) body['statboticsBaseUrl'] = statboticsBaseUrl;
+      if (match13BaseUrl != null) body['match13BaseUrl'] = match13BaseUrl;
+      if (match13Key != null) body['match13Key'] = match13Key;
 
       final response = await http.post(
         Uri.parse('$_currentServerUrl/api/settings/test-api'),
@@ -2142,6 +2147,53 @@ class ApiService {
         final decoded = jsonDecode(cached);
         if (decoded is Map<String, dynamic>) {
           return MatchPredictionResponse.fromJson(decoded);
+        }
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  Future<StatsHistoryModel?> fetchStatsHistory(String? eventKey) async {
+    final effectiveKey = (eventKey != null && eventKey.isNotEmpty)
+        ? eventKey
+        : (_currentSettings?.eventKey ?? '');
+    final cacheKey = "cache_stats_history_${effectiveKey.isNotEmpty ? effectiveKey : 'all'}";
+    final cached = await getCachedStatsHistory(effectiveKey);
+
+    if (!_isOnline) return cached;
+
+    try {
+      final url = effectiveKey.isNotEmpty
+          ? '$_currentServerUrl/api/stats/history?eventKey=$effectiveKey'
+          : '$_currentServerUrl/api/stats/history';
+      final response = await http.get(Uri.parse(url), headers: _headers).timeout(heavyRequestTimeout);
+      if (response.statusCode == 200) {
+        await _setCache(cacheKey, response.body);
+        if (effectiveKey.isNotEmpty) {
+          await _setCache("cache_stats_history_$effectiveKey", response.body);
+        }
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          return StatsHistoryModel.fromJson(decoded);
+        }
+      }
+    } catch (_) {}
+
+    return cached;
+  }
+
+  Future<StatsHistoryModel?> getCachedStatsHistory(String? eventKey) async {
+    final effectiveKey = (eventKey != null && eventKey.isNotEmpty)
+        ? eventKey
+        : (_currentSettings?.eventKey ?? '');
+    final cacheKey = "cache_stats_history_${effectiveKey.isNotEmpty ? effectiveKey : 'all'}";
+
+    final cached = await _getCache(cacheKey);
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(cached);
+        if (decoded is Map<String, dynamic>) {
+          return StatsHistoryModel.fromJson(decoded);
         }
       } catch (_) {}
     }

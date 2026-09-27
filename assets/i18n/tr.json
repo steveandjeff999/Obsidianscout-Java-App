@@ -652,7 +652,9 @@
   "predictor.choose_match": "Maç Seç",
   "predictor.loading_matches": "Maçlar yükleniyor...",
   "predictor.data_source": "Veri Kaynağı",
-  "predictor.all_3": "Tümü (3)",
+  "predictor.all_sources": "Tüm Kaynaklar",
+  "predictor.all_3": "Tüm Kaynaklar",
+  "predictor.match13_exp": "Match 13 EXP",
   "predictor.scouted_data": "Scout Verileri",
   "predictor.alliance_comparison": "İttifak Karşılaştırması",
   "predictor.visual_representation_of_relat": "Farklı performans kategorilerine dayalı göreceli güçlerin görsel gösterimi.",
@@ -1415,5 +1417,15 @@
   "nav.cluster_management": "Küme Yönetimi",
   "subtitle.cluster_management": "CockroachDB küme düğümlerini, günlükleri, yük dengeleyiciyi ve yedeği yönetin",
   "nav.error_reports": "Hata Raporları",
-  "subtitle.error_reports": "Küme sunucu istisnaları ve istemci hata raporları"
+  "subtitle.error_reports": "Küme sunucu istisnaları ve istemci hata raporları",
+  "team_details.exp": "EXP",
+  "rankings.metric.exp": "Match 13 EXP",
+  "predictor.match13_exp": "Match 13 EXP",
+  "alliance-selection.match13_exp": "Match 13 EXP",
+  "config.use_match13_exp": "Match 13 EXP Kullan",
+  "config.use_match13_exp_desc": "Match 13 beklenen puanlarını takım istatistiklerine, tahminciye, sıralamalara ve analitiklere entegre edin",
+  "config.match13_base_url": "Match 13 Temel URL",
+  "config.match13_api_key": "Match 13 API Anahtarı",
+  "config.test_match13_api": "Match 13 API'sini Test Et",
+  "validation.match13_exp": "MATCH 13 EXP"
 }

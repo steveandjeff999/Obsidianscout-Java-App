@@ -49,9 +49,12 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
   final TextEditingController _firstUsernameController = TextEditingController();
   final TextEditingController _firstKeyController = TextEditingController();
   final TextEditingController _statboticsUrlController = TextEditingController();
+  final TextEditingController _match13UrlController = TextEditingController();
+  final TextEditingController _match13KeyController = TextEditingController();
 
   String _preferredSource = 'tba';
   bool _useStatboticsEpa = false;
+  bool _useMatch13Exp = false;
   bool _useTbaOpr = false;
   bool _chatEnabled = true;
   bool _registrationLocked = false;
@@ -61,9 +64,11 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
 
   bool _obscureTbaKey = true;
   bool _obscureFirstKey = true;
+  bool _obscureMatch13Key = true;
   bool _isTestingTba = false;
   bool _isTestingFirst = false;
   bool _isTestingStatbotics = false;
+  bool _isTestingMatch13 = false;
   bool _isSavingSettings = false;
   bool _isSavingPermissions = false;
 
@@ -140,6 +145,8 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     _firstUsernameController.dispose();
     _firstKeyController.dispose();
     _statboticsUrlController.dispose();
+    _match13UrlController.dispose();
+    _match13KeyController.dispose();
     super.dispose();
   }
 
@@ -167,6 +174,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       _timezoneController.text = _currentSettings.timezone;
       _preferredSource = _currentSettings.preferredSource.isNotEmpty ? _currentSettings.preferredSource : 'tba';
       _useStatboticsEpa = _currentSettings.useStatboticsEpa;
+      _useMatch13Exp = _currentSettings.useMatch13Exp;
       _useTbaOpr = _currentSettings.useTbaOpr;
       _chatEnabled = _currentSettings.chatEnabled;
       _registrationLocked = _currentSettings.registrationLocked;
@@ -177,6 +185,8 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       _firstUsernameController.text = _currentSettings.apiKeys.firstUsername;
       _firstKeyController.text = _currentSettings.apiKeys.firstKey;
       _statboticsUrlController.text = _currentSettings.statboticsBaseUrl;
+      _match13UrlController.text = _currentSettings.match13BaseUrl;
+      _match13KeyController.text = _currentSettings.apiKeys.match13Key;
 
       setState(() {
         _isLoading = false;
@@ -416,6 +426,34 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     }
   }
 
+  Future<void> _handleTestMatch13() async {
+    setState(() => _isTestingMatch13 = true);
+    final response = await widget.apiService.testApiKey(
+      api: 'match13',
+      match13BaseUrl: _match13UrlController.text.trim().isNotEmpty
+          ? _match13UrlController.text.trim()
+          : 'https://actions.match13.com',
+      match13Key: _match13KeyController.text.trim(),
+    );
+
+    if (mounted) {
+      setState(() => _isTestingMatch13 = false);
+      if (response.success) {
+        ObsidianFeedback.showSuccess(
+          context,
+          title: 'Match 13 API Successful',
+          message: response.message ?? 'Match 13 API reachable and verified!',
+        );
+      } else {
+        ObsidianFeedback.showError(
+          context,
+          title: 'Match 13 API Failed',
+          message: response.message ?? 'Failed to reach Match 13 API.',
+        );
+      }
+    }
+  }
+
   Future<void> _handleSaveSettings() async {
     setState(() => _isSavingSettings = true);
 
@@ -425,6 +463,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       timezone: _timezoneController.text.trim().isNotEmpty ? _timezoneController.text.trim() : 'America/New_York',
       preferredSource: _preferredSource,
       useStatboticsEpa: _useStatboticsEpa,
+      useMatch13Exp: _useMatch13Exp,
       useTbaOpr: _useTbaOpr,
       chatEnabled: _chatEnabled,
       registrationLocked: _registrationLocked,
@@ -432,10 +471,14 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
         tbaKey: _tbaKeyController.text.trim(),
         firstUsername: _firstUsernameController.text.trim(),
         firstKey: _firstKeyController.text.trim(),
+        match13Key: _match13KeyController.text.trim(),
       ),
       statboticsBaseUrl: _statboticsUrlController.text.trim().isNotEmpty
           ? _statboticsUrlController.text.trim()
           : 'https://api.statbotics.io',
+      match13BaseUrl: _match13UrlController.text.trim().isNotEmpty
+          ? _match13UrlController.text.trim()
+          : 'https://actions.match13.com',
     );
 
     final response = await widget.apiService.updateSettings(updated);
@@ -3198,6 +3241,15 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                   controlAffinity: ListTileControlAffinity.leading,
                   onChanged: (val) => setState(() => _useStatboticsEpa = val ?? false),
                 ),
+                CheckboxListTile(
+                  title: Text('Use Match 13 EXP', style: TextStyle(color: primaryTextColor, fontSize: 13)),
+                  subtitle: Text('Pull expected points (EXP/XP) metrics for FRC teams from Match 13', style: TextStyle(color: secondaryTextColor, fontSize: 11)),
+                  value: _useMatch13Exp,
+                  activeColor: ObsidianUITheme.primaryAccent,
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  onChanged: (val) => setState(() => _useMatch13Exp = val ?? false),
+                ),
               ],
               CheckboxListTile(
                 title: Text(isFtc ? 'Use FTC Scout OPR' : 'Use TBA OPR', style: TextStyle(color: primaryTextColor, fontSize: 13)),
@@ -3398,6 +3450,75 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                       style: TextStyle(color: ObsidianUITheme.primaryAccent, fontWeight: FontWeight.bold, fontSize: 13),
                     ),
                     onPressed: _isTestingStatbotics ? null : _handleTestStatbotics,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Match 13 Card (FRC Only)
+          const SizedBox(height: 14),
+          ObsidianGlassCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.bolt_rounded, size: 18, color: Colors.purpleAccent),
+                    const SizedBox(width: 8),
+                    Text('Match 13', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primaryTextColor)),
+                  ],
+                ),
+                Divider(color: borderColor, height: 20),
+
+                TextField(
+                  controller: _match13UrlController,
+                  style: TextStyle(color: primaryTextColor, fontSize: 14),
+                  decoration: InputDecoration(
+                    labelText: 'Match 13 Base URL',
+                    labelStyle: TextStyle(color: secondaryTextColor, fontSize: 12),
+                    hintText: 'https://actions.match13.com',
+                    isDense: true,
+                    enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
+                    focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                TextField(
+                  controller: _match13KeyController,
+                  obscureText: _obscureMatch13Key,
+                  style: TextStyle(color: primaryTextColor, fontSize: 14),
+                  decoration: InputDecoration(
+                    labelText: 'Match 13 API Key (optional)',
+                    labelStyle: TextStyle(color: secondaryTextColor, fontSize: 12),
+                    isDense: true,
+                    enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
+                    focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscureMatch13Key ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 18, color: secondaryTextColor),
+                      onPressed: () => setState(() => _obscureMatch13Key = !_obscureMatch13Key),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      side: BorderSide(color: borderColor),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    icon: _isTestingMatch13
+                        ? SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianUITheme.primaryAccent))
+                        : Icon(Icons.bolt_rounded, size: 16, color: ObsidianUITheme.primaryAccent),
+                    label: Text(
+                      'Test Match 13 API',
+                      style: TextStyle(color: ObsidianUITheme.primaryAccent, fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                    onPressed: _isTestingMatch13 ? null : _handleTestMatch13,
                   ),
                 ),
               ],

@@ -1127,6 +1127,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> {
       );
     }
 
+    final useExp = _summaryData?.useMatch13Exp ?? false;
     final useEpa = _summaryData?.useStatboticsEpa ?? true;
     final useOpr = _summaryData?.useTbaOpr ?? true;
 
@@ -1136,7 +1137,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> {
       itemCount: teams.length,
       itemBuilder: (ctx, idx) {
         final team = teams[idx];
-        return _buildTeamValidationCard(context, team, useEpa: useEpa, useOpr: useOpr);
+        return _buildTeamValidationCard(context, team, useExp: useExp, useEpa: useEpa, useOpr: useOpr);
       },
     );
   }
@@ -1144,6 +1145,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> {
   Widget _buildTeamValidationCard(
     BuildContext context,
     TeamValidationModel team, {
+    required bool useExp,
     required bool useEpa,
     required bool useOpr,
   }) {
@@ -1164,6 +1166,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> {
                 teamKey: team.teamKey,
                 nickname: team.nickname,
                 name: team.nickname,
+                exp: team.exp,
                 epa: team.epa,
                 opr: team.opr,
               ),
@@ -1221,7 +1224,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> {
           ),
           const SizedBox(height: 10.0),
 
-          // Scores Row: Scouted Avg, EPA, OPR
+          // Scores Row: Scouted Avg, EXP, EPA, OPR
           Row(
             children: [
               // Scouted Avg
@@ -1245,6 +1248,33 @@ class _DataValidationScreenState extends State<DataValidationScreen> {
                   ],
                 ),
               ),
+
+              // Match 13 EXP
+              if (useExp)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'MATCH 13 EXP',
+                        style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700, color: secondaryTextColor),
+                      ),
+                      const SizedBox(height: 2.0),
+                      Row(
+                        children: [
+                          Text(
+                            team.exp != null ? '${team.exp}' : 'N/A',
+                            style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: primaryTextColor),
+                          ),
+                          if (team.expDiff != null) ...[
+                            const SizedBox(width: 4.0),
+                            _buildDeltaBadge(team.expDiff!, team.expDiff!.abs() >= _threshold),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
 
               // EPA
               if (useEpa)

@@ -50,6 +50,7 @@ class _RankingsScreenState extends State<RankingsScreen> {
   bool get _isFtc => widget.apiService.currentProgram.toUpperCase() == 'FTC';
   bool get _effectiveUseEpa => !_isFtc && (widget.apiService.currentSettings?.useStatboticsEpa ?? false);
   bool get _effectiveUseOpr => widget.apiService.currentSettings?.useTbaOpr ?? false;
+  bool get _effectiveUseExp => !_isFtc && (widget.apiService.currentSettings?.useMatch13Exp ?? false);
 
   Future<void> _initData() async {
     final settings = widget.apiService.currentSettings;
@@ -65,7 +66,11 @@ class _RankingsScreenState extends State<RankingsScreen> {
       _selectedMetric = 'scouted';
       _activeSortMetric = 'scouted';
     }
-    if ((!_effectiveUseEpa || !_effectiveUseOpr) && _selectedMetric == 'all') {
+    if (!_effectiveUseExp && _selectedMetric == 'exp') {
+      _selectedMetric = 'scouted';
+      _activeSortMetric = 'scouted';
+    }
+    if (!_effectiveUseEpa && !_effectiveUseOpr && !_effectiveUseExp && _selectedMetric == 'all') {
       _selectedMetric = 'scouted';
       _activeSortMetric = 'scouted';
     }
@@ -173,6 +178,9 @@ class _RankingsScreenState extends State<RankingsScreen> {
       } else if (_activeSortMetric == 'opr') {
         valA = a.opr ?? -999999;
         valB = b.opr ?? -999999;
+      } else if (_activeSortMetric == 'exp') {
+        valA = a.exp ?? -999999;
+        valB = b.exp ?? -999999;
       }
 
       final hasA = valA != -999999;
@@ -297,10 +305,15 @@ class _RankingsScreenState extends State<RankingsScreen> {
                                                     ? context.tr('predictor.ftcscout_opr', 'FTC Scout OPR')
                                                     : context.tr('rankings.metric.opr', 'TBA OPR')),
                                               ),
-                                            if (_effectiveUseEpa && _effectiveUseOpr)
+                                            if (_effectiveUseExp)
+                                              DropdownMenuItem(
+                                                value: 'exp',
+                                                child: Text(context.tr('rankings.metric.exp', 'Match 13 EXP')),
+                                              ),
+                                            if (((_effectiveUseEpa ? 1 : 0) + (_effectiveUseOpr ? 1 : 0) + (_effectiveUseExp ? 1 : 0)) >= 1)
                                               DropdownMenuItem(
                                                 value: 'all',
-                                                child: Text(context.tr('rankings.metric.all', 'All Three')),
+                                                child: Text(context.tr('rankings.metric.all', 'All Metrics')),
                                               ),
                                           ],
                                           onChanged: (val) {
@@ -472,6 +485,7 @@ class _RankingsScreenState extends State<RankingsScreen> {
     final showScouted = _selectedMetric == 'scouted' || _selectedMetric == 'all';
     final showOpr = (_selectedMetric == 'opr' || _selectedMetric == 'all') && _effectiveUseOpr;
     final showEpa = (_selectedMetric == 'epa' || _selectedMetric == 'all') && _effectiveUseEpa;
+    final showExp = (_selectedMetric == 'exp' || _selectedMetric == 'all') && _effectiveUseExp;
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -547,6 +561,26 @@ class _RankingsScreenState extends State<RankingsScreen> {
                   ),
                 ),
               ),
+            if (showExp)
+              DataColumn(
+                label: InkWell(
+                  onTap: () => _onSort('exp'),
+                  child: Row(
+                    children: [
+                      Text(
+                        'EXP',
+                        style: TextStyle(
+                          color: _activeSortMetric == 'exp' ? ObsidianUITheme.primaryAccent : primaryTextColor,
+                          fontWeight: _activeSortMetric == 'exp' ? FontWeight.bold : FontWeight.w600,
+                        ),
+                      ),
+                      if (_activeSortMetric == 'exp')
+                        Icon(_sortAsc ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                            size: 14, color: ObsidianUITheme.primaryAccent),
+                    ],
+                  ),
+                ),
+              ),
           ],
           rows: teams.asMap().entries.map((entry) {
             final index = entry.key;
@@ -591,6 +625,13 @@ class _RankingsScreenState extends State<RankingsScreen> {
                       style: TextStyle(color: secondaryTextColor),
                     ),
                   ),
+                if (showExp)
+                  DataCell(
+                    Text(
+                      t.exp != null ? t.exp!.toStringAsFixed(2) : '—',
+                      style: TextStyle(color: secondaryTextColor),
+                    ),
+                  ),
               ],
             );
           }).toList(),
@@ -607,6 +648,7 @@ class _RankingsScreenState extends State<RankingsScreen> {
     final showScouted = _selectedMetric == 'scouted' || _selectedMetric == 'all';
     final showOpr = (_selectedMetric == 'opr' || _selectedMetric == 'all') && _effectiveUseOpr;
     final showEpa = (_selectedMetric == 'epa' || _selectedMetric == 'all') && _effectiveUseEpa;
+    final showExp = (_selectedMetric == 'exp' || _selectedMetric == 'all') && _effectiveUseExp;
 
     return ListView.separated(
       shrinkWrap: true,
@@ -664,6 +706,11 @@ class _RankingsScreenState extends State<RankingsScreen> {
                           Padding(
                             padding: const EdgeInsets.only(left: 6),
                             child: Text('EPA: ${t.epa!.toStringAsFixed(1)}', style: TextStyle(fontSize: 11, color: secondaryTextColor)),
+                          ),
+                        if (showExp && t.exp != null)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 6),
+                            child: Text('EXP: ${t.exp!.toStringAsFixed(1)}', style: TextStyle(fontSize: 11, color: secondaryTextColor)),
                           ),
                       ],
                     ),

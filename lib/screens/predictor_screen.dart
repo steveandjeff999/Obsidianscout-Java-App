@@ -55,9 +55,13 @@ class _PredictorScreenState extends State<PredictorScreen> {
     final isFtc = widget.apiService.currentProgram.toUpperCase() == 'FTC';
     final effectiveEpa = !isFtc && (settings?.useStatboticsEpa ?? false);
     final effectiveOpr = settings?.useTbaOpr ?? false;
+    final effectiveExp = !isFtc && (settings?.useMatch13Exp ?? false);
 
-    if (effectiveEpa && effectiveOpr) {
+    final activeCount = (effectiveEpa ? 1 : 0) + (effectiveOpr ? 1 : 0) + (effectiveExp ? 1 : 0);
+    if (activeCount >= 1) {
       _dataSource = 'all';
+    } else if (effectiveExp) {
+      _dataSource = 'exp';
     } else if (effectiveEpa) {
       _dataSource = 'epa';
     } else if (effectiveOpr) {
@@ -68,13 +72,17 @@ class _PredictorScreenState extends State<PredictorScreen> {
   }
 
   Future<void> _loadMatches() async {
-    final eventKey = widget.apiService.currentSettings?.eventKey ?? await widget.apiService.getCachedEventKey();
+    final cachedSettings = await widget.apiService.getCachedSettings();
+    final eventKey = widget.apiService.currentSettings?.eventKey ?? cachedSettings?.eventKey ?? await widget.apiService.getCachedEventKey();
     final cachedMatches = await widget.apiService.getCachedMatches(eventKey);
 
-    if (mounted && cachedMatches.isNotEmpty) {
+    if (mounted) {
       setState(() {
-        _matches = cachedMatches;
-        _isLoadingMatches = false;
+        _initSettings();
+        if (cachedMatches.isNotEmpty) {
+          _matches = cachedMatches;
+          _isLoadingMatches = false;
+        }
         if (_selectedMatchKey == null && widget.initialMatchKey != null) {
           _selectedMatchKey = widget.initialMatchKey;
         }
@@ -169,6 +177,7 @@ class _PredictorScreenState extends State<PredictorScreen> {
     final isFtc = widget.apiService.currentProgram.toUpperCase() == 'FTC';
     final effectiveEpa = !isFtc && (settings?.useStatboticsEpa ?? false);
     final effectiveOpr = settings?.useTbaOpr ?? false;
+    final effectiveExp = !isFtc && (settings?.useMatch13Exp ?? false);
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -287,7 +296,7 @@ class _PredictorScreenState extends State<PredictorScreen> {
                   runSpacing: 12.0,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    if (effectiveEpa || effectiveOpr) ...[
+                    if (effectiveEpa || effectiveOpr || effectiveExp) ...[
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -309,24 +318,29 @@ class _PredictorScreenState extends State<PredictorScreen> {
                                 dropdownColor: isDark ? const Color(0xFF1E2430) : Colors.white,
                                 style: TextStyle(color: primaryTextColor, fontSize: 13.0, fontWeight: FontWeight.w500),
                                 items: [
-                                  if (effectiveEpa && effectiveOpr)
+                                  if (effectiveEpa || effectiveExp || effectiveOpr)
                                     DropdownMenuItem(
                                       value: 'all',
-                                      child: Text(context.tr('predictor.all_3')),
+                                      child: Text(context.tr('predictor.all_sources', 'All Sources')),
                                     ),
                                   DropdownMenuItem(
                                     value: 'scouted',
-                                    child: Text(context.tr('predictor.scouted_data')),
+                                    child: Text(context.tr('predictor.scouted_data', 'Scouted Data')),
                                   ),
+                                  if (effectiveExp)
+                                    DropdownMenuItem(
+                                      value: 'exp',
+                                      child: Text(context.tr('predictor.match13_exp', 'Match 13 EXP')),
+                                    ),
                                   if (effectiveEpa)
                                     DropdownMenuItem(
                                       value: 'epa',
-                                      child: Text(context.tr('predictor.statbotics_epa')),
+                                      child: Text(context.tr('predictor.statbotics_epa', 'Statbotics EPA')),
                                     ),
                                   if (effectiveOpr)
                                     DropdownMenuItem(
                                       value: 'opr',
-                                      child: Text(isFtc ? context.tr('predictor.ftcscout_opr') : context.tr('predictor.tba_opr')),
+                                      child: Text(isFtc ? context.tr('predictor.ftcscout_opr', 'FTC Scout OPR') : context.tr('predictor.tba_opr', 'TBA OPR')),
                                     ),
                                 ],
                                 onChanged: (val) {
@@ -400,7 +414,7 @@ class _PredictorScreenState extends State<PredictorScreen> {
           else if (_prediction == null)
             _buildEmptyState(context, isDark, primaryTextColor, secondaryTextColor)
           else
-            ..._buildPredictionDetails(context, isDark, primaryTextColor, secondaryTextColor, isDesktop, effectiveEpa, effectiveOpr, isFtc),
+            ..._buildPredictionDetails(context, isDark, primaryTextColor, secondaryTextColor, isDesktop, effectiveEpa, effectiveOpr, effectiveExp, isFtc),
         ],
       ),
     );
@@ -440,6 +454,7 @@ class _PredictorScreenState extends State<PredictorScreen> {
     bool isDesktop,
     bool effectiveEpa,
     bool effectiveOpr,
+    bool effectiveExp,
     bool isFtc,
   ) {
     final pred = _prediction!;
@@ -452,6 +467,9 @@ class _PredictorScreenState extends State<PredictorScreen> {
     final blueEpa = blue.totalEpa;
     final redOpr = red.totalOpr;
     final blueOpr = blue.totalOpr;
+    final redExp = red.totalExp;
+    final blueExp = blue.totalExp;
+    final match13Pred = pred.match13Pred;
 
     return [
       // Spotlight Winner Cards
@@ -464,6 +482,15 @@ class _PredictorScreenState extends State<PredictorScreen> {
           redScore: redScouted,
           blueScore: blueScouted,
           unit: 'pts',
+          isDark: isDark,
+        ),
+
+      if (effectiveExp && (_dataSource == 'all' || _dataSource == 'exp'))
+        _buildMatch13SpotlightCard(
+          context: context,
+          match13Pred: match13Pred,
+          fallbackRedExp: redExp,
+          fallbackBlueExp: blueExp,
           isDark: isDark,
         ),
 
@@ -527,6 +554,17 @@ class _PredictorScreenState extends State<PredictorScreen> {
               const SizedBox(height: 14.0),
             ],
 
+            if (effectiveExp && (_dataSource == 'all' || _dataSource == 'exp')) ...[
+              _buildComparisonBar(
+                title: context.tr('predictor.match13_exp', 'Match 13 EXP'),
+                redVal: match13Pred?.redScore ?? redExp,
+                blueVal: match13Pred?.blueScore ?? blueExp,
+                unit: 'EXP',
+                isDark: isDark,
+              ),
+              const SizedBox(height: 14.0),
+            ],
+
             if (effectiveEpa && (_dataSource == 'all' || _dataSource == 'epa')) ...[
               _buildComparisonBar(
                 title: context.tr('predictor.statbotics_epa'),
@@ -556,15 +594,15 @@ class _PredictorScreenState extends State<PredictorScreen> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: _buildAllianceRoster(context, 'Red Alliance', red, const Color(0xFFEF4444), isDark, effectiveEpa, effectiveOpr)),
+            Expanded(child: _buildAllianceRoster(context, 'Red Alliance', red, const Color(0xFFEF4444), isDark, effectiveEpa, effectiveOpr, effectiveExp)),
             const SizedBox(width: 16.0),
-            Expanded(child: _buildAllianceRoster(context, 'Blue Alliance', blue, const Color(0xFF3B82F6), isDark, effectiveEpa, effectiveOpr)),
+            Expanded(child: _buildAllianceRoster(context, 'Blue Alliance', blue, const Color(0xFF3B82F6), isDark, effectiveEpa, effectiveOpr, effectiveExp)),
           ],
         )
       else ...[
-        _buildAllianceRoster(context, 'Red Alliance', red, const Color(0xFFEF4444), isDark, effectiveEpa, effectiveOpr),
+        _buildAllianceRoster(context, 'Red Alliance', red, const Color(0xFFEF4444), isDark, effectiveEpa, effectiveOpr, effectiveExp),
         const SizedBox(height: 16.0),
-        _buildAllianceRoster(context, 'Blue Alliance', blue, const Color(0xFF3B82F6), isDark, effectiveEpa, effectiveOpr),
+        _buildAllianceRoster(context, 'Blue Alliance', blue, const Color(0xFF3B82F6), isDark, effectiveEpa, effectiveOpr, effectiveExp),
       ],
     ];
   }
@@ -646,6 +684,148 @@ class _PredictorScreenState extends State<PredictorScreen> {
     );
   }
 
+  Widget _buildMatch13SpotlightCard({
+    required BuildContext context,
+    required Match13PredictionDetail? match13Pred,
+    required double fallbackRedExp,
+    required double fallbackBlueExp,
+    required bool isDark,
+  }) {
+    final redScore = match13Pred?.redScore ?? fallbackRedExp;
+    final blueScore = match13Pred?.blueScore ?? fallbackBlueExp;
+    final redWinProb = match13Pred?.redWinProb ?? (redScore > blueScore ? 0.6 : (blueScore > redScore ? 0.4 : 0.5));
+    final blueWinProb = match13Pred?.blueWinProb ?? (1.0 - redWinProb);
+
+    String winnerText;
+    Color winnerColor;
+    String subtext;
+
+    if (redScore == 0 && blueScore == 0 && match13Pred == null) {
+      winnerText = context.tr('predictor.no_data');
+      winnerColor = Colors.grey;
+      subtext = 'Insufficient EXP entries for predictions.';
+    } else if (redWinProb > 0.5) {
+      final probPct = (redWinProb * 100).toStringAsFixed(0);
+      winnerText = '${context.tr('predictor.red_alliance')} ($probPct% Win Prob)';
+      winnerColor = const Color(0xFFEF4444);
+      subtext = 'Predicted score: ${redScore.toStringAsFixed(1)} - ${blueScore.toStringAsFixed(1)} EXP';
+    } else if (blueWinProb > 0.5) {
+      final probPct = (blueWinProb * 100).toStringAsFixed(0);
+      winnerText = '${context.tr('predictor.blue_alliance')} ($probPct% Win Prob)';
+      winnerColor = const Color(0xFF3B82F6);
+      subtext = 'Predicted score: ${blueScore.toStringAsFixed(1)} - ${redScore.toStringAsFixed(1)} EXP';
+    } else {
+      winnerText = context.tr('predictor.dead_heat');
+      winnerColor = Colors.amberAccent;
+      subtext = 'Predicted score: ${redScore.toStringAsFixed(1)} - ${blueScore.toStringAsFixed(1)} EXP';
+    }
+
+    final hasRps = match13Pred != null && (match13Pred.redRp1 != null || match13Pred.blueRp1 != null);
+
+    return ObsidianGlassCard(
+      borderRadius: 16.0,
+      margin: const EdgeInsets.only(bottom: 12.0),
+      padding: const EdgeInsets.all(18.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10.0),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12.0),
+                  border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+                ),
+                child: const Icon(Icons.flash_on_rounded, color: Color(0xFF10B981), size: 28.0),
+              ),
+              const SizedBox(width: 14.0),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.tr('predictor.match13_exp', 'Match 13 EXP Prediction'),
+                      style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.w600, color: ObsidianUITheme.getSecondaryTextColor(context)),
+                    ),
+                    const SizedBox(height: 2.0),
+                    Text(
+                      winnerText,
+                      style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.w800, color: winnerColor),
+                    ),
+                    const SizedBox(height: 2.0),
+                    Text(
+                      subtext,
+                      style: TextStyle(fontSize: 12.0, color: ObsidianUITheme.getSecondaryTextColor(context)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (hasRps) ...[
+            const SizedBox(height: 12.0),
+            Divider(color: isDark ? Colors.white10 : Colors.black12, height: 1),
+            const SizedBox(height: 10.0),
+            Text(
+              'Ranking Point Probabilities (RP1 / RP2 / RP3)',
+              style: TextStyle(fontSize: 11.0, fontWeight: FontWeight.w600, color: ObsidianUITheme.getSecondaryTextColor(context)),
+            ),
+            const SizedBox(height: 6.0),
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8.0),
+                      border: Border.all(color: const Color(0xFFEF4444).withValues(alpha: 0.2)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Red RP Probs', style: TextStyle(fontSize: 11.0, fontWeight: FontWeight.bold, color: Color(0xFFEF4444))),
+                        const SizedBox(height: 2.0),
+                        Text(
+                          '${((match13Pred.redRp1 ?? 0) * 100).toStringAsFixed(0)}% / ${((match13Pred.redRp2 ?? 0) * 100).toStringAsFixed(0)}% / ${((match13Pred.redRp3 ?? 0) * 100).toStringAsFixed(0)}%',
+                          style: TextStyle(fontSize: 11.0, color: isDark ? Colors.white70 : Colors.black87),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8.0),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8.0),
+                      border: Border.all(color: const Color(0xFF3B82F6).withValues(alpha: 0.2)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Blue RP Probs', style: TextStyle(fontSize: 11.0, fontWeight: FontWeight.bold, color: Color(0xFF3B82F6))),
+                        const SizedBox(height: 2.0),
+                        Text(
+                          '${((match13Pred.blueRp1 ?? 0) * 100).toStringAsFixed(0)}% / ${((match13Pred.blueRp2 ?? 0) * 100).toStringAsFixed(0)}% / ${((match13Pred.blueRp3 ?? 0) * 100).toStringAsFixed(0)}%',
+                          style: TextStyle(fontSize: 11.0, color: isDark ? Colors.white70 : Colors.black87),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildComparisonBar({
     required String title,
     required double redVal,
@@ -714,13 +894,16 @@ class _PredictorScreenState extends State<PredictorScreen> {
   }
 
   /// Computes the displayed point value for an individual team based on the active dataSource.
-  /// If scouted/epa/opr is selected: returns that metric's value if present and non-zero.
+  /// If scouted/epa/opr/exp is selected: returns that metric's value if present and non-zero.
   /// If 'all' is selected: returns the composite average of the available non-zero metrics among
-  /// [averageScoutedScore, epa, opr] (excluding 0s and nulls).
-  double? _getTeamPoints(MatchTeamPrediction team, bool effectiveEpa, bool effectiveOpr) {
+  /// [averageScoutedScore, exp, epa, opr] (excluding 0s and nulls).
+  double? _getTeamPoints(MatchTeamPrediction team, bool effectiveEpa, bool effectiveOpr, bool effectiveExp) {
     if (_dataSource == 'scouted') {
       final s = team.averageScoutedScore;
       return (s != null && s > 0) ? s : null;
+    } else if (_dataSource == 'exp') {
+      final ex = team.exp;
+      return (effectiveExp && ex != null && ex > 0) ? ex : null;
     } else if (_dataSource == 'epa') {
       final e = team.epa;
       return (effectiveEpa && e != null && e > 0) ? e : null;
@@ -728,10 +911,13 @@ class _PredictorScreenState extends State<PredictorScreen> {
       final o = team.opr;
       return (effectiveOpr && o != null && o > 0) ? o : null;
     } else {
-      // 'all': composite average of the 3 (scouted, epa, opr) excluding 0s and nulls
+      // 'all': composite average of available metrics excluding 0s and nulls
       final values = <double>[];
       if (team.averageScoutedScore != null && team.averageScoutedScore! > 0) {
         values.add(team.averageScoutedScore!);
+      }
+      if (effectiveExp && team.exp != null && team.exp! > 0) {
+        values.add(team.exp!);
       }
       if (effectiveEpa && team.epa != null && team.epa! > 0) {
         values.add(team.epa!);
@@ -744,9 +930,11 @@ class _PredictorScreenState extends State<PredictorScreen> {
     }
   }
 
-  double _getAllianceTotal(AlliancePrediction alliance, bool effectiveEpa, bool effectiveOpr) {
+  double _getAllianceTotal(AlliancePrediction alliance, bool effectiveEpa, bool effectiveOpr, bool effectiveExp) {
     if (_dataSource == 'scouted') {
       return alliance.totalScoutedScore;
+    } else if (_dataSource == 'exp') {
+      return effectiveExp ? alliance.totalExp : 0.0;
     } else if (_dataSource == 'epa') {
       return effectiveEpa ? alliance.totalEpa : 0.0;
     } else if (_dataSource == 'opr') {
@@ -756,7 +944,7 @@ class _PredictorScreenState extends State<PredictorScreen> {
       double sum = 0.0;
       bool hasAny = false;
       for (final t in alliance.teams) {
-        final p = _getTeamPoints(t, effectiveEpa, effectiveOpr);
+        final p = _getTeamPoints(t, effectiveEpa, effectiveOpr, effectiveExp);
         if (p != null) {
           sum += p;
           hasAny = true;
@@ -765,6 +953,7 @@ class _PredictorScreenState extends State<PredictorScreen> {
       if (hasAny) return sum;
       final totals = <double>[];
       if (alliance.totalScoutedScore > 0) totals.add(alliance.totalScoutedScore);
+      if (effectiveExp && alliance.totalExp > 0) totals.add(alliance.totalExp);
       if (effectiveEpa && alliance.totalEpa > 0) totals.add(alliance.totalEpa);
       if (effectiveOpr && alliance.totalOpr > 0) totals.add(alliance.totalOpr);
       if (totals.isEmpty) return 0.0;
@@ -780,9 +969,10 @@ class _PredictorScreenState extends State<PredictorScreen> {
     bool isDark,
     bool effectiveEpa,
     bool effectiveOpr,
+    bool effectiveExp,
   ) {
-    final allianceTotal = _getAllianceTotal(alliance, effectiveEpa, effectiveOpr);
-    final unit = _dataSource == 'opr' ? 'OPR' : (_dataSource == 'epa' ? 'EPA' : 'pts');
+    final allianceTotal = _getAllianceTotal(alliance, effectiveEpa, effectiveOpr, effectiveExp);
+    final unit = _dataSource == 'opr' ? 'OPR' : (_dataSource == 'epa' ? 'EPA' : (_dataSource == 'exp' ? 'EXP' : 'pts'));
 
     return ObsidianGlassCard(
       borderRadius: 16.0,
@@ -820,7 +1010,7 @@ class _PredictorScreenState extends State<PredictorScreen> {
             )
           else
             ...alliance.teams.map((t) {
-              final teamPts = _getTeamPoints(t, effectiveEpa, effectiveOpr);
+              final teamPts = _getTeamPoints(t, effectiveEpa, effectiveOpr, effectiveExp);
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 10.0),
@@ -872,10 +1062,14 @@ class _PredictorScreenState extends State<PredictorScreen> {
                       runSpacing: 4.0,
                       children: [
                         _buildPill('${t.scoutedMatchesCount} matches', isDark),
+                        if (effectiveExp && t.exp != null)
+                          _buildPill('EXP: ${t.exp!.toStringAsFixed(1)}', isDark),
                         if (effectiveEpa && t.epa != null)
                           _buildPill('EPA: ${t.epa!.toStringAsFixed(1)}', isDark),
                         if (effectiveOpr && t.opr != null)
                           _buildPill('OPR: ${t.opr!.toStringAsFixed(1)}', isDark),
+                        if (effectiveExp && t.match13TeamExp != null)
+                          _buildPill('A: ${(t.match13TeamExp!.xAutoPost ?? 0.0).toStringAsFixed(1)} | T: ${(t.match13TeamExp!.xTelePost ?? 0.0).toStringAsFixed(1)} | E: ${(t.match13TeamExp!.xEndPost ?? 0.0).toStringAsFixed(1)}', isDark),
                       ],
                     ),
                   ],

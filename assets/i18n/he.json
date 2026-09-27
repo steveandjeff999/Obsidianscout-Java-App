@@ -652,7 +652,9 @@
   "predictor.choose_match": "בחר משחק",
   "predictor.loading_matches": "טוען משחקים...",
   "predictor.data_source": "מקור נתונים",
-  "predictor.all_3": "כל ה-3",
+  "predictor.all_sources": "כל המקורות",
+  "predictor.all_3": "כל המקורות",
+  "predictor.match13_exp": "Match 13 EXP",
   "predictor.scouted_data": "נתונים שנסקרו",
   "predictor.alliance_comparison": "השוואת בריתות",
   "predictor.visual_representation_of_relat": "ייצוג ויזואלי של חוזקות יחסיות המבוסס על קטגוריות ביצוע שונות.",
@@ -1415,5 +1417,15 @@
   "nav.cluster_management": "ניהול אשכול",
   "subtitle.cluster_management": "ניהול צמתי אשכול CockroachDB, יומנים, מאזן עומסים וגיבוי",
   "nav.error_reports": "דוחות שגיאות",
-  "subtitle.error_reports": "חריגות שרת ודוחות שגיאות לקוח באשכול"
+  "subtitle.error_reports": "חריגות שרת ודוחות שגיאות לקוח באשכול",
+  "team_details.exp": "EXP",
+  "rankings.metric.exp": "Match 13 EXP",
+  "predictor.match13_exp": "Match 13 EXP",
+  "alliance-selection.match13_exp": "Match 13 EXP",
+  "config.use_match13_exp": "השתמש ב-Match 13 EXP",
+  "config.use_match13_exp_desc": "שלב נקודות צפויות מ-Match 13 בסטטיסטיקות קבוצה, חיזוי, דירוגים וניתוחים",
+  "config.match13_base_url": "כתובת בסיס Match 13",
+  "config.match13_api_key": "מפתח API של Match 13",
+  "config.test_match13_api": "בדוק API של Match 13",
+  "validation.match13_exp": "MATCH 13 EXP"
 }

@@ -539,11 +539,13 @@ class ApiKeysModel {
   final String tbaKey;
   final String firstUsername;
   final String firstKey;
+  final String match13Key;
 
   ApiKeysModel({
     this.tbaKey = '',
     this.firstUsername = '',
     this.firstKey = '',
+    this.match13Key = '',
   });
 
   factory ApiKeysModel.fromJson(Map<String, dynamic> json) {
@@ -551,6 +553,7 @@ class ApiKeysModel {
       tbaKey: json['tbaKey']?.toString() ?? json['tba_key']?.toString() ?? '',
       firstUsername: json['firstUsername']?.toString() ?? json['first_username']?.toString() ?? '',
       firstKey: json['firstKey']?.toString() ?? json['first_key']?.toString() ?? '',
+      match13Key: json['match13Key']?.toString() ?? json['match13_key']?.toString() ?? json['match13ApiKey']?.toString() ?? '',
     );
   }
 
@@ -559,6 +562,7 @@ class ApiKeysModel {
       'tbaKey': tbaKey,
       'firstUsername': firstUsername,
       'firstKey': firstKey,
+      'match13Key': match13Key,
     };
   }
 
@@ -566,11 +570,13 @@ class ApiKeysModel {
     String? tbaKey,
     String? firstUsername,
     String? firstKey,
+    String? match13Key,
   }) {
     return ApiKeysModel(
       tbaKey: tbaKey ?? this.tbaKey,
       firstUsername: firstUsername ?? this.firstUsername,
       firstKey: firstKey ?? this.firstKey,
+      match13Key: match13Key ?? this.match13Key,
     );
   }
 }
@@ -702,6 +708,7 @@ class AppSettingsModel {
   final bool chatEnabled;
   final bool registrationLocked;
   final bool useStatboticsEpa;
+  final bool useMatch13Exp;
   final bool useTbaOpr;
   final List<String> scoutPages;
   final List<String> analyticsPages;
@@ -710,6 +717,7 @@ class AppSettingsModel {
   final String serverVersion;
   final ApiKeysModel apiKeys;
   final String statboticsBaseUrl;
+  final String match13BaseUrl;
   final ThemePresetModel? theme;
   final List<ThemePresetModel> themes;
   final String activeThemeName;
@@ -723,6 +731,7 @@ class AppSettingsModel {
     this.chatEnabled = true,
     this.registrationLocked = false,
     this.useStatboticsEpa = false,
+    this.useMatch13Exp = false,
     this.useTbaOpr = false,
     this.scoutPages = defaultScoutPages,
     this.analyticsPages = defaultAnalyticsPages,
@@ -731,6 +740,7 @@ class AppSettingsModel {
     this.serverVersion = '',
     ApiKeysModel? apiKeys,
     this.statboticsBaseUrl = 'https://api.statbotics.io',
+    this.match13BaseUrl = 'https://actions.match13.com',
     this.theme,
     this.themes = const [],
     this.activeThemeName = '',
@@ -773,6 +783,53 @@ class AppSettingsModel {
     final parsedTheme = parseTheme(settingsMap['theme']);
     final parsedThemes = parseThemes(settingsMap['themes']);
     final activeThemeName = settingsMap['activeThemeName']?.toString() ?? (parsedTheme?.name ?? '');
+    bool parseBool(dynamic val) {
+      if (val == null) return false;
+      if (val is bool) return val;
+      if (val is num) return val != 0;
+      if (val is String) {
+        final s = val.trim().toLowerCase();
+        return s == 'true' || s == '1' || s == 'yes' || s == 'on';
+      }
+      return false;
+    }
+
+    final rawExp = settingsMap['useMatch13Exp'] ??
+        settingsMap['use_match13_exp'] ??
+        settingsMap['match13Exp'] ??
+        settingsMap['useMatch13'] ??
+        settingsMap['useExp'] ??
+        settingsMap['use_exp'] ??
+        settingsMap['match13_exp'] ??
+        json['useMatch13Exp'] ??
+        json['use_match13_exp'] ??
+        json['match13Exp'] ??
+        json['useMatch13'] ??
+        json['useExp'];
+
+    final rawEpa = settingsMap['useStatboticsEpa'] ??
+        settingsMap['use_statbotics_epa'] ??
+        settingsMap['statboticsEpa'] ??
+        settingsMap['useStatbotics'] ??
+        settingsMap['useEpa'] ??
+        settingsMap['use_epa'] ??
+        json['useStatboticsEpa'] ??
+        json['use_statbotics_epa'] ??
+        json['statboticsEpa'] ??
+        json['useStatbotics'] ??
+        json['useEpa'];
+
+    final rawOpr = settingsMap['useTbaOpr'] ??
+        settingsMap['use_tba_opr'] ??
+        settingsMap['tbaOpr'] ??
+        settingsMap['useTba'] ??
+        settingsMap['useOpr'] ??
+        settingsMap['use_opr'] ??
+        json['useTbaOpr'] ??
+        json['use_tba_opr'] ??
+        json['tbaOpr'] ??
+        json['useTba'] ??
+        json['useOpr'];
 
     return AppSettingsModel(
       year: (settingsMap['year'] as num?)?.toInt() ?? DateTime.now().year,
@@ -781,9 +838,10 @@ class AppSettingsModel {
       timezone: settingsMap['timezone']?.toString() ?? 'America/New_York',
       preferredSource: settingsMap['preferredSource']?.toString() ?? 'tba',
       chatEnabled: settingsMap['chatEnabled'] != false,
-      registrationLocked: settingsMap['registrationLocked'] == true,
-      useStatboticsEpa: settingsMap['useStatboticsEpa'] == true,
-      useTbaOpr: settingsMap['useTbaOpr'] == true,
+      registrationLocked: parseBool(settingsMap['registrationLocked'] ?? json['registrationLocked']),
+      useStatboticsEpa: parseBool(rawEpa),
+      useMatch13Exp: parseBool(rawExp),
+      useTbaOpr: parseBool(rawOpr),
       scoutPages: parseList(settingsMap['scoutPages'], defaultScoutPages),
       analyticsPages: parseList(settingsMap['analyticsPages'], defaultAnalyticsPages),
       adminPages: parseList(settingsMap['adminPages'], defaultAdminPages),
@@ -791,6 +849,7 @@ class AppSettingsModel {
       serverVersion: json['version']?.toString() ?? json['serverVersion']?.toString() ?? '',
       apiKeys: parseApiKeys(settingsMap['apiKeys']),
       statboticsBaseUrl: settingsMap['statboticsBaseUrl']?.toString() ?? 'https://api.statbotics.io',
+      match13BaseUrl: settingsMap['match13BaseUrl']?.toString() ?? 'https://actions.match13.com',
       theme: parsedTheme,
       themes: parsedThemes,
       activeThemeName: activeThemeName,
@@ -807,6 +866,7 @@ class AppSettingsModel {
       'chatEnabled': chatEnabled,
       'registrationLocked': registrationLocked,
       'useStatboticsEpa': useStatboticsEpa,
+      'useMatch13Exp': useMatch13Exp,
       'useTbaOpr': useTbaOpr,
       'scoutPages': scoutPages,
       'analyticsPages': analyticsPages,
@@ -815,6 +875,7 @@ class AppSettingsModel {
       'serverVersion': serverVersion,
       'apiKeys': apiKeys.toJson(),
       'statboticsBaseUrl': statboticsBaseUrl,
+      'match13BaseUrl': match13BaseUrl,
       if (theme != null) 'theme': theme!.toJson(),
       'themes': themes.map((t) => t.toJson()).toList(),
       'activeThemeName': activeThemeName,
@@ -830,6 +891,7 @@ class AppSettingsModel {
     bool? chatEnabled,
     bool? registrationLocked,
     bool? useStatboticsEpa,
+    bool? useMatch13Exp,
     bool? useTbaOpr,
     List<String>? scoutPages,
     List<String>? analyticsPages,
@@ -838,6 +900,7 @@ class AppSettingsModel {
     String? serverVersion,
     ApiKeysModel? apiKeys,
     String? statboticsBaseUrl,
+    String? match13BaseUrl,
     ThemePresetModel? theme,
     List<ThemePresetModel>? themes,
     String? activeThemeName,
@@ -851,6 +914,7 @@ class AppSettingsModel {
       chatEnabled: chatEnabled ?? this.chatEnabled,
       registrationLocked: registrationLocked ?? this.registrationLocked,
       useStatboticsEpa: useStatboticsEpa ?? this.useStatboticsEpa,
+      useMatch13Exp: useMatch13Exp ?? this.useMatch13Exp,
       useTbaOpr: useTbaOpr ?? this.useTbaOpr,
       scoutPages: scoutPages ?? this.scoutPages,
       analyticsPages: analyticsPages ?? this.analyticsPages,
@@ -859,6 +923,7 @@ class AppSettingsModel {
       serverVersion: serverVersion ?? this.serverVersion,
       apiKeys: apiKeys ?? this.apiKeys,
       statboticsBaseUrl: statboticsBaseUrl ?? this.statboticsBaseUrl,
+      match13BaseUrl: match13BaseUrl ?? this.match13BaseUrl,
       theme: theme ?? this.theme,
       themes: themes ?? this.themes,
       activeThemeName: activeThemeName ?? this.activeThemeName,

@@ -146,84 +146,27 @@ class _ObsidianChartInteractiveWrapperState
     showDialog(
       context: context,
       barrierColor: Colors.black87,
-      builder: (dialogCtx) {
-        return Dialog(
-          insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
-          backgroundColor: ObsidianUITheme.getSurfaceColor(context),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(
-              color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.5),
-              width: 1.5,
-            ),
-          ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1000, maxHeight: 750),
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(Icons.fullscreen_rounded,
-                            color: ObsidianUITheme.primaryAccent, size: 20),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              widget.title,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: ObsidianUITheme.getPrimaryTextColor(context),
-                              ),
-                            ),
-                            if (widget.subtitle != null) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                widget.subtitle!,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: ObsidianUITheme.getSecondaryTextColor(context),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close_rounded),
-                        onPressed: () => Navigator.of(dialogCtx).pop(),
-                        tooltip: 'Close',
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: widget.fullscreenChartBuilder != null
-                        ? widget.fullscreenChartBuilder!(dialogCtx)
-                        : widget.chart,
-                  ),
-                  if (widget.legendSeries != null && widget.legendSeries!.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    _buildInteractiveLegend(),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+      builder: (dialogCtx) => _FullscreenChartModal(
+        title: widget.title,
+        subtitle: widget.subtitle,
+        chart: widget.chart,
+        fullscreenChartBuilder: widget.fullscreenChartBuilder,
+        legendSeries: widget.legendSeries,
+        onToggleSeries: widget.onToggleSeries,
+        onHoverSeries: widget.onHoverSeries,
+        showDataLabels: widget.showDataLabels,
+        onToggleDataLabels: widget.onToggleDataLabels != null
+            ? (v) => widget.onToggleDataLabels!(v)
+            : null,
+        showBenchmark: widget.showBenchmark,
+        onToggleBenchmark: widget.onToggleBenchmark != null
+            ? (v) => widget.onToggleBenchmark!(v)
+            : null,
+        benchmarkValue: widget.benchmarkValue,
+        benchmarkLabel: widget.benchmarkLabel,
+        minContentWidth: widget.minContentWidth,
+        onRefresh: widget.onRefresh,
+      ),
     );
   }
 
@@ -378,7 +321,7 @@ class _ObsidianChartInteractiveWrapperState
 
         const SizedBox(height: 12),
 
-        // Interactive Scrollable / Scalable Chart Area
+        // Interactive Scrollable / Scalable Chart Area with boundary clipping
         LayoutBuilder(
           builder: (context, constraints) {
             final availableWidth = constraints.maxWidth;
@@ -389,54 +332,57 @@ class _ObsidianChartInteractiveWrapperState
             );
             final overflows = targetWidth > availableWidth + 1.0;
 
-            return Stack(
-              children: [
-                ScrollConfiguration(
-                  behavior: const ObsidianChartScrollBehavior(),
-                  child: SingleChildScrollView(
-                    controller: _scrollController,
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    child: SizedBox(
-                      width: targetWidth,
-                      height: widget.chartHeight,
-                      child: widget.chart,
+            return ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Stack(
+                children: [
+                  ScrollConfiguration(
+                    behavior: const ObsidianChartScrollBehavior(),
+                    child: SingleChildScrollView(
+                      controller: _scrollController,
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      child: SizedBox(
+                        width: targetWidth,
+                        height: widget.chartHeight,
+                        child: widget.chart,
+                      ),
                     ),
                   ),
-                ),
 
-                // Scroll hints for desktop & mobile
-                if (overflows)
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    bottom: 0,
-                    child: IgnorePointer(
-                      child: Container(
-                        width: 24,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.transparent,
-                              ObsidianUITheme.getSurfaceColor(context)
-                                  .withValues(alpha: 0.8),
-                            ],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
+                  // Scroll hints for desktop & mobile
+                  if (overflows)
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      bottom: 0,
+                      child: IgnorePointer(
+                        child: Container(
+                          width: 24,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.transparent,
+                                ObsidianUITheme.getSurfaceColor(context)
+                                    .withValues(alpha: 0.8),
+                              ],
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                            ),
                           ),
-                        ),
-                        child: const Align(
-                          alignment: Alignment.centerRight,
-                          child: Icon(
-                            Icons.chevron_right_rounded,
-                            size: 18,
-                            color: Colors.white38,
+                          child: const Align(
+                            alignment: Alignment.centerRight,
+                            child: Icon(
+                              Icons.chevron_right_rounded,
+                              size: 18,
+                              color: Colors.white38,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             );
           },
         ),
@@ -568,6 +514,415 @@ class _ObsidianChartInteractiveWrapperState
           ),
         );
       }).toList(),
+    );
+  }
+}
+
+/// Fullscreen interactive modal viewer for charts
+class _FullscreenChartModal extends StatefulWidget {
+  final String title;
+  final String? subtitle;
+  final Widget chart;
+  final WidgetBuilder? fullscreenChartBuilder;
+  final List<ChartLegendSeries>? legendSeries;
+  final ValueChanged<int>? onToggleSeries;
+  final ValueChanged<int?>? onHoverSeries;
+  final bool showDataLabels;
+  final ValueChanged<bool>? onToggleDataLabels;
+  final bool showBenchmark;
+  final ValueChanged<bool>? onToggleBenchmark;
+  final double? benchmarkValue;
+  final String? benchmarkLabel;
+  final double minContentWidth;
+  final VoidCallback? onRefresh;
+
+  const _FullscreenChartModal({
+    required this.title,
+    this.subtitle,
+    required this.chart,
+    this.fullscreenChartBuilder,
+    this.legendSeries,
+    this.onToggleSeries,
+    this.onHoverSeries,
+    this.showDataLabels = false,
+    this.onToggleDataLabels,
+    this.showBenchmark = false,
+    this.onToggleBenchmark,
+    this.benchmarkValue,
+    this.benchmarkLabel,
+    this.minContentWidth = 0.0,
+    this.onRefresh,
+  });
+
+  @override
+  State<_FullscreenChartModal> createState() => _FullscreenChartModalState();
+}
+
+class _FullscreenChartModalState extends State<_FullscreenChartModal> {
+  final ScrollController _scrollController = ScrollController();
+  double _zoomScale = 1.0;
+  late bool _showDataLabels;
+  late bool _showBenchmark;
+  late List<ChartLegendSeries>? _legendSeries;
+
+  @override
+  void initState() {
+    super.initState();
+    _showDataLabels = widget.showDataLabels;
+    _showBenchmark = widget.showBenchmark;
+    _legendSeries = widget.legendSeries;
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _zoomIn() {
+    ObsidianChartHaptics.lightTouch();
+    setState(() {
+      _zoomScale = (_zoomScale + 0.25).clamp(1.0, 3.5);
+    });
+  }
+
+  void _zoomOut() {
+    ObsidianChartHaptics.lightTouch();
+    setState(() {
+      _zoomScale = (_zoomScale - 0.25).clamp(1.0, 3.5);
+    });
+  }
+
+  void _resetZoom() {
+    ObsidianChartHaptics.lightTouch();
+    setState(() {
+      _zoomScale = 1.0;
+    });
+  }
+
+  Widget _buildToolbarButton({
+    required BuildContext context,
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onPressed,
+    bool isActive = false,
+  }) {
+    final activeBg = ObsidianUITheme.primaryAccent.withValues(alpha: 0.22);
+    final activeColor = ObsidianUITheme.primaryAccent;
+    final inactiveColor = ObsidianUITheme.getSecondaryTextColor(context);
+
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: isActive ? activeBg : Colors.transparent,
+        borderRadius: BorderRadius.circular(6),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(6),
+          onTap: onPressed,
+          child: Padding(
+            padding: const EdgeInsets.all(6.0),
+            child: Icon(
+              icon,
+              size: 18,
+              color: isActive ? activeColor : inactiveColor,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInteractiveLegend() {
+    final seriesList = _legendSeries;
+    if (seriesList == null || seriesList.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 6,
+      children: seriesList.asMap().entries.map((entry) {
+        final idx = entry.key;
+        final series = entry.value;
+        final isTappable = widget.onToggleSeries != null;
+
+        return MouseRegion(
+          cursor: isTappable ? SystemMouseCursors.click : SystemMouseCursors.basic,
+          onEnter: (_) {
+            if (isTappable && widget.onHoverSeries != null) {
+              scheduleMicrotask(() {
+                if (mounted) widget.onHoverSeries!(idx);
+              });
+            }
+          },
+          onExit: (_) {
+            if (isTappable && widget.onHoverSeries != null) {
+              scheduleMicrotask(() {
+                if (mounted) widget.onHoverSeries!(null);
+              });
+            }
+          },
+          child: GestureDetector(
+            onTap: () {
+              if (isTappable) {
+                ObsidianChartHaptics.lightTouch();
+                widget.onToggleSeries!(idx);
+              }
+            },
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 200),
+              opacity: series.isVisible ? (series.isDimmed ? 0.35 : 1.0) : 0.4,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: series.isVisible
+                      ? series.color.withValues(alpha: 0.12)
+                      : Colors.white.withValues(alpha: 0.04),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: series.isVisible
+                        ? series.color.withValues(alpha: 0.45)
+                        : Colors.white24,
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: series.isVisible ? series.color : Colors.white38,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      series.name,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: series.isVisible
+                            ? FontWeight.w600
+                            : FontWeight.normal,
+                        color: series.isVisible
+                            ? ObsidianUITheme.getPrimaryTextColor(context)
+                            : ObsidianUITheme.getTertiaryTextColor(context),
+                        decoration: series.isVisible
+                            ? TextDecoration.none
+                            : TextDecoration.lineThrough,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final isCompact = screenSize.width < 700;
+    final hasZoomControls = widget.minContentWidth > 0;
+
+    return Dialog(
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: isCompact ? 8 : 24,
+        vertical: isCompact ? 16 : 24,
+      ),
+      backgroundColor: ObsidianUITheme.getSurfaceColor(context),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.5),
+          width: 1.5,
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: min(screenSize.width * 0.96, 1280),
+          maxHeight: min(screenSize.height * 0.92, 850),
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(isCompact ? 14.0 : 20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header Toolbar
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.fullscreen_rounded,
+                        color: ObsidianUITheme.primaryAccent, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.title,
+                          style: TextStyle(
+                            fontSize: isCompact ? 14 : 16,
+                            fontWeight: FontWeight.bold,
+                            color: ObsidianUITheme.getPrimaryTextColor(context),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (widget.subtitle != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            widget.subtitle!,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: ObsidianUITheme.getSecondaryTextColor(context),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  Wrap(
+                    spacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      if (widget.onToggleBenchmark != null)
+                        _buildToolbarButton(
+                          context: context,
+                          icon: Icons.show_chart_rounded,
+                          tooltip: _showBenchmark
+                              ? 'Hide Benchmark Line'
+                              : 'Show Average Benchmark Line',
+                          isActive: _showBenchmark,
+                          onPressed: () {
+                            ObsidianChartHaptics.lightTouch();
+                            setState(() => _showBenchmark = !_showBenchmark);
+                            widget.onToggleBenchmark!(_showBenchmark);
+                          },
+                        ),
+                      if (widget.onToggleDataLabels != null)
+                        _buildToolbarButton(
+                          context: context,
+                          icon: Icons.label_outline_rounded,
+                          tooltip: _showDataLabels
+                              ? 'Hide Value Labels'
+                              : 'Show Value Labels',
+                          isActive: _showDataLabels,
+                          onPressed: () {
+                            ObsidianChartHaptics.lightTouch();
+                            setState(() => _showDataLabels = !_showDataLabels);
+                            widget.onToggleDataLabels!(_showDataLabels);
+                          },
+                        ),
+                      if (hasZoomControls && _zoomScale > 1.0)
+                        _buildToolbarButton(
+                          context: context,
+                          icon: Icons.zoom_out_rounded,
+                          tooltip: 'Zoom Out',
+                          onPressed: _zoomOut,
+                        ),
+                      if (hasZoomControls && _zoomScale < 3.5)
+                        _buildToolbarButton(
+                          context: context,
+                          icon: Icons.zoom_in_rounded,
+                          tooltip: 'Zoom In',
+                          onPressed: _zoomIn,
+                        ),
+                      if (hasZoomControls && _zoomScale > 1.0)
+                        _buildToolbarButton(
+                          context: context,
+                          icon: Icons.restart_alt_rounded,
+                          tooltip: 'Reset Zoom',
+                          onPressed: _resetZoom,
+                        ),
+                      if (widget.onRefresh != null)
+                        _buildToolbarButton(
+                          context: context,
+                          icon: Icons.refresh_rounded,
+                          tooltip: 'Refresh Graph',
+                          onPressed: widget.onRefresh!,
+                        ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => Navigator.of(context).pop(),
+                        tooltip: 'Close',
+                        iconSize: 20,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+
+              // Fullscreen Chart Canvas with Sizing & Horizontal Scroll
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.02),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: ObsidianUITheme.getBorderColor(context).withValues(alpha: 0.5),
+                      ),
+                    ),
+                    padding: const EdgeInsets.all(12),
+                    child: LayoutBuilder(
+                      builder: (ctx, constraints) {
+                        final availableWidth = constraints.maxWidth;
+                        final availableHeight = constraints.maxHeight;
+                        final targetWidth = max(
+                          availableWidth,
+                          (widget.minContentWidth > 0 ? widget.minContentWidth : availableWidth) *
+                              _zoomScale,
+                        );
+
+                        final chartWidget = widget.fullscreenChartBuilder != null
+                            ? widget.fullscreenChartBuilder!(ctx)
+                            : widget.chart;
+
+                        return ScrollConfiguration(
+                          behavior: const ObsidianChartScrollBehavior(),
+                          child: SingleChildScrollView(
+                            controller: _scrollController,
+                            scrollDirection: Axis.horizontal,
+                            physics: const BouncingScrollPhysics(),
+                            child: SizedBox(
+                              width: targetWidth,
+                              height: availableHeight,
+                              child: chartWidget,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+
+              // Interactive Legend in Fullscreen
+              if (_legendSeries != null && _legendSeries!.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                _buildInteractiveLegend(),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

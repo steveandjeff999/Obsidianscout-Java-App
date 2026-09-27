@@ -432,6 +432,11 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
     );
   }
 
+  bool get _isFtc => widget.apiService.currentProgram.toUpperCase() == 'FTC';
+  bool get _effectiveUseEpa => !_isFtc && (widget.apiService.currentSettings?.useStatboticsEpa ?? false);
+  bool get _effectiveUseExp => !_isFtc && (widget.apiService.currentSettings?.useMatch13Exp ?? false);
+  bool get _effectiveUseOpr => widget.apiService.currentSettings?.useTbaOpr ?? true;
+
   // ─────────────────────────────────────────────────────────────────────────────
   // Tab 1: Analytics
   // ─────────────────────────────────────────────────────────────────────────────
@@ -451,10 +456,18 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Row(
               children: [
-                Expanded(child: _statCard(context.tr('team_details.epa', 'EPA'), widget.team.epa?.toStringAsFixed(1) ?? '--', Colors.amber, Icons.electric_bolt_rounded)),
-                const SizedBox(width: 8),
-                Expanded(child: _statCard(context.tr('team_details.opr', 'OPR'), widget.team.opr?.toStringAsFixed(1) ?? '--', ObsidianUITheme.primaryAccent, Icons.leaderboard_rounded)),
-                const SizedBox(width: 8),
+                if (_effectiveUseEpa) ...[
+                  Expanded(child: _statCard(context.tr('team_details.epa', 'EPA'), widget.team.epa?.toStringAsFixed(1) ?? '--', Colors.amber, Icons.electric_bolt_rounded)),
+                  const SizedBox(width: 8),
+                ],
+                if (_effectiveUseExp) ...[
+                  Expanded(child: _statCard(context.tr('team_details.exp', 'EXP'), widget.team.exp?.toStringAsFixed(1) ?? '--', Colors.purpleAccent, Icons.bolt_rounded)),
+                  const SizedBox(width: 8),
+                ],
+                if (_effectiveUseOpr) ...[
+                  Expanded(child: _statCard(context.tr('team_details.opr', 'OPR'), widget.team.opr?.toStringAsFixed(1) ?? '--', ObsidianUITheme.primaryAccent, Icons.leaderboard_rounded)),
+                  const SizedBox(width: 8),
+                ],
                 Expanded(child: _statCard(context.tr('team_details.avg_points', 'AVG PTS'), _avgTotalScore > 0 ? _avgTotalScore.toStringAsFixed(1) : '--', ObsidianUITheme.secondaryAccent, Icons.stars_rounded)),
               ],
             ),
