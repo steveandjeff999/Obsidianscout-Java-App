@@ -286,33 +286,46 @@ class _DataValidationScreenState extends State<DataValidationScreen> {
                       border: Border.all(color: isDark ? Colors.white12 : Colors.black12),
                     ),
                     child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _selectedEventKey.isNotEmpty && _events.any((e) => e.eventKey == _selectedEventKey)
-                            ? _selectedEventKey
-                            : (_events.isNotEmpty ? _events.first.eventKey : null),
-                        isExpanded: true,
-                        dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                        style: TextStyle(
-                          color: primaryTextColor,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14.0,
-                        ),
-                        items: _events.map((e) {
-                          return DropdownMenuItem<String>(
-                            value: e.eventKey,
-                            child: Text(
-                              '${e.name} (${e.eventKey.toUpperCase()})',
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: (val) {
-                          if (val != null && val != _selectedEventKey) {
-                            setState(() {
-                              _selectedEventKey = val;
-                            });
-                            _loadData();
+                      child: Builder(
+                        builder: (context) {
+                          final uniqueEvents = <String, EventModel>{};
+                          for (final e in _events) {
+                            if (e.eventKey.isNotEmpty) {
+                              uniqueEvents[e.eventKey] = e;
+                            }
                           }
+                          final eventList = uniqueEvents.values.toList();
+                          final effectiveEvent = _selectedEventKey.isNotEmpty && eventList.any((e) => e.eventKey == _selectedEventKey)
+                              ? _selectedEventKey
+                              : (eventList.isNotEmpty ? eventList.first.eventKey : null);
+
+                          return DropdownButton<String>(
+                            value: effectiveEvent,
+                            isExpanded: true,
+                            dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                            style: TextStyle(
+                              color: primaryTextColor,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14.0,
+                            ),
+                            items: eventList.map((e) {
+                              return DropdownMenuItem<String>(
+                                value: e.eventKey,
+                                child: Text(
+                                  '${e.name} (${e.eventKey.toUpperCase()})',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              if (val != null && val != _selectedEventKey) {
+                                setState(() {
+                                  _selectedEventKey = val;
+                                });
+                                _loadData();
+                              }
+                            },
+                          );
                         },
                       ),
                     ),

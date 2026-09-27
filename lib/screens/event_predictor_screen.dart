@@ -325,30 +325,43 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> {
                     border: Border.all(color: isDark ? Colors.white12 : Colors.black12),
                   ),
                   child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      isExpanded: true,
-                      value: _events.any((e) => e.eventKey == _selectedEventKey) ? _selectedEventKey : null,
-                      hint: Text(
-                        _isLoadingEvents
-                            ? context.tr('event_predictor.calculating')
-                            : (_events.isEmpty
-                                ? 'No events synced'
-                                : context.tr('event_predictor.choose_event_placeholder')),
-                        style: TextStyle(color: secondaryTextColor, fontSize: 14.0),
-                      ),
-                      dropdownColor: isDark ? const Color(0xFF1E2430) : Colors.white,
-                      style: TextStyle(color: primaryTextColor, fontSize: 14.0, fontWeight: FontWeight.w600),
-                      items: _events.map((e) {
-                        return DropdownMenuItem<String>(
-                          value: e.eventKey,
-                          child: Text('${e.name} (${e.eventKey.toUpperCase()})'),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) {
-                          setState(() => _selectedEventKey = val);
-                          _fetchPredictions(val);
+                    child: Builder(
+                      builder: (context) {
+                        final uniqueEvents = <String, EventModel>{};
+                        for (final e in _events) {
+                          if (e.eventKey.isNotEmpty) {
+                            uniqueEvents[e.eventKey] = e;
+                          }
                         }
+                        final eventList = uniqueEvents.values.toList();
+                        final effectiveEvent = eventList.any((e) => e.eventKey == _selectedEventKey) ? _selectedEventKey : null;
+
+                        return DropdownButton<String>(
+                          isExpanded: true,
+                          value: effectiveEvent,
+                          hint: Text(
+                            _isLoadingEvents
+                                ? context.tr('event_predictor.calculating')
+                                : (eventList.isEmpty
+                                    ? 'No events synced'
+                                    : context.tr('event_predictor.choose_event_placeholder')),
+                            style: TextStyle(color: secondaryTextColor, fontSize: 14.0),
+                          ),
+                          dropdownColor: isDark ? const Color(0xFF1E2430) : Colors.white,
+                          style: TextStyle(color: primaryTextColor, fontSize: 14.0, fontWeight: FontWeight.w600),
+                          items: eventList.map((e) {
+                            return DropdownMenuItem<String>(
+                              value: e.eventKey,
+                              child: Text('${e.name} (${e.eventKey.toUpperCase()})'),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() => _selectedEventKey = val);
+                              _fetchPredictions(val);
+                            }
+                          },
+                        );
                       },
                     ),
                   ),
@@ -378,40 +391,49 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> {
                             border: Border.all(color: isDark ? Colors.white12 : Colors.black12),
                           ),
                           child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: _dataSource,
-                              dropdownColor: isDark ? const Color(0xFF1E2430) : Colors.white,
-                              style: TextStyle(color: primaryTextColor, fontSize: 13.0, fontWeight: FontWeight.w500),
-                              items: [
-                                if (effectiveEpa || effectiveExp || effectiveOpr)
+                            child: Builder(
+                              builder: (context) {
+                                final modelItems = [
+                                  if (effectiveEpa || effectiveExp || effectiveOpr)
+                                    DropdownMenuItem(
+                                      value: 'all',
+                                      child: Text(context.tr('predictor.all_sources', 'All Sources')),
+                                    ),
                                   DropdownMenuItem(
-                                    value: 'all',
-                                    child: Text(context.tr('predictor.all_sources', 'All Sources')),
+                                    value: 'scouted',
+                                    child: Text(context.tr('predictor.scouted_data', 'Scouted Data')),
                                   ),
-                                DropdownMenuItem(
-                                  value: 'scouted',
-                                  child: Text(context.tr('predictor.scouted_data', 'Scouted Data')),
-                                ),
-                                if (effectiveExp)
-                                  DropdownMenuItem(
-                                    value: 'exp',
-                                    child: Text(context.tr('predictor.match13_exp', 'Match 13 EXP')),
-                                  ),
-                                if (effectiveEpa)
-                                  DropdownMenuItem(
-                                    value: 'epa',
-                                    child: Text(context.tr('predictor.statbotics_epa', 'Statbotics EPA')),
-                                  ),
-                                if (effectiveOpr)
-                                  DropdownMenuItem(
-                                    value: 'opr',
-                                    child: Text(isFtc ? context.tr('predictor.ftcscout_opr', 'FTC Scout OPR') : context.tr('predictor.tba_opr', 'TBA OPR')),
-                                  ),
-                              ],
-                              onChanged: (val) {
-                                if (val != null) {
-                                  setState(() => _dataSource = val);
-                                }
+                                  if (effectiveExp)
+                                    DropdownMenuItem(
+                                      value: 'exp',
+                                      child: Text(context.tr('predictor.match13_exp', 'Match 13 EXP')),
+                                    ),
+                                  if (effectiveEpa)
+                                    DropdownMenuItem(
+                                      value: 'epa',
+                                      child: Text(context.tr('predictor.statbotics_epa', 'Statbotics EPA')),
+                                    ),
+                                  if (effectiveOpr)
+                                    DropdownMenuItem(
+                                      value: 'opr',
+                                      child: Text(isFtc ? context.tr('predictor.ftcscout_opr', 'FTC Scout OPR') : context.tr('predictor.tba_opr', 'TBA OPR')),
+                                    ),
+                                ];
+                                final effectiveSource = modelItems.any((i) => i.value == _dataSource)
+                                    ? _dataSource
+                                    : 'scouted';
+
+                                return DropdownButton<String>(
+                                  value: effectiveSource,
+                                  dropdownColor: isDark ? const Color(0xFF1E2430) : Colors.white,
+                                  style: TextStyle(color: primaryTextColor, fontSize: 13.0, fontWeight: FontWeight.w500),
+                                  items: modelItems,
+                                  onChanged: (val) {
+                                    if (val != null) {
+                                      setState(() => _dataSource = val);
+                                    }
+                                  },
+                                );
                               },
                             ),
                           ),
