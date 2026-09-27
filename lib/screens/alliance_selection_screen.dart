@@ -374,6 +374,11 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
     );
   }
 
+  bool get _isFtc => widget.apiService.currentProgram.toUpperCase() == 'FTC';
+  bool get _effectiveUseEpa => !_isFtc && (widget.apiService.currentSettings?.useStatboticsEpa ?? false);
+  bool get _effectiveUseOpr => widget.apiService.currentSettings?.useTbaOpr ?? false;
+  bool get _effectiveUseExp => !_isFtc && (widget.apiService.currentSettings?.useMatch13Exp ?? false);
+
   Set<int> get _pickedTeamNumbers {
     final Set<int> picked = {};
     for (final a in _boardState.values) {
@@ -402,6 +407,8 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
 
     if (_selectedMetric == 'scouted') {
       list.sort((a, b) => (b.averagePoints ?? -999).compareTo(a.averagePoints ?? -999));
+    } else if (_selectedMetric == 'exp') {
+      list.sort((a, b) => (b.exp ?? -999).compareTo(a.exp ?? -999));
     } else if (_selectedMetric == 'epa') {
       list.sort((a, b) => (b.epa ?? -999).compareTo(a.epa ?? -999));
     } else if (_selectedMetric == 'opr') {
@@ -497,7 +504,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                                     style: TextStyle(fontWeight: FontWeight.bold, color: ObsidianUITheme.getPrimaryTextColor(context)),
                                   ),
                                   subtitle: Text(
-                                    'Avg: ${team.averagePoints?.toStringAsFixed(1) ?? '-'} | EPA: ${team.epa?.toStringAsFixed(1) ?? '-'} | OPR: ${team.opr?.toStringAsFixed(1) ?? '-'}',
+                                    'Avg: ${team.averagePoints?.toStringAsFixed(1) ?? '-'}${_effectiveUseExp ? ' | EXP: ${team.exp?.toStringAsFixed(1) ?? '-'}' : ''}${_effectiveUseEpa ? ' | EPA: ${team.epa?.toStringAsFixed(1) ?? '-'}' : ''}${_effectiveUseOpr ? ' | OPR: ${team.opr?.toStringAsFixed(1) ?? '-'}' : ''}',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(fontSize: 11, color: ObsidianUITheme.getTertiaryTextColor(context)),
@@ -560,14 +567,25 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                   style: TextStyle(color: ObsidianUITheme.primaryAccent, fontSize: 13, fontWeight: FontWeight.w600),
                 ),
               const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(child: _buildMetricCard('Scouted Avg', team.averagePoints?.toStringAsFixed(1) ?? '-', Colors.amberAccent)),
-                  const SizedBox(width: 8),
-                  Expanded(child: _buildMetricCard('Statbotics EPA', team.epa?.toStringAsFixed(1) ?? '-', Colors.cyanAccent)),
-                  const SizedBox(width: 8),
-                  Expanded(child: _buildMetricCard('TBA OPR', team.opr?.toStringAsFixed(1) ?? '-', Colors.lightGreenAccent)),
-                ],
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildMetricCard('Scouted Avg', team.averagePoints?.toStringAsFixed(1) ?? '-', Colors.amberAccent),
+                    if (_effectiveUseExp) ...[
+                      const SizedBox(width: 8),
+                      _buildMetricCard('Match 13 EXP', team.exp?.toStringAsFixed(1) ?? '-', const Color(0xFF10B981)),
+                    ],
+                    if (_effectiveUseEpa) ...[
+                      const SizedBox(width: 8),
+                      _buildMetricCard('Statbotics EPA', team.epa?.toStringAsFixed(1) ?? '-', Colors.cyanAccent),
+                    ],
+                    if (_effectiveUseOpr) ...[
+                      const SizedBox(width: 8),
+                      _buildMetricCard(_isFtc ? 'FTC Scout OPR' : 'TBA OPR', team.opr?.toStringAsFixed(1) ?? '-', Colors.lightGreenAccent),
+                    ],
+                  ],
+                ),
               ),
               const SizedBox(height: 16),
               Container(
@@ -583,7 +601,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                     Text('Weighted Performance Score:', style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context), fontSize: 11, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 4),
                     Text(
-                      'Score = (Avg × 1.0 + EPA × 0.8 + OPR × 0.6) / Weights = ${team.calculatedWeighted.toStringAsFixed(1)}',
+                      'Score = (Avg × 1.0 + EXP × 0.9 + EPA × 0.8 + OPR × 0.6) / Weights = ${team.calculatedWeighted.toStringAsFixed(1)}',
                       style: const TextStyle(color: Colors.cyanAccent, fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                   ],
@@ -1041,8 +1059,12 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                     items: [
                       DropdownMenuItem(value: 'weighted', child: Text(context.tr('alliance-selection.weighted'))),
                       DropdownMenuItem(value: 'scouted', child: Text(context.tr('alliance-selection.scouted_avg'))),
-                      DropdownMenuItem(value: 'epa', child: Text(context.tr('alliance-selection.epa'))),
-                      DropdownMenuItem(value: 'opr', child: Text(context.tr('alliance-selection.opr'))),
+                      if (_effectiveUseExp)
+                        DropdownMenuItem(value: 'exp', child: Text(context.tr('alliance-selection.match13_exp', 'Match 13 EXP'))),
+                      if (_effectiveUseEpa)
+                        DropdownMenuItem(value: 'epa', child: Text(context.tr('alliance-selection.epa'))),
+                      if (_effectiveUseOpr)
+                        DropdownMenuItem(value: 'opr', child: Text(context.tr('alliance-selection.opr'))),
                     ],
                     onChanged: (val) {
                       if (val != null) {
@@ -1078,6 +1100,8 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                       String scoreDisplay = team.calculatedWeighted.toStringAsFixed(1);
                       if (_selectedMetric == 'scouted') {
                         scoreDisplay = team.averagePoints?.toStringAsFixed(1) ?? '-';
+                      } else if (_selectedMetric == 'exp') {
+                        scoreDisplay = team.exp?.toStringAsFixed(1) ?? '-';
                       } else if (_selectedMetric == 'epa') {
                         scoreDisplay = team.epa?.toStringAsFixed(1) ?? '-';
                       } else if (_selectedMetric == 'opr') {
@@ -1112,7 +1136,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                               style: TextStyle(fontWeight: FontWeight.bold, color: primaryTextColor, fontSize: 12),
                             ),
                             subtitle: Text(
-                              'Avg: ${team.averagePoints?.toStringAsFixed(1) ?? '-'} | EPA: ${team.epa?.toStringAsFixed(1) ?? '-'} | OPR: ${team.opr?.toStringAsFixed(1) ?? '-'}',
+                              'Avg: ${team.averagePoints?.toStringAsFixed(1) ?? '-'}${_effectiveUseExp ? ' | EXP: ${team.exp?.toStringAsFixed(1) ?? '-'}' : ''}${_effectiveUseEpa ? ' | EPA: ${team.epa?.toStringAsFixed(1) ?? '-'}' : ''}${_effectiveUseOpr ? ' | OPR: ${team.opr?.toStringAsFixed(1) ?? '-'}' : ''}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(fontSize: 10, color: secondaryTextColor),

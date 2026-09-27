@@ -652,7 +652,9 @@
   "predictor.choose_match": "Elegir match",
   "predictor.loading_matches": "Cargando matches...",
   "predictor.data_source": "Origen de datos",
-  "predictor.all_3": "Los 3",
+  "predictor.all_sources": "Todas las fuentes",
+  "predictor.all_3": "Todas las fuentes",
+  "predictor.match13_exp": "Match 13 EXP",
   "predictor.scouted_data": "Datos scouteados",
   "predictor.alliance_comparison": "Comparación de alianzas",
   "predictor.visual_representation_of_relat": "Representación visual de las fortalezas relativas basadas en diferentes categorías de rendimiento.",
@@ -1415,5 +1417,15 @@
   "nav.cluster_management": "Administración del Clúster",
   "subtitle.cluster_management": "Gestionar nodos del clúster CockroachDB, registros, balanceador de carga y respaldos",
   "nav.error_reports": "Informes de Errores",
-  "subtitle.error_reports": "Excepciones del servidor del clúster e informes de errores del cliente"
+  "subtitle.error_reports": "Excepciones del servidor del clúster e informes de errores del cliente",
+  "team_details.exp": "EXP",
+  "rankings.metric.exp": "Match 13 EXP",
+  "predictor.match13_exp": "Match 13 EXP",
+  "alliance-selection.match13_exp": "Match 13 EXP",
+  "config.use_match13_exp": "Usar Match 13 EXP",
+  "config.use_match13_exp_desc": "Integrar los puntos esperados de Match 13 en las estadísticas del equipo, el predictor, las clasificaciones y la analítica",
+  "config.match13_base_url": "URL Base de Match 13",
+  "config.match13_api_key": "Clave API de Match 13",
+  "config.test_match13_api": "Probar API de Match 13",
+  "validation.match13_exp": "MATCH 13 EXP"
 }

@@ -61,6 +61,8 @@ class _MockConfigApiService extends ApiService {
     String? firstUsername,
     String? firstKey,
     String? statboticsBaseUrl,
+    String? match13BaseUrl,
+    String? match13Key,
   }) async {
     return ApiResponse.success({'success': true, 'message': '$api tested successfully'});
   }

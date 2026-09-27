@@ -55,9 +55,13 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> {
     final isFtc = widget.apiService.currentProgram.toUpperCase() == 'FTC';
     final effectiveEpa = !isFtc && (settings?.useStatboticsEpa ?? false);
     final effectiveOpr = settings?.useTbaOpr ?? false;
+    final effectiveExp = !isFtc && (settings?.useMatch13Exp ?? false);
 
-    if (effectiveEpa && effectiveOpr) {
+    final activeCount = (effectiveEpa ? 1 : 0) + (effectiveOpr ? 1 : 0) + (effectiveExp ? 1 : 0);
+    if (activeCount >= 1) {
       _dataSource = 'all';
+    } else if (effectiveExp) {
+      _dataSource = 'exp';
     } else if (effectiveEpa) {
       _dataSource = 'epa';
     } else if (effectiveOpr) {
@@ -68,13 +72,17 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> {
   }
 
   Future<void> _loadEvents() async {
-    final currentEventKey = widget.apiService.currentSettings?.eventKey ?? await widget.apiService.getCachedEventKey();
+    final cachedSettings = await widget.apiService.getCachedSettings();
+    final currentEventKey = widget.apiService.currentSettings?.eventKey ?? cachedSettings?.eventKey ?? await widget.apiService.getCachedEventKey();
     final cachedEvents = await widget.apiService.getCachedEvents();
 
-    if (mounted && cachedEvents.isNotEmpty) {
+    if (mounted) {
       setState(() {
-        _events = cachedEvents;
-        _isLoadingEvents = false;
+        _initSettings();
+        if (cachedEvents.isNotEmpty) {
+          _events = cachedEvents;
+          _isLoadingEvents = false;
+        }
         if (_selectedEventKey == null && (currentEventKey != null && currentEventKey.isNotEmpty)) {
           _selectedEventKey = currentEventKey;
         }
@@ -236,6 +244,7 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> {
     final isFtc = widget.apiService.currentProgram.toUpperCase() == 'FTC';
     final effectiveEpa = !isFtc && (settings?.useStatboticsEpa ?? false);
     final effectiveOpr = settings?.useTbaOpr ?? false;
+    final effectiveExp = !isFtc && (settings?.useMatch13Exp ?? false);
 
     final filtered = _filteredPredictions;
 
@@ -374,24 +383,29 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> {
                               dropdownColor: isDark ? const Color(0xFF1E2430) : Colors.white,
                               style: TextStyle(color: primaryTextColor, fontSize: 13.0, fontWeight: FontWeight.w500),
                               items: [
-                                if (effectiveEpa && effectiveOpr)
+                                if (effectiveEpa || effectiveExp || effectiveOpr)
                                   DropdownMenuItem(
                                     value: 'all',
-                                    child: Text(context.tr('predictor.all_3')),
+                                    child: Text(context.tr('predictor.all_sources', 'All Sources')),
                                   ),
                                 DropdownMenuItem(
                                   value: 'scouted',
-                                  child: Text(context.tr('predictor.scouted_data')),
+                                  child: Text(context.tr('predictor.scouted_data', 'Scouted Data')),
                                 ),
+                                if (effectiveExp)
+                                  DropdownMenuItem(
+                                    value: 'exp',
+                                    child: Text(context.tr('predictor.match13_exp', 'Match 13 EXP')),
+                                  ),
                                 if (effectiveEpa)
                                   DropdownMenuItem(
                                     value: 'epa',
-                                    child: Text(context.tr('predictor.statbotics_epa')),
+                                    child: Text(context.tr('predictor.statbotics_epa', 'Statbotics EPA')),
                                   ),
                                 if (effectiveOpr)
                                   DropdownMenuItem(
                                     value: 'opr',
-                                    child: Text(isFtc ? context.tr('predictor.ftcscout_opr') : context.tr('predictor.tba_opr')),
+                                    child: Text(isFtc ? context.tr('predictor.ftcscout_opr', 'FTC Scout OPR') : context.tr('predictor.tba_opr', 'TBA OPR')),
                                   ),
                               ],
                               onChanged: (val) {
@@ -532,7 +546,7 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> {
                 style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: secondaryTextColor, letterSpacing: 0.5),
               ),
             ),
-            ...filtered.map((match) => _buildMatchCard(context, match, isDark, primaryTextColor, secondaryTextColor, effectiveEpa, effectiveOpr, isFtc)),
+            ...filtered.map((match) => _buildMatchCard(context, match, isDark, primaryTextColor, secondaryTextColor, effectiveEpa, effectiveOpr, effectiveExp, isFtc)),
           ],
         ],
       ),
@@ -540,13 +554,16 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> {
   }
 
   /// Computes the displayed point value for an individual team based on the active dataSource.
-  /// If scouted/epa/opr is selected: returns that metric's value if present and non-zero.
+  /// If scouted/epa/opr/exp is selected: returns that metric's value if present and non-zero.
   /// If 'all' is selected: returns the composite average of the available non-zero metrics among
-  /// [averageScoutedScore, epa, opr] (excluding 0s and nulls).
-  double? _getTeamPoints(MatchTeamPrediction team, bool effectiveEpa, bool effectiveOpr) {
+  /// [averageScoutedScore, exp, epa, opr] (excluding 0s and nulls).
+  double? _getTeamPoints(MatchTeamPrediction team, bool effectiveEpa, bool effectiveOpr, bool effectiveExp) {
     if (_dataSource == 'scouted') {
       final s = team.averageScoutedScore;
       return (s != null && s > 0) ? s : null;
+    } else if (_dataSource == 'exp') {
+      final ex = team.exp;
+      return (effectiveExp && ex != null && ex > 0) ? ex : null;
     } else if (_dataSource == 'epa') {
       final e = team.epa;
       return (effectiveEpa && e != null && e > 0) ? e : null;
@@ -554,10 +571,13 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> {
       final o = team.opr;
       return (effectiveOpr && o != null && o > 0) ? o : null;
     } else {
-      // 'all': composite average of the 3 (scouted, epa, opr) excluding 0s and nulls
+      // 'all': composite average of available metrics excluding 0s and nulls
       final values = <double>[];
       if (team.averageScoutedScore != null && team.averageScoutedScore! > 0) {
         values.add(team.averageScoutedScore!);
+      }
+      if (effectiveExp && team.exp != null && team.exp! > 0) {
+        values.add(team.exp!);
       }
       if (effectiveEpa && team.epa != null && team.epa! > 0) {
         values.add(team.epa!);
@@ -570,9 +590,11 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> {
     }
   }
 
-  double _getAllianceTotal(AlliancePrediction alliance, bool effectiveEpa, bool effectiveOpr) {
+  double _getAllianceTotal(AlliancePrediction alliance, bool effectiveEpa, bool effectiveOpr, bool effectiveExp) {
     if (_dataSource == 'scouted') {
       return alliance.totalScoutedScore;
+    } else if (_dataSource == 'exp') {
+      return effectiveExp ? alliance.totalExp : 0.0;
     } else if (_dataSource == 'epa') {
       return effectiveEpa ? alliance.totalEpa : 0.0;
     } else if (_dataSource == 'opr') {
@@ -582,7 +604,7 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> {
       double sum = 0.0;
       bool hasAny = false;
       for (final t in alliance.teams) {
-        final p = _getTeamPoints(t, effectiveEpa, effectiveOpr);
+        final p = _getTeamPoints(t, effectiveEpa, effectiveOpr, effectiveExp);
         if (p != null) {
           sum += p;
           hasAny = true;
@@ -591,6 +613,7 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> {
       if (hasAny) return sum;
       final totals = <double>[];
       if (alliance.totalScoutedScore > 0) totals.add(alliance.totalScoutedScore);
+      if (effectiveExp && alliance.totalExp > 0) totals.add(alliance.totalExp);
       if (effectiveEpa && alliance.totalEpa > 0) totals.add(alliance.totalEpa);
       if (effectiveOpr && alliance.totalOpr > 0) totals.add(alliance.totalOpr);
       if (totals.isEmpty) return 0.0;
@@ -606,14 +629,15 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> {
     Color secondaryTextColor,
     bool effectiveEpa,
     bool effectiveOpr,
+    bool effectiveExp,
     bool isFtc,
   ) {
     final red = match.redAlliance;
     final blue = match.blueAlliance;
 
-    final redPoints = _getAllianceTotal(red, effectiveEpa, effectiveOpr);
-    final bluePoints = _getAllianceTotal(blue, effectiveEpa, effectiveOpr);
-    final unit = _dataSource == 'opr' ? 'OPR' : (_dataSource == 'epa' ? 'EPA' : 'pts');
+    final redPoints = _getAllianceTotal(red, effectiveEpa, effectiveOpr, effectiveExp);
+    final bluePoints = _getAllianceTotal(blue, effectiveEpa, effectiveOpr, effectiveExp);
+    final unit = _dataSource == 'opr' ? 'OPR' : (_dataSource == 'epa' ? 'EPA' : (_dataSource == 'exp' ? 'EXP' : 'pts'));
 
     final diff = (redPoints - bluePoints).abs();
     final bool isRedWinner = redPoints > bluePoints && (redPoints > 0 || bluePoints > 0);
@@ -788,7 +812,7 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> {
                             spacing: 4.0,
                             runSpacing: 4.0,
                             children: red.teams.map((t) {
-                              final teamPts = _getTeamPoints(t, effectiveEpa, effectiveOpr);
+                              final teamPts = _getTeamPoints(t, effectiveEpa, effectiveOpr, effectiveExp);
                               return Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 3.0),
                                 decoration: BoxDecoration(
@@ -860,7 +884,7 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> {
                             spacing: 4.0,
                             runSpacing: 4.0,
                             children: blue.teams.map((t) {
-                              final teamPts = _getTeamPoints(t, effectiveEpa, effectiveOpr);
+                              final teamPts = _getTeamPoints(t, effectiveEpa, effectiveOpr, effectiveExp);
                               return Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 3.0),
                                 decoration: BoxDecoration(
