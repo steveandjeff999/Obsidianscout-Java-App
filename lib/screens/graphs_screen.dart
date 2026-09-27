@@ -1940,21 +1940,42 @@ class _GraphsScreenState extends State<GraphsScreen> {
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                reservedSize: 34,
+                reservedSize: points.length > 8 ? 48 : 34,
+                interval: 1.0,
                 getTitlesWidget: (value, meta) {
                   final idx = value.toInt();
                   if (idx < 0 || idx >= points.length) return const SizedBox.shrink();
+                  final rawLabel = points[idx].label;
+                  final displayLabel = rawLabel.startsWith('Team ')
+                      ? rawLabel.replaceFirst('Team ', '#')
+                      : rawLabel;
+                  final shouldRotate = points.length > 8;
+
                   return Padding(
                     padding: const EdgeInsets.only(top: 6),
-                    child: Text(
-                      points[idx].label,
-                      style: TextStyle(
-                        color: ObsidianUITheme.getSecondaryTextColor(context),
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    child: shouldRotate
+                        ? Transform.rotate(
+                            angle: -0.65,
+                            alignment: Alignment.topRight,
+                            child: Text(
+                              displayLabel,
+                              style: TextStyle(
+                                color: ObsidianUITheme.getSecondaryTextColor(context),
+                                fontSize: points.length > 30 ? 9.0 : 10.0,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          )
+                        : Text(
+                            displayLabel,
+                            style: TextStyle(
+                              color: ObsidianUITheme.getSecondaryTextColor(context),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                   );
                 },
               ),
@@ -2163,22 +2184,43 @@ class _GraphsScreenState extends State<GraphsScreen> {
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                reservedSize: 34,
+                reservedSize: allX.length > 8 ? 48 : 34,
+                interval: 1.0,
                 getTitlesWidget: (value, meta) {
                   final idx = value.toInt();
                   if (idx < 0 || idx >= allX.length) return const SizedBox.shrink();
+                  final rawLabel = allX[idx];
+                  final displayLabel = rawLabel.startsWith('Team ')
+                      ? rawLabel.replaceFirst('Team ', '#')
+                      : rawLabel;
+                  final shouldRotate = allX.length > 8;
+
                   return Padding(
                     padding: const EdgeInsets.only(top: 6),
-                    child: Text(
-                      allX[idx],
-                      style: TextStyle(
-                        color: ObsidianUITheme.getSecondaryTextColor(context),
-                        fontSize: 9.5,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                    ),
+                    child: shouldRotate
+                        ? Transform.rotate(
+                            angle: -0.65,
+                            alignment: Alignment.topRight,
+                            child: Text(
+                              displayLabel,
+                              style: TextStyle(
+                                color: ObsidianUITheme.getSecondaryTextColor(context),
+                                fontSize: allX.length > 30 ? 9.0 : 10.0,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          )
+                        : Text(
+                            displayLabel,
+                            style: TextStyle(
+                              color: ObsidianUITheme.getSecondaryTextColor(context),
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                          ),
                   );
                 },
               ),
@@ -2410,21 +2452,42 @@ class _GraphsScreenState extends State<GraphsScreen> {
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                reservedSize: 32,
+                reservedSize: allX.length > 8 ? 48 : 32,
+                interval: 1.0,
                 getTitlesWidget: (value, meta) {
                   if (value != value.roundToDouble()) return const SizedBox.shrink();
                   final idx = value.toInt();
                   if (idx < 0 || idx >= allX.length) return const SizedBox.shrink();
+                  final rawLabel = allX[idx];
+                  final displayLabel = rawLabel.startsWith('Team ')
+                      ? rawLabel.replaceFirst('Team ', '#')
+                      : rawLabel;
+                  final shouldRotate = allX.length > 8;
+
                   return Padding(
                     padding: const EdgeInsets.only(top: 6),
-                    child: Text(
-                      allX[idx],
-                      style: TextStyle(
-                        color: ObsidianUITheme.getSecondaryTextColor(context),
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
+                    child: shouldRotate
+                        ? Transform.rotate(
+                            angle: -0.65,
+                            alignment: Alignment.topRight,
+                            child: Text(
+                              displayLabel,
+                              style: TextStyle(
+                                color: ObsidianUITheme.getSecondaryTextColor(context),
+                                fontSize: allX.length > 30 ? 9.0 : 10.0,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          )
+                        : Text(
+                            displayLabel,
+                            style: TextStyle(
+                              color: ObsidianUITheme.getSecondaryTextColor(context),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                   );
                 },
               ),
@@ -2614,7 +2677,8 @@ class _GraphsScreenState extends State<GraphsScreen> {
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                reservedSize: 28,
+                reservedSize: 32,
+                interval: 1.0,
                 getTitlesWidget: (value, meta) {
                   final idx = value.toInt();
                   if (idx < 0 || idx >= bins.length) return const SizedBox.shrink();

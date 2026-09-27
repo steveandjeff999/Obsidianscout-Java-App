@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'dart:ui';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme/obsidian_ui_theme.dart';
@@ -113,6 +114,7 @@ class _ObsidianChartInteractiveWrapperState
     extends State<ObsidianChartInteractiveWrapper> {
   final ScrollController _scrollController = ScrollController();
   double _zoomScale = 1.0;
+  double _baseZoomScale = 1.0;
 
   @override
   void dispose() {
@@ -123,14 +125,14 @@ class _ObsidianChartInteractiveWrapperState
   void _zoomIn() {
     ObsidianChartHaptics.lightTouch();
     setState(() {
-      _zoomScale = (_zoomScale + 0.25).clamp(1.0, 3.0);
+      _zoomScale = (_zoomScale + 0.35).clamp(1.0, 5.0);
     });
   }
 
   void _zoomOut() {
     ObsidianChartHaptics.lightTouch();
     setState(() {
-      _zoomScale = (_zoomScale - 0.25).clamp(1.0, 3.0);
+      _zoomScale = (_zoomScale - 0.35).clamp(1.0, 5.0);
     });
   }
 
@@ -172,8 +174,6 @@ class _ObsidianChartInteractiveWrapperState
 
   @override
   Widget build(BuildContext context) {
-    final hasZoomControls = widget.minContentWidth > 0;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -241,7 +241,7 @@ class _ObsidianChartInteractiveWrapperState
                   ),
 
                 // Zoom Out
-                if (hasZoomControls && _zoomScale > 1.0)
+                if (_zoomScale > 1.0)
                   _buildToolbarButton(
                     icon: Icons.zoom_out_rounded,
                     tooltip: 'Zoom Out',
@@ -249,19 +249,44 @@ class _ObsidianChartInteractiveWrapperState
                   ),
 
                 // Zoom In
-                if (hasZoomControls && _zoomScale < 3.0)
+                if (_zoomScale < 5.0)
                   _buildToolbarButton(
                     icon: Icons.zoom_in_rounded,
-                    tooltip: 'Zoom In',
+                    tooltip: 'Zoom In (${_zoomScale.toStringAsFixed(1)}x)',
                     onPressed: _zoomIn,
                   ),
 
-                // Reset Zoom
-                if (hasZoomControls && _zoomScale > 1.0)
-                  _buildToolbarButton(
-                    icon: Icons.restart_alt_rounded,
-                    tooltip: 'Reset Zoom',
-                    onPressed: _resetZoom,
+                // Reset Zoom with Badge
+                if (_zoomScale > 1.0)
+                  InkWell(
+                    borderRadius: BorderRadius.circular(6),
+                    onTap: _resetZoom,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.35),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.restart_alt_rounded, size: 14, color: ObsidianUITheme.primaryAccent),
+                          const SizedBox(width: 3),
+                          Text(
+                            '${_zoomScale.toStringAsFixed(1)}x',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: ObsidianUITheme.primaryAccent,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
 
                 // Refresh
@@ -325,65 +350,93 @@ class _ObsidianChartInteractiveWrapperState
         LayoutBuilder(
           builder: (context, constraints) {
             final availableWidth = constraints.maxWidth;
-            final targetWidth = max(
-              availableWidth,
-              (widget.minContentWidth > 0 ? widget.minContentWidth : availableWidth) *
-                  _zoomScale,
-            );
+            final baseWidth = widget.minContentWidth > 0 ? widget.minContentWidth : availableWidth;
+            final targetWidth = max(availableWidth, baseWidth * _zoomScale);
             final overflows = targetWidth > availableWidth + 1.0;
 
             return ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Stack(
-                children: [
-                  ScrollConfiguration(
-                    behavior: const ObsidianChartScrollBehavior(),
-                    child: SingleChildScrollView(
-                      controller: _scrollController,
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      child: SizedBox(
-                        width: targetWidth,
-                        height: widget.chartHeight,
-                        child: RepaintBoundary(
-                          child: widget.chart,
+              child: Listener(
+                onPointerSignal: (pointerSignal) {
+                  if (pointerSignal is PointerScrollEvent && HardwareKeyboard.instance.isControlPressed) {
+                    final delta = pointerSignal.scrollDelta.dy;
+                    setState(() {
+                      if (delta < 0) {
+                        _zoomScale = (_zoomScale + 0.25).clamp(1.0, 5.0);
+                      } else if (delta > 0) {
+                        _zoomScale = (_zoomScale - 0.25).clamp(1.0, 5.0);
+                      }
+                    });
+                  }
+                },
+                child: GestureDetector(
+                  onScaleStart: (_) {
+                    _baseZoomScale = _zoomScale;
+                  },
+                  onScaleUpdate: (details) {
+                    if (details.scale != 1.0) {
+                      setState(() {
+                        _zoomScale = (_baseZoomScale * details.scale).clamp(1.0, 5.0);
+                      });
+                    }
+                  },
+                  child: Stack(
+                    children: [
+                      Scrollbar(
+                        controller: _scrollController,
+                        thumbVisibility: overflows,
+                        interactive: true,
+                        child: ScrollConfiguration(
+                          behavior: const ObsidianChartScrollBehavior(),
+                          child: SingleChildScrollView(
+                            controller: _scrollController,
+                            scrollDirection: Axis.horizontal,
+                            physics: const BouncingScrollPhysics(),
+                            child: SizedBox(
+                              width: targetWidth,
+                              height: widget.chartHeight,
+                              child: RepaintBoundary(
+                                child: widget.chart,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
 
-                  // Scroll hints for desktop & mobile
-                  if (overflows)
-                    Positioned(
-                      right: 0,
-                      top: 0,
-                      bottom: 0,
-                      child: IgnorePointer(
-                        child: Container(
-                          width: 24,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                Colors.transparent,
-                                ObsidianUITheme.getSurfaceColor(context)
-                                    .withValues(alpha: 0.8),
-                              ],
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight,
-                            ),
-                          ),
-                          child: const Align(
-                            alignment: Alignment.centerRight,
-                            child: Icon(
-                              Icons.chevron_right_rounded,
-                              size: 18,
-                              color: Colors.white38,
+                      // Scroll hints for desktop & mobile
+                      if (overflows)
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          bottom: 0,
+                          child: IgnorePointer(
+                            child: Container(
+                              width: 24,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.transparent,
+                                    ObsidianUITheme.getSurfaceColor(context)
+                                        .withValues(alpha: 0.8),
+                                  ],
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight,
+                                ),
+                              ),
+                              child: const Align(
+                                alignment: Alignment.centerRight,
+                                child: Icon(
+                                  Icons.chevron_right_rounded,
+                                  size: 18,
+                                  color: Colors.white38,
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ),
-                ],
+                    ],
+                  ),
+                ),
               ),
             );
           },
@@ -563,6 +616,7 @@ class _FullscreenChartModal extends StatefulWidget {
 class _FullscreenChartModalState extends State<_FullscreenChartModal> {
   final ScrollController _scrollController = ScrollController();
   double _zoomScale = 1.0;
+  double _baseZoomScale = 1.0;
   late bool _showDataLabels;
   late bool _showBenchmark;
   late List<ChartLegendSeries>? _legendSeries;
@@ -584,14 +638,14 @@ class _FullscreenChartModalState extends State<_FullscreenChartModal> {
   void _zoomIn() {
     ObsidianChartHaptics.lightTouch();
     setState(() {
-      _zoomScale = (_zoomScale + 0.25).clamp(1.0, 3.5);
+      _zoomScale = (_zoomScale + 0.35).clamp(1.0, 5.0);
     });
   }
 
   void _zoomOut() {
     ObsidianChartHaptics.lightTouch();
     setState(() {
-      _zoomScale = (_zoomScale - 0.25).clamp(1.0, 3.5);
+      _zoomScale = (_zoomScale - 0.35).clamp(1.0, 5.0);
     });
   }
 
@@ -830,26 +884,50 @@ class _FullscreenChartModalState extends State<_FullscreenChartModal> {
                             widget.onToggleDataLabels!(_showDataLabels);
                           },
                         ),
-                      if (hasZoomControls && _zoomScale > 1.0)
+                      if (_zoomScale > 1.0)
                         _buildToolbarButton(
                           context: context,
                           icon: Icons.zoom_out_rounded,
                           tooltip: 'Zoom Out',
                           onPressed: _zoomOut,
                         ),
-                      if (hasZoomControls && _zoomScale < 3.5)
+                      if (_zoomScale < 5.0)
                         _buildToolbarButton(
                           context: context,
                           icon: Icons.zoom_in_rounded,
-                          tooltip: 'Zoom In',
+                          tooltip: 'Zoom In (${_zoomScale.toStringAsFixed(1)}x)',
                           onPressed: _zoomIn,
                         ),
-                      if (hasZoomControls && _zoomScale > 1.0)
-                        _buildToolbarButton(
-                          context: context,
-                          icon: Icons.restart_alt_rounded,
-                          tooltip: 'Reset Zoom',
-                          onPressed: _resetZoom,
+                      if (_zoomScale > 1.0)
+                        InkWell(
+                          borderRadius: BorderRadius.circular(6),
+                          onTap: _resetZoom,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.35),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.restart_alt_rounded, size: 14, color: ObsidianUITheme.primaryAccent),
+                                const SizedBox(width: 3),
+                                Text(
+                                  '${_zoomScale.toStringAsFixed(1)}x',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: ObsidianUITheme.primaryAccent,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       if (widget.onRefresh != null)
                         _buildToolbarButton(
@@ -887,26 +965,55 @@ class _FullscreenChartModalState extends State<_FullscreenChartModal> {
                       builder: (ctx, constraints) {
                         final availableWidth = constraints.maxWidth;
                         final availableHeight = constraints.maxHeight;
-                        final targetWidth = max(
-                          availableWidth,
-                          (widget.minContentWidth > 0 ? widget.minContentWidth : availableWidth) *
-                              _zoomScale,
-                        );
+                        final baseWidth = widget.minContentWidth > 0 ? widget.minContentWidth : availableWidth;
+                        final targetWidth = max(availableWidth, baseWidth * _zoomScale);
+                        final overflows = targetWidth > availableWidth + 1.0;
 
                         final chartWidget = widget.fullscreenChartBuilder != null
                             ? widget.fullscreenChartBuilder!(ctx)
                             : widget.chart;
 
-                        return ScrollConfiguration(
-                          behavior: const ObsidianChartScrollBehavior(),
-                          child: SingleChildScrollView(
-                            controller: _scrollController,
-                            scrollDirection: Axis.horizontal,
-                            physics: const BouncingScrollPhysics(),
-                            child: SizedBox(
-                              width: targetWidth,
-                              height: availableHeight,
-                              child: chartWidget,
+                        return Listener(
+                          onPointerSignal: (pointerSignal) {
+                            if (pointerSignal is PointerScrollEvent && HardwareKeyboard.instance.isControlPressed) {
+                              final delta = pointerSignal.scrollDelta.dy;
+                              setState(() {
+                                if (delta < 0) {
+                                  _zoomScale = (_zoomScale + 0.25).clamp(1.0, 5.0);
+                                } else if (delta > 0) {
+                                  _zoomScale = (_zoomScale - 0.25).clamp(1.0, 5.0);
+                                }
+                              });
+                            }
+                          },
+                          child: GestureDetector(
+                            onScaleStart: (_) {
+                              _baseZoomScale = _zoomScale;
+                            },
+                            onScaleUpdate: (details) {
+                              if (details.scale != 1.0) {
+                                setState(() {
+                                  _zoomScale = (_baseZoomScale * details.scale).clamp(1.0, 5.0);
+                                });
+                              }
+                            },
+                            child: Scrollbar(
+                              controller: _scrollController,
+                              thumbVisibility: overflows,
+                              interactive: true,
+                              child: ScrollConfiguration(
+                                behavior: const ObsidianChartScrollBehavior(),
+                                child: SingleChildScrollView(
+                                  controller: _scrollController,
+                                  scrollDirection: Axis.horizontal,
+                                  physics: const BouncingScrollPhysics(),
+                                  child: SizedBox(
+                                    width: targetWidth,
+                                    height: availableHeight,
+                                    child: chartWidget,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         );
