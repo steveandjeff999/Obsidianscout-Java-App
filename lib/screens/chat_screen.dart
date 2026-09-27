@@ -75,7 +75,11 @@ class _ChatScreenState extends State<ChatScreen> {
       });
       _loadMessagesAndUnreads(scrollToBottom: true);
     } else if (widget.isVisible && !oldWidget.isVisible) {
+      _startPolling();
       _loadMessagesAndUnreads(scrollToBottom: false);
+    } else if (!widget.isVisible && oldWidget.isVisible) {
+      _pollTimer?.cancel();
+      _pollTimer = null;
     }
   }
 
@@ -127,7 +131,9 @@ class _ChatScreenState extends State<ChatScreen> {
     });
 
     await _loadMessagesAndUnreads(scrollToBottom: true);
-    _startPolling();
+    if (widget.isVisible) {
+      _startPolling();
+    }
 
     if (mounted) {
       setState(() => _isLoading = false);
@@ -136,6 +142,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _startPolling() {
     _pollTimer?.cancel();
+    if (!widget.isVisible) return;
     _pollTimer = Timer.periodic(const Duration(milliseconds: 2500), (_) {
       if (mounted && _isChatEnabled && widget.apiService.isOnline && widget.isVisible) {
         _loadMessagesAndUnreads(scrollToBottom: false);

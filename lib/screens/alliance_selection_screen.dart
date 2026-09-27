@@ -78,7 +78,11 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
   void didUpdateWidget(covariant AllianceSelectionScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isVisible && !oldWidget.isVisible) {
+      _startRealtimeSyncTimer();
       _catchUpAndSyncWithServer();
+    } else if (!widget.isVisible && oldWidget.isVisible) {
+      _realtimeSyncTimer?.cancel();
+      _realtimeSyncTimer = null;
     }
   }
 
@@ -93,6 +97,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
 
   void _startRealtimeSyncTimer() {
     _realtimeSyncTimer?.cancel();
+    if (!widget.isVisible) return;
     // Poll server every 2 seconds for real-time synchronization with server & other scouts when screen is visible
     _realtimeSyncTimer = Timer.periodic(const Duration(seconds: 2), (_) {
       if (mounted && widget.apiService.isOnline && !_isLoading && !_isSaving && _selectedEventKey != null && widget.isVisible) {

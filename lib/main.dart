@@ -1014,132 +1014,176 @@ class _MainShellState extends State<MainShell> {
     }
   }
 
-  List<Widget> _buildScreens({required int screenIndex, required bool isTabActive, String? chatChannel}) {
-    return [
-      DashboardScreen(
-        apiService: widget.apiService,
-        onNavigateMatch: () => _navigateScreen(1),
-        onNavigatePit: () => _navigateScreen(2),
-        onNavigateAnalytics: () => _navigateScreen(4),
-        onNavigateQrScanner: _openQrScanner,
-        onNavigateAlliance: () => _navigateScreen(7),
-        onNavigatePrescout: () => _navigateScreen(11),
-        onNavigateHistory: () => _navigateScreen(17),
-        isVisible: isTabActive && screenIndex == 0,
-        isBarsVisible: _isBarsVisible,
-      ),
-      MatchScoutScreen(
-        apiService: widget.apiService,
-        isVisible: isTabActive && screenIndex == 1,
-        isBarsVisible: _isBarsVisible,
-        initialMatchKey: _pendingMatchParams?.matchKey,
-        initialMatchNumber: _pendingMatchParams?.matchNumber,
-        initialTargetTeamNumber: _pendingMatchParams?.targetTeamNumber,
-        sourceAssignmentId: _pendingMatchParams?.sourceAssignmentId,
-      ),
-      PitScoutScreen(
-        apiService: widget.apiService,
-        isVisible: isTabActive && screenIndex == 2,
-        isBarsVisible: _isBarsVisible,
-        initialTargetTeamNumber: _pendingPitParams?.targetTeamNumber,
-        sourceAssignmentId: _pendingPitParams?.sourceAssignmentId,
-      ),
-      QualScoutScreen(
-        apiService: widget.apiService,
-        isVisible: isTabActive && screenIndex == 3,
-        isBarsVisible: _isBarsVisible,
-        initialMatchKey: _pendingQualParams?.matchKey,
-        initialMatchNumber: _pendingQualParams?.matchNumber,
-        initialAllianceColor: _pendingQualParams?.allianceColor,
-        initialTargetTeamNumber: _pendingQualParams?.targetTeamNumber,
-        sourceAssignmentId: _pendingQualParams?.sourceAssignmentId,
-      ),
-      GraphsScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 4, isBarsVisible: _isBarsVisible),
-      SettingsScreen(
-        apiService: widget.apiService,
-        onLogout: _handleLogout,
-        onNavigateConfigEditor: () => _navigateScreen(10),
-        onNavigateUsers: () => _navigateScreen(22),
-        onNavigateErrorReports: () => _navigateScreen(24),
-        onNavigateThemeEditor: () => _navigateScreen(28),
-        isVisible: isTabActive && screenIndex == 5,
-        isBarsVisible: _isBarsVisible,
-      ),
-      ChatScreen(
-        apiService: widget.apiService,
-        initialChannel: chatChannel ?? _pendingChatChannel,
-        isVisible: isTabActive && screenIndex == 6,
-        isBarsVisible: _isBarsVisible,
-      ),
-      AllianceSelectionScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 7, isBarsVisible: _isBarsVisible),
-      TeamsListScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 8, isBarsVisible: _isBarsVisible),
-      MatchListScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 9, isBarsVisible: _isBarsVisible),
-      ConfigEditorScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 10, isBarsVisible: _isBarsVisible),
-      PrescoutScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 11, isBarsVisible: _isBarsVisible),
-      AllDataScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 12, isBarsVisible: _isBarsVisible),
-      MatchDataScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 13, isBarsVisible: _isBarsVisible),
-      PitDataScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 14, isBarsVisible: _isBarsVisible),
-      QualDataScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 15, isBarsVisible: _isBarsVisible),
-      DataValidationScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 16, isBarsVisible: _isBarsVisible),
-      ScoutHistoryScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 17, isBarsVisible: _isBarsVisible),
-      CustomAnalyticsScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 18, isBarsVisible: _isBarsVisible),
-      ContactScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 19, isBarsVisible: _isBarsVisible),
-      PredictorScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 20, isBarsVisible: _isBarsVisible),
-      EventPredictorScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 21, isBarsVisible: _isBarsVisible),
-      UsersScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 22, isBarsVisible: _isBarsVisible),
-      ClusterManagementScreen(
-        apiService: widget.apiService,
-        isVisible: isTabActive && screenIndex == 23,
-        isBarsVisible: _isBarsVisible,
-        onNavigateErrorReports: () => _navigateScreen(24),
-      ),
-      ErrorReportsScreen(
-        apiService: widget.apiService,
-        isVisible: isTabActive && screenIndex == 24,
-        isBarsVisible: _isBarsVisible,
-        onNavigateCluster: () => _navigateScreen(23),
-      ),
-      EventsScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 25, isBarsVisible: _isBarsVisible),
-      RankingsScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 26, isBarsVisible: _isBarsVisible),
-      QualRankingsScreen(apiService: widget.apiService, isVisible: isTabActive && screenIndex == 27, isBarsVisible: _isBarsVisible),
-      ThemeEditorScreen(
-        apiService: widget.apiService,
-        onBack: () => _navigateScreen(5),
-      ),
-      MyAssignmentsScreen(
-        apiService: widget.apiService,
-        isVisible: isTabActive && screenIndex == 29,
-        isBarsVisible: _isBarsVisible,
-        onNavigateMatch: (matchKey, matchNum, teamNum, assignmentId) {
-          _navigateToMatchScout(
-            matchKey: matchKey,
-            matchNumber: matchNum,
-            targetTeamNumber: teamNum,
-            sourceAssignmentId: assignmentId,
-          );
-        },
-        onNavigatePit: (teamNum, assignmentId) {
-          _navigateToPitScout(
-            targetTeamNumber: teamNum,
-            sourceAssignmentId: assignmentId,
-          );
-        },
-        onNavigateQual: (matchKey, matchNum, allianceColor, teamNum, assignmentId) {
-          _navigateToQualScout(
-            matchKey: matchKey,
-            matchNumber: matchNum,
-            allianceColor: allianceColor,
-            targetTeamNumber: teamNum,
-            sourceAssignmentId: assignmentId,
-          );
-        },
-      ),
-      ScoutAssignmentsScreen(
-        apiService: widget.apiService,
-        isVisible: isTabActive && screenIndex == 30,
-        isBarsVisible: _isBarsVisible,
-      ),
-    ];
+  Widget _buildScreenByIndex(int screenIndex, {required bool isTabActive, String? chatChannel}) {
+    switch (screenIndex) {
+      case 0:
+        return DashboardScreen(
+          apiService: widget.apiService,
+          onNavigateMatch: () => _navigateScreen(1),
+          onNavigatePit: () => _navigateScreen(2),
+          onNavigateAnalytics: () => _navigateScreen(4),
+          onNavigateQrScanner: _openQrScanner,
+          onNavigateAlliance: () => _navigateScreen(7),
+          onNavigatePrescout: () => _navigateScreen(11),
+          onNavigateHistory: () => _navigateScreen(17),
+          isVisible: isTabActive && _currentIndex == 0,
+          isBarsVisible: _isBarsVisible,
+        );
+      case 1:
+        return MatchScoutScreen(
+          apiService: widget.apiService,
+          isVisible: isTabActive && _currentIndex == 1,
+          isBarsVisible: _isBarsVisible,
+          initialMatchKey: _pendingMatchParams?.matchKey,
+          initialMatchNumber: _pendingMatchParams?.matchNumber,
+          initialTargetTeamNumber: _pendingMatchParams?.targetTeamNumber,
+          sourceAssignmentId: _pendingMatchParams?.sourceAssignmentId,
+        );
+      case 2:
+        return PitScoutScreen(
+          apiService: widget.apiService,
+          isVisible: isTabActive && _currentIndex == 2,
+          isBarsVisible: _isBarsVisible,
+          initialTargetTeamNumber: _pendingPitParams?.targetTeamNumber,
+          sourceAssignmentId: _pendingPitParams?.sourceAssignmentId,
+        );
+      case 3:
+        return QualScoutScreen(
+          apiService: widget.apiService,
+          isVisible: isTabActive && _currentIndex == 3,
+          isBarsVisible: _isBarsVisible,
+          initialMatchKey: _pendingQualParams?.matchKey,
+          initialMatchNumber: _pendingQualParams?.matchNumber,
+          initialAllianceColor: _pendingQualParams?.allianceColor,
+          initialTargetTeamNumber: _pendingQualParams?.targetTeamNumber,
+          sourceAssignmentId: _pendingQualParams?.sourceAssignmentId,
+        );
+      case 4:
+        return GraphsScreen(apiService: widget.apiService, isVisible: isTabActive && _currentIndex == 4, isBarsVisible: _isBarsVisible);
+      case 5:
+        return SettingsScreen(
+          apiService: widget.apiService,
+          onLogout: _handleLogout,
+          onNavigateConfigEditor: () => _navigateScreen(10),
+          onNavigateUsers: () => _navigateScreen(22),
+          onNavigateErrorReports: () => _navigateScreen(24),
+          onNavigateThemeEditor: () => _navigateScreen(28),
+          isVisible: isTabActive && _currentIndex == 5,
+          isBarsVisible: _isBarsVisible,
+        );
+      case 6:
+        return ChatScreen(
+          apiService: widget.apiService,
+          initialChannel: chatChannel ?? _pendingChatChannel,
+          isVisible: isTabActive && _currentIndex == 6,
+          isBarsVisible: _isBarsVisible,
+        );
+      case 7:
+        return AllianceSelectionScreen(apiService: widget.apiService, isVisible: isTabActive && _currentIndex == 7, isBarsVisible: _isBarsVisible);
+      case 8:
+        return TeamsListScreen(apiService: widget.apiService, isVisible: isTabActive && _currentIndex == 8, isBarsVisible: _isBarsVisible);
+      case 9:
+        return MatchListScreen(apiService: widget.apiService, isVisible: isTabActive && _currentIndex == 9, isBarsVisible: _isBarsVisible);
+      case 10:
+        return ConfigEditorScreen(apiService: widget.apiService, isVisible: isTabActive && _currentIndex == 10, isBarsVisible: _isBarsVisible);
+      case 11:
+        return PrescoutScreen(apiService: widget.apiService, isVisible: isTabActive && _currentIndex == 11, isBarsVisible: _isBarsVisible);
+      case 12:
+        return AllDataScreen(apiService: widget.apiService, isVisible: isTabActive && _currentIndex == 12, isBarsVisible: _isBarsVisible);
+      case 13:
+        return MatchDataScreen(apiService: widget.apiService, isVisible: isTabActive && _currentIndex == 13, isBarsVisible: _isBarsVisible);
+      case 14:
+        return PitDataScreen(apiService: widget.apiService, isVisible: isTabActive && _currentIndex == 14, isBarsVisible: _isBarsVisible);
+      case 15:
+        return QualDataScreen(apiService: widget.apiService, isVisible: isTabActive && _currentIndex == 15, isBarsVisible: _isBarsVisible);
+      case 16:
+        return DataValidationScreen(apiService: widget.apiService, isVisible: isTabActive && _currentIndex == 16, isBarsVisible: _isBarsVisible);
+      case 17:
+        return ScoutHistoryScreen(apiService: widget.apiService, isVisible: isTabActive && _currentIndex == 17, isBarsVisible: _isBarsVisible);
+      case 18:
+        return CustomAnalyticsScreen(apiService: widget.apiService, isVisible: isTabActive && _currentIndex == 18, isBarsVisible: _isBarsVisible);
+      case 19:
+        return ContactScreen(apiService: widget.apiService, isVisible: isTabActive && _currentIndex == 19, isBarsVisible: _isBarsVisible);
+      case 20:
+        return PredictorScreen(apiService: widget.apiService, isVisible: isTabActive && _currentIndex == 20, isBarsVisible: _isBarsVisible);
+      case 21:
+        return EventPredictorScreen(apiService: widget.apiService, isVisible: isTabActive && _currentIndex == 21, isBarsVisible: _isBarsVisible);
+      case 22:
+        return UsersScreen(apiService: widget.apiService, isVisible: isTabActive && _currentIndex == 22, isBarsVisible: _isBarsVisible);
+      case 23:
+        return ClusterManagementScreen(
+          apiService: widget.apiService,
+          isVisible: isTabActive && _currentIndex == 23,
+          isBarsVisible: _isBarsVisible,
+          onNavigateErrorReports: () => _navigateScreen(24),
+        );
+      case 24:
+        return ErrorReportsScreen(
+          apiService: widget.apiService,
+          isVisible: isTabActive && _currentIndex == 24,
+          isBarsVisible: _isBarsVisible,
+          onNavigateCluster: () => _navigateScreen(23),
+        );
+      case 25:
+        return EventsScreen(apiService: widget.apiService, isVisible: isTabActive && _currentIndex == 25, isBarsVisible: _isBarsVisible);
+      case 26:
+        return RankingsScreen(apiService: widget.apiService, isVisible: isTabActive && _currentIndex == 26, isBarsVisible: _isBarsVisible);
+      case 27:
+        return QualRankingsScreen(apiService: widget.apiService, isVisible: isTabActive && _currentIndex == 27, isBarsVisible: _isBarsVisible);
+      case 28:
+        return ThemeEditorScreen(
+          apiService: widget.apiService,
+          onBack: () => _navigateScreen(5),
+        );
+      case 29:
+        return MyAssignmentsScreen(
+          apiService: widget.apiService,
+          isVisible: isTabActive && _currentIndex == 29,
+          isBarsVisible: _isBarsVisible,
+          onNavigateMatch: (matchKey, matchNum, teamNum, assignmentId) {
+            _navigateToMatchScout(
+              matchKey: matchKey,
+              matchNumber: matchNum,
+              targetTeamNumber: teamNum,
+              sourceAssignmentId: assignmentId,
+            );
+          },
+          onNavigatePit: (teamNum, assignmentId) {
+            _navigateToPitScout(
+              targetTeamNumber: teamNum,
+              sourceAssignmentId: assignmentId,
+            );
+          },
+          onNavigateQual: (matchKey, matchNum, allianceColor, teamNum, assignmentId) {
+            _navigateToQualScout(
+              matchKey: matchKey,
+              matchNumber: matchNum,
+              allianceColor: allianceColor,
+              targetTeamNumber: teamNum,
+              sourceAssignmentId: assignmentId,
+            );
+          },
+        );
+      case 30:
+        return ScoutAssignmentsScreen(
+          apiService: widget.apiService,
+          isVisible: isTabActive && _currentIndex == 30,
+          isBarsVisible: _isBarsVisible,
+        );
+      default:
+        return DashboardScreen(
+          apiService: widget.apiService,
+          onNavigateMatch: () => _navigateScreen(1),
+          onNavigatePit: () => _navigateScreen(2),
+          onNavigateAnalytics: () => _navigateScreen(4),
+          onNavigateQrScanner: _openQrScanner,
+          onNavigateAlliance: () => _navigateScreen(7),
+          onNavigatePrescout: () => _navigateScreen(11),
+          onNavigateHistory: () => _navigateScreen(17),
+          isVisible: isTabActive && _currentIndex == 0,
+          isBarsVisible: _isBarsVisible,
+        );
+    }
   }
 
   Widget _buildDesktopTabbedContent() {
@@ -1157,8 +1201,9 @@ class _MainShellState extends State<MainShell> {
                 builder: (context) => ObsidianAnimatedIndexedStack(
                   key: ValueKey('tab_stack_${tab.id}'),
                   index: tab.screenIndex,
-                  children: _buildScreens(
-                    screenIndex: tab.screenIndex,
+                  itemCount: 31,
+                  itemBuilder: (ctx, idx) => _buildScreenByIndex(
+                    idx,
                     isTabActive: tab.id == _activeTabId,
                     chatChannel: tab.pendingChatChannel,
                   ),
@@ -1202,7 +1247,11 @@ class _MainShellState extends State<MainShell> {
     final mainIndexedStack = ObsidianAnimatedIndexedStack(
       key: const ValueKey('obsidian_main_indexed_stack'),
       index: _currentIndex,
-      children: _buildScreens(screenIndex: _currentIndex, isTabActive: true),
+      itemCount: 31,
+      itemBuilder: (ctx, idx) => _buildScreenByIndex(
+        idx,
+        isTabActive: true,
+      ),
     );
 
     final Map<ShortcutActivator, VoidCallback> shortcutBindings = isDesktopTabs
@@ -1490,6 +1539,8 @@ class _MainShellState extends State<MainShell> {
                       'assets/images/obsidian-512.png',
                       width: 80.0,
                       height: 80.0,
+                      cacheWidth: 160,
+                      cacheHeight: 160,
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) => Icon(
                         Icons.shield_outlined,

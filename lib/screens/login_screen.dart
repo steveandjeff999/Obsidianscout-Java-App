@@ -464,6 +464,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           'assets/images/obsidian-512.png',
                           width: 80.0,
                           height: 80.0,
+                          cacheWidth: 160,
+                          cacheHeight: 160,
                           fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) => Icon(
                             Icons.shield_outlined,
@@ -646,6 +648,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       'assets/images/obsidian-512.png',
                       width: 64.0,
                       height: 64.0,
+                      cacheWidth: 128,
+                      cacheHeight: 128,
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) => Icon(
                         Icons.shield_outlined,

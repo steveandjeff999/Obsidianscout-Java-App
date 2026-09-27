@@ -131,15 +131,21 @@ class WindowsSlideUpTransitionsBuilder extends PageTransitionsBuilder {
 /// vertical slide-up on desktop/computer with lazy child activation.
 class ObsidianAnimatedIndexedStack extends StatefulWidget {
   final int index;
-  final List<Widget> children;
+  final List<Widget>? children;
+  final IndexedWidgetBuilder? itemBuilder;
+  final int itemCount;
   final Duration duration;
 
   const ObsidianAnimatedIndexedStack({
     super.key,
     required this.index,
-    required this.children,
+    this.children,
+    this.itemBuilder,
+    int? itemCount,
     this.duration = const Duration(milliseconds: 260),
-  });
+  })  : itemCount = itemCount ?? (children != null ? children.length : 0),
+        assert(children != null || (itemBuilder != null && itemCount != null),
+            'Either children or (itemBuilder and itemCount) must be provided.');
 
   @override
   State<ObsidianAnimatedIndexedStack> createState() => _ObsidianAnimatedIndexedStackState();
@@ -258,9 +264,16 @@ class _ObsidianAnimatedIndexedStackState extends State<ObsidianAnimatedIndexedSt
 
     final isAnimating = _controller.isAnimating && _currentIndex != _previousIndex;
 
+    Widget getChild(int idx) {
+      if (widget.itemBuilder != null) {
+        return widget.itemBuilder!(context, idx);
+      }
+      return widget.children![idx];
+    }
+
     return Stack(
       fit: StackFit.expand,
-      children: List.generate(widget.children.length, (index) {
+      children: List.generate(widget.itemCount, (index) {
         // Lazy activation: unvisited screens are not built or mounted
         if (!_activatedIndices.contains(index)) {
           return const SizedBox.shrink();
@@ -268,6 +281,7 @@ class _ObsidianAnimatedIndexedStackState extends State<ObsidianAnimatedIndexedSt
 
         final isCurrent = index == _currentIndex;
         final isPrevious = index == _previousIndex;
+        final childWidget = getChild(index);
 
         // Static non-transitioning state
         if (!isAnimating) {
@@ -276,7 +290,7 @@ class _ObsidianAnimatedIndexedStackState extends State<ObsidianAnimatedIndexedSt
               key: ValueKey('page_active_$index'),
               child: TickerMode(
                 enabled: true,
-                child: widget.children[index],
+                child: childWidget,
               ),
             );
           }
@@ -286,7 +300,7 @@ class _ObsidianAnimatedIndexedStackState extends State<ObsidianAnimatedIndexedSt
               ignoring: true,
               child: TickerMode(
                 enabled: false,
-                child: widget.children[index],
+                child: childWidget,
               ),
             ),
           );
@@ -302,7 +316,7 @@ class _ObsidianAnimatedIndexedStackState extends State<ObsidianAnimatedIndexedSt
                 opacity: currentFade,
                 child: TickerMode(
                   enabled: true,
-                  child: widget.children[index],
+                  child: childWidget,
                 ),
               ),
             ),
@@ -320,7 +334,7 @@ class _ObsidianAnimatedIndexedStackState extends State<ObsidianAnimatedIndexedSt
                   opacity: previousFade,
                   child: TickerMode(
                     enabled: false,
-                    child: widget.children[index],
+                    child: childWidget,
                   ),
                 ),
               ),
@@ -334,7 +348,7 @@ class _ObsidianAnimatedIndexedStackState extends State<ObsidianAnimatedIndexedSt
             ignoring: true,
             child: TickerMode(
               enabled: false,
-              child: widget.children[index],
+              child: childWidget,
             ),
           ),
         );

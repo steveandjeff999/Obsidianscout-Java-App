@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
@@ -19,11 +18,9 @@ class ObsidianBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = ObsidianUITheme.isDark(context);
-    final navBg = isDark
-        ? ObsidianUITheme.getSurfaceColor(context).withValues(alpha: 0.85)
-        : ObsidianUITheme.getSurfaceColor(context).withValues(alpha: 0.95);
-    final borderColor = ObsidianUITheme.getGlassBorderColor(context);
-    final shadowColor = isDark ? Colors.black.withValues(alpha: 0.5) : Colors.black.withValues(alpha: 0.1);
+    final navBg = ObsidianUITheme.getSurfaceColor(context);
+    final borderColor = ObsidianUITheme.getBorderColor(context);
+    final shadowColor = isDark ? Colors.black.withValues(alpha: 0.35) : Colors.black.withValues(alpha: 0.06);
     final inactiveItemColor = ObsidianUITheme.getSecondaryTextColor(context);
 
     final allNavItems = [
@@ -43,47 +40,36 @@ class ObsidianBottomNav extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 12.0),
       height: 64.0,
+      padding: const EdgeInsets.symmetric(horizontal: 8.0),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(32.0),
+        color: navBg,
+        border: Border.all(
+          color: borderColor,
+          width: 1.0,
+        ),
         boxShadow: [
           BoxShadow(
             color: shadowColor,
-            blurRadius: isDark ? 20 : 12,
-            offset: const Offset(0, 6),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(32.0),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 8.0, sigmaY: 8.0),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(32.0),
-              color: navBg,
-              border: Border.all(
-                color: borderColor,
-                width: 1.2,
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: List.generate(navItems.length, (index) {
-                final targetIndex = navItems[index]['targetIndex'] as int;
-                final isSelected = targetIndex == currentIndex;
-                return _ObsidianNavItem(
-                  targetIndex: targetIndex,
-                  isSelected: isSelected,
-                  icon: navItems[index]['icon'] as IconData,
-                  labelKey: navItems[index]['labelKey'] as String,
-                  inactiveItemColor: inactiveItemColor,
-                  onTap: onTap,
-                );
-              }),
-            ),
-          ),
-        ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: List.generate(navItems.length, (index) {
+          final targetIndex = navItems[index]['targetIndex'] as int;
+          final isSelected = targetIndex == currentIndex;
+          return _ObsidianNavItem(
+            targetIndex: targetIndex,
+            isSelected: isSelected,
+            icon: navItems[index]['icon'] as IconData,
+            labelKey: navItems[index]['labelKey'] as String,
+            inactiveItemColor: inactiveItemColor,
+            onTap: onTap,
+          );
+        }),
       ),
     );
   }

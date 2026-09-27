@@ -45,6 +45,26 @@ class ApiService {
   int _requestTimeoutSeconds = defaultRequestTimeoutSeconds;
   Timer? _syncTimer;
 
+  final Map<String, dynamic> _memoryCache = {};
+
+  T? getFromMemoryCache<T>(String key) {
+    final val = _memoryCache[key];
+    if (val is T) return val;
+    return null;
+  }
+
+  void setMemoryCache<T>(String key, T value) {
+    _memoryCache[key] = value;
+  }
+
+  void invalidateMemoryCache([String? prefix]) {
+    if (prefix == null) {
+      _memoryCache.clear();
+    } else {
+      _memoryCache.removeWhere((k, _) => k.startsWith(prefix));
+    }
+  }
+
   UserModel? _currentUser;
   AppSettingsModel? _currentSettings;
   final ValueNotifier<int> permissionsNotifier = ValueNotifier<int>(0);
@@ -353,6 +373,7 @@ class ApiService {
   }
 
   Future<void> _setCache(String key, String rawJson) async {
+    _memoryCache.remove(key);
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(key, rawJson);
@@ -370,24 +391,28 @@ class ApiService {
 
   // Instant Stale-While-Revalidate Synchronous & Async Cache Accessors
   Future<String?> getCachedEventKey() async {
-    final cached = await _getCache("cache_settings");
-    if (cached != null && cached.isNotEmpty) {
-      try {
-        final jsonMap = jsonDecode(cached);
-        final settings = jsonMap['settings'] ?? jsonMap;
-        return settings['eventKey']?.toString() ?? settings['eventCode']?.toString();
-      } catch (_) {}
+    if (_currentSettings?.eventKey != null && _currentSettings!.eventKey!.isNotEmpty) {
+      return _currentSettings!.eventKey;
     }
-    return _currentSettings?.eventKey;
+    final cachedSettings = await getCachedSettings();
+    return cachedSettings?.eventKey;
   }
 
   Future<AppSettingsModel?> getCachedSettings() async {
     if (_currentSettings != null) return _currentSettings;
+    final inMem = getFromMemoryCache<AppSettingsModel>("cache_settings");
+    if (inMem != null) {
+      _currentSettings = inMem;
+      return inMem;
+    }
     final cached = await _getCache("cache_settings");
     if (cached != null && cached.isNotEmpty) {
       try {
         final jsonMap = jsonDecode(cached);
         _currentSettings = AppSettingsModel.fromJson(jsonMap);
+        if (_currentSettings != null) {
+          setMemoryCache("cache_settings", _currentSettings);
+        }
         return _currentSettings;
       } catch (_) {}
     }
@@ -395,36 +420,52 @@ class ApiService {
   }
 
   Future<ScoutingConfigModel?> getCachedMatchConfig() async {
+    final inMem = getFromMemoryCache<ScoutingConfigModel>("cache_config");
+    if (inMem != null) return inMem;
     final cached = await _getCache("cache_config");
     if (cached != null && cached.isNotEmpty) {
       try {
-        return ScoutingConfigModel.fromJson(jsonDecode(cached));
+        final config = ScoutingConfigModel.fromJson(jsonDecode(cached));
+        setMemoryCache("cache_config", config);
+        return config;
       } catch (_) {}
     }
     return null;
   }
 
   Future<ScoutingConfigModel?> getCachedPitConfig() async {
+    final inMem = getFromMemoryCache<ScoutingConfigModel>("cache_pit_config");
+    if (inMem != null) return inMem;
     final cached = await _getCache("cache_pit_config");
     if (cached != null && cached.isNotEmpty) {
       try {
-        return ScoutingConfigModel.fromJson(jsonDecode(cached));
+        final config = ScoutingConfigModel.fromJson(jsonDecode(cached));
+        setMemoryCache("cache_pit_config", config);
+        return config;
       } catch (_) {}
     }
     return null;
   }
 
   Future<ScoutingConfigModel?> getCachedQualConfig() async {
+    final inMem = getFromMemoryCache<ScoutingConfigModel>("cache_qual_config");
+    if (inMem != null) return inMem;
     final cached = await _getCache("cache_qual_config");
     if (cached != null && cached.isNotEmpty) {
       try {
-        return ScoutingConfigModel.fromJson(jsonDecode(cached));
+        final config = ScoutingConfigModel.fromJson(jsonDecode(cached));
+        setMemoryCache("cache_qual_config", config);
+        return config;
       } catch (_) {}
     }
     return null;
   }
 
   Future<List<TeamModel>> getCachedTeams(String? eventKey) async {
+    final memKey = "mem_teams_${eventKey ?? 'all'}";
+    final inMem = getFromMemoryCache<List<TeamModel>>(memKey);
+    if (inMem != null && inMem.isNotEmpty) return inMem;
+
     final candidateKeys = [
       if (eventKey != null && eventKey.isNotEmpty) "cache_teams_$eventKey",
       "cache_teams_all",
@@ -446,7 +487,9 @@ class ApiService {
               teamMap[t.teamNumber] = t;
             }
             if (teamMap.isNotEmpty) {
-              return teamMap.values.toList()..sort((a, b) => a.teamNumber.compareTo(b.teamNumber));
+              final res = teamMap.values.toList()..sort((a, b) => a.teamNumber.compareTo(b.teamNumber));
+              setMemoryCache(memKey, res);
+              return res;
             }
           }
         } catch (_) {}
@@ -470,7 +513,9 @@ class ApiService {
                 teamMap[t.teamNumber] = t;
               }
               if (teamMap.isNotEmpty) {
-                return teamMap.values.toList()..sort((a, b) => a.teamNumber.compareTo(b.teamNumber));
+                final res = teamMap.values.toList()..sort((a, b) => a.teamNumber.compareTo(b.teamNumber));
+                setMemoryCache(memKey, res);
+                return res;
               }
             }
           }
@@ -482,6 +527,10 @@ class ApiService {
   }
 
   Future<List<MatchModel>> getCachedMatches(String? eventKey) async {
+    final memKey = "mem_matches_${eventKey ?? 'all'}";
+    final inMem = getFromMemoryCache<List<MatchModel>>(memKey);
+    if (inMem != null && inMem.isNotEmpty) return inMem;
+
     final candidateKeys = [
       if (eventKey != null && eventKey.isNotEmpty) "cache_matches_$eventKey",
       "cache_matches_all",
@@ -505,7 +554,9 @@ class ApiService {
               }
             }
             if (matchMap.isNotEmpty) {
-              return matchMap.values.toList();
+              final res = matchMap.values.toList();
+              setMemoryCache(memKey, res);
+              return res;
             }
           }
         } catch (_) {}
@@ -531,7 +582,9 @@ class ApiService {
                 }
               }
               if (matchMap.isNotEmpty) {
-                return matchMap.values.toList();
+                final res = matchMap.values.toList();
+                setMemoryCache(memKey, res);
+                return res;
               }
             }
           }
@@ -543,72 +596,102 @@ class ApiService {
   }
 
   Future<List<dynamic>> getCachedScoutingEntries() async {
+    final inMem = getFromMemoryCache<List<dynamic>>("cache_scouting");
+    if (inMem != null) return inMem;
     final cached = await _getCache("cache_scouting");
     if (cached != null && cached.isNotEmpty) {
       try {
         final decoded = jsonDecode(cached);
-        if (decoded is List) return decoded;
-        if (decoded is Map && decoded['entries'] is List) return decoded['entries'] as List;
+        final List list = decoded is List
+            ? decoded
+            : (decoded is Map && decoded['entries'] is List ? decoded['entries'] as List : []);
+        setMemoryCache("cache_scouting", list);
+        return list;
       } catch (_) {}
     }
     return [];
   }
 
   Future<List<dynamic>> getCachedPitScoutingEntries() async {
+    final inMem = getFromMemoryCache<List<dynamic>>("cache_pit_scouting");
+    if (inMem != null) return inMem;
     final cached = await _getCache("cache_pit_scouting");
     if (cached != null && cached.isNotEmpty) {
       try {
         final decoded = jsonDecode(cached);
-        if (decoded is List) return decoded;
-        if (decoded is Map && decoded['entries'] is List) return decoded['entries'] as List;
+        final List list = decoded is List
+            ? decoded
+            : (decoded is Map && decoded['entries'] is List ? decoded['entries'] as List : []);
+        setMemoryCache("cache_pit_scouting", list);
+        return list;
       } catch (_) {}
     }
     return [];
   }
 
   Future<List<dynamic>> getCachedQualScoutingEntries() async {
+    final inMem = getFromMemoryCache<List<dynamic>>("cache_qual_scouting");
+    if (inMem != null) return inMem;
     final cached = await _getCache("cache_qual_scouting");
     if (cached != null && cached.isNotEmpty) {
       try {
         final decoded = jsonDecode(cached);
-        if (decoded is List) return decoded;
-        if (decoded is Map && decoded['entries'] is List) return decoded['entries'] as List;
+        final List list = decoded is List
+            ? decoded
+            : (decoded is Map && decoded['entries'] is List ? decoded['entries'] as List : []);
+        setMemoryCache("cache_qual_scouting", list);
+        return list;
       } catch (_) {}
     }
     return [];
   }
 
   Future<List<dynamic>> getCachedPrescoutScoutingEntries() async {
+    final inMem = getFromMemoryCache<List<dynamic>>("cache_prescout_scouting");
+    if (inMem != null) return inMem;
     final cached = await _getCache("cache_prescout_scouting");
     if (cached != null && cached.isNotEmpty) {
       try {
         final decoded = jsonDecode(cached);
-        if (decoded is List) return decoded;
-        if (decoded is Map && decoded['entries'] is List) return decoded['entries'] as List;
+        final List list = decoded is List
+            ? decoded
+            : (decoded is Map && decoded['entries'] is List ? decoded['entries'] as List : []);
+        setMemoryCache("cache_prescout_scouting", list);
+        return list;
       } catch (_) {}
     }
     return [];
   }
 
   Future<List<dynamic>> getCachedPrescoutPitScoutingEntries() async {
+    final inMem = getFromMemoryCache<List<dynamic>>("cache_prescout_pit_scouting");
+    if (inMem != null) return inMem;
     final cached = await _getCache("cache_prescout_pit_scouting");
     if (cached != null && cached.isNotEmpty) {
       try {
         final decoded = jsonDecode(cached);
-        if (decoded is List) return decoded;
-        if (decoded is Map && decoded['entries'] is List) return decoded['entries'] as List;
+        final List list = decoded is List
+            ? decoded
+            : (decoded is Map && decoded['entries'] is List ? decoded['entries'] as List : []);
+        setMemoryCache("cache_prescout_pit_scouting", list);
+        return list;
       } catch (_) {}
     }
     return [];
   }
 
   Future<List<dynamic>> getCachedPrescoutQualScoutingEntries() async {
+    final inMem = getFromMemoryCache<List<dynamic>>("cache_prescout_qual_scouting");
+    if (inMem != null) return inMem;
     final cached = await _getCache("cache_prescout_qual_scouting");
     if (cached != null && cached.isNotEmpty) {
       try {
         final decoded = jsonDecode(cached);
-        if (decoded is List) return decoded;
-        if (decoded is Map && decoded['entries'] is List) return decoded['entries'] as List;
+        final List list = decoded is List
+            ? decoded
+            : (decoded is Map && decoded['entries'] is List ? decoded['entries'] as List : []);
+        setMemoryCache("cache_prescout_qual_scouting", list);
+        return list;
       } catch (_) {}
     }
     return [];
@@ -616,11 +699,17 @@ class ApiService {
 
   Future<List<EventModel>> getCachedEvents({int? year}) async {
     final targetYear = year ?? _currentSettings?.year ?? DateTime.now().year;
-    final cached = await _getCache("cache_events_$targetYear");
+    final memKey = "cache_events_$targetYear";
+    final inMem = getFromMemoryCache<List<EventModel>>(memKey);
+    if (inMem != null && inMem.isNotEmpty) return inMem;
+
+    final cached = await _getCache(memKey);
     if (cached != null && cached.isNotEmpty) {
       try {
         final List list = jsonDecode(cached);
-        return list.map((item) => EventModel.fromJson(item as Map<String, dynamic>)).toList();
+        final res = list.map((item) => EventModel.fromJson(item as Map<String, dynamic>)).toList();
+        setMemoryCache(memKey, res);
+        return res;
       } catch (_) {}
     }
     return [];
