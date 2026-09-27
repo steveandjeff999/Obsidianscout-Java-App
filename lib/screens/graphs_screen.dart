@@ -875,25 +875,38 @@ class _GraphsScreenState extends State<GraphsScreen> {
                 const SizedBox(height: 12),
 
                 // Event filter
-                DropdownButtonFormField<String>(
-                  isExpanded: true,
-                  initialValue: _eventKey ?? '',
-                  dropdownColor: ObsidianUITheme.getSurfaceColor(context),
-                  style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
-                  decoration: InputDecoration(
-                    labelText: context.tr('graphs.event_filter'),
-                    labelStyle: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context)),
-                    prefixIcon: Icon(Icons.event_rounded, color: ObsidianUITheme.primaryAccent),
-                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
-                  ),
-                  items: [
-                    const DropdownMenuItem(value: '', child: Text('All events', overflow: TextOverflow.ellipsis)),
-                    ..._events.map((e) => DropdownMenuItem(
-                      value: e.eventKey,
-                      child: Text('${e.name} (${e.year})', overflow: TextOverflow.ellipsis),
-                    )),
-                  ],
-                  onChanged: (k) => _onEventChanged(k),
+                Builder(
+                  builder: (context) {
+                    final uniqueEvents = <String, EventModel>{};
+                    for (final e in _events) {
+                      if (e.eventKey.isNotEmpty) {
+                        uniqueEvents[e.eventKey] = e;
+                      }
+                    }
+                    final eventList = uniqueEvents.values.toList();
+                    final effectiveEvent = (eventList.any((e) => e.eventKey == _eventKey)) ? _eventKey : '';
+
+                    return DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      initialValue: effectiveEvent,
+                      dropdownColor: ObsidianUITheme.getSurfaceColor(context),
+                      style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
+                      decoration: InputDecoration(
+                        labelText: context.tr('graphs.event_filter'),
+                        labelStyle: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context)),
+                        prefixIcon: Icon(Icons.event_rounded, color: ObsidianUITheme.primaryAccent),
+                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
+                      ),
+                      items: [
+                        const DropdownMenuItem(value: '', child: Text('All events', overflow: TextOverflow.ellipsis)),
+                        ...eventList.map((e) => DropdownMenuItem(
+                          value: e.eventKey,
+                          child: Text('${e.name} (${e.year})', overflow: TextOverflow.ellipsis),
+                        )),
+                      ],
+                      onChanged: (k) => _onEventChanged(k),
+                    );
+                  },
                 ),
                 const SizedBox(height: 10),
 
@@ -1039,28 +1052,37 @@ class _GraphsScreenState extends State<GraphsScreen> {
 
                 // Datasource (Statbotics / Match 13 / TBA OPR / All / Scouted)
                 if (showDatasource) ...[
-                  DropdownButtonFormField<String>(
-                    isExpanded: true,
-                    initialValue: _datasource,
-                    dropdownColor: ObsidianUITheme.getSurfaceColor(context),
-                    style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
-                    decoration: InputDecoration(
-                      labelText: context.tr('predictor.data_source'),
-                      labelStyle: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context)),
-                      prefixIcon: Icon(Icons.storage_rounded, color: ObsidianUITheme.secondaryAccent),
-                      enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
-                    ),
-                    items: [
-                      const DropdownMenuItem(value: 'all', child: Text('All Sources', overflow: TextOverflow.ellipsis)),
-                      const DropdownMenuItem(value: 'scouted', child: Text('Scouted Data', overflow: TextOverflow.ellipsis)),
-                      if (effectiveUseEpa)
-                        const DropdownMenuItem(value: 'epa', child: Text('Statbotics EPA', overflow: TextOverflow.ellipsis)),
-                      if (effectiveUseExp)
-                        const DropdownMenuItem(value: 'exp', child: Text('Match 13 EXP', overflow: TextOverflow.ellipsis)),
-                      if (effectiveUseOpr)
-                        DropdownMenuItem(value: 'opr', child: Text(isFtc ? 'FTC Scout OPR' : 'TBA OPR', overflow: TextOverflow.ellipsis)),
-                    ],
-                    onChanged: (v) => _updateDatasource(v ?? 'scouted'),
+                  Builder(
+                    builder: (context) {
+                      final datasourceItems = [
+                        const DropdownMenuItem(value: 'all', child: Text('All Sources', overflow: TextOverflow.ellipsis)),
+                        const DropdownMenuItem(value: 'scouted', child: Text('Scouted Data', overflow: TextOverflow.ellipsis)),
+                        if (effectiveUseEpa)
+                          const DropdownMenuItem(value: 'epa', child: Text('Statbotics EPA', overflow: TextOverflow.ellipsis)),
+                        if (effectiveUseExp)
+                          const DropdownMenuItem(value: 'exp', child: Text('Match 13 EXP', overflow: TextOverflow.ellipsis)),
+                        if (effectiveUseOpr)
+                          DropdownMenuItem(value: 'opr', child: Text(isFtc ? 'FTC Scout OPR' : 'TBA OPR', overflow: TextOverflow.ellipsis)),
+                      ];
+                      final effectiveDatasource = datasourceItems.any((i) => i.value == _datasource)
+                          ? _datasource
+                          : 'scouted';
+
+                      return DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        initialValue: effectiveDatasource,
+                        dropdownColor: ObsidianUITheme.getSurfaceColor(context),
+                        style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
+                        decoration: InputDecoration(
+                          labelText: context.tr('predictor.data_source'),
+                          labelStyle: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context)),
+                          prefixIcon: Icon(Icons.storage_rounded, color: ObsidianUITheme.secondaryAccent),
+                          enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
+                        ),
+                        items: datasourceItems,
+                        onChanged: (v) => _updateDatasource(v ?? 'scouted'),
+                      );
+                    },
                   ),
                   const SizedBox(height: 12),
                 ],

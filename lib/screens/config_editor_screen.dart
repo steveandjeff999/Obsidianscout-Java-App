@@ -2986,7 +2986,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
             children: [
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  initialValue: _selectedPresetName,
+                  initialValue: (_selectedPresetName != null && _presets.any((p) => p.name == _selectedPresetName)) ? _selectedPresetName : '',
                   isExpanded: true,
                   dropdownColor: ObsidianUITheme.getSurfaceColor(context),
                   style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context), fontSize: 12),

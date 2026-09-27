@@ -618,26 +618,39 @@ class _AllDataScreenState extends State<AllDataScreen> {
                 ),
                 const SizedBox(height: 12),
                 // Event selector
-                DropdownButtonFormField<String>(
-                  initialValue: _events.any((e) => e.eventKey == _selectedEventKey) ? _selectedEventKey : 'all',
-                  decoration: InputDecoration(
-                    labelText: 'Event',
-                    prefixIcon: const Icon(Icons.event_rounded, size: 20),
-                    filled: true,
-                    fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  ),
-                  isExpanded: true,
-                  items: [
-                    const DropdownMenuItem(value: 'all', child: Text('All Events')),
-                    ..._events.map((e) => DropdownMenuItem(
-                          value: e.eventKey,
-                          child: Text('${e.name} (${e.eventKey})', overflow: TextOverflow.ellipsis),
-                        )),
-                  ],
-                  onChanged: (val) {
-                    if (val != null) setState(() => _selectedEventKey = val);
+                Builder(
+                  builder: (context) {
+                    final uniqueEvents = <String, EventModel>{};
+                    for (final e in _events) {
+                      if (e.eventKey.isNotEmpty && e.eventKey != 'all') {
+                        uniqueEvents[e.eventKey] = e;
+                      }
+                    }
+                    final eventList = uniqueEvents.values.toList();
+                    final effectiveEvent = eventList.any((e) => e.eventKey == _selectedEventKey) ? _selectedEventKey : 'all';
+
+                    return DropdownButtonFormField<String>(
+                      initialValue: effectiveEvent,
+                      decoration: InputDecoration(
+                        labelText: 'Event',
+                        prefixIcon: const Icon(Icons.event_rounded, size: 20),
+                        filled: true,
+                        fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      ),
+                      isExpanded: true,
+                      items: [
+                        const DropdownMenuItem(value: 'all', child: Text('All Events')),
+                        ...eventList.map((e) => DropdownMenuItem(
+                              value: e.eventKey,
+                              child: Text('${e.name} (${e.eventKey})', overflow: TextOverflow.ellipsis),
+                            )),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) setState(() => _selectedEventKey = val);
+                      },
+                    );
                   },
                 ),
                 const SizedBox(height: 10),

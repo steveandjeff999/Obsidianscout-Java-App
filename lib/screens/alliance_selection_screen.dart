@@ -717,24 +717,39 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                           border: Border.all(color: Colors.white10),
                         ),
                         child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: _selectedEventKey,
-                            isExpanded: true,
-                            dropdownColor: ObsidianUITheme.surface,
-                            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                            items: _events.map((e) {
-                              return DropdownMenuItem<String>(
-                                value: e.eventKey,
-                                child: Text('${e.name} (${e.eventKey})', overflow: TextOverflow.ellipsis),
-                              );
-                            }).toList(),
-                            onChanged: (val) {
-                              if (val != null) {
-                                setState(() {
-                                  _selectedEventKey = val;
-                                });
-                                _loadEventData(val);
+                          child: Builder(
+                            builder: (context) {
+                              final uniqueEvents = <String, EventModel>{};
+                              for (final e in _events) {
+                                if (e.eventKey.isNotEmpty) {
+                                  uniqueEvents[e.eventKey] = e;
+                                }
                               }
+                              final eventList = uniqueEvents.values.toList();
+                              final effectiveEvent = (eventList.any((e) => e.eventKey == _selectedEventKey))
+                                  ? _selectedEventKey
+                                  : (eventList.isNotEmpty ? eventList.first.eventKey : null);
+
+                              return DropdownButton<String>(
+                                value: effectiveEvent,
+                                isExpanded: true,
+                                dropdownColor: ObsidianUITheme.surface,
+                                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                items: eventList.map((e) {
+                                  return DropdownMenuItem<String>(
+                                    value: e.eventKey,
+                                    child: Text('${e.name} (${e.eventKey})', overflow: TextOverflow.ellipsis),
+                                  );
+                                }).toList(),
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    setState(() {
+                                      _selectedEventKey = val;
+                                    });
+                                    _loadEventData(val);
+                                  }
+                                },
+                              );
                             },
                           ),
                         ),
@@ -1057,26 +1072,35 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                   border: Border.all(color: borderColor),
                 ),
                 child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _selectedMetric,
-                    dropdownColor: surfaceColor,
-                    style: const TextStyle(color: Colors.cyanAccent, fontSize: 11, fontWeight: FontWeight.bold),
-                    items: [
-                      DropdownMenuItem(value: 'weighted', child: Text(context.tr('alliance-selection.weighted'))),
-                      DropdownMenuItem(value: 'scouted', child: Text(context.tr('alliance-selection.scouted_avg'))),
-                      if (_effectiveUseExp)
-                        DropdownMenuItem(value: 'exp', child: Text(context.tr('alliance-selection.match13_exp', 'Match 13 EXP'))),
-                      if (_effectiveUseEpa)
-                        DropdownMenuItem(value: 'epa', child: Text(context.tr('alliance-selection.epa'))),
-                      if (_effectiveUseOpr)
-                        DropdownMenuItem(value: 'opr', child: Text(context.tr('alliance-selection.opr'))),
-                    ],
-                    onChanged: (val) {
-                      if (val != null) {
-                        setState(() {
-                          _selectedMetric = val;
-                        });
-                      }
+                  child: Builder(
+                    builder: (context) {
+                      final metricItems = [
+                        DropdownMenuItem(value: 'weighted', child: Text(context.tr('alliance-selection.weighted'))),
+                        DropdownMenuItem(value: 'scouted', child: Text(context.tr('alliance-selection.scouted_avg'))),
+                        if (_effectiveUseExp)
+                          DropdownMenuItem(value: 'exp', child: Text(context.tr('alliance-selection.match13_exp', 'Match 13 EXP'))),
+                        if (_effectiveUseEpa)
+                          DropdownMenuItem(value: 'epa', child: Text(context.tr('alliance-selection.epa'))),
+                        if (_effectiveUseOpr)
+                          DropdownMenuItem(value: 'opr', child: Text(context.tr('alliance-selection.opr'))),
+                      ];
+                      final effectiveMetric = metricItems.any((m) => m.value == _selectedMetric)
+                          ? _selectedMetric
+                          : 'weighted';
+
+                      return DropdownButton<String>(
+                        value: effectiveMetric,
+                        dropdownColor: surfaceColor,
+                        style: const TextStyle(color: Colors.cyanAccent, fontSize: 11, fontWeight: FontWeight.bold),
+                        items: metricItems,
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() {
+                              _selectedMetric = val;
+                            });
+                          }
+                        },
+                      );
                     },
                   ),
                 ),
