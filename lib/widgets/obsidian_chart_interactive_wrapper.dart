@@ -392,6 +392,10 @@ class _ObsidianChartInteractiveWrapperState
                             controller: _scrollController,
                             scrollDirection: Axis.horizontal,
                             physics: const BouncingScrollPhysics(),
+                            padding: EdgeInsets.only(
+                              bottom: overflows ? 16.0 : 4.0,
+                              right: overflows ? 28.0 : 6.0,
+                            ),
                             child: SizedBox(
                               width: targetWidth,
                               height: widget.chartHeight,
@@ -1007,9 +1011,13 @@ class _FullscreenChartModalState extends State<_FullscreenChartModal> {
                                   controller: _scrollController,
                                   scrollDirection: Axis.horizontal,
                                   physics: const BouncingScrollPhysics(),
+                                  padding: EdgeInsets.only(
+                                    bottom: overflows ? 16.0 : 4.0,
+                                    right: overflows ? 28.0 : 6.0,
+                                  ),
                                   child: SizedBox(
                                     width: targetWidth,
-                                    height: availableHeight,
+                                    height: max(200.0, availableHeight - (overflows ? 20.0 : 8.0)),
                                     child: chartWidget,
                                   ),
                                 ),
