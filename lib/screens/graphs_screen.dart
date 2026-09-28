@@ -1860,7 +1860,13 @@ class _GraphsScreenState extends State<GraphsScreen> {
           groupsSpace: 6.0,
           barTouchData: BarTouchData(
             touchTooltipData: BarTouchTooltipData(
-              getTooltipColor: (_) => ObsidianUITheme.getSurfaceColor(context),
+              fitInsideHorizontally: true,
+              fitInsideVertically: true,
+              tooltipMargin: 8,
+              tooltipBorderRadius: BorderRadius.circular(8),
+              tooltipPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              tooltipBorder: ObsidianUITheme.getTooltipBorder(context),
+              getTooltipColor: (_) => ObsidianUITheme.getElevatedSurfaceColor(context),
               getTooltipItem: (group, groupIndex, rod, rodIndex) {
                 if (groupIndex < 0 || groupIndex >= points.length) return null;
                 final label = points[groupIndex].label;
@@ -2113,7 +2119,13 @@ class _GraphsScreenState extends State<GraphsScreen> {
           groupsSpace: 6.0,
           barTouchData: BarTouchData(
             touchTooltipData: BarTouchTooltipData(
-              getTooltipColor: (_) => ObsidianUITheme.getSurfaceColor(context),
+              fitInsideHorizontally: true,
+              fitInsideVertically: true,
+              tooltipMargin: 8,
+              tooltipBorderRadius: BorderRadius.circular(8),
+              tooltipPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              tooltipBorder: ObsidianUITheme.getTooltipBorder(context),
+              getTooltipColor: (_) => ObsidianUITheme.getElevatedSurfaceColor(context),
               getTooltipItem: (group, groupIndex, rod, rodIndex) {
                 final items = groupSeriesMap[groupIndex];
                 if (items != null && rodIndex >= 0 && rodIndex < items.length) {
@@ -2390,12 +2402,22 @@ class _GraphsScreenState extends State<GraphsScreen> {
           lineTouchData: LineTouchData(
             handleBuiltInTouches: true,
             touchTooltipData: LineTouchTooltipData(
-              getTooltipColor: (_) => ObsidianUITheme.getSurfaceColor(context),
+              fitInsideHorizontally: true,
+              fitInsideVertically: true,
+              tooltipMargin: 10,
+              tooltipBorderRadius: BorderRadius.circular(8),
+              tooltipPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              tooltipBorder: ObsidianUITheme.getTooltipBorder(context),
+              getTooltipColor: (_) => ObsidianUITheme.getElevatedSurfaceColor(context),
               getTooltipItems: (spots) => spots.map((s) {
                 final seriesName = visibleSeries.length > s.barIndex ? visibleSeries[s.barIndex].name : '';
                 return LineTooltipItem(
                   '$seriesName: ${s.y.toStringAsFixed(s.y == s.y.truncate() ? 0 : 2)}',
-                  TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context), fontSize: 12),
+                  TextStyle(
+                    color: ObsidianUITheme.getPrimaryTextColor(context),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
                 );
               }).toList(),
             ),
@@ -2648,7 +2670,13 @@ class _GraphsScreenState extends State<GraphsScreen> {
           maxY: maxCount > 0 ? maxCount * 1.2 : 5.0,
           barTouchData: BarTouchData(
             touchTooltipData: BarTouchTooltipData(
-              getTooltipColor: (_) => ObsidianUITheme.getSurfaceColor(context),
+              fitInsideHorizontally: true,
+              fitInsideVertically: true,
+              tooltipMargin: 8,
+              tooltipBorderRadius: BorderRadius.circular(8),
+              tooltipPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              tooltipBorder: ObsidianUITheme.getTooltipBorder(context),
+              getTooltipColor: (_) => ObsidianUITheme.getElevatedSurfaceColor(context),
               getTooltipItem: (group, groupIndex, rod, rodIndex) {
                 final bin = bins[groupIndex];
                 return BarTooltipItem(

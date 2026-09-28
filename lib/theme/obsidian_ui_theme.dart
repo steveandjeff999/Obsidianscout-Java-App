@@ -549,6 +549,17 @@ class ObsidianUITheme {
     return isDark(context) ? defaultSurface : defaultSurfaceLight;
   }
 
+  static Color getElevatedSurfaceColor(BuildContext context) {
+    return isDark(context) ? const Color(0xFF1E2638) : Colors.white;
+  }
+
+  static BorderSide getTooltipBorder(BuildContext context) {
+    return BorderSide(
+      color: isDark(context) ? const Color(0xFF3B4863) : const Color(0xFFCBD5E1),
+      width: 1.0,
+    );
+  }
+
   static Color getBackgroundColor(BuildContext context) {
     final custom = activeCustomTheme;
     if (custom != null) {

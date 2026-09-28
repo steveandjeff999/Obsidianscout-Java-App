@@ -1539,11 +1539,17 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
               maxY: maxY * 1.15,
               barTouchData: BarTouchData(
                 touchTooltipData: BarTouchTooltipData(
+                  fitInsideHorizontally: true,
+                  fitInsideVertically: true,
+                  tooltipBorderRadius: BorderRadius.circular(8),
+                  tooltipPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  tooltipBorder: ObsidianUITheme.getTooltipBorder(context),
+                  getTooltipColor: (_) => ObsidianUITheme.getElevatedSurfaceColor(context),
                   getTooltipItem: (group, groupIndex, rod, rodIndex) {
                     final tNum = displayTeams[groupIndex];
                     return BarTooltipItem(
                       'Team $tNum\n${rod.toY.toStringAsFixed(1)} pts',
-                      const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
+                      TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context), fontWeight: FontWeight.bold, fontSize: 11),
                     );
                   },
                 ),
@@ -1645,7 +1651,12 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
         lineTouchData: LineTouchData(
           handleBuiltInTouches: true,
           touchTooltipData: LineTouchTooltipData(
-            getTooltipColor: (_) => ObsidianUITheme.getSurfaceColor(context),
+            fitInsideHorizontally: true,
+            fitInsideVertically: true,
+            tooltipBorderRadius: BorderRadius.circular(8),
+            tooltipPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            tooltipBorder: ObsidianUITheme.getTooltipBorder(context),
+            getTooltipColor: (_) => ObsidianUITheme.getElevatedSurfaceColor(context),
             getTooltipItems: (spots) => spots.map((s) {
               final tNum = s.barIndex < teams.length ? teams[s.barIndex] : 0;
               return LineTooltipItem(
@@ -1724,13 +1735,18 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
         scatterTouchData: ScatterTouchData(
           enabled: true,
           touchTooltipData: ScatterTouchTooltipData(
-            getTooltipColor: (_) => ObsidianUITheme.getSurfaceColor(context),
+            fitInsideHorizontally: true,
+            fitInsideVertically: true,
+            tooltipBorderRadius: BorderRadius.circular(8),
+            tooltipPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            tooltipBorder: ObsidianUITheme.getTooltipBorder(context),
+            getTooltipColor: (_) => ObsidianUITheme.getElevatedSurfaceColor(context),
             getTooltipItems: (spot) {
               final spotIdx = spots.indexOf(spot);
               final tNum = (spotIdx >= 0 && spotIdx < teams.length) ? teams[spotIdx] : 0;
               return ScatterTooltipItem(
                 'Team $tNum\n${_getFieldLabel(xMeasure)}: ${spot.x.toStringAsFixed(1)}\n${_getFieldLabel(yMeasure)}: ${spot.y.toStringAsFixed(1)}',
-                textStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
+                textStyle: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context), fontWeight: FontWeight.bold, fontSize: 11),
               );
             },
           ),
