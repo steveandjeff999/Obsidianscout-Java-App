@@ -884,7 +884,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
         padding: EdgeInsets.fromLTRB(0, 4.0, 0, widget.isBarsVisible ? 100.0 : 20.0),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          mainAxisExtent: 155.0,
+          mainAxisExtent: 220.0,
           crossAxisSpacing: 12.0,
           mainAxisSpacing: 12.0,
         ),
@@ -907,7 +907,10 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
 
     return ObsidianGlassCard(
       margin: const EdgeInsets.only(bottom: 12.0),
-          child: Column(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: SingleChildScrollView(
+            physics: const NeverScrollableScrollPhysics(),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
@@ -958,8 +961,9 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                 ],
               ),
             ],
-          ),
-        );
+            ),  // Column
+          ),    // SingleChildScrollView
+        );      // ObsidianGlassCard
   }
 
   Widget _buildSlotTile(String allianceKey, String slotName, int? teamNumber, Color accentColor) {
