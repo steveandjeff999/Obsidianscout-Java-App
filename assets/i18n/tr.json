@@ -1110,6 +1110,8 @@
   "login.server_url": "Sunucu URL'si",
   "login.remember_me": "Beni Hatırla",
   "nav.alliance_selection": "İttifak Seçimi",
+  "nav.match_planning": "Maç Planlama",
+  "nav.match-planning": "Maç Planlama",
   "nav.qr_scanner": "QR / JAB Tarayıcı",
   "nav.qual_data": "Kalitatif Veriler",
   "nav.pit_data": "Pit Verileri",

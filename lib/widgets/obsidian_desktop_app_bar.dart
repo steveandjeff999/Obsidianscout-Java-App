@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
 
-class ObsidianDesktopAppBar extends StatelessWidget {
+class ObsidianDesktopAppBar extends StatefulWidget {
   final String title;
   final String subtitle;
   final bool isOnline;
@@ -21,6 +21,27 @@ class ObsidianDesktopAppBar extends StatelessWidget {
   });
 
   @override
+  State<ObsidianDesktopAppBar> createState() => _ObsidianDesktopAppBarState();
+}
+
+class _ObsidianDesktopAppBarState extends State<ObsidianDesktopAppBar> {
+  @override
+  void initState() {
+    super.initState();
+    widget.apiService.settingsNotifier.addListener(_onSettingsChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.apiService.settingsNotifier.removeListener(_onSettingsChanged);
+    super.dispose();
+  }
+
+  void _onSettingsChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = ObsidianUITheme.isDark(context);
     final bgColor = isDark
@@ -30,7 +51,7 @@ class ObsidianDesktopAppBar extends StatelessWidget {
     final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
     final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
     final primaryAccent = ObsidianUITheme.getPrimaryAccent(context);
-    final eventKey = apiService.currentSettings?.eventKey ?? '';
+    final eventKey = widget.apiService.currentSettings?.eventKey ?? '';
 
     return Container(
       width: double.infinity,
@@ -64,7 +85,7 @@ class ObsidianDesktopAppBar extends StatelessWidget {
                 ),
                 Flexible(
                   child: Text(
-                    title,
+                    widget.title,
                     style: TextStyle(
                       fontSize: 14.5,
                       fontWeight: FontWeight.bold,
@@ -116,10 +137,10 @@ class ObsidianDesktopAppBar extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
             margin: const EdgeInsets.only(right: 8.0),
             decoration: BoxDecoration(
-              color: isOnline ? Colors.green.withValues(alpha: 0.12) : Colors.red.withValues(alpha: 0.15),
+              color: widget.isOnline ? Colors.green.withValues(alpha: 0.12) : Colors.red.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12.0),
               border: Border.all(
-                color: isOnline ? Colors.green.withValues(alpha: 0.3) : Colors.red.withValues(alpha: 0.4),
+                color: widget.isOnline ? Colors.green.withValues(alpha: 0.3) : Colors.red.withValues(alpha: 0.4),
                 width: 0.8,
               ),
             ),
@@ -131,16 +152,16 @@ class ObsidianDesktopAppBar extends StatelessWidget {
                   height: 6.0,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: isOnline ? ObsidianUITheme.successGreen : Colors.redAccent,
+                    color: widget.isOnline ? ObsidianUITheme.successGreen : Colors.redAccent,
                   ),
                 ),
                 const SizedBox(width: 6.0),
                 Text(
-                  isOnline ? 'ONLINE' : 'OFFLINE',
+                  widget.isOnline ? 'ONLINE' : 'OFFLINE',
                   style: TextStyle(
                     fontSize: 10.0,
                     fontWeight: FontWeight.bold,
-                    color: isOnline ? ObsidianUITheme.successGreen : Colors.redAccent,
+                    color: widget.isOnline ? ObsidianUITheme.successGreen : Colors.redAccent,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -149,10 +170,10 @@ class ObsidianDesktopAppBar extends StatelessWidget {
           ),
 
           // Custom Actions
-          if (actions != null) ...actions!,
+          if (widget.actions != null) ...widget.actions!,
 
           // QR Scanner Button
-          if (apiService.hasPageAccess('qr-scanner') && onOpenQrScanner != null)
+          if (widget.apiService.hasPageAccess('qr-scanner') && widget.onOpenQrScanner != null)
             IconButton(
               icon: Icon(
                 Icons.qr_code_scanner_rounded,
@@ -160,7 +181,7 @@ class ObsidianDesktopAppBar extends StatelessWidget {
                 color: isDark ? Colors.cyanAccent : const Color(0xFF0284C7),
               ),
               tooltip: 'QR & Barcode Scanner',
-              onPressed: onOpenQrScanner,
+              onPressed: widget.onOpenQrScanner,
               constraints: const BoxConstraints(minWidth: 34.0, minHeight: 34.0),
               padding: EdgeInsets.zero,
             ),
@@ -168,22 +189,22 @@ class ObsidianDesktopAppBar extends StatelessWidget {
           // Theme Switcher Button
           IconButton(
             icon: Icon(
-              apiService.themeMode == ThemeMode.light
+              widget.apiService.themeMode == ThemeMode.light
                   ? Icons.dark_mode_rounded
                   : Icons.light_mode_rounded,
               size: 19.0,
-              color: apiService.themeMode == ThemeMode.light
+              color: widget.apiService.themeMode == ThemeMode.light
                   ? const Color(0xFF4F46E5)
                   : const Color(0xFFFFB703),
             ),
-            tooltip: apiService.themeMode == ThemeMode.light
+            tooltip: widget.apiService.themeMode == ThemeMode.light
                 ? 'Switch to Dark Mode'
                 : 'Switch to Light Mode',
             onPressed: () {
-              final nextMode = apiService.themeMode == ThemeMode.light
+              final nextMode = widget.apiService.themeMode == ThemeMode.light
                   ? ThemeMode.dark
                   : ThemeMode.light;
-              apiService.setThemeMode(nextMode);
+              widget.apiService.setThemeMode(nextMode);
             },
             constraints: const BoxConstraints(minWidth: 34.0, minHeight: 34.0),
             padding: EdgeInsets.zero,

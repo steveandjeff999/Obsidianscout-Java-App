@@ -108,6 +108,8 @@ flutter:
   assets:
     - assets/i18n/
     - assets/images/
+    - assets/images/field-images/2025/
+    - assets/images/field-images/2026/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -1110,6 +1110,8 @@
   "login.server_url": "URL del Servidor",
   "login.remember_me": "Mantener Sesión Iniciada",
   "nav.alliance_selection": "Selección de Alianzas",
+  "nav.match_planning": "Planificación de Partidos",
+  "nav.match-planning": "Planificación de Partidos",
   "nav.qr_scanner": "Escáner QR / JAB",
   "nav.qual_data": "Datos cualitativos",
   "nav.pit_data": "Datos de Pit",

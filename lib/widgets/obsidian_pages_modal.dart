@@ -228,6 +228,15 @@ class ObsidianPagesModal extends StatelessWidget {
         'color': Colors.pinkAccent,
       },
       {
+        'pageId': 'match-planning',
+        'index': 31,
+        'icon': Icons.draw_rounded,
+        'name': 'Match Planning',
+        'desc': 'Interactive field whiteboard, robot placement, & alliance stats',
+        'tag': 'Strategy',
+        'color': Colors.indigoAccent,
+      },
+      {
         'pageId': 'chat',
         'index': 6,
         'icon': Icons.chat_bubble_outline_rounded,
