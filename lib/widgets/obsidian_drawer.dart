@@ -215,6 +215,13 @@ class ObsidianNavigationDrawer extends StatelessWidget {
             'labelKey': 'nav.alliance_selection',
             'subKey': 'subtitle.alliance_selection',
           },
+          {
+            'pageId': 'match-planning',
+            'index': 31,
+            'icon': Icons.draw_rounded,
+            'labelKey': 'nav.match_planning',
+            'subKey': 'subtitle.match_planning',
+          },
         ],
       },
       {

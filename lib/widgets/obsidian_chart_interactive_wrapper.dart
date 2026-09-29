@@ -787,7 +787,6 @@ class _FullscreenChartModalState extends State<_FullscreenChartModal> {
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final isCompact = screenSize.width < 700;
-    final hasZoomControls = widget.minContentWidth > 0;
 
     return Dialog(
       insetPadding: EdgeInsets.symmetric(

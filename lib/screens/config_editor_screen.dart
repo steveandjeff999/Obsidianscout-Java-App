@@ -100,6 +100,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     {'id': 'event-predictor', 'label': 'Event Predictor'},
     {'id': 'alliances', 'label': 'Alliances'},
     {'id': 'alliance-selection', 'label': 'Alliance Selection'},
+    {'id': 'match-planning', 'label': 'Match Planning'},
     {'id': 'chat', 'label': 'Chat'},
     {'id': 'backup', 'label': 'Data Sharing'},
     {'id': 'docs', 'label': 'Docs'},
@@ -123,7 +124,42 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       _activeKind = (widget.initialKind == 'pit' || widget.initialKind == 'qual') ? widget.initialKind : 'game';
     }
     _loadCurrentTabData();
+    widget.apiService.settingsNotifier.addListener(_onSettingsChanged);
   }
+
+  /// Called whenever [ApiService.settingsNotifier] fires — only when the
+  /// background sync detects the server's year/eventKey/eventCode changed.
+  /// Applies the fresh settings directly without triggering another network fetch.
+  void _onSettingsChanged() {
+    if (!mounted) return;
+    if (_isSaving || _isSavingSettings || _isSavingPermissions) return;
+    if (_activeMainTab != 'api' && _activeMainTab != 'permissions') return;
+
+    final fresh = widget.apiService.settingsNotifier.value;
+    if (fresh == null) return;
+
+    _currentSettings = fresh;
+    _yearController.text = fresh.year.toString();
+    _eventCodeController.text = fresh.eventCode;
+    _timezoneController.text = fresh.timezone;
+    _preferredSource = fresh.preferredSource.isNotEmpty ? fresh.preferredSource : 'tba';
+    _useStatboticsEpa = fresh.useStatboticsEpa;
+    _useMatch13Exp = fresh.useMatch13Exp;
+    _useTbaOpr = fresh.useTbaOpr;
+    _chatEnabled = fresh.chatEnabled;
+    _registrationLocked = fresh.registrationLocked;
+    _scoutPages = List<String>.from(fresh.scoutPages);
+    _analyticsPages = List<String>.from(fresh.analyticsPages);
+    _adminPages = List<String>.from(fresh.adminPages);
+    _tbaKeyController.text = fresh.apiKeys.tbaKey;
+    _firstUsernameController.text = fresh.apiKeys.firstUsername;
+    _firstKeyController.text = fresh.apiKeys.firstKey;
+    _statboticsUrlController.text = fresh.statboticsBaseUrl;
+    _match13UrlController.text = fresh.match13BaseUrl;
+    _match13KeyController.text = fresh.apiKeys.match13Key;
+    setState(() {});
+  }
+
 
   @override
   void didUpdateWidget(covariant ConfigEditorScreen oldWidget) {
@@ -135,6 +171,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
 
   @override
   void dispose() {
+    widget.apiService.settingsNotifier.removeListener(_onSettingsChanged);
     _rawJsonController.dispose();
     _titleController.dispose();
     _versionController.dispose();

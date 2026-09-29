@@ -26,3 +26,15 @@ Future<FileDownloadResult> downloadOrSaveFile({
     mimeType: mimeType,
   );
 }
+
+Future<FileDownloadResult> downloadOrSaveBytes({
+  required String filename,
+  required List<int> bytes,
+  String mimeType = 'image/png',
+}) async {
+  return platform_downloader.downloadOrSaveBytesImpl(
+    filename: filename,
+    bytes: bytes,
+    mimeType: mimeType,
+  );
+}

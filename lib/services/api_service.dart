@@ -17,6 +17,7 @@ import '../models/predictor_models.dart';
 import '../models/error_report_models.dart';
 import '../models/assignment_models.dart';
 import '../models/graph_models.dart';
+import '../models/match_planning_models.dart';
 import '../theme/obsidian_ui_theme.dart';
 import 'auth_storage_service.dart';
 import 'scout_history_service.dart';
@@ -68,6 +69,9 @@ class ApiService {
   UserModel? _currentUser;
   AppSettingsModel? _currentSettings;
   final ValueNotifier<int> permissionsNotifier = ValueNotifier<int>(0);
+  /// Fires whenever [_currentSettings] is updated from the server.
+  /// Use this to reactively refresh UI that depends on [currentSettings].
+  final ValueNotifier<AppSettingsModel?> settingsNotifier = ValueNotifier<AppSettingsModel?>(null);
 
   final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier<ThemeMode>(ThemeMode.dark);
   final ValueNotifier<bool> useServerCustomThemeNotifier = ValueNotifier<bool>(true);
@@ -365,6 +369,8 @@ class ApiService {
         fetchBanners(),
         fetchMyAssignments(eventKey),
         if (isAdmin) fetchAllAssignments(eventKey),
+        syncPendingMatchPlans(),
+        fetchFieldImageBytes(_currentSettings?.year ?? DateTime.now().year),
       ]);
     } catch (_) {
     } finally {
@@ -1254,14 +1260,24 @@ class ApiService {
       if (response.statusCode == 200) {
         await _setCache("cache_settings", response.body);
         final jsonMap = jsonDecode(response.body);
+        final previous = _currentSettings;
         _currentSettings = AppSettingsModel.fromJson(jsonMap);
         _syncObsidianTheme();
         permissionsNotifier.value++;
+        // Fire settingsNotifier only when key settings fields actually changed,
+        // so listeners can react without causing a fetch→notify→fetch loop.
+        if (previous == null ||
+            previous.year != _currentSettings!.year ||
+            previous.eventKey != _currentSettings!.eventKey ||
+            previous.eventCode != _currentSettings!.eventCode) {
+          settingsNotifier.value = _currentSettings;
+        }
         return _currentSettings;
       }
     } catch (_) {}
     return _currentSettings;
   }
+
 
   Future<ApiResponse<AppSettingsModel>> updateSettings(AppSettingsModel settings) async {
     final payload = settings.toJson();
@@ -1270,6 +1286,7 @@ class ApiService {
     _currentSettings = settings;
     _syncObsidianTheme();
     permissionsNotifier.value++;
+    settingsNotifier.value = settings; // optimistic update for badge/UI
 
     if (!_isOnline) {
       return const ApiResponse.error(isOffline: true, message: 'Saved to offline cache. Will synchronize when online.');
@@ -1288,6 +1305,7 @@ class ApiService {
         _currentSettings = AppSettingsModel.fromJson(jsonMap);
         _syncObsidianTheme();
         permissionsNotifier.value++;
+        settingsNotifier.value = _currentSettings; // confirmed update
         return ApiResponse.success(
           _currentSettings!,
           statusCode: response.statusCode,
@@ -1683,6 +1701,12 @@ class ApiService {
 
     if (pageId == 'match-data') {
       candidatePages.add('all-data');
+    }
+
+    if (pageId == 'match-planning') {
+      candidatePages.addAll(['match-planner', 'matchplanning', 'planning']);
+    } else if (pageId == 'match-planner' || pageId == 'matchplanning' || pageId == 'planning') {
+      candidatePages.add('match-planning');
     }
 
     // Dynamic role permissions from team settings (offline cached or live)
@@ -2359,6 +2383,262 @@ class ApiService {
       } catch (_) {}
     }
     return [];
+  }
+
+  Future<MatchPlanModel?> fetchMatchPlan(String eventKey, String matchKey) async {
+    final effectiveEventKey = eventKey.isNotEmpty
+        ? eventKey
+        : (_currentSettings?.eventKey ?? '');
+    if (effectiveEventKey.isEmpty || matchKey.isEmpty) return null;
+
+    final cacheKey = "cache_match_plan_${effectiveEventKey}_$matchKey";
+    final cached = await _getCache(cacheKey);
+    MatchPlanModel? cachedPlan;
+    if (cached != null && cached.isNotEmpty) {
+      cachedPlan = MatchPlanModel.fromJsonString(cached);
+    }
+
+    if (!_isOnline) return cachedPlan;
+
+    try {
+      final uri = Uri.parse('$_currentServerUrl/api/match-planning').replace(
+        queryParameters: {
+          'eventKey': effectiveEventKey,
+          'matchKey': matchKey,
+        },
+      );
+      final response = await http.get(uri, headers: _headers).timeout(requestTimeout);
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          final planJson = decoded['planJson']?.toString() ?? '{}';
+          final updatedAt = (decoded['updatedAt'] as num?)?.toInt() ?? 0;
+          await _setCache(cacheKey, planJson);
+          return MatchPlanModel.fromJsonString(planJson, updatedAt: updatedAt);
+        }
+      }
+    } catch (_) {}
+
+    return cachedPlan;
+  }
+
+  static const String keyPendingMatchPlans = "cache_pending_match_plans";
+
+  Future<int?> saveMatchPlan(String eventKey, String matchKey, String planJson) async {
+    final effectiveEventKey = eventKey.isNotEmpty
+        ? eventKey
+        : (_currentSettings?.eventKey ?? '');
+    if (effectiveEventKey.isEmpty || matchKey.isEmpty) return null;
+
+    final cacheKey = "cache_match_plan_${effectiveEventKey}_$matchKey";
+    await _setCache(cacheKey, planJson);
+
+    final itemKey = "${effectiveEventKey}_$matchKey";
+
+    if (!_isOnline) {
+      await _queuePendingMatchPlan(itemKey, effectiveEventKey, matchKey, planJson);
+      return DateTime.now().millisecondsSinceEpoch;
+    }
+
+    try {
+      final uri = Uri.parse('$_currentServerUrl/api/match-planning');
+      final payload = jsonEncode({
+        'eventKey': effectiveEventKey,
+        'matchKey': matchKey,
+        'planJson': planJson,
+      });
+      final response = await http.post(uri, headers: _headers, body: payload).timeout(requestTimeout);
+      if (response.statusCode == 200) {
+        await _dequeuePendingMatchPlan(itemKey);
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          return (decoded['updatedAt'] as num?)?.toInt() ?? DateTime.now().millisecondsSinceEpoch;
+        }
+        return DateTime.now().millisecondsSinceEpoch;
+      } else {
+        await _queuePendingMatchPlan(itemKey, effectiveEventKey, matchKey, planJson);
+      }
+    } catch (_) {
+      await _queuePendingMatchPlan(itemKey, effectiveEventKey, matchKey, planJson);
+      return DateTime.now().millisecondsSinceEpoch;
+    }
+
+    return null;
+  }
+
+  Future<void> _queuePendingMatchPlan(String itemKey, String eventKey, String matchKey, String planJson) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(keyPendingMatchPlans) ?? '{}';
+      final Map<String, dynamic> map = jsonDecode(raw) is Map ? Map<String, dynamic>.from(jsonDecode(raw) as Map) : {};
+      map[itemKey] = {
+        'eventKey': eventKey,
+        'matchKey': matchKey,
+        'planJson': planJson,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+      };
+      await prefs.setString(keyPendingMatchPlans, jsonEncode(map));
+    } catch (e) {
+      debugPrint('[ApiService] Error queuing pending match plan: $e');
+    }
+  }
+
+  Future<void> _dequeuePendingMatchPlan(String itemKey) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(keyPendingMatchPlans);
+      if (raw != null && raw.isNotEmpty) {
+        final decoded = jsonDecode(raw);
+        if (decoded is Map && decoded.containsKey(itemKey)) {
+          final map = Map<String, dynamic>.from(decoded);
+          map.remove(itemKey);
+          await prefs.setString(keyPendingMatchPlans, jsonEncode(map));
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<int> syncPendingMatchPlans() async {
+    if (!_isOnline) return 0;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(keyPendingMatchPlans);
+      if (raw == null || raw.isEmpty || raw == '{}') return 0;
+
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map || decoded.isEmpty) return 0;
+
+      int syncedCount = 0;
+      final remaining = Map<String, dynamic>.from(decoded);
+
+      for (final entry in decoded.entries) {
+        final item = entry.value;
+        if (item is Map) {
+          final eventKey = item['eventKey']?.toString() ?? '';
+          final matchKey = item['matchKey']?.toString() ?? '';
+          final planJson = item['planJson']?.toString() ?? '';
+
+          if (eventKey.isNotEmpty && matchKey.isNotEmpty && planJson.isNotEmpty) {
+            try {
+              final uri = Uri.parse('$_currentServerUrl/api/match-planning');
+              final payload = jsonEncode({
+                'eventKey': eventKey,
+                'matchKey': matchKey,
+                'planJson': planJson,
+              });
+              final response = await http.post(uri, headers: _headers, body: payload).timeout(requestTimeout);
+              if (response.statusCode == 200) {
+                syncedCount++;
+                remaining.remove(entry.key);
+                final cacheKey = "cache_match_plan_${eventKey}_$matchKey";
+                await _setCache(cacheKey, planJson);
+              }
+            } catch (_) {
+              // Network error or server busy; keep in pending queue for next sync
+            }
+          } else {
+            remaining.remove(entry.key);
+          }
+        }
+      }
+
+      await prefs.setString(keyPendingMatchPlans, jsonEncode(remaining));
+      if (syncedCount > 0) {
+        debugPrint('[ApiService] Successfully synchronized $syncedCount offline match plan(s) with server');
+      }
+      return syncedCount;
+    } catch (e) {
+      debugPrint('[ApiService] syncPendingMatchPlans error: $e');
+      return 0;
+    }
+  }
+
+  Future<FieldImageInfoModel?> fetchFieldImageInfo(int year) async {
+    final cacheKey = "cache_field_image_info_$year";
+    final cached = await _getCache(cacheKey);
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(cached);
+        if (decoded is Map<String, dynamic>) {
+          return FieldImageInfoModel.fromJson(decoded);
+        }
+      } catch (_) {}
+    }
+
+    if (!_isOnline) return null;
+
+    try {
+      final uri = Uri.parse('$_currentServerUrl/api/field-images').replace(
+        queryParameters: {'year': year.toString()},
+      );
+      final response = await http.get(uri, headers: _headers).timeout(requestTimeout);
+      if (response.statusCode == 200) {
+        await _setCache(cacheKey, response.body);
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          return FieldImageInfoModel.fromJson(decoded);
+        }
+      }
+    } catch (_) {}
+
+    return null;
+  }
+
+  Future<void> cacheFieldImageBytes(int year, Uint8List bytes) async {
+    if (bytes.isEmpty) return;
+    try {
+      final cacheKey = "cache_field_image_bytes_$year";
+      await _setCache(cacheKey, base64Encode(bytes));
+    } catch (e) {
+      debugPrint('[ApiService] cacheFieldImageBytes error: $e');
+    }
+  }
+
+  Future<Uint8List?> fetchFieldImageBytes(int year) async {
+    final cacheKey = "cache_field_image_bytes_$year";
+    final cachedBase64 = await _getCache(cacheKey);
+    Uint8List? cachedBytes;
+    if (cachedBase64 != null && cachedBase64.isNotEmpty) {
+      try {
+        cachedBytes = base64Decode(cachedBase64);
+      } catch (_) {}
+    }
+
+    if (!_isOnline) return cachedBytes;
+
+    try {
+      final info = await fetchFieldImageInfo(year);
+      if (info != null && info.imagePath.isNotEmpty) {
+        final fullUrl = info.imagePath.startsWith('http')
+            ? info.imagePath
+            : '$_currentServerUrl${info.imagePath}';
+        final response = await http.get(Uri.parse(fullUrl), headers: _headers).timeout(requestTimeout);
+        if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
+          await cacheFieldImageBytes(year, response.bodyBytes);
+          return response.bodyBytes;
+        }
+      }
+
+      final serverCandidates = [
+        '$_currentServerUrl/assets/images/field-images/$year/rebuilt.png',
+        '$_currentServerUrl/assets/images/field-images/$year/reefscape.png',
+        '$_currentServerUrl/assets/images/field-images/$year/crescendo.png',
+        '$_currentServerUrl/assets/images/field-images/$year/field.png',
+      ];
+
+      for (final url in serverCandidates) {
+        try {
+          final res = await http.get(Uri.parse(url), headers: _headers).timeout(const Duration(seconds: 4));
+          if (res.statusCode == 200 && res.bodyBytes.isNotEmpty) {
+            await cacheFieldImageBytes(year, res.bodyBytes);
+            return res.bodyBytes;
+          }
+        } catch (_) {}
+      }
+    } catch (_) {}
+
+    return cachedBytes;
   }
 
   Future<List<dynamic>> fetchScoutingEntries() async {

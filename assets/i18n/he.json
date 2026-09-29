@@ -1110,6 +1110,8 @@
   "login.server_url": "כתובת שרת",
   "login.remember_me": "הישאר מחובר",
   "nav.alliance_selection": "בחירת בריתות",
+  "nav.match_planning": "תכנון משחקים",
+  "nav.match-planning": "תכנון משחקים",
   "nav.qr_scanner": "סורק QR / JAB",
   "nav.qual_data": "נתונים איכותיים",
   "nav.pit_data": "נתוני פיט",

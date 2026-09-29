@@ -41,7 +41,18 @@ class _ObsidianDesktopTabBarState extends State<ObsidianDesktopTabBar> {
   final ScrollController _scrollController = ScrollController();
 
   @override
+  void initState() {
+    super.initState();
+    widget.apiService.settingsNotifier.addListener(_onSettingsChanged);
+  }
+
+  void _onSettingsChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   void dispose() {
+    widget.apiService.settingsNotifier.removeListener(_onSettingsChanged);
     _scrollController.dispose();
     super.dispose();
   }
