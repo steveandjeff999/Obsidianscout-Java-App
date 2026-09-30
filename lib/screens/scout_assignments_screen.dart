@@ -295,6 +295,8 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.isVisible) return const SizedBox.shrink();
+
     if (!widget.apiService.isAdmin) {
       return Center(
         child: Text(
@@ -304,8 +306,8 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
       );
     }
 
-    final topPadding = widget.isBarsVisible ? 100.0 : 20.0;
-    final bottomPadding = widget.isBarsVisible ? 100.0 : 20.0;
+    final topPadding = 12.0;
+    final bottomPadding = widget.isBarsVisible ? 120.0 : 24.0;
 
     final conflictCount = _index.totalConflictCount;
 

@@ -657,6 +657,10 @@ class _UsersScreenState extends State<UsersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.isVisible) {
+      return const SizedBox.shrink();
+    }
+
     if (!_isAdmin) {
       return _buildAdminLockedScreen();
     }
@@ -664,84 +668,79 @@ class _UsersScreenState extends State<UsersScreen> {
     final isDesktop = ObsidianResponsive.isDesktop(context, overrideMode: widget.apiService.uiMode);
     final textColor = ObsidianUITheme.getPrimaryTextColor(context);
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () => _loadUsers(append: false),
-          color: ObsidianUITheme.primaryAccent,
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isDesktop ? 24 : 16,
-                    vertical: 16,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+    return RefreshIndicator(
+      onRefresh: () => _loadUsers(append: false),
+      color: ObsidianUITheme.primaryAccent,
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+        padding: EdgeInsets.only(
+          left: isDesktop ? 24.0 : 16.0,
+          right: isDesktop ? 24.0 : 16.0,
+          top: isDesktop ? 16.0 : 4.0,
+          bottom: widget.isBarsVisible ? 120.0 : 24.0,
+        ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1600.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Screen Title Header
+                ObsidianGlassCard(
+                  child: Row(
                     children: [
-                      // Screen Title Header
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.3)),
-                            ),
-                            child: Icon(Icons.manage_accounts_rounded, color: ObsidianUITheme.primaryAccent, size: 26),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  context.tr('users.title', 'User Management'),
-                                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textColor),
-                                ),
-                                Text(
-                                  _isSuperAdmin
-                                      ? 'Manage user accounts and role permissions across all teams'
-                                      : 'Manage user accounts and roles on your team',
-                                  style: TextStyle(fontSize: 13, color: ObsidianUITheme.getSecondaryTextColor(context)),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.3)),
+                        ),
+                        child: Icon(Icons.manage_accounts_rounded, color: ObsidianUITheme.primaryAccent, size: 26),
                       ),
-                      const SizedBox(height: 16),
-
-                      // Create User Collapsible Section
-                      _buildCreateUserCard(isDesktop),
-                      const SizedBox(height: 16),
-
-                      // Search & Filter Controls Card
-                      _buildFilterBar(isDesktop),
-                      const SizedBox(height: 16),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              context.tr('users.title', 'User Management'),
+                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor),
+                            ),
+                            Text(
+                              _isSuperAdmin
+                                  ? 'Manage user accounts and role permissions across all teams'
+                                  : 'Manage user accounts and roles on your team',
+                              style: TextStyle(fontSize: 13, color: ObsidianUITheme.getSecondaryTextColor(context)),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
-              ),
+                const SizedBox(height: 16),
 
-              // Users List / Table
-              if (_isLoading)
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                    child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent),
-                  ),
-                )
-              else if (_errorMessage != null)
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24.0),
+                // Create User Collapsible Section
+                _buildCreateUserCard(isDesktop),
+                const SizedBox(height: 16),
+
+                // Search & Filter Controls Card
+                _buildFilterBar(isDesktop),
+                const SizedBox(height: 16),
+
+                // Users content
+                if (_isLoading)
+                  Padding(
+                    padding: const EdgeInsets.all(40.0),
+                    child: Center(
+                      child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent),
+                    ),
+                  )
+                else if (_errorMessage != null)
+                  Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -761,14 +760,11 @@ class _UsersScreenState extends State<UsersScreen> {
                         ],
                       ),
                     ),
-                  ),
-                )
-              else if (_users.isEmpty)
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32.0),
+                  )
+                else if (_users.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(32.0),
+                    child: Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -781,37 +777,34 @@ class _UsersScreenState extends State<UsersScreen> {
                         ],
                       ),
                     ),
-                  ),
-                )
-              else
-                SliverPadding(
-                  padding: EdgeInsets.symmetric(horizontal: isDesktop ? 24 : 16),
-                  sliver: isDesktop ? SliverToBoxAdapter(child: _buildDesktopTable()) : _buildMobileList(),
-                ),
+                  )
+                else ...[
+                  if (isDesktop)
+                    _buildDesktopTable()
+                  else
+                    _buildMobileList(),
 
-              // Load More / Bottom Spacing
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
-                  child: _hasMore
-                      ? Center(
-                          child: _isLoadingMore
-                              ? CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)
-                              : ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: ObsidianUITheme.getSurfaceColor(context),
-                                    side: BorderSide(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.3)),
-                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                  ),
-                                  icon: const Icon(Icons.arrow_downward_rounded, size: 18),
-                                  label: Text(context.tr('users.load_more', 'Load More')),
-                                  onPressed: () => _loadUsers(append: true),
+                  if (_hasMore)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 16),
+                      child: Center(
+                        child: _isLoadingMore
+                            ? CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)
+                            : ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: ObsidianUITheme.getSurfaceColor(context),
+                                  side: BorderSide(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.3)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                                 ),
-                        )
-                      : const SizedBox(height: 24),
-                ),
-              ),
-            ],
+                                icon: const Icon(Icons.arrow_downward_rounded, size: 18),
+                                label: Text(context.tr('users.load_more', 'Load More')),
+                                onPressed: () => _loadUsers(append: true),
+                              ),
+                      ),
+                    ),
+                ],
+              ],
+            ),
           ),
         ),
       ),
@@ -822,39 +815,36 @@ class _UsersScreenState extends State<UsersScreen> {
     final textColor = ObsidianUITheme.getPrimaryTextColor(context);
     final subColor = ObsidianUITheme.getSecondaryTextColor(context);
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: ObsidianGlassCard(
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 420),
-              padding: const EdgeInsets.all(32),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.redAccent.withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.lock_rounded, color: Colors.redAccent, size: 48),
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: ObsidianGlassCard(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 420),
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    context.tr('config.admin_only', 'Admin only'),
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    context.tr('users.notice', 'You need admin access to manage users.'),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 14, color: subColor),
-                  ),
-                ],
-              ),
+                  child: const Icon(Icons.lock_rounded, color: Colors.redAccent, size: 48),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  context.tr('config.admin_only', 'Admin only'),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  context.tr('users.notice', 'You need admin access to manage users.'),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 14, color: subColor),
+                ),
+              ],
             ),
           ),
         ),
@@ -1108,15 +1098,108 @@ class _UsersScreenState extends State<UsersScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                // Username Search
-                SizedBox(
-                  width: isDesktop ? 220 : double.infinity,
-                  child: TextField(
+            if (isDesktop)
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  // Username Search
+                  SizedBox(
+                    width: 220,
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: _onSearchChanged,
+                      decoration: InputDecoration(
+                        isDense: true,
+                        hintText: context.tr('users.search_username', 'Search Username'),
+                        prefixIcon: const Icon(Icons.search_rounded, size: 18),
+                        suffixIcon: _searchController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear_rounded, size: 16),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  _onSearchChanged('');
+                                },
+                              )
+                            : null,
+                      ),
+                    ),
+                  ),
+
+                  // Team Filter (SuperAdmin only)
+                  if (_isSuperAdmin)
+                    SizedBox(
+                      width: 140,
+                      child: TextField(
+                        controller: _teamFilterController,
+                        keyboardType: TextInputType.number,
+                        onChanged: _onTeamFilterChanged,
+                        decoration: InputDecoration(
+                          isDense: true,
+                          hintText: context.tr('users.filter_team', 'Filter Team'),
+                          prefixIcon: const Icon(Icons.tag_rounded, size: 18),
+                        ),
+                      ),
+                    ),
+
+                  // Program Filter (SuperAdmin only)
+                  if (_isSuperAdmin)
+                    SizedBox(
+                      width: 150,
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _programFilter,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          isDense: true,
+                          prefixIcon: Icon(Icons.category_rounded, size: 18),
+                        ),
+                        dropdownColor: ObsidianUITheme.getSurfaceColor(context),
+                        items: const [
+                          DropdownMenuItem(value: '', child: Text('All Programs')),
+                          DropdownMenuItem(value: 'FRC', child: Text('FRC')),
+                          DropdownMenuItem(value: 'FTC', child: Text('FTC')),
+                        ],
+                        onChanged: (val) {
+                          setState(() => _programFilter = val ?? '');
+                          _loadUsers(append: false);
+                        },
+                      ),
+                    ),
+
+                  // Role Filter
+                  SizedBox(
+                    width: 180,
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _roleFilter,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        prefixIcon: Icon(Icons.badge_rounded, size: 18),
+                      ),
+                      dropdownColor: ObsidianUITheme.getSurfaceColor(context),
+                      items: [
+                        DropdownMenuItem(value: '', child: Text(context.tr('users.all_roles', 'All Roles'))),
+                        const DropdownMenuItem(value: 'SCOUT', child: Text('Scout')),
+                        const DropdownMenuItem(value: 'ANALYTICS', child: Text('Analytics')),
+                        DropdownMenuItem(value: 'ADMIN', child: Text(context.tr('index.admin', 'Admin'))),
+                        if (_isSuperAdmin)
+                          DropdownMenuItem(value: 'SUPERADMIN', child: Text(context.tr('users.super_admin', 'Super Admin'))),
+                      ],
+                      onChanged: (val) {
+                        setState(() => _roleFilter = val ?? '');
+                        _loadUsers(append: false);
+                      },
+                    ),
+                  ),
+                ],
+              )
+            else
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Username Search
+                  TextField(
                     controller: _searchController,
                     onChanged: _onSearchChanged,
                     decoration: InputDecoration(
@@ -1134,13 +1217,11 @@ class _UsersScreenState extends State<UsersScreen> {
                           : null,
                     ),
                   ),
-                ),
 
-                // Team Filter (SuperAdmin only)
-                if (_isSuperAdmin)
-                  SizedBox(
-                    width: isDesktop ? 140 : double.infinity,
-                    child: TextField(
+                  // Team Filter (SuperAdmin only)
+                  if (_isSuperAdmin) ...[
+                    const SizedBox(height: 12),
+                    TextField(
                       controller: _teamFilterController,
                       keyboardType: TextInputType.number,
                       onChanged: _onTeamFilterChanged,
@@ -1150,13 +1231,12 @@ class _UsersScreenState extends State<UsersScreen> {
                         prefixIcon: const Icon(Icons.tag_rounded, size: 18),
                       ),
                     ),
-                  ),
+                  ],
 
-                // Program Filter (SuperAdmin only)
-                if (_isSuperAdmin)
-                  SizedBox(
-                    width: isDesktop ? 150 : double.infinity,
-                    child: DropdownButtonFormField<String>(
+                  // Program Filter (SuperAdmin only)
+                  if (_isSuperAdmin) ...[
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
                       initialValue: _programFilter,
                       isExpanded: true,
                       decoration: const InputDecoration(
@@ -1174,12 +1254,11 @@ class _UsersScreenState extends State<UsersScreen> {
                         _loadUsers(append: false);
                       },
                     ),
-                  ),
+                  ],
 
-                // Role Filter
-                SizedBox(
-                  width: isDesktop ? 180 : double.infinity,
-                  child: DropdownButtonFormField<String>(
+                  // Role Filter
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
                     initialValue: _roleFilter,
                     isExpanded: true,
                     decoration: const InputDecoration(
@@ -1200,9 +1279,8 @@ class _UsersScreenState extends State<UsersScreen> {
                       _loadUsers(append: false);
                     },
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
           ],
         ),
       ),
@@ -1318,107 +1396,107 @@ class _UsersScreenState extends State<UsersScreen> {
   Widget _buildMobileList() {
     final caller = widget.apiService.currentUser;
 
-    return SliverList(
-      delegate: SliverChildBuilderDelegate(
-        (context, index) {
-          final user = _users[index];
-          final canEdit = _isSuperAdmin || (!user.isSuperAdmin && user.teamNumber == caller?.teamNumber);
-          final teamDisplay = _isSuperAdmin ? '[${user.program}] Team ${user.teamNumber}' : 'Team ${user.teamNumber}';
-          final lastLoginDisplay = _formatDate(user.lastLogin) ?? 'Never';
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: _users.length,
+      itemBuilder: (context, index) {
+        final user = _users[index];
+        final canEdit = _isSuperAdmin || (!user.isSuperAdmin && user.teamNumber == caller?.teamNumber);
+        final teamDisplay = _isSuperAdmin ? '[${user.program}] Team ${user.teamNumber}' : 'Team ${user.teamNumber}';
+        final lastLoginDisplay = _formatDate(user.lastLogin) ?? 'Never';
 
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: ObsidianGlassCard(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        ObsidianUserAvatar(
-                          profilePicture: user.profilePicture,
-                          username: user.username,
-                          size: 44,
-                          serverUrl: widget.apiService.serverUrl,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                user.username,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: ObsidianUITheme.getPrimaryTextColor(context),
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                user.email?.isNotEmpty == true ? user.email! : 'No email configured',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: ObsidianUITheme.getSecondaryTextColor(context),
-                                  fontStyle: user.email?.isNotEmpty == true ? FontStyle.normal : FontStyle.italic,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        _buildRoleBadge(user.role),
-                      ],
-                    ),
-                    const Divider(height: 20),
-                    Row(
-                      children: [
-                        Icon(Icons.shield_outlined, size: 14, color: ObsidianUITheme.getSecondaryTextColor(context)),
-                        const SizedBox(width: 4),
-                        Text(teamDisplay, style: TextStyle(fontSize: 12, color: ObsidianUITheme.getSecondaryTextColor(context))),
-                        const Spacer(),
-                        Icon(Icons.access_time_rounded, size: 14, color: ObsidianUITheme.getSecondaryTextColor(context)),
-                        const SizedBox(width: 4),
-                        Text('Login: $lastLoginDisplay', style: TextStyle(fontSize: 12, color: ObsidianUITheme.getSecondaryTextColor(context))),
-                      ],
-                    ),
-                    if (canEdit) ...[
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              visualDensity: VisualDensity.compact,
-                              foregroundColor: ObsidianUITheme.primaryAccent,
-                              side: BorderSide(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.4)),
-                            ),
-                            icon: const Icon(Icons.edit_rounded, size: 14),
-                            label: Text(context.tr('users.edit', 'Edit')),
-                            onPressed: () => _openEditModal(user),
-                          ),
-                          const SizedBox(width: 8),
-                          OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              visualDensity: VisualDensity.compact,
-                              foregroundColor: Colors.redAccent,
-                              side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.4)),
-                            ),
-                            icon: const Icon(Icons.delete_outline_rounded, size: 14),
-                            label: Text(context.tr('users.delete', 'Delete')),
-                            onPressed: () => _handleDeleteUser(user),
-                          ),
-                        ],
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: ObsidianGlassCard(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      ObsidianUserAvatar(
+                        profilePicture: user.profilePicture,
+                        username: user.username,
+                        size: 44,
+                        serverUrl: widget.apiService.serverUrl,
                       ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              user.username,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: ObsidianUITheme.getPrimaryTextColor(context),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              user.email?.isNotEmpty == true ? user.email! : 'No email configured',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: ObsidianUITheme.getSecondaryTextColor(context),
+                                fontStyle: user.email?.isNotEmpty == true ? FontStyle.normal : FontStyle.italic,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      _buildRoleBadge(user.role),
                     ],
+                  ),
+                  const Divider(height: 20),
+                  Row(
+                    children: [
+                      Icon(Icons.shield_outlined, size: 14, color: ObsidianUITheme.getSecondaryTextColor(context)),
+                      const SizedBox(width: 4),
+                      Text(teamDisplay, style: TextStyle(fontSize: 12, color: ObsidianUITheme.getSecondaryTextColor(context))),
+                      const Spacer(),
+                      Icon(Icons.access_time_rounded, size: 14, color: ObsidianUITheme.getSecondaryTextColor(context)),
+                      const SizedBox(width: 4),
+                      Text('Login: $lastLoginDisplay', style: TextStyle(fontSize: 12, color: ObsidianUITheme.getSecondaryTextColor(context))),
+                    ],
+                  ),
+                  if (canEdit) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            foregroundColor: ObsidianUITheme.primaryAccent,
+                            side: BorderSide(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.4)),
+                          ),
+                          icon: const Icon(Icons.edit_rounded, size: 14),
+                          label: Text(context.tr('users.edit', 'Edit')),
+                          onPressed: () => _openEditModal(user),
+                        ),
+                        const SizedBox(width: 8),
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            foregroundColor: Colors.redAccent,
+                            side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.4)),
+                          ),
+                          icon: const Icon(Icons.delete_outline_rounded, size: 14),
+                          label: Text(context.tr('users.delete', 'Delete')),
+                          onPressed: () => _handleDeleteUser(user),
+                        ),
+                      ],
+                    ),
                   ],
-                ),
+                ],
               ),
             ),
-          );
-        },
-        childCount: _users.length,
-      ),
+          ),
+        );
+      },
     );
   }
 

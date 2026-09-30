@@ -161,20 +161,20 @@ class _ContactScreenState extends State<ContactScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.isVisible) return const SizedBox.shrink();
+
     final isDark = ObsidianUITheme.isDark(context);
     final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
     final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
     final borderColor = isDark ? Colors.white10 : Colors.black12;
     final cardBg = isDark ? const Color(0x331E293B) : const Color(0x66FFFFFF);
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 680.0),
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+      padding: EdgeInsets.fromLTRB(16.0, 12.0, 16.0, widget.isBarsVisible ? 120.0 : 24.0),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 680.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -505,8 +505,7 @@ class _ContactScreenState extends State<ContactScreen> {
             ),
           ),
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildFieldLabel(String text, Color color) {

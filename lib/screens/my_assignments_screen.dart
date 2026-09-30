@@ -415,8 +415,10 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
 
   @override
   Widget build(BuildContext context) {
-    final topPadding = widget.isBarsVisible ? 100.0 : 20.0;
-    final bottomPadding = widget.isBarsVisible ? 100.0 : 20.0;
+    if (!widget.isVisible) return const SizedBox.shrink();
+
+    final topPadding = 12.0;
+    final bottomPadding = widget.isBarsVisible ? 120.0 : 24.0;
 
     return RefreshIndicator(
       onRefresh: _handleRefresh,

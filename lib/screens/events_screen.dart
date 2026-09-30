@@ -485,19 +485,19 @@ class _EventsScreenState extends State<EventsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.isVisible) return const SizedBox.shrink();
+
     final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
     final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
     final borderColor = ObsidianUITheme.getBorderColor(context);
     final isDesktop = ObsidianResponsive.isDesktop(context, overrideMode: widget.apiService.uiMode);
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: RefreshIndicator(
-        onRefresh: _loadEvents,
-        color: ObsidianUITheme.primaryAccent,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-          padding: EdgeInsets.fromLTRB(16, isDesktop ? 16 : 8, 16, 24),
+    return RefreshIndicator(
+      onRefresh: _loadEvents,
+      color: ObsidianUITheme.primaryAccent,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        padding: EdgeInsets.fromLTRB(16, isDesktop ? 16 : 8, 16, widget.isBarsVisible ? 120 : 24),
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 1400),
@@ -669,8 +669,7 @@ class _EventsScreenState extends State<EventsScreen> {
             ),
           ),
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildDesktopTable(List<EventModel> events) {

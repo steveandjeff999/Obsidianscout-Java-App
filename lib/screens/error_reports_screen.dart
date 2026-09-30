@@ -767,6 +767,8 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.isVisible) return const SizedBox.shrink();
+
     if (!_isSuperAdmin) {
       return _buildSuperadminLockedView();
     }
@@ -777,9 +779,11 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
       onRefresh: _loadData,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.symmetric(
-          horizontal: isDesktop ? 24.0 : 14.0,
-          vertical: 16.0,
+        padding: EdgeInsets.fromLTRB(
+          isDesktop ? 24.0 : 14.0,
+          16.0,
+          isDesktop ? 24.0 : 14.0,
+          widget.isBarsVisible ? 120.0 : 24.0,
         ),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1400.0),
@@ -1147,7 +1151,7 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
             // Search Bar
             ConstrainedBox(
               constraints: BoxConstraints(
-                maxWidth: isDesktop ? 300.0 : double.infinity,
+                maxWidth: isDesktop ? 300.0 : 260.0,
                 minWidth: 160.0,
               ),
               child: TextField(
