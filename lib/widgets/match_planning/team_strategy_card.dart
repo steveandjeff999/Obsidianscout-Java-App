@@ -684,23 +684,29 @@ class _TeamStrategyCardState extends State<TeamStrategyCard> with SingleTickerPr
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Container(
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildInlineSourceBtn('scouted', 'Scouted'),
-                  if (!widget.isFtc && widget.useStatboticsEpa)
-                    _buildInlineSourceBtn('statbotics', 'Statbotics'),
-                  if (!widget.isFtc && widget.useMatch13Exp)
-                    _buildInlineSourceBtn('match13', 'Match 13'),
-                ],
+            Flexible(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildInlineSourceBtn('scouted', 'Scouted'),
+                      if (!widget.isFtc && widget.useStatboticsEpa)
+                        _buildInlineSourceBtn('statbotics', 'Statbotics'),
+                      if (!widget.isFtc && widget.useMatch13Exp)
+                        _buildInlineSourceBtn('match13', 'Match 13'),
+                    ],
+                  ),
+                ),
               ),
             ),
+            const SizedBox(width: 4),
             InkWell(
               onTap: _openFullscreenGraph,
               borderRadius: BorderRadius.circular(4),
