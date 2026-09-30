@@ -3,7 +3,6 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
 
 import '../l10n/app_localizations.dart';
 import '../models/config_models.dart';
@@ -74,6 +73,9 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
   List<dynamic> _matchEntries = [];
   List<dynamic> _pitEntries = [];
   List<dynamic> _qualEntries = [];
+  final Map<int, List<dynamic>> _matchEntriesByTeam = {};
+  final Map<int, List<dynamic>> _pitEntriesByTeam = {};
+  final Map<int, List<dynamic>> _qualEntriesByTeam = {};
   StatsHistoryModel? _statsHistory;
 
   StreamSubscription<bool>? _onlineSub;
@@ -82,6 +84,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
   void initState() {
     super.initState();
     _currentYear = widget.apiService.currentSettings?.year ?? DateTime.now().year;
+    _currentEventKey = widget.apiService.currentSettings?.eventKey ?? '';
     _initData();
     _onlineSub = widget.apiService.onOnlineStatusChanged.listen((online) {
       if (online) {
@@ -112,7 +115,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
 
   void _startPolling() {
     _stopPolling();
-    _pollTimer = Timer.periodic(const Duration(seconds: 3), (_) => _pollServer());
+    _pollTimer = Timer.periodic(const Duration(seconds: 6), (_) => _pollServer());
   }
 
   void _stopPolling() {
@@ -120,25 +123,151 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
     _pollTimer = null;
   }
 
-  Future<void> _initData() async {
-    setState(() => _isLoading = true);
+  void _reindexEntries() {
+    _matchEntriesByTeam.clear();
+    for (final e in _matchEntries) {
+      final teamNum = _extractTeamNumberFromEntry(e);
+      if (teamNum != null && teamNum > 0) {
+        _matchEntriesByTeam.putIfAbsent(teamNum, () => []).add(e);
+      }
+    }
+    _pitEntriesByTeam.clear();
+    for (final e in _pitEntries) {
+      final teamNum = _extractTeamNumberFromEntry(e);
+      if (teamNum != null && teamNum > 0) {
+        _pitEntriesByTeam.putIfAbsent(teamNum, () => []).add(e);
+      }
+    }
+    _qualEntriesByTeam.clear();
+    for (final e in _qualEntries) {
+      final teamNum = _extractTeamNumberFromEntry(e);
+      if (teamNum != null && teamNum > 0) {
+        _qualEntriesByTeam.putIfAbsent(teamNum, () => []).add(e);
+      }
+    }
+  }
 
+  Future<void> _initData() async {
+    // 1. Stage 1: Fast Cache-First Retrieval (0ms UI render)
+    try {
+      final cachedSettings = await widget.apiService.getCachedSettings();
+      final effectiveSettings = cachedSettings ?? widget.apiService.currentSettings;
+      if (effectiveSettings != null) {
+        _currentYear = effectiveSettings.year;
+        if (_currentEventKey.isEmpty) {
+          _currentEventKey = effectiveSettings.eventKey;
+        }
+      }
+
+      final cachedEvents = await widget.apiService.getCachedEvents(year: _currentYear);
+      if (cachedEvents.isNotEmpty) {
+        final Map<String, EventModel> uniqueEvents = {};
+        for (final e in cachedEvents) {
+          if (e.eventKey.isNotEmpty) uniqueEvents[e.eventKey] = e;
+        }
+        _events = uniqueEvents.values.toList();
+        if ((_currentEventKey.isEmpty || !uniqueEvents.containsKey(_currentEventKey)) && _events.isNotEmpty) {
+          _currentEventKey = _events.first.eventKey;
+        }
+      }
+
+      if (_currentEventKey.isNotEmpty) {
+        await _loadCachedEventData(_currentEventKey);
+      }
+    } catch (e) {
+      debugPrint('Error reading cached match planning data: $e');
+    }
+
+    // Load Season Field Backdrop
+    unawaited(_loadFieldImage());
+
+    // If cache gave us matches or events, display screen right away!
+    if (mounted) {
+      setState(() {
+        _isLoading = _events.isEmpty && _matches.isEmpty;
+      });
+    }
+
+    // 2. Stage 2: Non-blocking Background Refresh
+    _refreshServerData();
+
+    if (widget.isVisible) {
+      _startPolling();
+    }
+  }
+
+  Future<void> _loadCachedEventData(String eventKey) async {
+    try {
+      final cachedMatches = await widget.apiService.getCachedMatches(eventKey);
+      final cachedTeams = await widget.apiService.getCachedTeams(eventKey);
+      final cachedStatsHistory = await widget.apiService.getCachedStatsHistory(eventKey);
+      final cachedMatchCfg = await widget.apiService.getCachedMatchConfig();
+      final cachedPitCfg = await widget.apiService.getCachedPitConfig();
+      final cachedQualCfg = await widget.apiService.getCachedQualConfig();
+      final cachedMatchEntries = await widget.apiService.getCachedScoutingEntries();
+      final cachedPitEntries = await widget.apiService.getCachedPitScoutingEntries();
+      final cachedQualEntries = await widget.apiService.getCachedQualScoutingEntries();
+
+      final Map<String, MatchModel> uniqueMatches = {};
+      for (final m in cachedMatches) {
+        if (m.matchKey.isNotEmpty) uniqueMatches[m.matchKey] = m;
+      }
+      final matchesList = uniqueMatches.values.toList();
+      matchesList.sort(_compareMatches);
+
+      _teamMap.clear();
+      for (final t in cachedTeams) {
+        _teamMap[t.teamNumber] = t;
+      }
+
+      _matches = matchesList;
+      _statsHistory = cachedStatsHistory;
+      _matchConfig = cachedMatchCfg;
+      _pitConfig = cachedPitCfg;
+      _qualConfig = cachedQualCfg;
+      _matchEntries = cachedMatchEntries;
+      _pitEntries = cachedPitEntries;
+      _qualEntries = cachedQualEntries;
+      _reindexEntries();
+
+      if (_matches.isNotEmpty && _selectedMatch == null) {
+        MatchModel target = _matches.first;
+        if (widget.initialMatchKey != null) {
+          target = _matches.firstWhere(
+            (m) => m.matchKey == widget.initialMatchKey,
+            orElse: () => _matches.first,
+          );
+        }
+        _selectedMatch = target;
+        final saved = await widget.apiService.fetchMatchPlan(eventKey, target.matchKey);
+        if (saved != null) {
+          _plan = saved;
+          _lastSyncedTime = saved.updatedAt;
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading cached event data: $e');
+    }
+  }
+
+  Future<void> _refreshServerData() async {
     try {
       final settings = await widget.apiService.fetchSettings();
-      _currentYear = settings?.year ?? widget.apiService.currentSettings?.year ?? DateTime.now().year;
-      _currentEventKey = settings?.eventKey ?? widget.apiService.currentSettings?.eventKey ?? '';
+      if (settings != null) {
+        _currentYear = settings.year;
+        if (_currentEventKey.isEmpty) {
+          _currentEventKey = settings.eventKey;
+        }
+      }
 
-      // Load events list
       final rawEvents = await widget.apiService.fetchEvents(year: _currentYear);
       final Map<String, EventModel> uniqueEvents = {};
       for (final e in rawEvents) {
-        if (e.eventKey.isNotEmpty) {
-          uniqueEvents[e.eventKey] = e;
-        }
+        if (e.eventKey.isNotEmpty) uniqueEvents[e.eventKey] = e;
       }
       final events = uniqueEvents.values.toList();
 
-      if (mounted) {
+      if (mounted && events.isNotEmpty) {
         setState(() {
           _events = events;
           if ((_currentEventKey.isEmpty || !uniqueEvents.containsKey(_currentEventKey)) && events.isNotEmpty) {
@@ -148,17 +277,82 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
       }
 
       if (_currentEventKey.isNotEmpty) {
-        await _loadEventMatches(_currentEventKey);
+        await _fetchFreshEventData(_currentEventKey);
       }
     } catch (e) {
-      debugPrint('Error initializing match planning screen: $e');
+      debugPrint('Error refreshing match planning data from server: $e');
     } finally {
-      if (mounted) {
+      if (mounted && _isLoading) {
         setState(() => _isLoading = false);
       }
-      if (widget.isVisible) {
-        _startPolling();
+    }
+  }
+
+  Future<void> _fetchFreshEventData(String eventKey) async {
+    try {
+      final futures = <Future<dynamic>>[
+        widget.apiService.fetchMatches(eventKey),
+        widget.apiService.fetchTeams(eventKey),
+        widget.apiService.fetchStatsHistory(eventKey),
+      ];
+
+      if (_matchConfig == null) futures.add(widget.apiService.fetchMatchConfig());
+      if (_pitConfig == null) futures.add(widget.apiService.fetchPitConfig());
+      if (_qualConfig == null) futures.add(widget.apiService.fetchQualConfig());
+
+      final results = await Future.wait(futures);
+
+      final rawMatches = List<MatchModel>.from(results[0] as List<dynamic>? ?? []);
+      final Map<String, MatchModel> uniqueMatches = {};
+      for (final m in rawMatches) {
+        if (m.matchKey.isNotEmpty) uniqueMatches[m.matchKey] = m;
       }
+      final matchesList = uniqueMatches.values.toList();
+      matchesList.sort(_compareMatches);
+
+      final teamsList = List<TeamModel>.from(results[1] as List<dynamic>? ?? []);
+      final statsHistory = results[2] as StatsHistoryModel?;
+
+      int cfgIdx = 3;
+      if (_matchConfig == null && results.length > cfgIdx) {
+        _matchConfig = results[cfgIdx++] as ScoutingConfigModel?;
+      }
+      if (_pitConfig == null && results.length > cfgIdx) {
+        _pitConfig = results[cfgIdx++] as ScoutingConfigModel?;
+      }
+      if (_qualConfig == null && results.length > cfgIdx) {
+        _qualConfig = results[cfgIdx++] as ScoutingConfigModel?;
+      }
+
+      _teamMap.clear();
+      for (final t in teamsList) {
+        _teamMap[t.teamNumber] = t;
+      }
+
+      if (mounted) {
+        setState(() {
+          if (matchesList.isNotEmpty) _matches = matchesList;
+          if (statsHistory != null) _statsHistory = statsHistory;
+        });
+      }
+
+      // Auto-select match if not selected yet
+      if (_matches.isNotEmpty) {
+        if (_selectedMatch == null || !_matches.any((m) => m.matchKey == _selectedMatch!.matchKey)) {
+          MatchModel? target;
+          if (widget.initialMatchKey != null) {
+            target = _matches.firstWhere(
+              (m) => m.matchKey == widget.initialMatchKey,
+              orElse: () => _matches.first,
+            );
+          } else {
+            target = _matches.first;
+          }
+          await _selectMatch(target);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching fresh event data: $e');
     }
   }
 
@@ -210,79 +404,17 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
   }
 
   Future<void> _loadEventMatches(String eventKey) async {
-    try {
-      final results = await Future.wait([
-        widget.apiService.fetchMatches(eventKey),
-        widget.apiService.fetchTeams(eventKey),
-        widget.apiService.fetchStatsHistory(eventKey),
-        widget.apiService.fetchMatchConfig(),
-        widget.apiService.fetchPitConfig(),
-        widget.apiService.fetchQualConfig(),
-        widget.apiService.fetchScoutingEntries(),
-        widget.apiService.fetchPitScoutingEntries(),
-        widget.apiService.fetchQualScoutingEntries(),
-      ]);
-
-      final rawMatches = List<MatchModel>.from(results[0] as List<dynamic>? ?? []);
-      final Map<String, MatchModel> uniqueMatches = {};
-      for (final m in rawMatches) {
-        if (m.matchKey.isNotEmpty) {
-          uniqueMatches[m.matchKey] = m;
-        }
-      }
-      final matchesList = uniqueMatches.values.toList();
-      matchesList.sort(_compareMatches);
-
-      final teamsList = List<TeamModel>.from(results[1] as List<dynamic>? ?? []);
-      final statsHistory = results[2] as StatsHistoryModel?;
-      final matchCfg = results[3] as ScoutingConfigModel?;
-      final pitCfg = results[4] as ScoutingConfigModel?;
-      final qualCfg = results[5] as ScoutingConfigModel?;
-      final matchEntries = results[6] as List<dynamic>? ?? [];
-      final pitEntries = results[7] as List<dynamic>? ?? [];
-      final qualEntries = results[8] as List<dynamic>? ?? [];
-
-      _teamMap.clear();
-      for (final t in teamsList) {
-        _teamMap[t.teamNumber] = t;
-      }
-
-      if (mounted) {
-        setState(() {
-          _matches = matchesList;
-          _statsHistory = statsHistory;
-          _matchConfig = matchCfg;
-          _pitConfig = pitCfg;
-          _qualConfig = qualCfg;
-          _matchEntries = matchEntries;
-          _pitEntries = pitEntries;
-          _qualEntries = qualEntries;
-        });
-      }
-
-      // Load Season Field Backdrop
-      await _loadFieldImage();
-
-      // Auto-select match if specified by initialMatchKey or select first
-      if (_matches.isNotEmpty) {
-        MatchModel? target;
-        if (widget.initialMatchKey != null) {
-          target = _matches.firstWhere(
-            (m) => m.matchKey == widget.initialMatchKey,
-            orElse: () => _matches.first,
-          );
-        } else if (_selectedMatch != null) {
-          target = _matches.firstWhere(
-            (m) => m.matchKey == _selectedMatch!.matchKey,
-            orElse: () => _matches.first,
-          );
-        } else {
-          target = _matches.first;
-        }
-        await _selectMatch(target);
-      }
-    } catch (e) {
-      debugPrint('Failed to load event matches: $e');
+    // Quick load from cache first
+    await _loadCachedEventData(eventKey);
+    if (mounted) {
+      setState(() {
+        _isLoading = _matches.isEmpty;
+      });
+    }
+    // Then fetch fresh in background
+    await _fetchFreshEventData(eventKey);
+    if (mounted && _isLoading) {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -316,7 +448,6 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
         final frame = await codec.getNextFrame();
         if (mounted) {
           setState(() => _fieldImage = frame.image);
-          // Persist bundled asset bytes into cache for offline retrieval
           unawaited(widget.apiService.cacheFieldImageBytes(_currentYear, bytes));
           return;
         }
@@ -386,7 +517,6 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
     }
 
     try {
-      // 1. Check for remote match plan updates
       final remotePlan = await widget.apiService.fetchMatchPlan(
         _currentEventKey,
         _selectedMatch!.matchKey,
@@ -396,14 +526,6 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
           _plan = remotePlan;
           _lastSyncedTime = remotePlan.updatedAt;
           _saveStatus = 'saved';
-        });
-      }
-
-      // 2. Poll for fresh scouting entries
-      final entries = await widget.apiService.fetchScoutingEntries();
-      if (entries.length != _matchEntries.length && mounted) {
-        setState(() {
-          _matchEntries = entries;
         });
       }
     } catch (_) {}
@@ -516,17 +638,33 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
     return null;
   }
 
-  List<dynamic> _filterEntriesForTeam(List<dynamic> list, int teamNumber) {
-    return list.where((e) {
-      final num = _extractTeamNumberFromEntry(e);
-      return num == teamNumber;
-    }).toList();
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(
+              width: 36,
+              height: 36,
+              child: CircularProgressIndicator(
+                strokeWidth: 3,
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF38BDF8)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              context.tr('common.loading', 'Loading match planning data...'),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: ObsidianUITheme.getSecondaryTextColor(context),
+              ),
+            ),
+          ],
+        ),
+      );
     }
 
     if (_isFullscreen) {
@@ -537,26 +675,154 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
     final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
     final isDesktop = ObsidianResponsive.isDesktop(context, overrideMode: widget.apiService.uiMode);
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(isDesktop ? 20.0 : 12.0),
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+      padding: EdgeInsets.only(
+        top: isDesktop ? 16.0 : 4.0,
+        bottom: widget.isBarsVisible ? 120.0 : 20.0,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1600.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Header Controls Card
               ObsidianGlassCard(
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isWide = constraints.maxWidth >= 740;
+                    final isMedium = constraints.maxWidth >= 380;
+
+                    // Event Dropdown Widget
+                    Widget buildEventDropdown() {
+                      final seenEventKeys = <String>{};
+                      final eventItems = <DropdownMenuItem<String>>[];
+                      for (final e in _events) {
+                        if (e.eventKey.isNotEmpty && seenEventKeys.add(e.eventKey)) {
+                          eventItems.add(
+                            DropdownMenuItem<String>(
+                              value: e.eventKey,
+                              child: Text(
+                                e.name.isNotEmpty ? e.name : e.eventKey,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            ),
+                          );
+                        }
+                      }
+
+                      final String? safeEventValue = seenEventKeys.contains(_currentEventKey)
+                          ? _currentEventKey
+                          : (eventItems.isNotEmpty ? eventItems.first.value : null);
+
+                      return DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        value: safeEventValue,
+                        decoration: InputDecoration(
+                          labelText: context.tr('events.title', 'Event'),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          isDense: true,
+                        ),
+                        items: eventItems,
+                        onChanged: (val) {
+                          if (val != null && val != _currentEventKey) {
+                            setState(() => _currentEventKey = val);
+                            _loadEventMatches(val);
+                          }
+                        },
+                      );
+                    }
+
+                    // Match Dropdown Widget
+                    Widget buildMatchDropdown() {
+                      final seenMatchKeys = <String>{};
+                      final matchItems = <DropdownMenuItem<String>>[];
+                      for (final m in _matches) {
+                        if (m.matchKey.isNotEmpty && seenMatchKeys.add(m.matchKey)) {
+                          final label = m.label.isNotEmpty ? m.label : (m.matchNumber != null ? 'Match ${m.matchNumber}' : m.matchKey);
+                          matchItems.add(
+                            DropdownMenuItem<String>(
+                              value: m.matchKey,
+                              child: Text(
+                                label,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          );
+                        }
+                      }
+
+                      final currentSelectedKey = _selectedMatch?.matchKey;
+                      final String? safeMatchValue = (currentSelectedKey != null && seenMatchKeys.contains(currentSelectedKey))
+                          ? currentSelectedKey
+                          : (matchItems.isNotEmpty ? matchItems.first.value : null);
+
+                      return DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        value: safeMatchValue,
+                        decoration: InputDecoration(
+                          labelText: context.tr('nav.matches', 'Select Match'),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          isDense: true,
+                        ),
+                        items: matchItems,
+                        onChanged: (val) {
+                          if (val != null && _matches.isNotEmpty) {
+                            final match = _matches.firstWhere(
+                              (m) => m.matchKey == val,
+                              orElse: () => _matches.first,
+                            );
+                            _selectMatch(match);
+                          }
+                        },
+                      );
+                    }
+
+                    if (isWide) {
+                      return Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  context.tr('nav.match_planning', 'Match Planning'),
+                                  style: TextStyle(
+                                    fontSize: isDesktop ? 22 : 18,
+                                    fontWeight: FontWeight.w900,
+                                    color: primaryTextColor,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  context.tr(
+                                    'subtitle.match_planning',
+                                    'Strategize matches with interactive field drawings and comprehensive alliance data',
+                                  ),
+                                  style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          SizedBox(width: 190, child: buildEventDropdown()),
+                          const SizedBox(width: 8),
+                          SizedBox(width: 170, child: buildMatchDropdown()),
+                        ],
+                      );
+                    } else {
+                      return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             context.tr('nav.match_planning', 'Match Planning'),
                             style: TextStyle(
-                              fontSize: isDesktop ? 22 : 18,
+                              fontSize: 18,
                               fontWeight: FontWeight.w900,
                               color: primaryTextColor,
                             ),
@@ -569,117 +835,28 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                             ),
                             style: TextStyle(fontSize: 12, color: secondaryTextColor),
                           ),
+                          const SizedBox(height: 12),
+                          if (isMedium)
+                            Row(
+                              children: [
+                                Expanded(child: buildEventDropdown()),
+                                const SizedBox(width: 8),
+                                Expanded(child: buildMatchDropdown()),
+                              ],
+                            )
+                          else ...[
+                            buildEventDropdown(),
+                            const SizedBox(height: 8),
+                            buildMatchDropdown(),
+                          ],
                         ],
-                      ),
-                    ),
-
-                    const SizedBox(width: 12),
-
-                    // Event Filter Dropdown
-                    Builder(
-                      builder: (context) {
-                        final seenEventKeys = <String>{};
-                        final eventItems = <DropdownMenuItem<String>>[];
-                        for (final e in _events) {
-                          if (e.eventKey.isNotEmpty && seenEventKeys.add(e.eventKey)) {
-                            eventItems.add(
-                              DropdownMenuItem<String>(
-                                value: e.eventKey,
-                                child: Text(
-                                  e.name.isNotEmpty ? e.name : e.eventKey,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                              ),
-                            );
-                          }
-                        }
-
-                        final String? safeEventValue = seenEventKeys.contains(_currentEventKey)
-                            ? _currentEventKey
-                            : (eventItems.isNotEmpty ? eventItems.first.value : null);
-
-                        return SizedBox(
-                          width: isDesktop ? 200 : 130,
-                          child: DropdownButtonFormField<String>(
-                            isExpanded: true,
-                            value: safeEventValue,
-                            decoration: InputDecoration(
-                              labelText: context.tr('events.title', 'Event'),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                              isDense: true,
-                            ),
-                            items: eventItems,
-                            onChanged: (val) {
-                              if (val != null && val != _currentEventKey) {
-                                setState(() => _currentEventKey = val);
-                                _loadEventMatches(val);
-                              }
-                            },
-                          ),
-                        );
-                      },
-                    ),
-
-                    const SizedBox(width: 8),
-
-                    // Match Selector Dropdown
-                    Builder(
-                      builder: (context) {
-                        final seenMatchKeys = <String>{};
-                        final matchItems = <DropdownMenuItem<String>>[];
-                        for (final m in _matches) {
-                          if (m.matchKey.isNotEmpty && seenMatchKeys.add(m.matchKey)) {
-                            final label = m.label.isNotEmpty ? m.label : (m.matchNumber != null ? 'Match ${m.matchNumber}' : m.matchKey);
-                            matchItems.add(
-                              DropdownMenuItem<String>(
-                                value: m.matchKey,
-                                child: Text(
-                                  label,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                                ),
-                              ),
-                            );
-                          }
-                        }
-
-                        final currentSelectedKey = _selectedMatch?.matchKey;
-                        final String? safeMatchValue = (currentSelectedKey != null && seenMatchKeys.contains(currentSelectedKey))
-                            ? currentSelectedKey
-                            : (matchItems.isNotEmpty ? matchItems.first.value : null);
-
-                        return SizedBox(
-                          width: isDesktop ? 180 : 130,
-                          child: DropdownButtonFormField<String>(
-                            isExpanded: true,
-                            value: safeMatchValue,
-                            decoration: InputDecoration(
-                              labelText: context.tr('nav.matches', 'Select Match'),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                              isDense: true,
-                            ),
-                            items: matchItems,
-                            onChanged: (val) {
-                              if (val != null && _matches.isNotEmpty) {
-                                final match = _matches.firstWhere(
-                                  (m) => m.matchKey == val,
-                                  orElse: () => _matches.first,
-                                );
-                                _selectMatch(match);
-                              }
-                            },
-                          ),
-                        );
-                      },
-                    ),
-                  ],
+                      );
+                    }
+                  },
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 4),
 
               // Strategy Workspace Card (Toolbar + Driver Stations + Canvas)
               ObsidianGlassCard(
@@ -708,110 +885,163 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
 
                     const SizedBox(height: 12),
 
-                    // Workspace Layout: Left Driver Station (Blue) - Canvas - Right Driver Station (Red)
-                    if (isDesktop)
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Blue Driver Station (Left)
-                          SizedBox(
-                            width: 140,
-                            child: _buildDriverStationColumn('Blue Alliance', 'blue', _selectedMatch?.blueTeams ?? []),
-                          ),
+                    // Adaptive Workspace Layout
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final width = constraints.maxWidth;
+                        final isLargeDesktop = width >= 960;
+                        final isTabletLandscape = width >= 700 && width < 960;
 
-                          const SizedBox(width: 12),
-
-                          // Strategy Canvas (Center)
-                          Expanded(
-                            child: StrategyFieldCanvas(
-                              repaintBoundaryKey: _repaintBoundaryKey,
-                              plan: _plan,
-                              activeTool: _activeTool,
-                              currentColor: _currentColor,
-                              strokeWidth: _strokeWidth,
-                              fieldImage: _fieldImage,
-                              currentMatch: _selectedMatch,
-                              teamMap: _teamMap,
-                              onStrokeCompleted: _handleStrokeCompleted,
-                              onMarkerPositionChanged: _handleMarkerPositionChanged,
-                              onMarkerDragEnd: _handleMarkerDragEnd,
-                            ),
-                          ),
-
-                          const SizedBox(width: 12),
-
-                          // Red Driver Station (Right)
-                          SizedBox(
-                            width: 140,
-                            child: _buildDriverStationColumn('Red Alliance', 'red', _selectedMatch?.redTeams ?? []),
-                          ),
-                        ],
-                      )
-                    else
-                      Column(
-                        children: [
-                          // Canvas on mobile
-                          StrategyFieldCanvas(
-                            repaintBoundaryKey: _repaintBoundaryKey,
-                            plan: _plan,
-                            activeTool: _activeTool,
-                            currentColor: _currentColor,
-                            strokeWidth: _strokeWidth,
-                            fieldImage: _fieldImage,
-                            currentMatch: _selectedMatch,
-                            teamMap: _teamMap,
-                            onStrokeCompleted: _handleStrokeCompleted,
-                            onMarkerPositionChanged: _handleMarkerPositionChanged,
-                            onMarkerDragEnd: _handleMarkerDragEnd,
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          // Driver stations side-by-side on mobile
-                          Row(
+                        if (isLargeDesktop || isTabletLandscape) {
+                          final dsWidth = isLargeDesktop ? 140.0 : 115.0;
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
+                              // Blue Driver Station (Left)
+                              SizedBox(
+                                width: dsWidth,
                                 child: _buildDriverStationColumn('Blue Alliance', 'blue', _selectedMatch?.blueTeams ?? []),
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: 10),
+                              // Strategy Canvas (Center)
                               Expanded(
+                                child: StrategyFieldCanvas(
+                                  repaintBoundaryKey: _repaintBoundaryKey,
+                                  plan: _plan,
+                                  activeTool: _activeTool,
+                                  currentColor: _currentColor,
+                                  strokeWidth: _strokeWidth,
+                                  fieldImage: _fieldImage,
+                                  currentMatch: _selectedMatch,
+                                  teamMap: _teamMap,
+                                  onStrokeCompleted: _handleStrokeCompleted,
+                                  onMarkerPositionChanged: _handleMarkerPositionChanged,
+                                  onMarkerDragEnd: _handleMarkerDragEnd,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              // Red Driver Station (Right)
+                              SizedBox(
+                                width: dsWidth,
                                 child: _buildDriverStationColumn('Red Alliance', 'red', _selectedMatch?.redTeams ?? []),
                               ),
                             ],
-                          ),
-                        ],
-                      ),
+                          );
+                        } else {
+                          // Mobile & Tablet Portrait Layout
+                          return Column(
+                            children: [
+                              // Field Canvas on Top
+                              StrategyFieldCanvas(
+                                repaintBoundaryKey: _repaintBoundaryKey,
+                                plan: _plan,
+                                activeTool: _activeTool,
+                                currentColor: _currentColor,
+                                strokeWidth: _strokeWidth,
+                                fieldImage: _fieldImage,
+                                currentMatch: _selectedMatch,
+                                teamMap: _teamMap,
+                                onStrokeCompleted: _handleStrokeCompleted,
+                                onMarkerPositionChanged: _handleMarkerPositionChanged,
+                                onMarkerDragEnd: _handleMarkerDragEnd,
+                              ),
+                              const SizedBox(height: 12),
+                              // Driver stations below canvas
+                              if (width >= 360)
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _buildDriverStationColumn('Blue Alliance', 'blue', _selectedMatch?.blueTeams ?? []),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: _buildDriverStationColumn('Red Alliance', 'red', _selectedMatch?.redTeams ?? []),
+                                    ),
+                                  ],
+                                )
+                              else
+                                Column(
+                                  children: [
+                                    _buildDriverStationColumn('Blue Alliance', 'blue', _selectedMatch?.blueTeams ?? []),
+                                    const SizedBox(height: 8),
+                                    _buildDriverStationColumn('Red Alliance', 'red', _selectedMatch?.redTeams ?? []),
+                                  ],
+                                ),
+                            ],
+                          );
+                        }
+                      },
+                    ),
                   ],
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
 
               // Alliance & Team Performance Stats Section
               if (_selectedMatch != null) ...[
-                Text(
-                  'Alliance & Team Performance Stats',
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w900,
-                    color: primaryTextColor,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Alliance & Team Performance Stats',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
+                          color: primaryTextColor,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Comprehensive stats, pit specs, and qualitative scouter notes for each team in this match',
+                        style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Comprehensive stats, pit specs, and qualitative scouter notes for each team in this match',
-                  style: TextStyle(fontSize: 12, color: secondaryTextColor),
-                ),
-
                 const SizedBox(height: 14),
 
-                // Blue Alliance Cards Row
-                _buildAllianceTeamCardsSection('Blue Alliance', 'blue', _selectedMatch!.blueTeams),
+                // Blue Alliance Cards
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: _buildAllianceTeamCardsSection('Blue Alliance', 'blue', _selectedMatch!.blueTeams),
+                ),
 
                 const SizedBox(height: 20),
 
-                // Red Alliance Cards Row
-                _buildAllianceTeamCardsSection('Red Alliance', 'red', _selectedMatch!.redTeams),
+                // Red Alliance Cards
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: _buildAllianceTeamCardsSection('Red Alliance', 'red', _selectedMatch!.redTeams),
+                ),
+              ] else ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: ObsidianGlassCard(
+                    margin: EdgeInsets.zero,
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.sports_esports_outlined, size: 40, color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.6)),
+                            const SizedBox(height: 10),
+                            Text(
+                              _matches.isEmpty
+                                  ? 'No matches scheduled for this event yet.'
+                                  : 'Select a match above to view alliance statistics and team strategy cards.',
+                              style: TextStyle(color: secondaryTextColor, fontSize: 13, fontWeight: FontWeight.w500),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ],
           ),
@@ -843,6 +1073,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
               fontWeight: FontWeight.w900,
               color: headerColor,
               letterSpacing: 0.5,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           const SizedBox(height: 6),
@@ -854,8 +1085,8 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
             final nick = teamObj?.nickname ?? teamObj?.name ?? '';
 
             return Container(
-              margin: const EdgeInsets.symmetric(vertical: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              margin: const EdgeInsets.symmetric(vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(8),
@@ -866,24 +1097,25 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                   Text(
                     'Station $stationLabel',
                     style: TextStyle(
-                      fontSize: 9,
+                      fontSize: 8.5,
                       fontWeight: FontWeight.w800,
                       color: headerColor.withValues(alpha: 0.8),
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 1),
                   Text(
                     teamNum > 0 ? '#$teamNum' : '—',
                     style: const TextStyle(
-                      fontSize: 14,
+                      fontSize: 13.5,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
                   if (nick.isNotEmpty)
                     Text(
                       nick,
+                      maxLines: 1,
                       style: const TextStyle(
-                        fontSize: 10,
+                        fontSize: 9.5,
                         fontWeight: FontWeight.w500,
                         color: Color(0xFF94A3B8),
                         overflow: TextOverflow.ellipsis,
@@ -908,6 +1140,31 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
     final useMatch13 = !isFtc && (settings?.useMatch13Exp ?? false);
     final useOpr = settings?.useTbaOpr ?? false;
 
+    Widget buildSingleCard(int index) {
+      if (index >= teamKeys.length) return const SizedBox.shrink();
+      final teamNum = _parseTeamNumber(teamKeys[index]);
+      final teamObj = teamNum > 0 ? _teamMap[teamNum] : null;
+
+      return TeamStrategyCard(
+        teamNumber: teamNum,
+        alliance: alliance,
+        stationNumber: index + 1,
+        team: teamObj,
+        matchEntries: _matchEntriesByTeam[teamNum] ?? const [],
+        pitEntries: _pitEntriesByTeam[teamNum] ?? const [],
+        qualEntries: _qualEntriesByTeam[teamNum] ?? const [],
+        matchConfig: _matchConfig,
+        pitConfig: _pitConfig,
+        qualConfig: _qualConfig,
+        allMatches: _matches,
+        statsHistory: _statsHistory,
+        useStatboticsEpa: useStatbotics,
+        useMatch13Exp: useMatch13,
+        useTbaOpr: useOpr,
+        isFtc: isFtc,
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -928,65 +1185,53 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
         const SizedBox(height: 10),
         LayoutBuilder(
           builder: (context, constraints) {
-            final isDesktop = constraints.maxWidth > 900;
-            if (isDesktop) {
+            final width = constraints.maxWidth;
+
+            if (width >= 1040) {
+              // 3 Cards in a Row on Desktop / Large screens
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: List.generate(teamKeys.length, (i) {
-                  final teamNum = _parseTeamNumber(teamKeys[i]);
-                  final teamObj = teamNum > 0 ? _teamMap[teamNum] : null;
-
                   return Expanded(
                     child: Padding(
                       padding: EdgeInsets.only(right: i < teamKeys.length - 1 ? 12.0 : 0.0),
-                      child: TeamStrategyCard(
-                        teamNumber: teamNum,
-                        alliance: alliance,
-                        stationNumber: i + 1,
-                        team: teamObj,
-                        matchEntries: _filterEntriesForTeam(_matchEntries, teamNum),
-                        pitEntries: _filterEntriesForTeam(_pitEntries, teamNum),
-                        qualEntries: _filterEntriesForTeam(_qualEntries, teamNum),
-                        matchConfig: _matchConfig,
-                        pitConfig: _pitConfig,
-                        qualConfig: _qualConfig,
-                        allMatches: _matches,
-                        statsHistory: _statsHistory,
-                        useStatboticsEpa: useStatbotics,
-                        useMatch13Exp: useMatch13,
-                        useTbaOpr: useOpr,
-                        isFtc: isFtc,
-                      ),
+                      child: buildSingleCard(i),
                     ),
                   );
                 }),
               );
+            } else if (width >= 640 && teamKeys.length >= 2) {
+              // Tablet / Medium Screen: 2 cards in first row, 3rd card in second row
+              return Column(
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: buildSingleCard(0)),
+                      const SizedBox(width: 12),
+                      Expanded(child: buildSingleCard(1)),
+                    ],
+                  ),
+                  if (teamKeys.length > 2) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: buildSingleCard(2)),
+                        const SizedBox(width: 12),
+                        const Expanded(child: SizedBox()), // Balances spacing
+                      ],
+                    ),
+                  ],
+                ],
+              );
             } else {
+              // Mobile Phones: 1 card per row
               return Column(
                 children: List.generate(teamKeys.length, (i) {
-                  final teamNum = _parseTeamNumber(teamKeys[i]);
-                  final teamObj = teamNum > 0 ? _teamMap[teamNum] : null;
-
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12.0),
-                    child: TeamStrategyCard(
-                      teamNumber: teamNum,
-                      alliance: alliance,
-                      stationNumber: i + 1,
-                      team: teamObj,
-                      matchEntries: _filterEntriesForTeam(_matchEntries, teamNum),
-                      pitEntries: _filterEntriesForTeam(_pitEntries, teamNum),
-                      qualEntries: _filterEntriesForTeam(_qualEntries, teamNum),
-                      matchConfig: _matchConfig,
-                      pitConfig: _pitConfig,
-                      qualConfig: _qualConfig,
-                      allMatches: _matches,
-                      statsHistory: _statsHistory,
-                      useStatboticsEpa: useStatbotics,
-                      useMatch13Exp: useMatch13,
-                      useTbaOpr: useOpr,
-                      isFtc: isFtc,
-                    ),
+                    child: buildSingleCard(i),
                   );
                 }),
               );
@@ -1000,7 +1245,6 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
   Widget _buildFullscreenWorkspace(BuildContext context) {
     final matchLabel = _selectedMatch?.label ?? (_selectedMatch?.matchNumber != null ? 'Match ${_selectedMatch!.matchNumber}' : 'Match Planning');
     final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
-    final isDesktop = ObsidianResponsive.isDesktop(context, overrideMode: widget.apiService.uiMode);
 
     return PopScope(
       canPop: false,
@@ -1012,151 +1256,206 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
       child: Scaffold(
         backgroundColor: const Color(0xFF090D16),
         body: SafeArea(
-          child: Column(
-            children: [
-              // Top Bar in Fullscreen
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: const Color(0xE60F172A),
-                  border: Border(
-                    bottom: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    // Back / Exit Button
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back_rounded, color: Colors.white70),
-                      tooltip: 'Exit Fullscreen',
-                      onPressed: () => setState(() => _isFullscreen = false),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      matchLabel,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: primaryTextColor,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    // Canvas Toolbar (Centered)
-                    Expanded(
-                      child: Center(
-                        child: CanvasToolbar(
-                          activeTool: _activeTool,
-                          currentColor: _currentColor,
-                          strokeWidth: _strokeWidth,
-                          canUndo: _undoStack.isNotEmpty,
-                          canRedo: _redoStack.isNotEmpty,
-                          isFullscreen: _isFullscreen,
-                          saveStatus: _saveStatus,
-                          onToolChanged: (tool) => setState(() => _activeTool = tool),
-                          onColorChanged: (color) => setState(() => _currentColor = color),
-                          onStrokeWidthChanged: (val) => setState(() => _strokeWidth = val),
-                          onUndo: _handleUndo,
-                          onRedo: _handleRedo,
-                          onClear: _handleClearCanvas,
-                          onToggleFullscreen: () => setState(() => _isFullscreen = false),
-                          onExport: _exportPlanImage,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Exit Fullscreen Action Button
-                    FilledButton.tonalIcon(
-                      onPressed: () => setState(() => _isFullscreen = false),
-                      icon: const Icon(Icons.fullscreen_exit_rounded, size: 18),
-                      label: const Text('Exit', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        backgroundColor: Colors.white.withValues(alpha: 0.1),
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isWideScreen = constraints.maxWidth >= 760;
 
-              // Fullscreen Workspace Body
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: isDesktop
-                      ? Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            // Blue Stations
-                            SizedBox(
-                              width: 140,
-                              child: _buildDriverStationColumn('Blue Alliance', 'blue', _selectedMatch?.blueTeams ?? []),
-                            ),
-                            const SizedBox(width: 12),
-                            // Strategy Canvas in Center
-                            Expanded(
-                              child: Center(
-                                child: StrategyFieldCanvas(
-                                  repaintBoundaryKey: _repaintBoundaryKey,
-                                  plan: _plan,
+              return Column(
+                children: [
+                  // Top Bar in Fullscreen
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xE60F172A),
+                      border: Border(
+                        bottom: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                      ),
+                    ),
+                    child: isWideScreen
+                        ? Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.arrow_back_rounded, color: Colors.white70),
+                                tooltip: 'Exit Fullscreen',
+                                onPressed: () => setState(() => _isFullscreen = false),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                matchLabel,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: primaryTextColor,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Center(
+                                  child: CanvasToolbar(
+                                    activeTool: _activeTool,
+                                    currentColor: _currentColor,
+                                    strokeWidth: _strokeWidth,
+                                    canUndo: _undoStack.isNotEmpty,
+                                    canRedo: _redoStack.isNotEmpty,
+                                    isFullscreen: _isFullscreen,
+                                    saveStatus: _saveStatus,
+                                    onToolChanged: (tool) => setState(() => _activeTool = tool),
+                                    onColorChanged: (color) => setState(() => _currentColor = color),
+                                    onStrokeWidthChanged: (val) => setState(() => _strokeWidth = val),
+                                    onUndo: _handleUndo,
+                                    onRedo: _handleRedo,
+                                    onClear: _handleClearCanvas,
+                                    onToggleFullscreen: () => setState(() => _isFullscreen = false),
+                                    onExport: _exportPlanImage,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              FilledButton.tonalIcon(
+                                onPressed: () => setState(() => _isFullscreen = false),
+                                icon: const Icon(Icons.fullscreen_exit_rounded, size: 18),
+                                label: const Text('Exit', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                style: FilledButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  backgroundColor: Colors.white.withValues(alpha: 0.1),
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                            ],
+                          )
+                        : Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Row(
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.arrow_back_rounded, color: Colors.white70),
+                                    tooltip: 'Exit Fullscreen',
+                                    onPressed: () => setState(() => _isFullscreen = false),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      matchLabel,
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w800,
+                                        color: primaryTextColor,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.fullscreen_exit_rounded, color: Colors.white),
+                                    tooltip: 'Exit Fullscreen',
+                                    onPressed: () => setState(() => _isFullscreen = false),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Center(
+                                child: CanvasToolbar(
                                   activeTool: _activeTool,
                                   currentColor: _currentColor,
                                   strokeWidth: _strokeWidth,
-                                  fieldImage: _fieldImage,
-                                  currentMatch: _selectedMatch,
-                                  teamMap: _teamMap,
-                                  onStrokeCompleted: _handleStrokeCompleted,
-                                  onMarkerPositionChanged: _handleMarkerPositionChanged,
-                                  onMarkerDragEnd: _handleMarkerDragEnd,
+                                  canUndo: _undoStack.isNotEmpty,
+                                  canRedo: _redoStack.isNotEmpty,
+                                  isFullscreen: _isFullscreen,
+                                  saveStatus: _saveStatus,
+                                  onToolChanged: (tool) => setState(() => _activeTool = tool),
+                                  onColorChanged: (color) => setState(() => _currentColor = color),
+                                  onStrokeWidthChanged: (val) => setState(() => _strokeWidth = val),
+                                  onUndo: _handleUndo,
+                                  onRedo: _handleRedo,
+                                  onClear: _handleClearCanvas,
+                                  onToggleFullscreen: () => setState(() => _isFullscreen = false),
+                                  onExport: _exportPlanImage,
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                            // Red Stations
-                            SizedBox(
-                              width: 140,
-                              child: _buildDriverStationColumn('Red Alliance', 'red', _selectedMatch?.redTeams ?? []),
-                            ),
-                          ],
-                        )
-                      : Column(
-                          children: [
-                            // Canvas expanded
-                            Expanded(
-                              child: Center(
-                                child: StrategyFieldCanvas(
-                                  repaintBoundaryKey: _repaintBoundaryKey,
-                                  plan: _plan,
-                                  activeTool: _activeTool,
-                                  currentColor: _currentColor,
-                                  strokeWidth: _strokeWidth,
-                                  fieldImage: _fieldImage,
-                                  currentMatch: _selectedMatch,
-                                  teamMap: _teamMap,
-                                  onStrokeCompleted: _handleStrokeCompleted,
-                                  onMarkerPositionChanged: _handleMarkerPositionChanged,
-                                  onMarkerDragEnd: _handleMarkerDragEnd,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            // Driver stations row on mobile
-                            Row(
+                            ],
+                          ),
+                  ),
+
+                  // Fullscreen Workspace Body
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: isWideScreen
+                          ? Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                Expanded(
+                                // Blue Stations
+                                SizedBox(
+                                  width: 135,
                                   child: _buildDriverStationColumn('Blue Alliance', 'blue', _selectedMatch?.blueTeams ?? []),
                                 ),
-                                const SizedBox(width: 8),
+                                const SizedBox(width: 10),
+                                // Strategy Canvas in Center
                                 Expanded(
+                                  child: Center(
+                                    child: StrategyFieldCanvas(
+                                      repaintBoundaryKey: _repaintBoundaryKey,
+                                      plan: _plan,
+                                      activeTool: _activeTool,
+                                      currentColor: _currentColor,
+                                      strokeWidth: _strokeWidth,
+                                      fieldImage: _fieldImage,
+                                      currentMatch: _selectedMatch,
+                                      teamMap: _teamMap,
+                                      onStrokeCompleted: _handleStrokeCompleted,
+                                      onMarkerPositionChanged: _handleMarkerPositionChanged,
+                                      onMarkerDragEnd: _handleMarkerDragEnd,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                // Red Stations
+                                SizedBox(
+                                  width: 135,
                                   child: _buildDriverStationColumn('Red Alliance', 'red', _selectedMatch?.redTeams ?? []),
                                 ),
                               ],
+                            )
+                          : Column(
+                              children: [
+                                // Canvas expanded
+                                Expanded(
+                                  child: Center(
+                                    child: StrategyFieldCanvas(
+                                      repaintBoundaryKey: _repaintBoundaryKey,
+                                      plan: _plan,
+                                      activeTool: _activeTool,
+                                      currentColor: _currentColor,
+                                      strokeWidth: _strokeWidth,
+                                      fieldImage: _fieldImage,
+                                      currentMatch: _selectedMatch,
+                                      teamMap: _teamMap,
+                                      onStrokeCompleted: _handleStrokeCompleted,
+                                      onMarkerPositionChanged: _handleMarkerPositionChanged,
+                                      onMarkerDragEnd: _handleMarkerDragEnd,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                // Driver stations row on mobile
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _buildDriverStationColumn('Blue Alliance', 'blue', _selectedMatch?.blueTeams ?? []),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: _buildDriverStationColumn('Red Alliance', 'red', _selectedMatch?.redTeams ?? []),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                ),
-              ),
-            ],
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),

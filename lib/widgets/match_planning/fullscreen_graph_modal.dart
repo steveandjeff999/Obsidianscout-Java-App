@@ -65,13 +65,18 @@ class _FullscreenGraphModalState extends State<FullscreenGraphModal> {
     final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
     final isDark = ObsidianUITheme.isDark(context);
     final teamNick = widget.team?.nickname ?? widget.team?.name ?? '';
+    final screenSize = MediaQuery.sizeOf(context);
+    final isCompact = screenSize.width < 600;
 
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: isCompact ? 8 : 16,
+        vertical: isCompact ? 12 : 24,
+      ),
       child: Container(
-        width: 900,
-        height: 540,
+        width: screenSize.width < 960 ? screenSize.width * 0.95 : 900,
+        height: screenSize.height < 640 ? screenSize.height * 0.88 : 540,
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF1E293B) : const Color(0xFFFFFFFF),
           borderRadius: BorderRadius.circular(16),
@@ -90,42 +95,72 @@ class _FullscreenGraphModalState extends State<FullscreenGraphModal> {
           children: [
             // Header
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 12, 14),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
+              padding: EdgeInsets.fromLTRB(isCompact ? 12 : 20, 14, 10, 12),
+              child: isCompact
+                  ? Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Team #${widget.teamNumber}${teamNick.isNotEmpty ? ' — $teamNick' : ''}',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                            color: primaryTextColor,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Team #${widget.teamNumber}${teamNick.isNotEmpty ? ' — $teamNick' : ''}',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                  color: primaryTextColor,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close_rounded),
+                              tooltip: 'Close',
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onPressed: () => Navigator.of(context).pop(),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: _buildDatasourcePills(),
+                        ),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Team #${widget.teamNumber}${teamNick.isNotEmpty ? ' — $teamNick' : ''}',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                  color: primaryTextColor,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Performance Progression Across Matches',
+                                style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Performance Progression Across Matches',
-                          style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                        const SizedBox(width: 8),
+                        _buildDatasourcePills(),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded),
+                          tooltip: 'Close',
+                          onPressed: () => Navigator.of(context).pop(),
                         ),
                       ],
                     ),
-                  ),
-
-                  // Datasource Selector Pills
-                  _buildDatasourcePills(),
-
-                  const SizedBox(width: 8),
-
-                  IconButton(
-                    icon: const Icon(Icons.close_rounded),
-                    tooltip: 'Close',
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ],
-              ),
             ),
 
             const Divider(height: 1),
@@ -133,7 +168,12 @@ class _FullscreenGraphModalState extends State<FullscreenGraphModal> {
             // Chart Content
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 24, 28, 18),
+                padding: EdgeInsets.fromLTRB(
+                  isCompact ? 12 : 24,
+                  isCompact ? 14 : 24,
+                  isCompact ? 14 : 28,
+                  isCompact ? 10 : 18,
+                ),
                 child: _currentSeries.values.isEmpty
                     ? Center(
                         child: Column(

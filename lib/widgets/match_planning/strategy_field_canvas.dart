@@ -104,7 +104,7 @@ class _StrategyFieldCanvasState extends State<StrategyFieldCanvas> {
           canvasHeight = constraints.maxHeight;
           canvasWidth = canvasHeight * fieldAspect;
         } else if (!constraints.maxHeight.isFinite) {
-          canvasHeight = canvasHeight.clamp(240.0, 750.0);
+          canvasHeight = (canvasWidth / fieldAspect).clamp(100.0, 750.0);
         }
 
         final canvasSize = Size(canvasWidth, canvasHeight);
