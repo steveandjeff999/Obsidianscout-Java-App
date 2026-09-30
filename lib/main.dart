@@ -1142,6 +1142,8 @@ class _MainShellState extends State<MainShell> {
       case 28:
         return ThemeEditorScreen(
           apiService: widget.apiService,
+          isVisible: isTabActive && _currentIndex == 28,
+          isBarsVisible: _isBarsVisible,
           onBack: () => _navigateScreen(5),
         );
       case 29:

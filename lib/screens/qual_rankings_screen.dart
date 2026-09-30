@@ -368,6 +368,8 @@ class _QualRankingsScreenState extends State<QualRankingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.isVisible) return const SizedBox.shrink();
+
     final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
     final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
     final borderColor = ObsidianUITheme.getBorderColor(context);
@@ -376,18 +378,16 @@ class _QualRankingsScreenState extends State<QualRankingsScreen> {
 
     final teamScores = _calculateTeamScores();
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: RefreshIndicator(
-        onRefresh: _loadData,
-        color: ObsidianUITheme.primaryAccent,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-          padding: EdgeInsets.fromLTRB(16, isDesktop ? 16 : 8, 16, 24),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1400),
-              child: Column(
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      color: ObsidianUITheme.primaryAccent,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        padding: EdgeInsets.fromLTRB(16, isDesktop ? 16 : 8, 16, widget.isBarsVisible ? 120 : 24),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1400),
+            child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Robot Role Filter Section (if enabled in qual config)
@@ -718,8 +718,7 @@ class _QualRankingsScreenState extends State<QualRankingsScreen> {
             ),
           ),
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildRoleChip(String roleId, String label, IconData icon) {

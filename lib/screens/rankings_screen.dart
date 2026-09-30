@@ -199,24 +199,24 @@ class _RankingsScreenState extends State<RankingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.isVisible) return const SizedBox.shrink();
+
     final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
     final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
     final borderColor = ObsidianUITheme.getBorderColor(context);
     final isDesktop = ObsidianResponsive.isDesktop(context, overrideMode: widget.apiService.uiMode);
     final sortedTeams = _sortedAndFilteredTeams;
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: RefreshIndicator(
-        onRefresh: _loadTeams,
-        color: ObsidianUITheme.primaryAccent,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-          padding: EdgeInsets.fromLTRB(16, isDesktop ? 16 : 8, 16, 24),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1400),
-              child: Column(
+    return RefreshIndicator(
+      onRefresh: _loadTeams,
+      color: ObsidianUITheme.primaryAccent,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        padding: EdgeInsets.fromLTRB(16, isDesktop ? 16 : 8, 16, widget.isBarsVisible ? 120 : 24),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1400),
+            child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Filter & Metric Selector Card
@@ -474,8 +474,7 @@ class _RankingsScreenState extends State<RankingsScreen> {
             ),
           ),
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildDesktopTable(List<TeamModel> teams) {

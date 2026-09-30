@@ -745,6 +745,8 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.isVisible) return const SizedBox.shrink();
+
     if (_isLoading) {
       return Center(child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent));
     }

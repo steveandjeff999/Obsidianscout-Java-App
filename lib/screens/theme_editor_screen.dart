@@ -8,11 +8,15 @@ import '../widgets/obsidian_glass_card.dart';
 class ThemeEditorScreen extends StatefulWidget {
   final ApiService apiService;
   final VoidCallback? onBack;
+  final bool isVisible;
+  final bool isBarsVisible;
 
   const ThemeEditorScreen({
     super.key,
     required this.apiService,
     this.onBack,
+    this.isVisible = true,
+    this.isBarsVisible = true,
   });
 
   @override
@@ -586,6 +590,8 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.isVisible) return const SizedBox.shrink();
+
     final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
     final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
     final tertiaryTextColor = ObsidianUITheme.getTertiaryTextColor(context);
@@ -601,7 +607,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
           : !isAdmin
               ? _buildAdminLockedView(primaryTextColor, secondaryTextColor)
               : SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                  padding: EdgeInsets.fromLTRB(16.0, 12.0, 16.0, widget.isBarsVisible ? 120.0 : 24.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
