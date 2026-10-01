@@ -30,8 +30,10 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
   void initState() {
     super.initState();
     _gamepadService.addListener(_onGamepadStateChanged);
+    _gamepadService.attachApiService(widget.apiService);
     _loadScoutingConfig();
     _gamepadService.refreshConnectedDevices();
+    _gamepadService.syncWithServer(forceRefresh: true);
   }
 
   @override
@@ -42,6 +44,48 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
 
   void _onGamepadStateChanged() {
     if (mounted) setState(() {});
+  }
+
+  Future<void> _refreshAll() async {
+    final synced = await _gamepadService.syncWithServer(forceRefresh: true);
+    await _gamepadService.refreshConnectedDevices();
+    await _loadScoutingConfig();
+    if (mounted) {
+      if (synced) {
+        ObsidianFeedback.showSuccess(
+          context,
+          title: 'Updated from Server',
+          message: '${_gamepadService.profiles.length} controller profile(s) synced from server.',
+        );
+      } else {
+        ObsidianFeedback.showSuccess(
+          context,
+          title: 'Controllers Refreshed',
+          message: '${_gamepadService.connectedDevices.length} controller(s) detected.',
+        );
+      }
+    }
+  }
+
+  Future<void> _saveActiveProfile() async {
+    final profile = _gamepadService.activeProfile;
+    if (profile == null) return;
+    final ok = await _gamepadService.saveActiveProfileToServer();
+    if (mounted) {
+      if (ok) {
+        ObsidianFeedback.showSuccess(
+          context,
+          title: 'Profile Saved',
+          message: 'Controller profile "${profile.name}" saved to server database.',
+        );
+      } else {
+        ObsidianFeedback.showSuccess(
+          context,
+          title: 'Saved Locally',
+          message: 'Profile saved on this device (offline mode).',
+        );
+      }
+    }
   }
 
   Widget _buildPhaseFilterChip(String key, String label, Color? accentColor) {
@@ -105,48 +149,49 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.save_rounded),
+            tooltip: 'Save Profile Changes',
+            onPressed: _saveActiveProfile,
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Refresh Gamepads',
-            onPressed: () async {
-              await _gamepadService.refreshConnectedDevices();
-              if (context.mounted) {
-                ObsidianFeedback.showSuccess(
-                  context,
-                  title: 'Controllers Refreshed',
-                  message: '${_gamepadService.connectedDevices.length} controller(s) detected.',
-                );
-              }
-            },
+            tooltip: 'Refresh Profiles & Controllers',
+            onPressed: _refreshAll,
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: EdgeInsets.symmetric(
-          horizontal: isDesktop ? 32.0 : 16.0,
-          vertical: 16.0,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 1. Controller Hardware Status Card
-            _buildDeviceStatusCard(context),
-            const SizedBox(height: 16.0),
-
-            // 2. Profile Management & Import/Export
-            if (activeProfile != null) ...[
-              _buildProfileManagementCard(context, activeProfile),
+      body: RefreshIndicator(
+        onRefresh: _refreshAll,
+        color: ObsidianUITheme.primaryAccent,
+        backgroundColor: ObsidianUITheme.getSurfaceColor(context),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+          padding: EdgeInsets.symmetric(
+            horizontal: isDesktop ? 32.0 : 16.0,
+            vertical: 16.0,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 1. Controller Hardware Status Card
+              _buildDeviceStatusCard(context),
               const SizedBox(height: 16.0),
 
-              // 3. Live Input HUD / Tester (Collapsible)
-              _buildLiveTesterCard(context, activeProfile),
-              const SizedBox(height: 16.0),
+              // 2. Profile Management & Import/Export
+              if (activeProfile != null) ...[
+                _buildProfileManagementCard(context, activeProfile),
+                const SizedBox(height: 16.0),
 
-              // 4. Mappings List Header & Add Button
-              _buildMappingsSection(context, activeProfile),
+                // 3. Live Input HUD / Tester (Collapsible)
+                _buildLiveTesterCard(context, activeProfile),
+                const SizedBox(height: 16.0),
+
+                // 4. Mappings List Header & Add Button
+                _buildMappingsSection(context, activeProfile),
+              ],
+              const SizedBox(height: 48.0),
             ],
-            const SizedBox(height: 48.0),
-          ],
+          ),
         ),
       ),
       floatingActionButton: (activeProfile != null && activeProfile.enabled)
@@ -551,7 +596,7 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
                 Icon(Icons.tune_rounded, color: ObsidianUITheme.primaryAccent, size: 22),
                 const SizedBox(width: 10),
                 Text(
-                  'Profile & Configuration',
+                  'Controller Profiles (${_gamepadService.profiles.length})',
                   style: TextStyle(
                     fontSize: 15.5,
                     fontWeight: FontWeight.bold,
@@ -559,107 +604,203 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
                   ),
                 ),
                 const Spacer(),
-                // Profile actions menu (Duplicate, Rename, Reset, Delete)
-                PopupMenuButton<String>(
-                  icon: Icon(Icons.more_horiz_rounded, color: secondaryTextColor),
-                  color: surfaceColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  onSelected: (val) => _handleProfileMenuAction(val, activeProfile),
-                  itemBuilder: (ctx) => [
-                    const PopupMenuItem(
-                      value: 'auto_generate',
-                      child: Row(
-                        children: [
-                          Icon(Icons.auto_awesome_rounded, size: 18),
-                          SizedBox(width: 8),
-                          Text('Auto-Generate Layout'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'rename',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit_outlined, size: 18),
-                          SizedBox(width: 8),
-                          Text('Rename Profile'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'duplicate',
-                      child: Row(
-                        children: [
-                          Icon(Icons.copy_rounded, size: 18),
-                          SizedBox(width: 8),
-                          Text('Duplicate Profile'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'reset_default',
-                      child: Row(
-                        children: [
-                          Icon(Icons.restore_rounded, size: 18),
-                          SizedBox(width: 8),
-                          Text('Reset to Defaults'),
-                        ],
-                      ),
-                    ),
-                    if (_gamepadService.profiles.length > 1)
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),
-                            SizedBox(width: 8),
-                            Text('Delete Profile', style: TextStyle(color: Colors.redAccent)),
-                          ],
-                        ),
-                      ),
-                  ],
+                ElevatedButton.icon(
+                  onPressed: _saveActiveProfile,
+                  icon: const Icon(Icons.save_rounded, size: 16),
+                  label: const Text('Save Profile'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: ObsidianUITheme.primaryAccent,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    visualDensity: VisualDensity.compact,
+                    textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                IconButton(
+                  icon: const Icon(Icons.sync_rounded, size: 20),
+                  tooltip: 'Sync Profiles from Server',
+                  onPressed: _refreshAll,
+                  visualDensity: VisualDensity.compact,
+                ),
+                TextButton.icon(
+                  onPressed: () => _showNewProfileDialog(context),
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text('New Profile'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: ObsidianUITheme.primaryAccent,
+                    visualDensity: VisualDensity.compact,
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
 
-            // Profile Dropdown Selector
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-              decoration: BoxDecoration(
-                color: surfaceColor.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  isExpanded: true,
-                  value: activeProfile.id,
-                  dropdownColor: surfaceColor,
-                  items: _gamepadService.profiles.map((p) {
-                    return DropdownMenuItem(
-                      value: p.id,
-                      child: Text(
-                        '${p.name} (${p.bindings.length} bindings)',
-                        style: TextStyle(
-                          color: primaryTextColor,
-                          fontWeight: p.id == activeProfile.id ? FontWeight.bold : FontWeight.normal,
+            // Profile List Items
+            ..._gamepadService.profiles.map((p) {
+              final isActive = p.id == activeProfile.id;
+              final icon = p.controllerType == 'playstation'
+                  ? Icons.gamepad_outlined
+                  : (p.controllerType == 'keyboard' ? Icons.keyboard_outlined : Icons.videogame_asset_outlined);
+              final typeLabel = p.controllerType == 'playstation'
+                  ? 'PS4 / PS5'
+                  : (p.controllerType == 'keyboard' ? 'Keyboard' : 'Xbox');
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                decoration: BoxDecoration(
+                  color: isActive
+                      ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.12)
+                      : surfaceColor.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isActive
+                        ? ObsidianUITheme.primaryAccent
+                        : ObsidianUITheme.getBorderColor(context),
+                    width: isActive ? 1.5 : 1.0,
+                  ),
+                ),
+                child: ListTile(
+                  dense: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                  leading: Icon(
+                    icon,
+                    color: isActive ? ObsidianUITheme.primaryAccent : secondaryTextColor,
+                    size: 22,
+                  ),
+                  title: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          p.name,
+                          style: TextStyle(
+                            fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                            color: isActive ? ObsidianUITheme.primaryAccent : primaryTextColor,
+                            fontSize: 14,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                    );
-                  }).toList(),
-                  onChanged: (id) {
-                    if (id != null) {
-                      final selected = _gamepadService.profiles.where((p) => p.id == id).firstOrNull;
-                      if (selected != null) {
-                        _gamepadService.setActiveProfile(selected);
-                      }
-                    }
+                      if (isActive)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: ObsidianUITheme.successGreen.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: ObsidianUITheme.successGreen.withValues(alpha: 0.4)),
+                          ),
+                          child: const Text(
+                            'ACTIVE',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: ObsidianUITheme.successGreen,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  subtitle: Row(
+                    children: [
+                      Text(
+                        '$typeLabel • ${p.bindings.length} bindings',
+                        style: TextStyle(fontSize: 11.5, color: secondaryTextColor),
+                      ),
+                    ],
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (!isActive)
+                        TextButton(
+                          onPressed: () => _gamepadService.setActiveProfile(p),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            minimumSize: Size.zero,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          child: const Text('Use', style: TextStyle(fontSize: 12)),
+                        ),
+                      PopupMenuButton<String>(
+                        icon: Icon(Icons.more_vert_rounded, size: 18, color: secondaryTextColor),
+                        color: surfaceColor,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        onSelected: (val) => _handleProfileMenuAction(val, p),
+                        itemBuilder: (ctx) => [
+                          if (!isActive)
+                            const PopupMenuItem(
+                              value: 'set_active',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.check_circle_outline_rounded, size: 18),
+                                  SizedBox(width: 8),
+                                  Text('Set as Active'),
+                                ],
+                              ),
+                            ),
+                          const PopupMenuItem(
+                            value: 'rename',
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit_outlined, size: 18),
+                                SizedBox(width: 8),
+                                Text('Rename'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'duplicate',
+                            child: Row(
+                              children: [
+                                Icon(Icons.copy_rounded, size: 18),
+                                SizedBox(width: 8),
+                                Text('Duplicate'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'export',
+                            child: Row(
+                              children: [
+                                Icon(Icons.file_upload_outlined, size: 18),
+                                SizedBox(width: 8),
+                                Text('Export JSON'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'reset_default',
+                            child: Row(
+                              children: [
+                                Icon(Icons.restore_rounded, size: 18),
+                                SizedBox(width: 8),
+                                Text('Reset Bindings'),
+                              ],
+                            ),
+                          ),
+                          if (_gamepadService.profiles.length > 1)
+                            const PopupMenuItem(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),
+                                  SizedBox(width: 8),
+                                  Text('Delete', style: TextStyle(color: Colors.redAccent)),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  onTap: () {
+                    if (!isActive) _gamepadService.setActiveProfile(p);
                   },
                 ),
-              ),
-            ),
-            const SizedBox(height: 12),
+              );
+            }),
+
+            const SizedBox(height: 6),
 
             // AUTO-GENERATE SMART LAYOUT BUTTON
             SizedBox(
@@ -1530,27 +1671,110 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
     }
   }
 
-  void _handleProfileMenuAction(String action, GamepadProfile activeProfile) {
-    if (action == 'auto_generate') {
-      _handleAutoGenerateLayout(context, activeProfile);
+  void _showNewProfileDialog(BuildContext context) {
+    final nameController = TextEditingController(text: 'Custom Layout');
+    String chosenType = 'xbox';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: ObsidianUITheme.getSurfaceColor(context),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('New Controller Profile'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Profile Name',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 14),
+              DropdownButtonFormField<String>(
+                initialValue: chosenType,
+                decoration: const InputDecoration(
+                  labelText: 'Controller Style',
+                  border: OutlineInputBorder(),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'xbox', child: Text('Xbox Controller')),
+                  DropdownMenuItem(value: 'playstation', child: Text('PlayStation 4 / 5')),
+                  DropdownMenuItem(value: 'keyboard', child: Text('Keyboard / Bluetooth')),
+                ],
+                onChanged: (val) {
+                  if (val != null) setDialogState(() => chosenType = val);
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: ObsidianUITheme.primaryAccent,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                final name = nameController.text.trim();
+                if (name.isEmpty) return;
+                final base = chosenType == 'playstation'
+                    ? GamepadProfile.defaultPlayStation()
+                    : (chosenType == 'keyboard' ? GamepadProfile.defaultKeyboard() : GamepadProfile.defaultXbox());
+                final newProf = base.copyWith(
+                  id: 'profile_${DateTime.now().millisecondsSinceEpoch}',
+                  name: name,
+                  controllerType: chosenType,
+                );
+                _gamepadService.saveProfile(newProf);
+                _gamepadService.setActiveProfile(newProf);
+                Navigator.of(ctx).pop();
+                ObsidianFeedback.showSuccess(context, title: 'Profile Created', message: name);
+              },
+              child: const Text('Create'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _handleProfileMenuAction(String action, GamepadProfile targetProfile) {
+    if (action == 'set_active') {
+      _gamepadService.setActiveProfile(targetProfile);
+      ObsidianFeedback.showSuccess(context, title: 'Active Profile Set', message: targetProfile.name);
+    } else if (action == 'auto_generate') {
+      _handleAutoGenerateLayout(context, targetProfile);
+    } else if (action == 'export') {
+      _showExportDialog(context, targetProfile);
     } else if (action == 'rename') {
-      final nameController = TextEditingController(text: activeProfile.name);
+      final nameController = TextEditingController(text: targetProfile.name);
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
           backgroundColor: ObsidianUITheme.getSurfaceColor(context),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: const Text('Rename Profile'),
           content: TextField(
             controller: nameController,
-            decoration: const InputDecoration(labelText: 'Profile Name'),
+            decoration: const InputDecoration(labelText: 'Profile Name', border: OutlineInputBorder()),
           ),
           actions: [
             TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: ObsidianUITheme.primaryAccent,
+                foregroundColor: Colors.white,
+              ),
               onPressed: () {
                 final newName = nameController.text.trim();
                 if (newName.isNotEmpty) {
-                  _gamepadService.saveProfile(activeProfile.copyWith(name: newName));
+                  _gamepadService.saveProfile(targetProfile.copyWith(name: newName));
                 }
                 Navigator.of(ctx).pop();
               },
@@ -1560,20 +1784,21 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
         ),
       );
     } else if (action == 'duplicate') {
-      final dup = activeProfile.copyWith(
+      final dup = targetProfile.copyWith(
         id: 'profile_${DateTime.now().millisecondsSinceEpoch}',
-        name: '${activeProfile.name} (Copy)',
+        name: '${targetProfile.name} (Copy)',
       );
       _gamepadService.setActiveProfile(dup);
       ObsidianFeedback.showSuccess(context, title: 'Profile Duplicated', message: dup.name);
     } else if (action == 'reset_default') {
-      final def = activeProfile.controllerType == 'playstation'
+      final def = targetProfile.controllerType == 'playstation'
           ? GamepadProfile.defaultPlayStation()
-          : GamepadProfile.defaultXbox();
-      _gamepadService.saveProfile(def.copyWith(id: activeProfile.id, name: activeProfile.name));
+          : (targetProfile.controllerType == 'keyboard' ? GamepadProfile.defaultKeyboard() : GamepadProfile.defaultXbox());
+      _gamepadService.saveProfile(def.copyWith(id: targetProfile.id, name: targetProfile.name));
       ObsidianFeedback.showSuccess(context, title: 'Layout Reset', message: 'Reset bindings to default layout.');
     } else if (action == 'delete') {
-      _gamepadService.deleteProfile(activeProfile.id);
+      _gamepadService.deleteProfile(targetProfile.id);
+      ObsidianFeedback.showSuccess(context, title: 'Profile Deleted', message: targetProfile.name);
     }
   }
 }

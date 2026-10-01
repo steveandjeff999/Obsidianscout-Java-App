@@ -6,6 +6,7 @@ import 'package:gamepads/gamepads.dart';
 import 'package:gamepads_platform_interface/gamepads_platform_interface.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/gamepad_models.dart';
+import 'api_service.dart';
 import 'file_download_helper.dart';
 
 typedef GamepadInputListenCallback = void Function(String inputKey, String displayName, bool isAnalog);
@@ -733,6 +734,43 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
     }
   }
 
+  ApiService? _apiService;
+
+  /// Attach ApiService for cloud database syncing
+  void attachApiService(ApiService apiService) {
+    _apiService = apiService;
+    syncWithServer();
+  }
+
+  /// Syncs profiles with the server database. If [forceRefresh] is true, forces fetching fresh profiles from network.
+  Future<bool> syncWithServer({bool forceRefresh = false}) async {
+    final api = _apiService;
+    if (api == null || !api.isOnline) return false;
+
+    try {
+      final serverProfiles = await api.fetchGamepadProfiles(forceRefresh: forceRefresh);
+      if (serverProfiles.isNotEmpty) {
+        _profiles = List<GamepadProfile>.from(serverProfiles);
+        if (_activeProfile != null) {
+          _activeProfile = _profiles.where((p) => p.id == _activeProfile!.id).firstOrNull ?? _profiles.first;
+        } else {
+          _activeProfile = _profiles.first;
+        }
+        await _saveProfiles();
+        notifyListeners();
+        return true;
+      } else if (_activeProfile != null) {
+        // Push initial local profile to server if server is empty
+        await api.saveGamepadProfile(_activeProfile!);
+        return true;
+      }
+      return true;
+    } catch (e) {
+      debugPrint('[GamepadService] syncWithServer error: $e');
+      return false;
+    }
+  }
+
   Future<void> setActiveProfile(GamepadProfile profile) async {
     _activeProfile = profile;
     final index = _profiles.indexWhere((p) => p.id == profile.id);
@@ -745,18 +783,39 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
     notifyListeners();
   }
 
-  Future<void> saveProfile(GamepadProfile profile) async {
+  Future<void> saveProfile(GamepadProfile profile, {bool pushToServer = false}) async {
     final index = _profiles.indexWhere((p) => p.id == profile.id);
     if (index >= 0) {
       _profiles[index] = profile;
     } else {
       _profiles.add(profile);
     }
-    if (_activeProfile?.id == profile.id) {
+    if (_activeProfile?.id == profile.id || _activeProfile == null) {
       _activeProfile = profile;
     }
     await _saveProfiles();
     notifyListeners();
+
+    if (pushToServer) {
+      final api = _apiService;
+      if (api != null && api.isOnline) {
+        await api.saveGamepadProfile(profile).catchError((_) => null);
+      }
+    }
+  }
+
+  /// Explicitly saves the active profile to the server database
+  Future<bool> saveActiveProfileToServer() async {
+    final profile = _activeProfile;
+    if (profile == null) return false;
+
+    await _saveProfiles();
+    final api = _apiService;
+    if (api != null && api.isOnline) {
+      final res = await api.saveGamepadProfile(profile);
+      return res != null;
+    }
+    return false;
   }
 
   Future<void> deleteProfile(String profileId) async {
@@ -769,6 +828,12 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
     }
     await _saveProfiles();
     notifyListeners();
+
+    // Background delete from server database
+    final api = _apiService;
+    if (api != null && api.isOnline) {
+      api.deleteGamepadProfile(profileId).catchError((_) => false);
+    }
   }
 
   /// Exports the profile as JSON string
