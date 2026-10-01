@@ -382,6 +382,148 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
                   ),
                 ],
               ),
+              const Divider(height: 24),
+
+              // Controller Rumble & Haptics Toggle
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Controller Rumble & Haptics',
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w600,
+                            color: primaryTextColor,
+                          ),
+                        ),
+                        Text(
+                          'Vibrates controller on button taps, rapid fire, and actions',
+                          style: TextStyle(fontSize: 11.5, color: secondaryTextColor),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Switch(
+                    value: activeProfile.hapticEnabled,
+                    activeTrackColor: ObsidianUITheme.primaryAccent,
+                    activeThumbColor: Colors.white,
+                    onChanged: (val) {
+                      _gamepadService.saveProfile(activeProfile.copyWith(hapticEnabled: val));
+                    },
+                  ),
+                ],
+              ),
+
+              if (activeProfile.hapticEnabled) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: ObsidianUITheme.getSurfaceColor(context).withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.vibration_rounded, size: 18, color: ObsidianUITheme.primaryAccent),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Rumble Strength',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: primaryTextColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              '${(activeProfile.hapticStrength * 100).round()}%',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: ObsidianUITheme.primaryAccent,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: SliderTheme(
+                              data: SliderTheme.of(context).copyWith(
+                                trackHeight: 4,
+                                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
+                                overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                                activeTrackColor: ObsidianUITheme.primaryAccent,
+                                thumbColor: ObsidianUITheme.primaryAccent,
+                              ),
+                              child: Slider(
+                                value: activeProfile.hapticStrength,
+                                min: 0.0,
+                                max: 1.0,
+                                divisions: 20,
+                                onChanged: (val) {
+                                  _gamepadService.saveProfile(
+                                    activeProfile.copyWith(hapticStrength: (val * 100).round() / 100.0),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          OutlinedButton.icon(
+                            onPressed: () async {
+                              final success = await _gamepadService.testRumble();
+                              if (context.mounted) {
+                                if (success) {
+                                  ObsidianFeedback.showSuccess(
+                                    context,
+                                    title: 'Rumble Test',
+                                    message: 'Vibration signal sent to controller.',
+                                  );
+                                } else {
+                                  ObsidianFeedback.showWarning(
+                                    context,
+                                    title: 'No Controller Detected',
+                                    message: 'Connect a supported controller to test rumble.',
+                                  );
+                                }
+                              }
+                            },
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              minimumSize: Size.zero,
+                              visualDensity: VisualDensity.compact,
+                              side: BorderSide(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.6)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            icon: const Icon(Icons.play_arrow_rounded, size: 16),
+                            label: const Text('Test', style: TextStyle(fontSize: 12)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ],
         ),

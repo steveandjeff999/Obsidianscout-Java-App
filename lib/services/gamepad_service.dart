@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:gamepads/gamepads.dart';
+import 'package:gamepads_platform_interface/gamepads_platform_interface.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/gamepad_models.dart';
 import 'file_download_helper.dart';
@@ -373,12 +374,105 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
     );
   }
 
+  String? _lastActiveGamepadId;
+
+  /// Triggers physical rumble / haptic feedback on the active gamepad controller
+  Future<void> _triggerGamepadHaptic({
+    required GamepadBinding binding,
+    required double value,
+    required bool isRepeat,
+    String? gamepadId,
+  }) async {
+    final profile = _activeProfile;
+    if (profile != null && !profile.hapticEnabled) return;
+
+    final strength = (profile?.hapticStrength ?? 1.0).clamp(0.0, 1.0);
+    if (strength <= 0.0) return;
+
+    final targetId = gamepadId ?? _lastActiveGamepadId ?? _connectedDevices.firstOrNull?.id;
+    if (targetId == null || targetId.isEmpty) return;
+
+    try {
+      if (binding.actionType == GamepadActionType.switchTab) {
+        await GamepadsPlatformInterface.instance.rumble(
+          targetId,
+          lowFrequency: (0.4 * strength).clamp(0.0, 1.0),
+          highFrequency: (0.8 * strength).clamp(0.0, 1.0),
+          duration: const Duration(milliseconds: 90),
+        );
+      } else if (binding.actionType == GamepadActionType.submit || binding.actionType == GamepadActionType.barcode) {
+        await GamepadsPlatformInterface.instance.rumble(
+          targetId,
+          lowFrequency: (0.7 * strength).clamp(0.0, 1.0),
+          highFrequency: (0.9 * strength).clamp(0.0, 1.0),
+          duration: const Duration(milliseconds: 160),
+        );
+      } else {
+        // Increment / Decrement / Toggle / Cycle
+        final intensity = (binding.triggerMode == GamepadTriggerMode.scaledTrigger)
+            ? (0.3 + 0.6 * value.abs()).clamp(0.2, 0.9)
+            : (isRepeat ? 0.3 : 0.55);
+        await GamepadsPlatformInterface.instance.rumble(
+          targetId,
+          lowFrequency: (intensity * 0.4 * strength).clamp(0.0, 1.0),
+          highFrequency: (intensity * strength).clamp(0.0, 1.0),
+          duration: Duration(milliseconds: isRepeat ? 30 : 45),
+        );
+      }
+    } catch (_) {
+      // Ignored if controller / platform driver does not support rumble
+    }
+  }
+
+  /// Triggers a test vibration on the active or first connected gamepad controller
+  Future<bool> testRumble({double? strength, String? gamepadId}) async {
+    final targetId = gamepadId ?? _lastActiveGamepadId ?? _connectedDevices.firstOrNull?.id;
+    if (targetId == null || targetId.isEmpty) return false;
+
+    final mult = (strength ?? _activeProfile?.hapticStrength ?? 1.0).clamp(0.0, 1.0);
+    if (mult <= 0.0) return true;
+
+    try {
+      await GamepadsPlatformInterface.instance.rumble(
+        targetId,
+        lowFrequency: (0.6 * mult).clamp(0.0, 1.0),
+        highFrequency: (0.9 * mult).clamp(0.0, 1.0),
+        duration: const Duration(milliseconds: 250),
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  void _dispatchAction({
+    required GamepadBinding binding,
+    required double value,
+    required bool isRepeat,
+    String? gamepadId,
+  }) {
+    _actionController.add(GamepadActionEvent(
+      binding: binding,
+      value: value,
+      isRepeat: isRepeat,
+    ));
+
+    // Controller haptic feedback only for gamepad controller actions
+    _triggerGamepadHaptic(
+      binding: binding,
+      value: value,
+      isRepeat: isRepeat,
+      gamepadId: gamepadId,
+    );
+  }
+
   void _processStickAxis({
     required String stickPrefix,
     required bool isXAxis,
     required double value,
     String? gamepadId,
   }) {
+    if (gamepadId != null) _lastActiveGamepadId = gamepadId;
     // Note: On standard controller Y-axis, negative is often UP (direct input) or positive is UP (XInput).
     // We treat positive as Right / Up and negative as Left / Down.
     final posKey = isXAxis ? '${stickPrefix}_right' : '${stickPrefix}_up';
@@ -409,6 +503,7 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
     required bool isAnalog,
     String? gamepadId,
   }) {
+    if (gamepadId != null) _lastActiveGamepadId = gamepadId;
     final wasPressed = _liveInputPressed[inputKey] ?? false;
     _liveInputValues[inputKey] = value;
     _liveInputPressed[inputKey] = isPressed;
@@ -451,6 +546,7 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
         value: value,
         isPressed: isPressed,
         wasPressed: wasPressed,
+        gamepadId: gamepadId,
       );
     }
   }
@@ -460,6 +556,7 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
     required double value,
     required bool isPressed,
     required bool wasPressed,
+    String? gamepadId,
   }) {
     final bindingId = binding.id;
     _activeBindingValues[bindingId] = value;
@@ -468,11 +565,12 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
     if (binding.triggerMode == GamepadTriggerMode.singlePress) {
       // Fire once on edge transition (false -> true)
       if (isPressed && !wasPressed) {
-        _actionController.add(GamepadActionEvent(
+        _dispatchAction(
           binding: binding,
           value: value,
           isRepeat: false,
-        ));
+          gamepadId: gamepadId,
+        );
       }
       return;
     }
@@ -481,11 +579,12 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
     if (binding.triggerMode == GamepadTriggerMode.continuousHold) {
       if (isPressed && !wasPressed) {
         // Fire initial immediately
-        _actionController.add(GamepadActionEvent(
+        _dispatchAction(
           binding: binding,
           value: value,
           isRepeat: false,
-        ));
+          gamepadId: gamepadId,
+        );
 
         // Start repeat timer
         _repeatTimers[bindingId]?.cancel();
@@ -500,11 +599,12 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
               _repeatTimers.remove(bindingId);
               return;
             }
-            _actionController.add(GamepadActionEvent(
+            _dispatchAction(
               binding: binding,
               value: _activeBindingValues[bindingId] ?? 1.0,
               isRepeat: true,
-            ));
+              gamepadId: gamepadId,
+            );
           },
         );
       } else if (!isPressed && wasPressed) {
@@ -522,12 +622,13 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
       if (effectiveValue >= threshold) {
         // If not running, fire initial and start variable loop
         if (!_repeatTimers.containsKey(bindingId)) {
-          _actionController.add(GamepadActionEvent(
+          _dispatchAction(
             binding: binding,
             value: effectiveValue,
             isRepeat: false,
-          ));
-          _scheduleScaledRepeat(binding);
+            gamepadId: gamepadId,
+          );
+          _scheduleScaledRepeat(binding, gamepadId: gamepadId);
         }
       } else {
         _repeatTimers[bindingId]?.cancel();
@@ -536,7 +637,7 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
     }
   }
 
-  void _scheduleScaledRepeat(GamepadBinding binding) {
+  void _scheduleScaledRepeat(GamepadBinding binding, {String? gamepadId}) {
     final bindingId = binding.id;
     final currentVal = (_activeBindingValues[bindingId] ?? 0.0).abs();
     final threshold = binding.triggerThreshold.clamp(0.05, 0.5);
@@ -556,12 +657,13 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
 
     _repeatTimers[bindingId] = Timer(Duration(milliseconds: intervalMs), () {
       if ((_liveInputValues[binding.inputKey]?.abs() ?? 0.0) >= threshold) {
-        _actionController.add(GamepadActionEvent(
+        _dispatchAction(
           binding: binding,
           value: _activeBindingValues[bindingId] ?? currentVal,
           isRepeat: true,
-        ));
-        _scheduleScaledRepeat(binding);
+          gamepadId: gamepadId,
+        );
+        _scheduleScaledRepeat(binding, gamepadId: gamepadId);
       } else {
         _repeatTimers.remove(bindingId);
       }

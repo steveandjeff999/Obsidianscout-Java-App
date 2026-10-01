@@ -151,6 +151,8 @@ class GamepadProfile {
   final String? selectedGamepadId; // Specific gamepad ID or null for any connected
   final bool enabled;
   final bool showTooltips;
+  final bool hapticEnabled;
+  final double hapticStrength;
   final List<GamepadBinding> bindings;
   final DateTime updatedAt;
 
@@ -162,6 +164,8 @@ class GamepadProfile {
     this.selectedGamepadId,
     this.enabled = true,
     this.showTooltips = true,
+    this.hapticEnabled = true,
+    this.hapticStrength = 1.0,
     required this.bindings,
     DateTime? updatedAt,
   }) : updatedAt = updatedAt ?? DateTime.now();
@@ -174,6 +178,8 @@ class GamepadProfile {
     String? selectedGamepadId,
     bool? enabled,
     bool? showTooltips,
+    bool? hapticEnabled,
+    double? hapticStrength,
     List<GamepadBinding>? bindings,
     DateTime? updatedAt,
   }) {
@@ -185,6 +191,8 @@ class GamepadProfile {
       selectedGamepadId: selectedGamepadId ?? this.selectedGamepadId,
       enabled: enabled ?? this.enabled,
       showTooltips: showTooltips ?? this.showTooltips,
+      hapticEnabled: hapticEnabled ?? this.hapticEnabled,
+      hapticStrength: hapticStrength ?? this.hapticStrength,
       bindings: bindings ?? this.bindings,
       updatedAt: updatedAt ?? DateTime.now(),
     );
@@ -200,6 +208,8 @@ class GamepadProfile {
       'selectedGamepadId': selectedGamepadId,
       'enabled': enabled,
       'showTooltips': showTooltips,
+      'hapticEnabled': hapticEnabled,
+      'hapticStrength': hapticStrength,
       'updatedAt': updatedAt.toIso8601String(),
       'bindings': bindings.map((b) => b.toJson()).toList(),
     };
@@ -215,6 +225,8 @@ class GamepadProfile {
       selectedGamepadId: json['selectedGamepadId'] as String?,
       enabled: json['enabled'] as bool? ?? true,
       showTooltips: json['showTooltips'] as bool? ?? true,
+      hapticEnabled: json['hapticEnabled'] as bool? ?? true,
+      hapticStrength: (json['hapticStrength'] as num?)?.toDouble() ?? 1.0,
       updatedAt: json['updatedAt'] != null
           ? DateTime.tryParse(json['updatedAt'] as String) ?? DateTime.now()
           : DateTime.now(),

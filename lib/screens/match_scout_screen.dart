@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
 import '../models/config_models.dart';
 import '../models/gamepad_models.dart';
@@ -786,7 +787,10 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 3.0),
               child: InkWell(
-                onTap: () => setState(() => _activeTab = tab['key']!),
+                onTap: () {
+                  HapticFeedback.mediumImpact();
+                  setState(() => _activeTab = tab['key']!);
+                },
                 borderRadius: BorderRadius.circular(12),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
@@ -1372,7 +1376,10 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                                     ? 'Generate QR Code (${GamepadService.getShortBadgeLabel(qrBinding.inputKey, controllerType: GamepadService.instance.activeProfile?.controllerType ?? 'xbox')})'
                                     : 'Generate QR Code',
                                 child: ObsidianGlassCard(
-                                  onTap: _generateBarcode,
+                                  onTap: () {
+                                    HapticFeedback.mediumImpact();
+                                    _generateBarcode();
+                                  },
                                   child: Center(
                                     child: Row(
                                       mainAxisAlignment: MainAxisAlignment.center,
@@ -1405,7 +1412,12 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                                     ? 'Save Entry (${GamepadService.getShortBadgeLabel(submitBinding.inputKey, controllerType: GamepadService.instance.activeProfile?.controllerType ?? 'xbox')})'
                                     : 'Save Entry',
                                 child: ObsidianGlassCard(
-                                  onTap: _isSubmitting ? null : _submitData,
+                                  onTap: _isSubmitting
+                                      ? null
+                                      : () {
+                                          HapticFeedback.mediumImpact();
+                                          _submitData();
+                                        },
                                   child: Center(
                                     child: _isSubmitting
                                         ? SizedBox(
@@ -1446,7 +1458,10 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                                     ? 'Clear Form (${GamepadService.getShortBadgeLabel(clearBinding.inputKey, controllerType: GamepadService.instance.activeProfile?.controllerType ?? 'xbox')})'
                                     : 'Clear Form',
                                 child: ObsidianGlassCard(
-                                  onTap: _confirmAndResetForm,
+                                  onTap: () {
+                                    HapticFeedback.mediumImpact();
+                                    _confirmAndResetForm();
+                                  },
                                   child: Center(
                                     child: Row(
                                       mainAxisAlignment: MainAxisAlignment.center,
@@ -1615,7 +1630,10 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                         ? 'Generate QR Code (${GamepadService.getShortBadgeLabel(qrBinding.inputKey, controllerType: GamepadService.instance.activeProfile?.controllerType ?? 'xbox')})'
                         : 'Generate QR Code',
                     child: ObsidianGlassCard(
-                      onTap: _generateBarcode,
+                      onTap: () {
+                        HapticFeedback.mediumImpact();
+                        _generateBarcode();
+                      },
                       child: Center(
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -1649,7 +1667,12 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                         ? 'Save Entry (${GamepadService.getShortBadgeLabel(submitBinding.inputKey, controllerType: GamepadService.instance.activeProfile?.controllerType ?? 'xbox')})'
                         : 'Save Entry',
                     child: ObsidianGlassCard(
-                      onTap: _isSubmitting ? null : _submitData,
+                      onTap: _isSubmitting
+                          ? null
+                          : () {
+                              HapticFeedback.mediumImpact();
+                              _submitData();
+                            },
                       child: Center(
                         child: _isSubmitting
                             ? CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)
@@ -1690,7 +1713,10 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                         ? 'Clear Form (${GamepadService.getShortBadgeLabel(clearBinding.inputKey, controllerType: GamepadService.instance.activeProfile?.controllerType ?? 'xbox')})'
                         : 'Clear Form',
                     child: ObsidianGlassCard(
-                      onTap: _confirmAndResetForm,
+                      onTap: () {
+                        HapticFeedback.mediumImpact();
+                        _confirmAndResetForm();
+                      },
                       child: Center(
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
