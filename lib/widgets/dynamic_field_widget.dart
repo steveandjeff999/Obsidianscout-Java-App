@@ -141,22 +141,32 @@ class DynamicFieldWidget extends StatelessWidget {
             ? 'Gamepad: Press ${GamepadService.getButtonDisplayName(incBinding.inputKey, controllerType: activeProfile?.controllerType ?? 'xbox')} to add'
             : 'Add $stepVal';
 
-        final labelWidget = Row(
+        final badgesWidget = (decBinding != null || incBinding != null)
+            ? Wrap(
+                spacing: 4.0,
+                runSpacing: 2.0,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  if (decBinding != null)
+                    _buildGamepadBadge(decBinding.inputKey, color: Colors.redAccent.shade200, labelPrefix: '- '),
+                  if (incBinding != null)
+                    _buildGamepadBadge(incBinding.inputKey, color: ObsidianUITheme.primaryAccent, labelPrefix: '+ '),
+                ],
+              )
+            : null;
+
+        final labelWidget = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Flexible(
-              child: Text(
-                context.tr(field.label),
-                style: TextStyle(fontSize: labelFontSize, color: primaryTextColor, fontWeight: FontWeight.w500),
-              ),
+            Text(
+              context.tr(field.label),
+              style: TextStyle(fontSize: labelFontSize, color: primaryTextColor, fontWeight: FontWeight.w500),
             ),
-            if (decBinding != null && incBinding != null) ...[
-              _buildGamepadBadge(decBinding.inputKey, color: Colors.redAccent.shade200, labelPrefix: '- '),
-              _buildGamepadBadge(incBinding.inputKey, color: ObsidianUITheme.primaryAccent, labelPrefix: '+ '),
-            ] else if (incBinding != null)
-              _buildGamepadBadge(incBinding.inputKey, color: ObsidianUITheme.primaryAccent, labelPrefix: '+ ')
-            else if (decBinding != null)
-              _buildGamepadBadge(decBinding.inputKey, color: Colors.redAccent.shade200, labelPrefix: '- '),
+            if (badgesWidget != null) ...[
+              const SizedBox(height: 3.0),
+              badgesWidget,
+            ],
           ],
         );
 
@@ -417,11 +427,17 @@ class DynamicFieldWidget extends StatelessWidget {
           contentPadding: EdgeInsets.zero,
           dense: isDesktop,
           title: Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              Flexible(child: Text(field.label, style: TextStyle(color: primaryTextColor, fontSize: labelFontSize))),
-              if (toggleBinding != null)
+              Expanded(
+                child: Text(
+                  field.label,
+                  style: TextStyle(color: primaryTextColor, fontSize: labelFontSize),
+                ),
+              ),
+              if (toggleBinding != null) ...[
+                const SizedBox(width: 4.0),
                 _buildGamepadBadge(toggleBinding.inputKey, color: ObsidianUITheme.primaryAccent),
+              ],
             ],
           ),
           value: val,
@@ -437,14 +453,14 @@ class DynamicFieldWidget extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 6.0,
+              runSpacing: 2.0,
               children: [
-                Flexible(
-                  child: Text(
-                    field.label,
-                    style: TextStyle(fontSize: labelFontSize, color: primaryTextColor, fontWeight: FontWeight.w500),
-                  ),
+                Text(
+                  field.label,
+                  style: TextStyle(fontSize: labelFontSize, color: primaryTextColor, fontWeight: FontWeight.w500),
                 ),
                 if (cycleBinding != null)
                   _buildGamepadBadge(cycleBinding.inputKey, color: ObsidianUITheme.secondaryAccent, labelPrefix: 'Cycle: '),
@@ -547,16 +563,21 @@ class DynamicFieldWidget extends StatelessWidget {
           dropdownColor: surfaceColor,
           style: TextStyle(color: primaryTextColor),
           decoration: InputDecoration(
-            label: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Flexible(child: Text(field.label, overflow: TextOverflow.ellipsis)),
-                if (cycleBinding != null)
-                  _buildGamepadBadge(cycleBinding.inputKey, color: ObsidianUITheme.secondaryAccent, labelPrefix: 'Cycle: '),
-              ],
-            ),
+            labelText: field.label,
             hintText: field.placeholder,
             labelStyle: TextStyle(color: secondaryTextColor),
+            suffixIcon: cycleBinding != null
+                ? Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        _buildGamepadBadge(cycleBinding.inputKey, color: ObsidianUITheme.secondaryAccent, labelPrefix: 'Cycle: '),
+                      ],
+                    ),
+                  )
+                : null,
             enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
             focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
           ),

@@ -171,6 +171,7 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
     final devices = _gamepadService.connectedDevices;
     final activeProfile = _gamepadService.activeProfile;
     final isEnabled = activeProfile?.enabled ?? false;
+    final isDesktop = ObsidianResponsive.isDesktop(context, overrideMode: widget.apiService.uiMode);
 
     return ObsidianGlassCard(
       child: Padding(
@@ -238,60 +239,115 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
 
             // Controller Button Style / Type Selector (Xbox vs PS4 vs Generic)
             if (activeProfile != null) ...[
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Button Icon Style',
-                          style: TextStyle(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w600,
-                            color: primaryTextColor,
+              if (isDesktop)
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Button Icon Style',
+                            style: TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w600,
+                              color: primaryTextColor,
+                            ),
                           ),
+                          Text(
+                            'Select A/B/X/Y (Xbox) or ✕/○/□/△ (PS4/PS5)',
+                            style: TextStyle(fontSize: 11.5, color: secondaryTextColor),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(
+                          value: 'xbox',
+                          label: Text('Xbox'),
+                          icon: Icon(Icons.videogame_asset_outlined, size: 16),
                         ),
-                        Text(
-                          'Select A/B/X/Y (Xbox) or ✕/○/□/△ (PS4/PS5)',
-                          style: TextStyle(fontSize: 11.5, color: secondaryTextColor),
+                        ButtonSegment(
+                          value: 'playstation',
+                          label: Text('PS4 / PS5'),
+                          icon: Icon(Icons.gamepad_outlined, size: 16),
+                        ),
+                        ButtonSegment(
+                          value: 'keyboard',
+                          label: Text('Keyboard'),
+                          icon: Icon(Icons.keyboard_outlined, size: 16),
                         ),
                       ],
+                      selected: {activeProfile.controllerType},
+                      onSelectionChanged: (selection) {
+                        if (selection.isNotEmpty) {
+                          _gamepadService.saveProfile(
+                            activeProfile.copyWith(controllerType: selection.first),
+                          );
+                        }
+                      },
+                      style: ButtonStyle(
+                        textStyle: WidgetStateProperty.all(const TextStyle(fontSize: 11)),
+                        visualDensity: VisualDensity.compact,
+                      ),
                     ),
-                  ),
-                  SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment(
-                        value: 'xbox',
-                        label: Text('Xbox'),
-                        icon: Icon(Icons.videogame_asset_outlined, size: 16),
+                  ],
+                )
+              else
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Button Icon Style',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: primaryTextColor,
                       ),
-                      ButtonSegment(
-                        value: 'playstation',
-                        label: Text('PS4 / PS5'),
-                        icon: Icon(Icons.gamepad_outlined, size: 16),
-                      ),
-                      ButtonSegment(
-                        value: 'keyboard',
-                        label: Text('Keyboard'),
-                        icon: Icon(Icons.keyboard_outlined, size: 16),
-                      ),
-                    ],
-                    selected: {activeProfile.controllerType},
-                    onSelectionChanged: (selection) {
-                      if (selection.isNotEmpty) {
-                        _gamepadService.saveProfile(
-                          activeProfile.copyWith(controllerType: selection.first),
-                        );
-                      }
-                    },
-                    style: ButtonStyle(
-                      textStyle: WidgetStateProperty.all(const TextStyle(fontSize: 11)),
-                      visualDensity: VisualDensity.compact,
                     ),
-                  ),
-                ],
-              ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Select A/B/X/Y (Xbox), ✕/○/□/△ (PS4/PS5), or Keyboard',
+                      style: TextStyle(fontSize: 11.5, color: secondaryTextColor),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: SegmentedButton<String>(
+                        segments: const [
+                          ButtonSegment(
+                            value: 'xbox',
+                            label: Text('Xbox'),
+                            icon: Icon(Icons.videogame_asset_outlined, size: 16),
+                          ),
+                          ButtonSegment(
+                            value: 'playstation',
+                            label: Text('PS4 / PS5'),
+                            icon: Icon(Icons.gamepad_outlined, size: 16),
+                          ),
+                          ButtonSegment(
+                            value: 'keyboard',
+                            label: Text('Keyboard'),
+                            icon: Icon(Icons.keyboard_outlined, size: 16),
+                          ),
+                        ],
+                        selected: {activeProfile.controllerType},
+                        onSelectionChanged: (selection) {
+                          if (selection.isNotEmpty) {
+                            _gamepadService.saveProfile(
+                              activeProfile.copyWith(controllerType: selection.first),
+                            );
+                          }
+                        },
+                        style: ButtonStyle(
+                          textStyle: WidgetStateProperty.all(const TextStyle(fontSize: 11)),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               const SizedBox(height: 12),
 
               // Tooltip Badges on Scouting Form Toggle
@@ -1026,17 +1082,28 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
               ),
 
               // Edit & Delete actions
-              IconButton(
-                icon: const Icon(Icons.edit_outlined, size: 18),
-                color: secondaryTextColor,
-                onPressed: () => _showAddEditBindingModal(context, activeProfile, binding),
-                tooltip: 'Edit Binding',
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete_outline_rounded, size: 18),
-                color: Colors.redAccent.withValues(alpha: 0.8),
-                onPressed: () => _deleteBinding(activeProfile, binding),
-                tooltip: 'Delete Binding',
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    color: secondaryTextColor,
+                    padding: const EdgeInsets.all(6),
+                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    splashRadius: 18,
+                    onPressed: () => _showAddEditBindingModal(context, activeProfile, binding),
+                    tooltip: 'Edit Binding',
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                    color: Colors.redAccent.withValues(alpha: 0.8),
+                    padding: const EdgeInsets.all(6),
+                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    splashRadius: 18,
+                    onPressed: () => _deleteBinding(activeProfile, binding),
+                    tooltip: 'Delete Binding',
+                  ),
+                ],
               ),
             ],
           ),
