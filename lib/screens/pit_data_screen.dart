@@ -79,7 +79,9 @@ class _PitDataScreenState extends State<PitDataScreen> {
   void didUpdateWidget(covariant PitDataScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isVisible && !oldWidget.isVisible) {
-      _loadData();
+      if (_coverageList.isEmpty || !widget.apiService.isCacheFresh('cache_pit_scouting')) {
+        _loadData();
+      }
     }
   }
 

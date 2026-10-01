@@ -3,9 +3,11 @@ import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
 import '../services/auth_storage_service.dart';
 import '../services/biometric_auth_service.dart';
+import '../services/gamepad_service.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/obsidian_user_avatar.dart';
+import 'gamepad_settings_screen.dart';
 import 'theme_editor_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -933,6 +935,121 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ],
             ),
+          ),
+          // Gamepad & Game Controller Card
+          ListenableBuilder(
+            listenable: GamepadService.instance,
+            builder: (context, _) {
+              final gamepadService = GamepadService.instance;
+              final devices = gamepadService.connectedDevices;
+              final activeProfile = gamepadService.activeProfile;
+              final isEnabled = activeProfile?.enabled ?? false;
+
+              return ObsidianGlassCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.sports_esports_rounded, color: ObsidianUITheme.primaryAccent),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Gamepad & Controller Setup',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: (devices.isNotEmpty && isEnabled)
+                                ? ObsidianUITheme.successGreen.withValues(alpha: 0.15)
+                                : ObsidianUITheme.warningOrange.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: (devices.isNotEmpty && isEnabled)
+                                      ? ObsidianUITheme.successGreen
+                                      : ObsidianUITheme.warningOrange,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                devices.isNotEmpty
+                                    ? '${devices.length} Connected'
+                                    : 'No Gamepad',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: (devices.isNotEmpty && isEnabled)
+                                      ? ObsidianUITheme.successGreen
+                                      : ObsidianUITheme.warningOrange,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    Divider(color: borderColor, height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'PS4 / Xbox / Gamepad Scouting',
+                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: primaryTextColor),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                activeProfile != null
+                                    ? 'Active Profile: ${activeProfile.name} (${activeProfile.bindings.length} bindings, ${activeProfile.controllerType.toUpperCase()})'
+                                    : 'Bind buttons & analog triggers to scouting fields with repeat-on-hold.',
+                                style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: ObsidianUITheme.primaryAccent,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        icon: const Icon(Icons.settings_input_component_rounded, size: 20),
+                        label: const Text(
+                          'Configure Controller Mappings & Triggers',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (ctx) => GamepadSettingsScreen(apiService: widget.apiService),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
           const SizedBox(height: 16),
 

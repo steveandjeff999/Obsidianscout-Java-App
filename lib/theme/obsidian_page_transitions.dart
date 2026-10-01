@@ -287,20 +287,23 @@ class _ObsidianAnimatedIndexedStackState extends State<ObsidianAnimatedIndexedSt
         if (!isAnimating) {
           if (isCurrent) {
             return KeyedSubtree(
-              key: ValueKey('page_active_$index'),
+              key: ValueKey('obsidian_indexed_page_$index'),
               child: TickerMode(
                 enabled: true,
                 child: childWidget,
               ),
             );
           }
-          return Offstage(
-            offstage: true,
-            child: IgnorePointer(
-              ignoring: true,
-              child: TickerMode(
-                enabled: false,
-                child: childWidget,
+          return KeyedSubtree(
+            key: ValueKey('obsidian_indexed_page_$index'),
+            child: Offstage(
+              offstage: true,
+              child: IgnorePointer(
+                ignoring: true,
+                child: TickerMode(
+                  enabled: false,
+                  child: childWidget,
+                ),
               ),
             ),
           );
@@ -309,7 +312,7 @@ class _ObsidianAnimatedIndexedStackState extends State<ObsidianAnimatedIndexedSt
         // Active animation state
         if (isCurrent) {
           return KeyedSubtree(
-            key: ValueKey('page_current_$index'),
+            key: ValueKey('obsidian_indexed_page_$index'),
             child: SlideTransition(
               position: currentSlide,
               child: FadeTransition(
@@ -325,7 +328,7 @@ class _ObsidianAnimatedIndexedStackState extends State<ObsidianAnimatedIndexedSt
 
         if (isPrevious) {
           return KeyedSubtree(
-            key: ValueKey('page_previous_$index'),
+            key: ValueKey('obsidian_indexed_page_$index'),
             child: IgnorePointer(
               ignoring: true,
               child: SlideTransition(
@@ -342,13 +345,16 @@ class _ObsidianAnimatedIndexedStackState extends State<ObsidianAnimatedIndexedSt
           );
         }
 
-        return Offstage(
-          offstage: true,
-          child: IgnorePointer(
-            ignoring: true,
-            child: TickerMode(
-              enabled: false,
-              child: childWidget,
+        return KeyedSubtree(
+          key: ValueKey('obsidian_indexed_page_$index'),
+          child: Offstage(
+            offstage: true,
+            child: IgnorePointer(
+              ignoring: true,
+              child: TickerMode(
+                enabled: false,
+                child: childWidget,
+              ),
             ),
           ),
         );

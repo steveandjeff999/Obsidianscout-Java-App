@@ -98,8 +98,8 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
   void _startRealtimeSyncTimer() {
     _realtimeSyncTimer?.cancel();
     if (!widget.isVisible) return;
-    // Poll server every 2 seconds for real-time synchronization with server & other scouts when screen is visible
-    _realtimeSyncTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+    // Poll server every 4 seconds for real-time synchronization with server & other scouts when screen is visible
+    _realtimeSyncTimer = Timer.periodic(const Duration(seconds: 4), (_) {
       if (mounted && widget.apiService.isOnline && !_isLoading && !_isSaving && _selectedEventKey != null && widget.isVisible) {
         _catchUpAndSyncWithServer();
       }

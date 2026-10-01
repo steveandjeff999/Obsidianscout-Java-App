@@ -113,7 +113,9 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
   void didUpdateWidget(covariant QualDataScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isVisible && !oldWidget.isVisible) {
-      _loadData();
+      if (_rawEntries.isEmpty || !widget.apiService.isCacheFresh('cache_qual_scouting')) {
+        _loadData();
+      }
     }
   }
 

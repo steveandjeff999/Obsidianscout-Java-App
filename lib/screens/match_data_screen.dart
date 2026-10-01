@@ -86,7 +86,9 @@ class _MatchDataScreenState extends State<MatchDataScreen> {
   void didUpdateWidget(covariant MatchDataScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isVisible && !oldWidget.isVisible) {
-      _loadData();
+      if (_records.isEmpty || !widget.apiService.isCacheFresh('cache_scouting')) {
+        _loadData();
+      }
     }
   }
 

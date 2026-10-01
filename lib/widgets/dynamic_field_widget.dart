@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../l10n/app_localizations.dart';
 import '../models/config_models.dart';
+import '../models/gamepad_models.dart';
+import '../services/gamepad_service.dart';
 import '../services/image_utils.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../theme/obsidian_responsive.dart';
@@ -12,12 +14,14 @@ class DynamicFieldWidget extends StatelessWidget {
   final ScoutingFieldModel field;
   final dynamic currentValue;
   final ValueChanged<dynamic> onChanged;
+  final String? currentPhase;
 
   const DynamicFieldWidget({
     super.key,
     required this.field,
     required this.currentValue,
     required this.onChanged,
+    this.currentPhase,
   });
 
   @override
@@ -95,6 +99,29 @@ class DynamicFieldWidget extends StatelessWidget {
 
     final labelFontSize = isDesktop ? 13.0 : 14.5;
 
+    // Lookup controller bindings for tooltips / badges
+    final activeProfile = GamepadService.instance.activeProfile;
+    final showTooltips = activeProfile != null && activeProfile.enabled && activeProfile.showTooltips;
+    GamepadBinding? incBinding;
+    GamepadBinding? decBinding;
+    GamepadBinding? toggleBinding;
+    GamepadBinding? cycleBinding;
+
+    if (showTooltips) {
+      for (final b in activeProfile.bindings) {
+        final bindingPhase = b.phase;
+        final phaseMatch = bindingPhase == 'global' ||
+            currentPhase == null ||
+            bindingPhase.toLowerCase() == currentPhase?.toLowerCase();
+        if (b.targetFieldId == field.id && phaseMatch) {
+          if (b.actionType == GamepadActionType.increment) incBinding = b;
+          if (b.actionType == GamepadActionType.decrement) decBinding = b;
+          if (b.actionType == GamepadActionType.toggle) toggleBinding = b;
+          if (b.actionType == GamepadActionType.cycleOption) cycleBinding = b;
+        }
+      }
+    }
+
     switch (type) {
       // 2. COUNTER / NUMBER
       case 'counter':
@@ -107,16 +134,37 @@ class DynamicFieldWidget extends StatelessWidget {
         bool hasDoubleStep = doubleStep != null && doubleStep > 0;
         int val = (currentValue is num) ? (currentValue as num).toInt() : minVal;
 
+        final decTooltip = decBinding != null
+            ? 'Gamepad: Press ${GamepadService.getButtonDisplayName(decBinding.inputKey, controllerType: activeProfile?.controllerType ?? 'xbox')} to subtract'
+            : 'Subtract $stepVal';
+        final incTooltip = incBinding != null
+            ? 'Gamepad: Press ${GamepadService.getButtonDisplayName(incBinding.inputKey, controllerType: activeProfile?.controllerType ?? 'xbox')} to add'
+            : 'Add $stepVal';
+
+        final labelWidget = Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Text(
+                context.tr(field.label),
+                style: TextStyle(fontSize: labelFontSize, color: primaryTextColor, fontWeight: FontWeight.w500),
+              ),
+            ),
+            if (decBinding != null && incBinding != null) ...[
+              _buildGamepadBadge(decBinding.inputKey, color: Colors.redAccent.shade200, labelPrefix: '- '),
+              _buildGamepadBadge(incBinding.inputKey, color: ObsidianUITheme.primaryAccent, labelPrefix: '+ '),
+            ] else if (incBinding != null)
+              _buildGamepadBadge(incBinding.inputKey, color: ObsidianUITheme.primaryAccent, labelPrefix: '+ ')
+            else if (decBinding != null)
+              _buildGamepadBadge(decBinding.inputKey, color: Colors.redAccent.shade200, labelPrefix: '- '),
+          ],
+        );
+
         if (hasDoubleStep) {
           return Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: Text(
-                  context.tr(field.label),
-                  style: TextStyle(fontSize: labelFontSize, color: primaryTextColor, fontWeight: FontWeight.w500),
-                ),
-              ),
+              Expanded(child: labelWidget),
               const SizedBox(width: 8.0),
               Row(
                 mainAxisSize: MainAxisSize.min,
@@ -129,12 +177,15 @@ class DynamicFieldWidget extends StatelessWidget {
                     isDesktop: isDesktop,
                   ),
                   const SizedBox(width: 4.0),
-                  _buildStepButton(
-                    context: context,
-                    label: '-$stepVal',
-                    onPressed: val > minVal ? () => onChanged((val - stepVal).clamp(minVal, maxVal)) : null,
-                    isAccent: false,
-                    isDesktop: isDesktop,
+                  Tooltip(
+                    message: decTooltip,
+                    child: _buildStepButton(
+                      context: context,
+                      label: '-$stepVal',
+                      onPressed: val > minVal ? () => onChanged((val - stepVal).clamp(minVal, maxVal)) : null,
+                      isAccent: false,
+                      isDesktop: isDesktop,
+                    ),
                   ),
                   const SizedBox(width: 6.0),
                   Container(
@@ -152,12 +203,15 @@ class DynamicFieldWidget extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 6.0),
-                  _buildStepButton(
-                    context: context,
-                    label: '+$stepVal',
-                    onPressed: val < maxVal ? () => onChanged((val + stepVal).clamp(minVal, maxVal)) : null,
-                    isAccent: true,
-                    isDesktop: isDesktop,
+                  Tooltip(
+                    message: incTooltip,
+                    child: _buildStepButton(
+                      context: context,
+                      label: '+$stepVal',
+                      onPressed: val < maxVal ? () => onChanged((val + stepVal).clamp(minVal, maxVal)) : null,
+                      isAccent: true,
+                      isDesktop: isDesktop,
+                    ),
                   ),
                   const SizedBox(width: 4.0),
                   _buildStepButton(
@@ -177,20 +231,18 @@ class DynamicFieldWidget extends StatelessWidget {
           return Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: Text(
-                  context.tr(field.label),
-                  style: TextStyle(fontSize: labelFontSize, color: primaryTextColor, fontWeight: FontWeight.w500),
-                ),
-              ),
+              Expanded(child: labelWidget),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  IconButton(
-                    onPressed: val > minVal ? () => onChanged((val - stepVal).clamp(minVal, maxVal)) : null,
-                    icon: Icon(Icons.remove_circle_outline, color: secondaryTextColor, size: 20.0),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 32.0, minHeight: 32.0),
+                  Tooltip(
+                    message: decTooltip,
+                    child: IconButton(
+                      onPressed: val > minVal ? () => onChanged((val - stepVal).clamp(minVal, maxVal)) : null,
+                      icon: Icon(Icons.remove_circle_outline, color: secondaryTextColor, size: 20.0),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 32.0, minHeight: 32.0),
+                    ),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
@@ -204,11 +256,14 @@ class DynamicFieldWidget extends StatelessWidget {
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.0, color: primaryTextColor),
                     ),
                   ),
-                  IconButton(
-                    onPressed: val < maxVal ? () => onChanged((val + stepVal).clamp(minVal, maxVal)) : null,
-                    icon: Icon(Icons.add_circle_outline, color: ObsidianUITheme.primaryAccent, size: 20.0),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 32.0, minHeight: 32.0),
+                  Tooltip(
+                    message: incTooltip,
+                    child: IconButton(
+                      onPressed: val < maxVal ? () => onChanged((val + stepVal).clamp(minVal, maxVal)) : null,
+                      icon: Icon(Icons.add_circle_outline, color: ObsidianUITheme.primaryAccent, size: 20.0),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 32.0, minHeight: 32.0),
+                    ),
                   ),
                 ],
               ),
@@ -219,20 +274,18 @@ class DynamicFieldWidget extends StatelessWidget {
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Expanded(
-              child: Text(
-                context.tr(field.label),
-                style: TextStyle(fontSize: 14.5, color: primaryTextColor, fontWeight: FontWeight.w500),
-              ),
-            ),
+            Expanded(child: labelWidget),
             Row(
               children: [
-                IconButton(
-                  onPressed: val > minVal ? () => onChanged((val - stepVal).clamp(minVal, maxVal)) : null,
-                  icon: Icon(Icons.remove_circle_outline, color: secondaryTextColor, size: 30.0),
-                  iconSize: 30.0,
-                  padding: const EdgeInsets.all(14.0),
-                  constraints: const BoxConstraints(minWidth: 56.0, minHeight: 56.0),
+                Tooltip(
+                  message: decTooltip,
+                  child: IconButton(
+                    onPressed: val > minVal ? () => onChanged((val - stepVal).clamp(minVal, maxVal)) : null,
+                    icon: Icon(Icons.remove_circle_outline, color: secondaryTextColor, size: 30.0),
+                    iconSize: 30.0,
+                    padding: const EdgeInsets.all(14.0),
+                    constraints: const BoxConstraints(minWidth: 56.0, minHeight: 56.0),
+                  ),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 8.0),
@@ -246,12 +299,15 @@ class DynamicFieldWidget extends StatelessWidget {
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0, color: primaryTextColor),
                   ),
                 ),
-                IconButton(
-                  onPressed: val < maxVal ? () => onChanged((val + stepVal).clamp(minVal, maxVal)) : null,
-                  icon: Icon(Icons.add_circle_outline, color: ObsidianUITheme.primaryAccent, size: 30.0),
-                  iconSize: 30.0,
-                  padding: const EdgeInsets.all(14.0),
-                  constraints: const BoxConstraints(minWidth: 56.0, minHeight: 56.0),
+                Tooltip(
+                  message: incTooltip,
+                  child: IconButton(
+                    onPressed: val < maxVal ? () => onChanged((val + stepVal).clamp(minVal, maxVal)) : null,
+                    icon: Icon(Icons.add_circle_outline, color: ObsidianUITheme.primaryAccent, size: 30.0),
+                    iconSize: 30.0,
+                    padding: const EdgeInsets.all(14.0),
+                    constraints: const BoxConstraints(minWidth: 56.0, minHeight: 56.0),
+                  ),
                 ),
               ],
             ),
@@ -360,7 +416,14 @@ class DynamicFieldWidget extends StatelessWidget {
         return SwitchListTile(
           contentPadding: EdgeInsets.zero,
           dense: isDesktop,
-          title: Text(field.label, style: TextStyle(color: primaryTextColor, fontSize: labelFontSize)),
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(child: Text(field.label, style: TextStyle(color: primaryTextColor, fontSize: labelFontSize))),
+              if (toggleBinding != null)
+                _buildGamepadBadge(toggleBinding.inputKey, color: ObsidianUITheme.primaryAccent),
+            ],
+          ),
           value: val,
           activeThumbColor: ObsidianUITheme.primaryAccent,
           activeTrackColor: ObsidianUITheme.primaryAccent.withValues(alpha: 0.4),
@@ -374,9 +437,18 @@ class DynamicFieldWidget extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              field.label,
-              style: TextStyle(fontSize: labelFontSize, color: primaryTextColor, fontWeight: FontWeight.w500),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Text(
+                    field.label,
+                    style: TextStyle(fontSize: labelFontSize, color: primaryTextColor, fontWeight: FontWeight.w500),
+                  ),
+                ),
+                if (cycleBinding != null)
+                  _buildGamepadBadge(cycleBinding.inputKey, color: ObsidianUITheme.secondaryAccent, labelPrefix: 'Cycle: '),
+              ],
             ),
             const SizedBox(height: 6.0),
             Wrap(
@@ -465,13 +537,24 @@ class DynamicFieldWidget extends StatelessWidget {
       case 'select':
       case 'dropdown':
         String val = currentValue?.toString() ?? (field.options.isNotEmpty ? field.options.first.value : '');
-        return DropdownButtonFormField<String>(
+        final cycleTooltip = cycleBinding != null
+            ? 'Gamepad: Press ${GamepadService.getButtonDisplayName(cycleBinding.inputKey, controllerType: activeProfile?.controllerType ?? 'xbox')} to cycle options'
+            : null;
+
+        final dropdownWidget = DropdownButtonFormField<String>(
           isExpanded: true,
           initialValue: field.options.any((o) => o.value == val) ? val : (field.options.isNotEmpty ? field.options.first.value : null),
           dropdownColor: surfaceColor,
           style: TextStyle(color: primaryTextColor),
           decoration: InputDecoration(
-            labelText: field.label,
+            label: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(child: Text(field.label, overflow: TextOverflow.ellipsis)),
+                if (cycleBinding != null)
+                  _buildGamepadBadge(cycleBinding.inputKey, color: ObsidianUITheme.secondaryAccent, labelPrefix: 'Cycle: '),
+              ],
+            ),
             hintText: field.placeholder,
             labelStyle: TextStyle(color: secondaryTextColor),
             enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
@@ -489,6 +572,11 @@ class DynamicFieldWidget extends StatelessWidget {
             }
           },
         );
+
+        if (cycleTooltip != null) {
+          return Tooltip(message: cycleTooltip, child: dropdownWidget);
+        }
+        return dropdownWidget;
 
       // 9. TEXTAREA
       case 'textarea':
@@ -952,6 +1040,38 @@ class DynamicFieldWidget extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildGamepadBadge(String inputKey, {Color? color, String? labelPrefix}) {
+    final activeProfile = GamepadService.instance.activeProfile;
+    final badge = inputKey.contains('/')
+        ? inputKey
+            .split('/')
+            .map((k) => GamepadService.getShortBadgeLabel(k, controllerType: activeProfile?.controllerType ?? 'xbox'))
+            .join(' / ')
+        : GamepadService.getShortBadgeLabel(inputKey, controllerType: activeProfile?.controllerType ?? 'xbox');
+    final text = labelPrefix != null ? '$labelPrefix$badge' : badge;
+
+    return Container(
+      margin: const EdgeInsets.only(left: 6.0),
+      padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 1.5),
+      decoration: BoxDecoration(
+        color: (color ?? ObsidianUITheme.primaryAccent).withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(5.0),
+        border: Border.all(
+          color: (color ?? ObsidianUITheme.primaryAccent).withValues(alpha: 0.6),
+          width: 1.0,
+        ),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 10.0,
+          fontWeight: FontWeight.bold,
+          color: color ?? ObsidianUITheme.primaryAccent,
+        ),
       ),
     );
   }

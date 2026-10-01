@@ -78,7 +78,9 @@ class _QualRankingsScreenState extends State<QualRankingsScreen> {
   void didUpdateWidget(covariant QualRankingsScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isVisible && !oldWidget.isVisible) {
-      _loadData();
+      if (_teams.isEmpty || !widget.apiService.isCacheFresh('cache_qual_scouting')) {
+        _loadData();
+      }
     }
   }
 

@@ -114,7 +114,9 @@ class _GraphsScreenState extends State<GraphsScreen> {
   void didUpdateWidget(covariant GraphsScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isVisible && !oldWidget.isVisible) {
-      _loadData();
+      if (_entries.isEmpty || !widget.apiService.isCacheFresh('cache_scouting')) {
+        _loadData();
+      }
     }
   }
 

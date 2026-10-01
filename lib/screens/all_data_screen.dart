@@ -141,7 +141,9 @@ class _AllDataScreenState extends State<AllDataScreen> {
   void didUpdateWidget(covariant AllDataScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isVisible && !oldWidget.isVisible) {
-      _loadData();
+      if (_allEntries.isEmpty || !widget.apiService.isCacheFresh('cache_scouting')) {
+        _loadData();
+      }
     }
   }
 
