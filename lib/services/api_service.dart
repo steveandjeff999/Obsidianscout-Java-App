@@ -379,29 +379,29 @@ class ApiService {
     _isSyncing = true;
     try {
       await Future.wait([
-        fetchCurrentUser(),
-        fetchSettings(),
+        fetchCurrentUser().catchError((_) => null),
+        fetchSettings().catchError((_) => null),
       ]);
       final eventKey = _currentSettings?.eventKey;
       await Future.wait([
-        fetchMatchConfig(),
-        fetchPitConfig(),
-        fetchQualConfig(),
-        fetchTeams(eventKey),
-        fetchMatches(eventKey),
-        fetchBanners(),
-        fetchMyAssignments(eventKey),
-        if (isAdmin) fetchAllAssignments(eventKey),
+        fetchMatchConfig().catchError((_) => null),
+        fetchPitConfig().catchError((_) => null),
+        fetchQualConfig().catchError((_) => null),
+        fetchTeams(eventKey).catchError((_) => <TeamModel>[]),
+        fetchMatches(eventKey).catchError((_) => <MatchModel>[]),
+        fetchBanners().catchError((_) => <Map<String, dynamic>>[]),
+        fetchMyAssignments(eventKey).catchError((_) => <ScoutingAssignment>[]),
+        if (isAdmin) fetchAllAssignments(eventKey).catchError((_) => <ScoutingAssignment>[]),
       ]);
       // Secondary background data
       await Future.wait([
-        fetchScoutingEntries(),
-        fetchPrescoutScoutingEntries(),
-        fetchPrescoutPitScoutingEntries(),
-        fetchPrescoutQualScoutingEntries(),
-        fetchAnalyticsWidgets(),
-        syncPendingMatchPlans(),
-        fetchFieldImageBytes(_currentSettings?.year ?? DateTime.now().year),
+        fetchScoutingEntries().catchError((_) => <dynamic>[]),
+        fetchPrescoutScoutingEntries().catchError((_) => <dynamic>[]),
+        fetchPrescoutPitScoutingEntries().catchError((_) => <dynamic>[]),
+        fetchPrescoutQualScoutingEntries().catchError((_) => <dynamic>[]),
+        fetchAnalyticsWidgets().catchError((_) => <AnalyticsWidgetModel>[]),
+        syncPendingMatchPlans().catchError((_) => 0),
+        fetchFieldImageBytes(_currentSettings?.year ?? DateTime.now().year).catchError((_) => null),
       ]);
     } catch (_) {
     } finally {
@@ -749,7 +749,11 @@ class ApiService {
   }
 
   Future<void> setServerUrl(String url) async {
-    _currentServerUrl = url.endsWith('/') ? url.substring(0, url.length - 1) : url;
+    String cleanUrl = url.trim();
+    if (cleanUrl.isNotEmpty && !cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+      cleanUrl = 'https://$cleanUrl';
+    }
+    _currentServerUrl = cleanUrl.endsWith('/') ? cleanUrl.substring(0, cleanUrl.length - 1) : cleanUrl;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(keyServerUrl, _currentServerUrl);
   }
@@ -866,6 +870,25 @@ class ApiService {
       );
 
       if (response.statusCode == 200 || response.statusCode == 302) {
+        if (response.body.isNotEmpty) {
+          try {
+            final decoded = jsonDecode(response.body);
+            if (decoded is Map) {
+              if (decoded['error'] != null && decoded['error'].toString().isNotEmpty) {
+                return false;
+              }
+              if (decoded['success'] == false || decoded['loggedIn'] == false) {
+                return false;
+              }
+            }
+          } catch (_) {
+            // Non-JSON response (e.g. HTML redirect/error page)
+            if (_sessionCookie == null || _sessionCookie!.isEmpty) {
+              return false;
+            }
+          }
+        }
+
         _authEpoch++;
         _handlingRevocation = false;
         _updateCookiesFromResponse(response);
@@ -887,7 +910,10 @@ class ApiService {
         }
         _startBackgroundSync();
         try {
-          await Future.wait([fetchCurrentUser(), fetchSettings()]).timeout(const Duration(seconds: 3));
+          await Future.wait([
+            fetchCurrentUser().catchError((_) => null),
+            fetchSettings().catchError((_) => null),
+          ]).timeout(const Duration(seconds: 3));
         } catch (_) {}
         return true;
       }
@@ -922,6 +948,15 @@ class ApiService {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 302) {
+        if (response.body.isNotEmpty) {
+          try {
+            final decoded = jsonDecode(response.body);
+            if (decoded is Map && decoded['error'] != null && decoded['error'].toString().isNotEmpty) {
+              return ApiResponse.error(message: decoded['error'].toString(), statusCode: response.statusCode);
+            }
+          } catch (_) {}
+        }
+
         _authEpoch++;
         _handlingRevocation = false;
         _updateCookiesFromResponse(response);
@@ -942,8 +977,8 @@ class ApiService {
           await prefs.remove(keySessionCookie);
         }
         _startBackgroundSync();
-        unawaited(fetchCurrentUser());
-        unawaited(fetchSettings());
+        unawaited(fetchCurrentUser().catchError((_) => null));
+        unawaited(fetchSettings().catchError((_) => null));
         return const ApiResponse.success(null);
       }
       return ApiResponse.fromHttpResponse(
@@ -1191,8 +1226,12 @@ class ApiService {
     if (cached != null && cached.isNotEmpty && _currentUser == null) {
       try {
         final jsonMap = jsonDecode(cached);
-        final userObj = jsonMap['user'] is Map ? (jsonMap['user'] as Map<String, dynamic>) : jsonMap;
-        _currentUser = UserModel.fromJson(userObj);
+        if (jsonMap is Map) {
+          final userObj = jsonMap['user'] is Map ? (jsonMap['user'] as Map<String, dynamic>) : (jsonMap is Map<String, dynamic> ? jsonMap : <String, dynamic>{});
+          if (userObj.isNotEmpty) {
+            _currentUser = UserModel.fromJson(userObj);
+          }
+        }
       } catch (_) {}
     }
 
@@ -1203,13 +1242,19 @@ class ApiService {
           .get(Uri.parse('$_currentServerUrl/api/auth/me'), headers: _headers)
           .timeout(requestTimeout);
       _checkResponse(response);
-      if (response.statusCode == 200) {
-        await _setCache("cache_auth_me", response.body);
-        final jsonMap = jsonDecode(response.body);
-        final userObj = jsonMap['user'] is Map ? (jsonMap['user'] as Map<String, dynamic>) : jsonMap;
-        _currentUser = UserModel.fromJson(userObj);
-        permissionsNotifier.value++;
-        return _currentUser;
+      if (response.statusCode == 200 && response.body.isNotEmpty) {
+        try {
+          final jsonMap = jsonDecode(response.body);
+          if (jsonMap is Map) {
+            await _setCache("cache_auth_me", response.body);
+            final userObj = jsonMap['user'] is Map ? (jsonMap['user'] as Map<String, dynamic>) : (jsonMap is Map<String, dynamic> ? jsonMap : <String, dynamic>{});
+            if (userObj.isNotEmpty) {
+              _currentUser = UserModel.fromJson(userObj);
+              permissionsNotifier.value++;
+              return _currentUser;
+            }
+          }
+        } catch (_) {}
       }
     } catch (_) {}
     return _currentUser;
@@ -1220,8 +1265,10 @@ class ApiService {
     if (cached != null && cached.isNotEmpty && _currentSettings == null) {
       try {
         final jsonMap = jsonDecode(cached);
-        _currentSettings = AppSettingsModel.fromJson(jsonMap);
-        _syncObsidianTheme();
+        if (jsonMap is Map<String, dynamic>) {
+          _currentSettings = AppSettingsModel.fromJson(jsonMap);
+          _syncObsidianTheme();
+        }
       } catch (_) {}
     }
 
@@ -1232,22 +1279,24 @@ class ApiService {
           .get(Uri.parse('$_currentServerUrl/api/settings'), headers: _headers)
           .timeout(requestTimeout);
       _checkResponse(response);
-      if (response.statusCode == 200) {
-        await _setCache("cache_settings", response.body);
-        final jsonMap = jsonDecode(response.body);
-        final previous = _currentSettings;
-        _currentSettings = AppSettingsModel.fromJson(jsonMap);
-        _syncObsidianTheme();
-        permissionsNotifier.value++;
-        // Fire settingsNotifier only when key settings fields actually changed,
-        // so listeners can react without causing a fetch→notify→fetch loop.
-        if (previous == null ||
-            previous.year != _currentSettings!.year ||
-            previous.eventKey != _currentSettings!.eventKey ||
-            previous.eventCode != _currentSettings!.eventCode) {
-          settingsNotifier.value = _currentSettings;
-        }
-        return _currentSettings;
+      if (response.statusCode == 200 && response.body.isNotEmpty) {
+        try {
+          final jsonMap = jsonDecode(response.body);
+          if (jsonMap is Map<String, dynamic>) {
+            await _setCache("cache_settings", response.body);
+            final previous = _currentSettings;
+            _currentSettings = AppSettingsModel.fromJson(jsonMap);
+            _syncObsidianTheme();
+            permissionsNotifier.value++;
+            if (previous == null ||
+                previous.year != _currentSettings!.year ||
+                previous.eventKey != _currentSettings!.eventKey ||
+                previous.eventCode != _currentSettings!.eventCode) {
+              settingsNotifier.value = _currentSettings;
+            }
+            return _currentSettings;
+          }
+        } catch (_) {}
       }
     } catch (_) {}
     return _currentSettings;
@@ -5437,17 +5486,19 @@ class ApiService {
       final response = await http.get(uri, headers: _headers).timeout(requestTimeout);
       _checkResponse(response);
 
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final decoded = jsonDecode(response.body);
-        final rawList = (decoded is Map ? decoded['profiles'] : decoded) as List<dynamic>? ?? [];
-        final profiles = rawList
-            .whereType<Map<String, dynamic>>()
-            .map((e) => GamepadProfile.fromJson(e))
-            .toList();
+      if (response.statusCode >= 200 && response.statusCode < 300 && response.body.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(response.body);
+          final rawList = (decoded is Map ? decoded['profiles'] : decoded) as List<dynamic>? ?? [];
+          final profiles = rawList
+              .whereType<Map<String, dynamic>>()
+              .map((e) => GamepadProfile.fromJson(e))
+              .toList();
 
-        await _setCache(memKey, jsonEncode(profiles.map((p) => p.toJson()).toList()));
-        setMemoryCache(memKey, profiles);
-        return profiles;
+          await _setCache(memKey, jsonEncode(profiles.map((p) => p.toJson()).toList()));
+          setMemoryCache(memKey, profiles);
+          return profiles;
+        } catch (_) {}
       }
     } catch (e) {
       debugPrint('[ApiService] fetchGamepadProfiles error: $e');
@@ -5479,14 +5530,16 @@ class ApiService {
       ).timeout(requestTimeout);
       _checkResponse(response);
 
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final decoded = jsonDecode(response.body);
-        final data = decoded is Map && decoded['profile'] != null ? decoded['profile'] : decoded;
-        if (data is Map<String, dynamic>) {
-          final saved = GamepadProfile.fromJson(data);
-          invalidateMemoryCache("cache_gamepad_profiles");
-          return saved;
-        }
+      if (response.statusCode >= 200 && response.statusCode < 300 && response.body.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(response.body);
+          final data = decoded is Map && decoded['profile'] != null ? decoded['profile'] : decoded;
+          if (data is Map<String, dynamic>) {
+            final saved = GamepadProfile.fromJson(data);
+            invalidateMemoryCache("cache_gamepad_profiles");
+            return saved;
+          }
+        } catch (_) {}
         return profile;
       }
     } catch (e) {

@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:gamepads/gamepads.dart';
+import 'package:gamepads_platform_interface/api/gamepad_event.dart';
 import 'package:gamepads_platform_interface/gamepads_platform_interface.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:win32_gamepad/win32_gamepad.dart' as win32;
 import '../models/gamepad_models.dart';
 import 'api_service.dart';
 import 'file_download_helper.dart';
@@ -30,10 +32,11 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
   static const String _activeProfilePrefKey = 'obsidian_gamepad_active_profile_v1';
   static const String _allProfilesPrefKey = 'obsidian_gamepad_all_profiles_v1';
 
-  // Gamepad stream subscription
+  // Gamepad stream subscription & Windows poll timer
   StreamSubscription<GamepadEvent>? _gamepadSubscription;
   Timer? _devicePollTimer;
-  final GamepadNormalizer _normalizer = GamepadNormalizer();
+  Timer? _windowsInputPollTimer;
+  final Map<int, win32.GamepadState> _lastWindowsStates = {};
 
   // Controllers list
   List<GamepadDeviceInfo> _connectedDevices = [];
@@ -124,30 +127,47 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
   /// Refreshes the list of currently connected gamepads and detects disconnections
   Future<void> refreshConnectedDevices() async {
     try {
-      final list = await Gamepads.list();
-      final previousIds = _connectedDevices.map((c) => c.id).toSet();
-      final newDevices = list.map((c) {
-        final nameLower = c.name.toLowerCase();
-        String type = 'generic';
-        if (nameLower.contains('xbox') || nameLower.contains('microsoft') || nameLower.contains('x-input')) {
-          type = 'xbox';
-        } else if (nameLower.contains('ps4') ||
-            nameLower.contains('ps5') ||
-            nameLower.contains('dualshock') ||
-            nameLower.contains('dualsense') ||
-            nameLower.contains('playstation') ||
-            nameLower.contains('sony')) {
-          type = 'playstation';
+      List<GamepadDeviceInfo> newDevices = [];
+      if (Platform.isWindows) {
+        for (var i = 0; i < 4; i++) {
+          try {
+            final gp = win32.Gamepad(i);
+            gp.updateState();
+            if (gp.isConnected) {
+              newDevices.add(GamepadDeviceInfo(
+                id: '$i',
+                name: 'Xbox Controller ${i + 1}',
+                inferredType: 'xbox',
+              ));
+            }
+          } catch (_) {}
         }
-        return GamepadDeviceInfo(
-          id: c.id,
-          name: c.name.isNotEmpty ? c.name : 'Gamepad ${c.id}',
-          inferredType: type,
-        );
-      }).toList();
+      } else {
+        final list = await GamepadsPlatformInterface.instance.listGamepads();
+        newDevices = list.map((c) {
+          final nameLower = c.name.toLowerCase();
+          String type = 'generic';
+          if (nameLower.contains('xbox') || nameLower.contains('microsoft') || nameLower.contains('x-input')) {
+            type = 'xbox';
+          } else if (nameLower.contains('ps4') ||
+              nameLower.contains('ps5') ||
+              nameLower.contains('dualshock') ||
+              nameLower.contains('dualsense') ||
+              nameLower.contains('playstation') ||
+              nameLower.contains('sony')) {
+            type = 'playstation';
+          }
+          return GamepadDeviceInfo(
+            id: c.id,
+            name: c.name.isNotEmpty ? c.name : 'Gamepad ${c.id}',
+            inferredType: type,
+          );
+        }).toList();
+      }
 
+      final previousIds = _connectedDevices.map((c) => c.id).toSet();
       final newIds = newDevices.map((c) => c.id).toSet();
-      final hasDisconnected = previousIds.difference(newIds).isNotEmpty || (list.isEmpty && previousIds.isNotEmpty);
+      final hasDisconnected = previousIds.difference(newIds).isNotEmpty || (newDevices.isEmpty && previousIds.isNotEmpty);
       final hasConnected = newIds.difference(previousIds).isNotEmpty;
 
       _connectedDevices = newDevices;
@@ -165,22 +185,115 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
 
   void _initGamepadListener() {
     _gamepadSubscription?.cancel();
-    try {
-      _gamepadSubscription = Gamepads.events.listen(
-        (event) {
-          _handleRawGamepadEvent(event);
-        },
-        onError: (err) {
-          debugPrint('[GamepadService] Gamepad stream error: $err');
-          resetAllInputs(reason: 'Gamepad stream error');
-        },
-        onDone: () {
-          debugPrint('[GamepadService] Gamepad stream closed');
-          resetAllInputs(reason: 'Gamepad stream closed');
-        },
+    _windowsInputPollTimer?.cancel();
+
+    if (Platform.isWindows) {
+      _windowsInputPollTimer = Timer.periodic(
+        const Duration(milliseconds: 16),
+        (_) => _pollWindowsGamepads(),
       );
-    } catch (e) {
-      debugPrint('[GamepadService] Could not subscribe to Gamepads.events: $e');
+    } else {
+      try {
+        _gamepadSubscription = GamepadsPlatformInterface.instance.gamepadEventsStream.listen(
+          (event) {
+            _handleRawGamepadEvent(event);
+          },
+          onError: (err) {
+            debugPrint('[GamepadService] Gamepad stream error: $err');
+            resetAllInputs(reason: 'Gamepad stream error');
+          },
+          onDone: () {
+            debugPrint('[GamepadService] Gamepad stream closed');
+            resetAllInputs(reason: 'Gamepad stream closed');
+          },
+        );
+      } catch (e) {
+        debugPrint('[GamepadService] Could not subscribe to GamepadsPlatformInterface: $e');
+      }
+    }
+  }
+
+  void _pollWindowsGamepads() {
+    for (var i = 0; i < 4; i++) {
+      try {
+        final gp = win32.Gamepad(i);
+        gp.updateState();
+        final state = gp.state;
+        if (!state.isConnected) {
+          _lastWindowsStates.remove(i);
+          continue;
+        }
+
+        final oldState = _lastWindowsStates[i];
+        _lastWindowsStates[i] = state;
+        final gamepadId = '$i';
+
+        void checkBtn(bool current, bool was, String key) {
+          if (current != was || (current && _activeProfile?.bindings.any((b) => b.inputKey == key && b.triggerMode != GamepadTriggerMode.singlePress) == true)) {
+            _processInput(
+              inputKey: key,
+              value: current ? 1.0 : 0.0,
+              isPressed: current,
+              isAnalog: false,
+              gamepadId: gamepadId,
+            );
+          }
+        }
+
+        final wasConnected = oldState?.isConnected ?? false;
+        checkBtn(state.buttonA, wasConnected && (oldState?.buttonA ?? false), 'button_a');
+        checkBtn(state.buttonB, wasConnected && (oldState?.buttonB ?? false), 'button_b');
+        checkBtn(state.buttonX, wasConnected && (oldState?.buttonX ?? false), 'button_x');
+        checkBtn(state.buttonY, wasConnected && (oldState?.buttonY ?? false), 'button_y');
+        checkBtn(state.leftShoulder, wasConnected && (oldState?.leftShoulder ?? false), 'shoulder_l');
+        checkBtn(state.rightShoulder, wasConnected && (oldState?.rightShoulder ?? false), 'shoulder_r');
+        checkBtn(state.leftThumb, wasConnected && (oldState?.leftThumb ?? false), 'thumb_l');
+        checkBtn(state.rightThumb, wasConnected && (oldState?.rightThumb ?? false), 'thumb_r');
+        checkBtn(state.buttonBack, wasConnected && (oldState?.buttonBack ?? false), 'button_back');
+        checkBtn(state.buttonStart, wasConnected && (oldState?.buttonStart ?? false), 'button_start');
+        checkBtn(state.dpadUp, wasConnected && (oldState?.dpadUp ?? false), 'dpad_up');
+        checkBtn(state.dpadDown, wasConnected && (oldState?.dpadDown ?? false), 'dpad_down');
+        checkBtn(state.dpadLeft, wasConnected && (oldState?.dpadLeft ?? false), 'dpad_left');
+        checkBtn(state.dpadRight, wasConnected && (oldState?.dpadRight ?? false), 'dpad_right');
+
+        // Triggers (0..255)
+        final lTrigVal = state.leftTrigger / 255.0;
+        final cleanLTrig = lTrigVal < 0.08 ? 0.0 : lTrigVal;
+        final oldLTrig = ((oldState?.leftTrigger ?? 0) / 255.0);
+        if ((cleanLTrig - oldLTrig).abs() > 0.01 || cleanLTrig >= 0.15) {
+          _processInput(
+            inputKey: 'trigger_l',
+            value: cleanLTrig,
+            isPressed: cleanLTrig >= 0.15,
+            isAnalog: true,
+            gamepadId: gamepadId,
+          );
+        }
+
+        final rTrigVal = state.rightTrigger / 255.0;
+        final cleanRTrig = rTrigVal < 0.08 ? 0.0 : rTrigVal;
+        final oldRTrig = ((oldState?.rightTrigger ?? 0) / 255.0);
+        if ((cleanRTrig - oldRTrig).abs() > 0.01 || cleanRTrig >= 0.15) {
+          _processInput(
+            inputKey: 'trigger_r',
+            value: cleanRTrig,
+            isPressed: cleanRTrig >= 0.15,
+            isAnalog: true,
+            gamepadId: gamepadId,
+          );
+        }
+
+        // Thumbsticks (-32768..32767)
+        final lx = state.leftThumbstickX.abs() < 7849 ? 0.0 : (state.leftThumbstickX / 32767.0).clamp(-1.0, 1.0);
+        final ly = state.leftThumbstickY.abs() < 7849 ? 0.0 : (state.leftThumbstickY / 32767.0).clamp(-1.0, 1.0);
+        final rx = state.rightThumbstickX.abs() < 8689 ? 0.0 : (state.rightThumbstickX / 32767.0).clamp(-1.0, 1.0);
+        final ry = state.rightThumbstickY.abs() < 8689 ? 0.0 : (state.rightThumbstickY / 32767.0).clamp(-1.0, 1.0);
+
+        _processStickAxis(stickPrefix: 'stick_l', isXAxis: true, value: lx, gamepadId: gamepadId);
+        _processStickAxis(stickPrefix: 'stick_l', isXAxis: false, value: ly, gamepadId: gamepadId);
+        _processStickAxis(stickPrefix: 'stick_r', isXAxis: true, value: rx, gamepadId: gamepadId);
+        _processStickAxis(stickPrefix: 'stick_r', isXAxis: false, value: ry, gamepadId: gamepadId);
+      } catch (_) {}
     }
   }
 
@@ -230,105 +343,8 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
     return false; // Don't block OS event
   }
 
-  static String _buttonToCanonicalKey(GamepadButton button) {
-    switch (button) {
-      case GamepadButton.a:
-        return 'button_a';
-      case GamepadButton.b:
-        return 'button_b';
-      case GamepadButton.x:
-        return 'button_x';
-      case GamepadButton.y:
-        return 'button_y';
-      case GamepadButton.leftBumper:
-        return 'shoulder_l';
-      case GamepadButton.rightBumper:
-        return 'shoulder_r';
-      case GamepadButton.leftTrigger:
-        return 'trigger_l';
-      case GamepadButton.rightTrigger:
-        return 'trigger_r';
-      case GamepadButton.back:
-        return 'button_back';
-      case GamepadButton.start:
-      case GamepadButton.home:
-        return 'button_start';
-      case GamepadButton.leftStick:
-        return 'thumb_l';
-      case GamepadButton.rightStick:
-        return 'thumb_r';
-      case GamepadButton.dpadUp:
-        return 'dpad_up';
-      case GamepadButton.dpadDown:
-        return 'dpad_down';
-      case GamepadButton.dpadLeft:
-        return 'dpad_left';
-      case GamepadButton.dpadRight:
-        return 'dpad_right';
-      case GamepadButton.touchpad:
-        return 'button_back';
-    }
-  }
-
-  static String _axisToCanonicalKey(GamepadAxis axis) {
-    switch (axis) {
-      case GamepadAxis.leftStickX:
-        return 'stick_l_x';
-      case GamepadAxis.leftStickY:
-        return 'stick_l_y';
-      case GamepadAxis.rightStickX:
-        return 'stick_r_x';
-      case GamepadAxis.rightStickY:
-        return 'stick_r_y';
-      case GamepadAxis.leftTrigger:
-        return 'trigger_l';
-      case GamepadAxis.rightTrigger:
-        return 'trigger_r';
-    }
-  }
-
   void _handleRawGamepadEvent(GamepadEvent event) {
-    // 1. Try normalizing via GamepadNormalizer (handles platform-specific mappings on Android, Windows, etc.)
-    final normalizedEvents = _normalizer.normalize(event);
-    if (normalizedEvents.isNotEmpty) {
-      for (final norm in normalizedEvents) {
-        if (norm.button != null) {
-          final canonicalKey = _buttonToCanonicalKey(norm.button!);
-          final isPressed = norm.value > 0.5;
-          _processInput(
-            inputKey: canonicalKey,
-            value: norm.value,
-            isPressed: isPressed,
-            isAnalog: false,
-            gamepadId: event.gamepadId,
-          );
-        } else if (norm.axis != null) {
-          final canonicalAxis = _axisToCanonicalKey(norm.axis!);
-          if (canonicalAxis == 'trigger_l' || canonicalAxis == 'trigger_r') {
-            final val = norm.value.clamp(0.0, 1.0);
-            final cleanVal = val < 0.08 ? 0.0 : val;
-            _processInput(
-              inputKey: canonicalAxis,
-              value: cleanVal,
-              isPressed: cleanVal >= 0.15,
-              isAnalog: true,
-              gamepadId: event.gamepadId,
-            );
-          } else if (canonicalAxis == 'stick_l_x') {
-            _processStickAxis(stickPrefix: 'stick_l', isXAxis: true, value: norm.value, gamepadId: event.gamepadId);
-          } else if (canonicalAxis == 'stick_l_y') {
-            _processStickAxis(stickPrefix: 'stick_l', isXAxis: false, value: norm.value, gamepadId: event.gamepadId);
-          } else if (canonicalAxis == 'stick_r_x') {
-            _processStickAxis(stickPrefix: 'stick_r', isXAxis: true, value: norm.value, gamepadId: event.gamepadId);
-          } else if (canonicalAxis == 'stick_r_y') {
-            _processStickAxis(stickPrefix: 'stick_r', isXAxis: false, value: norm.value, gamepadId: event.gamepadId);
-          }
-        }
-      }
-      return;
-    }
-
-    // 2. Fallback: direct string key & axis normalization
+    // Fallback: direct string key & axis normalization
     final normalizedKey = _normalizeRawGamepadKey(event.key);
     final rawValue = event.value;
 
@@ -377,6 +393,42 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
 
   String? _lastActiveGamepadId;
 
+  Future<void> _rumbleDevice(
+    String targetId, {
+    required double lowFrequency,
+    required double highFrequency,
+    required Duration duration,
+  }) async {
+    if (Platform.isWindows) {
+      try {
+        final index = int.tryParse(targetId) ?? 0;
+        final gp = win32.Gamepad(index);
+        if (gp.isConnected) {
+          gp.vibrate(
+            leftMotorSpeed: (lowFrequency * 65535).round().clamp(0, 65535),
+            rightMotorSpeed: (highFrequency * 65535).round().clamp(0, 65535),
+          );
+          Timer(duration, () {
+            try {
+              if (gp.isConnected) {
+                gp.vibrate(leftMotorSpeed: 0, rightMotorSpeed: 0);
+              }
+            } catch (_) {}
+          });
+        }
+      } catch (_) {}
+    } else {
+      try {
+        await GamepadsPlatformInterface.instance.rumble(
+          targetId,
+          lowFrequency: lowFrequency,
+          highFrequency: highFrequency,
+          duration: duration,
+        );
+      } catch (_) {}
+    }
+  }
+
   /// Triggers physical rumble / haptic feedback on the active gamepad controller
   Future<void> _triggerGamepadHaptic({
     required GamepadBinding binding,
@@ -395,14 +447,14 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
 
     try {
       if (binding.actionType == GamepadActionType.switchTab) {
-        await GamepadsPlatformInterface.instance.rumble(
+        await _rumbleDevice(
           targetId,
           lowFrequency: (0.4 * strength).clamp(0.0, 1.0),
           highFrequency: (0.8 * strength).clamp(0.0, 1.0),
           duration: const Duration(milliseconds: 90),
         );
       } else if (binding.actionType == GamepadActionType.submit || binding.actionType == GamepadActionType.barcode) {
-        await GamepadsPlatformInterface.instance.rumble(
+        await _rumbleDevice(
           targetId,
           lowFrequency: (0.7 * strength).clamp(0.0, 1.0),
           highFrequency: (0.9 * strength).clamp(0.0, 1.0),
@@ -413,7 +465,7 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
         final intensity = (binding.triggerMode == GamepadTriggerMode.scaledTrigger)
             ? (0.3 + 0.6 * value.abs()).clamp(0.2, 0.9)
             : (isRepeat ? 0.3 : 0.55);
-        await GamepadsPlatformInterface.instance.rumble(
+        await _rumbleDevice(
           targetId,
           lowFrequency: (intensity * 0.4 * strength).clamp(0.0, 1.0),
           highFrequency: (intensity * strength).clamp(0.0, 1.0),
@@ -434,7 +486,7 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
     if (mult <= 0.0) return true;
 
     try {
-      await GamepadsPlatformInterface.instance.rumble(
+      await _rumbleDevice(
         targetId,
         lowFrequency: (0.6 * mult).clamp(0.0, 1.0),
         highFrequency: (0.9 * mult).clamp(0.0, 1.0),
@@ -739,7 +791,7 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
   /// Attach ApiService for cloud database syncing
   void attachApiService(ApiService apiService) {
     _apiService = apiService;
-    syncWithServer();
+    unawaited(syncWithServer().catchError((_) => false));
   }
 
   /// Syncs profiles with the server database. If [forceRefresh] is true, forces fetching fresh profiles from network.
@@ -1476,6 +1528,7 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _devicePollTimer?.cancel();
+    _windowsInputPollTimer?.cancel();
     _gamepadSubscription?.cancel();
     HardwareKeyboard.instance.removeHandler(_handleHardwareKeyEvent);
     resetAllInputs(reason: 'Service disposed');
