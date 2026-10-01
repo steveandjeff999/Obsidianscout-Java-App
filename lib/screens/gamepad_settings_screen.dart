@@ -660,7 +660,9 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
                     width: isActive ? 1.5 : 1.0,
                   ),
                 ),
-                child: ListTile(
+                child: Material(
+                  color: Colors.transparent,
+                  child: ListTile(
                   dense: true,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
                   leading: Icon(
@@ -796,6 +798,7 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
                   onTap: () {
                     if (!isActive) _gamepadService.setActiveProfile(p);
                   },
+                ),
                 ),
               );
             }),
