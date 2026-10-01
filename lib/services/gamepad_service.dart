@@ -749,6 +749,9 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
 
     try {
       final serverProfiles = await api.fetchGamepadProfiles(forceRefresh: forceRefresh);
+      if (serverProfiles == null) {
+        return false;
+      }
       if (serverProfiles.isNotEmpty) {
         _profiles = List<GamepadProfile>.from(serverProfiles);
         if (_activeProfile != null) {
@@ -761,8 +764,8 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
         return true;
       } else if (_activeProfile != null) {
         // Push initial local profile to server if server is empty
-        await api.saveGamepadProfile(_activeProfile!);
-        return true;
+        final res = await api.saveGamepadProfile(_activeProfile!);
+        return res != null;
       }
       return true;
     } catch (e) {
