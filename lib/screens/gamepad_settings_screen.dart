@@ -58,10 +58,10 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
           message: '${_gamepadService.profiles.length} controller profile(s) synced from server.',
         );
       } else {
-        ObsidianFeedback.showSuccess(
+        ObsidianFeedback.showWarning(
           context,
-          title: 'Controllers Refreshed',
-          message: '${_gamepadService.connectedDevices.length} controller(s) detected.',
+          title: 'Sync Incomplete',
+          message: 'Server is offline or unreachable. Loaded local profile cache.',
         );
       }
     }
@@ -79,10 +79,10 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
           message: 'Controller profile "${profile.name}" saved to server database.',
         );
       } else {
-        ObsidianFeedback.showSuccess(
+        ObsidianFeedback.showError(
           context,
-          title: 'Saved Locally',
-          message: 'Profile saved on this device (offline mode).',
+          title: 'Save Failed',
+          message: 'Could not reach server. Profile was NOT saved to the server.',
         );
       }
     }

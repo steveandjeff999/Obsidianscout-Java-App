@@ -5410,7 +5410,7 @@ class ApiService {
   // GAMEPAD & CONTROLLER CONFIGURATIONS
   // ==========================================
 
-  Future<List<GamepadProfile>> fetchGamepadProfiles({bool forceRefresh = false}) async {
+  Future<List<GamepadProfile>?> fetchGamepadProfiles({bool forceRefresh = false}) async {
     const memKey = "cache_gamepad_profiles";
     if (!forceRefresh) {
       final inMem = getFromMemoryCache<List<GamepadProfile>>(memKey);
@@ -5418,16 +5418,18 @@ class ApiService {
     }
 
     if (!_isOnline) {
-      final cached = await _getCache(memKey);
-      if (cached != null && cached.isNotEmpty) {
-        try {
-          final List list = jsonDecode(cached);
-          final res = list.map((e) => GamepadProfile.fromJson(e as Map<String, dynamic>)).toList();
-          setMemoryCache(memKey, res);
-          return res;
-        } catch (_) {}
+      if (!forceRefresh) {
+        final cached = await _getCache(memKey);
+        if (cached != null && cached.isNotEmpty) {
+          try {
+            final List list = jsonDecode(cached);
+            final res = list.map((e) => GamepadProfile.fromJson(e as Map<String, dynamic>)).toList();
+            setMemoryCache(memKey, res);
+            return res;
+          } catch (_) {}
+        }
       }
-      return [];
+      return null;
     }
 
     try {
@@ -5451,17 +5453,19 @@ class ApiService {
       debugPrint('[ApiService] fetchGamepadProfiles error: $e');
     }
 
-    // Fallback to cache on error
-    final cached = await _getCache(memKey);
-    if (cached != null && cached.isNotEmpty) {
-      try {
-        final List list = jsonDecode(cached);
-        final res = list.map((e) => GamepadProfile.fromJson(e as Map<String, dynamic>)).toList();
-        setMemoryCache(memKey, res);
-        return res;
-      } catch (_) {}
+    if (!forceRefresh) {
+      // Fallback to cache only on non-forced error
+      final cached = await _getCache(memKey);
+      if (cached != null && cached.isNotEmpty) {
+        try {
+          final List list = jsonDecode(cached);
+          final res = list.map((e) => GamepadProfile.fromJson(e as Map<String, dynamic>)).toList();
+          setMemoryCache(memKey, res);
+          return res;
+        } catch (_) {}
+      }
     }
-    return [];
+    return null;
   }
 
   Future<GamepadProfile?> saveGamepadProfile(GamepadProfile profile) async {
