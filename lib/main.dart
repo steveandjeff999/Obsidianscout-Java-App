@@ -62,6 +62,7 @@ void main() async {
   final apiService = ApiService();
   await apiService.init();
   await GamepadService.instance.init();
+  GamepadService.instance.attachApiService(apiService);
   runApp(ObsidianscoutApp(apiService: apiService));
 }
 

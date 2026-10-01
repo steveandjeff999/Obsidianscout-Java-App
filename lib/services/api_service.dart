@@ -18,6 +18,7 @@ import '../models/error_report_models.dart';
 import '../models/assignment_models.dart';
 import '../models/graph_models.dart';
 import '../models/match_planning_models.dart';
+import '../models/gamepad_models.dart';
 import '../theme/obsidian_ui_theme.dart';
 import 'auth_storage_service.dart';
 import 'scout_history_service.dart';
@@ -5401,6 +5402,106 @@ class ApiService {
       return response.statusCode >= 200 && response.statusCode < 300;
     } catch (e) {
       debugPrint('[ApiService] sendAssignmentReminder error: $e');
+      return false;
+    }
+  }
+
+  // ==========================================
+  // GAMEPAD & CONTROLLER CONFIGURATIONS
+  // ==========================================
+
+  Future<List<GamepadProfile>> fetchGamepadProfiles({bool forceRefresh = false}) async {
+    const memKey = "cache_gamepad_profiles";
+    if (!forceRefresh) {
+      final inMem = getFromMemoryCache<List<GamepadProfile>>(memKey);
+      if (inMem != null && inMem.isNotEmpty) return inMem;
+    }
+
+    if (!_isOnline) {
+      final cached = await _getCache(memKey);
+      if (cached != null && cached.isNotEmpty) {
+        try {
+          final List list = jsonDecode(cached);
+          final res = list.map((e) => GamepadProfile.fromJson(e as Map<String, dynamic>)).toList();
+          setMemoryCache(memKey, res);
+          return res;
+        } catch (_) {}
+      }
+      return [];
+    }
+
+    try {
+      final uri = Uri.parse('$_currentServerUrl/api/gamepad/profiles');
+      final response = await http.get(uri, headers: _headers).timeout(requestTimeout);
+      _checkResponse(response);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final decoded = jsonDecode(response.body);
+        final rawList = (decoded is Map ? decoded['profiles'] : decoded) as List<dynamic>? ?? [];
+        final profiles = rawList
+            .whereType<Map<String, dynamic>>()
+            .map((e) => GamepadProfile.fromJson(e))
+            .toList();
+
+        await _setCache(memKey, jsonEncode(profiles.map((p) => p.toJson()).toList()));
+        setMemoryCache(memKey, profiles);
+        return profiles;
+      }
+    } catch (e) {
+      debugPrint('[ApiService] fetchGamepadProfiles error: $e');
+    }
+
+    // Fallback to cache on error
+    final cached = await _getCache(memKey);
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        final List list = jsonDecode(cached);
+        final res = list.map((e) => GamepadProfile.fromJson(e as Map<String, dynamic>)).toList();
+        setMemoryCache(memKey, res);
+        return res;
+      } catch (_) {}
+    }
+    return [];
+  }
+
+  Future<GamepadProfile?> saveGamepadProfile(GamepadProfile profile) async {
+    if (!_isOnline) return null;
+    try {
+      final uri = Uri.parse('$_currentServerUrl/api/gamepad/profiles');
+      final response = await http.post(
+        uri,
+        headers: _headers,
+        body: jsonEncode(profile.toJson()),
+      ).timeout(requestTimeout);
+      _checkResponse(response);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final decoded = jsonDecode(response.body);
+        final data = decoded is Map && decoded['profile'] != null ? decoded['profile'] : decoded;
+        if (data is Map<String, dynamic>) {
+          final saved = GamepadProfile.fromJson(data);
+          invalidateMemoryCache("cache_gamepad_profiles");
+          return saved;
+        }
+        return profile;
+      }
+    } catch (e) {
+      debugPrint('[ApiService] saveGamepadProfile error: $e');
+    }
+    return null;
+  }
+
+  Future<bool> deleteGamepadProfile(String profileId) async {
+    if (!_isOnline) return false;
+    try {
+      final cleanId = Uri.encodeComponent(profileId);
+      final uri = Uri.parse('$_currentServerUrl/api/gamepad/profiles/$cleanId');
+      final response = await http.delete(uri, headers: _headers).timeout(requestTimeout);
+      _checkResponse(response);
+      invalidateMemoryCache("cache_gamepad_profiles");
+      return response.statusCode >= 200 && response.statusCode < 300;
+    } catch (e) {
+      debugPrint('[ApiService] deleteGamepadProfile error: $e');
       return false;
     }
   }
