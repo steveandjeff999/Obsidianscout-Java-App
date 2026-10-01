@@ -1,5 +1,5 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import '../l10n/app_localizations.dart';
 import '../models/config_models.dart';
@@ -248,7 +248,12 @@ class DynamicFieldWidget extends StatelessWidget {
                   Tooltip(
                     message: decTooltip,
                     child: IconButton(
-                      onPressed: val > minVal ? () => onChanged((val - stepVal).clamp(minVal, maxVal)) : null,
+                      onPressed: val > minVal
+                          ? () {
+                              HapticFeedback.lightImpact();
+                              onChanged((val - stepVal).clamp(minVal, maxVal));
+                            }
+                          : null,
                       icon: Icon(Icons.remove_circle_outline, color: secondaryTextColor, size: 20.0),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(minWidth: 32.0, minHeight: 32.0),
@@ -269,7 +274,12 @@ class DynamicFieldWidget extends StatelessWidget {
                   Tooltip(
                     message: incTooltip,
                     child: IconButton(
-                      onPressed: val < maxVal ? () => onChanged((val + stepVal).clamp(minVal, maxVal)) : null,
+                      onPressed: val < maxVal
+                          ? () {
+                              HapticFeedback.lightImpact();
+                              onChanged((val + stepVal).clamp(minVal, maxVal));
+                            }
+                          : null,
                       icon: Icon(Icons.add_circle_outline, color: ObsidianUITheme.primaryAccent, size: 20.0),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(minWidth: 32.0, minHeight: 32.0),
@@ -290,7 +300,12 @@ class DynamicFieldWidget extends StatelessWidget {
                 Tooltip(
                   message: decTooltip,
                   child: IconButton(
-                    onPressed: val > minVal ? () => onChanged((val - stepVal).clamp(minVal, maxVal)) : null,
+                    onPressed: val > minVal
+                        ? () {
+                            HapticFeedback.lightImpact();
+                            onChanged((val - stepVal).clamp(minVal, maxVal));
+                          }
+                        : null,
                     icon: Icon(Icons.remove_circle_outline, color: secondaryTextColor, size: 30.0),
                     iconSize: 30.0,
                     padding: const EdgeInsets.all(14.0),
@@ -312,7 +327,12 @@ class DynamicFieldWidget extends StatelessWidget {
                 Tooltip(
                   message: incTooltip,
                   child: IconButton(
-                    onPressed: val < maxVal ? () => onChanged((val + stepVal).clamp(minVal, maxVal)) : null,
+                    onPressed: val < maxVal
+                        ? () {
+                            HapticFeedback.lightImpact();
+                            onChanged((val + stepVal).clamp(minVal, maxVal));
+                          }
+                        : null,
                     icon: Icon(Icons.add_circle_outline, color: ObsidianUITheme.primaryAccent, size: 30.0),
                     iconSize: 30.0,
                     padding: const EdgeInsets.all(14.0),
@@ -375,7 +395,9 @@ class DynamicFieldWidget extends StatelessWidget {
                 max: maxVal,
                 divisions: divisions > 0 ? divisions : null,
                 label: stepVal < 1 ? current.toStringAsFixed(1) : current.toInt().toString(),
-                onChanged: (val) => onChanged(stepVal < 1 ? val : val.round()),
+                onChanged: (val) {
+                  onChanged(stepVal < 1 ? val : val.round());
+                },
               ),
             ),
           ],
@@ -411,7 +433,10 @@ class DynamicFieldWidget extends StatelessWidget {
                     color: isSelected ? Colors.amber : faintTextColor,
                     size: isDesktop ? 22.0 : 32.0,
                   ),
-                  onPressed: () => onChanged(starNum),
+                  onPressed: () {
+                    HapticFeedback.selectionClick();
+                    onChanged(starNum);
+                  },
                 );
               }),
             ),
@@ -443,7 +468,10 @@ class DynamicFieldWidget extends StatelessWidget {
           value: val,
           activeThumbColor: ObsidianUITheme.primaryAccent,
           activeTrackColor: ObsidianUITheme.primaryAccent.withValues(alpha: 0.4),
-          onChanged: (bool newValue) => onChanged(newValue),
+          onChanged: (bool newValue) {
+            HapticFeedback.selectionClick();
+            onChanged(newValue);
+          },
         );
 
       // 6. RADIO / SEGMENTED
@@ -488,7 +516,10 @@ class DynamicFieldWidget extends StatelessWidget {
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   ),
                   onSelected: (selected) {
-                    if (selected) onChanged(opt.value);
+                    if (selected) {
+                      HapticFeedback.selectionClick();
+                      onChanged(opt.value);
+                    }
                   },
                 );
               }).toList(),
@@ -535,6 +566,7 @@ class DynamicFieldWidget extends StatelessWidget {
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   ),
                   onSelected: (selected) {
+                    HapticFeedback.selectionClick();
                     final newList = List<String>.from(selectedList);
                     if (selected) {
                       newList.add(opt.value);
@@ -589,6 +621,7 @@ class DynamicFieldWidget extends StatelessWidget {
           }).toList(),
           onChanged: (String? newSelection) {
             if (newSelection != null) {
+              HapticFeedback.selectionClick();
               onChanged(newSelection);
             }
           },
@@ -710,7 +743,12 @@ class DynamicFieldWidget extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: onPressed,
+        onTap: isEnabled
+            ? () {
+                HapticFeedback.lightImpact();
+                onPressed();
+              }
+            : null,
         borderRadius: BorderRadius.circular(isDesktop ? 6.0 : 8.0),
         child: Container(
           constraints: BoxConstraints(
