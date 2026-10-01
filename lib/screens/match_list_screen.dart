@@ -38,7 +38,9 @@ class _MatchListScreenState extends State<MatchListScreen> {
   void didUpdateWidget(covariant MatchListScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isVisible && !oldWidget.isVisible) {
-      _loadMatches();
+      if (_matches.isEmpty || !widget.apiService.isCacheFresh('cache_matches_all')) {
+        _loadMatches();
+      }
     }
   }
 

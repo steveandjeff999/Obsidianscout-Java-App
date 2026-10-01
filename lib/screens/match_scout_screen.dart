@@ -1,15 +1,18 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
-import '../widgets/obsidian_glass_card.dart';
-import '../widgets/dynamic_field_widget.dart';
 import '../models/config_models.dart';
+import '../models/gamepad_models.dart';
 import '../models/team_match_models.dart';
-import '../theme/obsidian_ui_theme.dart';
-import '../theme/obsidian_responsive.dart';
 import '../services/api_service.dart';
+import '../services/gamepad_service.dart';
 import '../services/scout_history_service.dart';
+import '../theme/obsidian_responsive.dart';
+import '../theme/obsidian_ui_theme.dart';
+import '../widgets/dynamic_field_widget.dart';
 import '../widgets/obsidian_barcode_modal.dart';
 import '../widgets/obsidian_feedback.dart';
+import '../widgets/obsidian_glass_card.dart';
 
 class MatchScoutScreen extends StatefulWidget {
   final ApiService apiService;
@@ -50,11 +53,19 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
   bool _isLoading = true;
   bool _isSubmitting = false;
   final Map<String, dynamic> _formData = {};
+  StreamSubscription<GamepadActionEvent>? _gamepadSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadPageData();
+    _gamepadSubscription = GamepadService.instance.actionStream.listen(_handleGamepadAction);
+  }
+
+  @override
+  void dispose() {
+    _gamepadSubscription?.cancel();
+    super.dispose();
   }
 
   @override
@@ -600,6 +611,142 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
     );
   }
 
+  void _handleGamepadAction(GamepadActionEvent event) {
+    if (!mounted || !widget.isVisible) return;
+    final binding = event.binding;
+
+    // Phase check: only process if binding is global or targets the active period
+    if (binding.phase != 'global' && binding.phase.toLowerCase() != _activeTab.toLowerCase()) {
+      return;
+    }
+
+    switch (binding.actionType) {
+      case GamepadActionType.increment:
+        if (binding.targetFieldId != null) {
+          final fieldId = binding.targetFieldId!;
+          final field = _config?.fields.where((f) => f.id == fieldId).firstOrNull;
+          if (field != null) {
+            final minVal = field.min ?? 0;
+            final maxVal = (field.max != null && field.max! > minVal) ? field.max! : 999999;
+            final step = (binding.stepValue > 0) ? binding.stepValue.toInt() : (field.step ?? 1);
+            final currentVal = (_formData[fieldId] is num) ? (_formData[fieldId] as num).toInt() : minVal;
+            final newVal = (currentVal + step).clamp(minVal, maxVal);
+            setState(() {
+              _formData[fieldId] = newVal;
+            });
+          }
+        }
+        break;
+
+      case GamepadActionType.decrement:
+        if (binding.targetFieldId != null) {
+          final fieldId = binding.targetFieldId!;
+          final field = _config?.fields.where((f) => f.id == fieldId).firstOrNull;
+          if (field != null) {
+            final minVal = field.min ?? 0;
+            final maxVal = (field.max != null && field.max! > minVal) ? field.max! : 999999;
+            final step = (binding.stepValue > 0) ? binding.stepValue.toInt() : (field.step ?? 1);
+            final currentVal = (_formData[fieldId] is num) ? (_formData[fieldId] as num).toInt() : minVal;
+            final newVal = (currentVal - step).clamp(minVal, maxVal);
+            setState(() {
+              _formData[fieldId] = newVal;
+            });
+          }
+        }
+        break;
+
+      case GamepadActionType.toggle:
+        if (binding.targetFieldId != null) {
+          final fieldId = binding.targetFieldId!;
+          final currentVal = _formData[fieldId];
+          final boolVal = (currentVal == true || currentVal == 1 || currentVal == 'true');
+          setState(() {
+            _formData[fieldId] = !boolVal;
+          });
+        }
+        break;
+
+      case GamepadActionType.cycleOption:
+        if (binding.targetFieldId != null) {
+          final fieldId = binding.targetFieldId!;
+          final field = _config?.fields.where((f) => f.id == fieldId).firstOrNull;
+          if (field != null && field.options.isNotEmpty) {
+            final currentVal = _formData[fieldId]?.toString() ?? '';
+            final currentIndex = field.options.indexWhere((o) => o.value == currentVal);
+            final nextIndex = (currentIndex + 1) % field.options.length;
+            setState(() {
+              _formData[fieldId] = field.options[nextIndex].value;
+            });
+          }
+        }
+        break;
+
+      case GamepadActionType.switchTab:
+        final tabs = ['auto', 'teleop', 'endgame', 'postmatch'];
+        if (binding.targetValue == 'next') {
+          final idx = tabs.indexOf(_activeTab);
+          final nextIdx = (idx + 1) % tabs.length;
+          setState(() => _activeTab = tabs[nextIdx]);
+        } else if (binding.targetValue == 'prev') {
+          final idx = tabs.indexOf(_activeTab);
+          final prevIdx = (idx - 1 + tabs.length) % tabs.length;
+          setState(() => _activeTab = tabs[prevIdx]);
+        } else if (binding.targetValue != null && tabs.contains(binding.targetValue)) {
+          setState(() => _activeTab = binding.targetValue!);
+        }
+        break;
+
+      case GamepadActionType.submit:
+        _submitData();
+        break;
+
+      case GamepadActionType.barcode:
+        _generateBarcode();
+        break;
+
+      case GamepadActionType.clearForm:
+        _resetForm();
+        break;
+    }
+  }
+
+  GamepadBinding? _findGlobalActionBinding(GamepadActionType actionType, {String? targetValue}) {
+    final activeProfile = GamepadService.instance.activeProfile;
+    if (activeProfile == null || !activeProfile.enabled || !activeProfile.showTooltips) return null;
+    return activeProfile.bindings.where((b) {
+      if (b.actionType != actionType) return false;
+      if (targetValue != null && b.targetValue != targetValue) return false;
+      return true;
+    }).firstOrNull;
+  }
+
+  Widget _buildGamepadBadge(String inputKey, {Color? color, String? labelPrefix}) {
+    final activeProfile = GamepadService.instance.activeProfile;
+    final badge = GamepadService.getShortBadgeLabel(inputKey, controllerType: activeProfile?.controllerType ?? 'xbox');
+    final text = labelPrefix != null ? '$labelPrefix$badge' : badge;
+
+    return Container(
+      margin: const EdgeInsets.only(left: 4.0),
+      padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 1.0),
+      decoration: BoxDecoration(
+        color: (color ?? ObsidianUITheme.primaryAccent).withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(4.0),
+        border: Border.all(
+          color: (color ?? ObsidianUITheme.primaryAccent).withValues(alpha: 0.6),
+          width: 1.0,
+        ),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 9.5,
+          fontWeight: FontWeight.bold,
+          color: color ?? ObsidianUITheme.primaryAccent,
+        ),
+      ),
+    );
+  }
+
   Widget _buildTabRow() {
     final autoLabel = context.tr('phase.auto');
     final teleopLabel = context.tr('phase.teleop');
@@ -613,11 +760,28 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
       {'key': 'postmatch', 'label': (postmatchLabel == 'prescout-scout.post_match' || postmatchLabel == 'prescout_scout.post_match') ? 'Post Match' : postmatchLabel},
     ];
 
+    final activeProfile = GamepadService.instance.activeProfile;
+    final showTooltips = activeProfile != null && activeProfile.enabled && activeProfile.showTooltips;
+    GamepadBinding? prevTabBinding;
+    GamepadBinding? nextTabBinding;
+
+    if (showTooltips) {
+      for (final b in activeProfile.bindings) {
+        if (b.actionType == GamepadActionType.switchTab) {
+          if (b.targetValue == 'prev') prevTabBinding = b;
+          if (b.targetValue == 'next') nextTabBinding = b;
+        }
+      }
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         children: tabs.map((tab) {
           final isSelected = _activeTab == tab['key'];
+          final isFirst = tab['key'] == 'auto';
+          final isLast = tab['key'] == 'postmatch';
+
           return Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 3.0),
@@ -640,15 +804,28 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                     ),
                   ),
                   alignment: Alignment.center,
-                  child: Text(
-                    tab['label']!,
-                    style: TextStyle(
-                      fontSize: 12.0,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                      color: isSelected
-                          ? ObsidianUITheme.primaryAccent
-                          : ObsidianUITheme.getPrimaryTextColor(context),
-                    ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isFirst && prevTabBinding != null)
+                        _buildGamepadBadge(prevTabBinding.inputKey, color: ObsidianUITheme.getSecondaryTextColor(context)),
+                      Flexible(
+                        child: Text(
+                          tab['label']!,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12.0,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                            color: isSelected
+                                ? ObsidianUITheme.primaryAccent
+                                : ObsidianUITheme.getPrimaryTextColor(context),
+                          ),
+                        ),
+                      ),
+                      if (isLast && nextTabBinding != null)
+                        _buildGamepadBadge(nextTabBinding.inputKey, color: ObsidianUITheme.getSecondaryTextColor(context)),
+                    ],
                   ),
                 ),
               ),
@@ -723,6 +900,248 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
     );
   }
 
+  String _getBindingSummary(GamepadBinding b) {
+    switch (b.actionType) {
+      case GamepadActionType.increment:
+        final f = _config?.fields.where((fld) => fld.id == b.targetFieldId).firstOrNull;
+        return '[+] ${f?.label ?? b.targetFieldId ?? 'Increment'}';
+      case GamepadActionType.decrement:
+        final f = _config?.fields.where((fld) => fld.id == b.targetFieldId).firstOrNull;
+        return '[-] ${f?.label ?? b.targetFieldId ?? 'Decrement'}';
+      case GamepadActionType.toggle:
+        final f = _config?.fields.where((fld) => fld.id == b.targetFieldId).firstOrNull;
+        return 'Toggle ${f?.label ?? b.targetFieldId ?? 'Checkbox'}';
+      case GamepadActionType.cycleOption:
+        final f = _config?.fields.where((fld) => fld.id == b.targetFieldId).firstOrNull;
+        return 'Cycle ${f?.label ?? b.targetFieldId ?? 'Options'}';
+      case GamepadActionType.switchTab:
+        return 'Switch Period (${b.targetValue ?? 'next'})';
+      case GamepadActionType.submit:
+        return 'Save Entry';
+      case GamepadActionType.barcode:
+        return 'Generate QR Code';
+      case GamepadActionType.clearForm:
+        return 'Clear Form';
+    }
+  }
+
+  Widget _buildGamepadCheatSheetButton() {
+    final activeProfile = GamepadService.instance.activeProfile;
+    if (activeProfile == null || !activeProfile.enabled) {
+      return const SizedBox.shrink();
+    }
+
+    final activeBindings = activeProfile.bindings.where((b) =>
+        b.phase == 'global' || b.phase.toLowerCase() == _activeTab.toLowerCase()).toList();
+
+    final buffer = StringBuffer();
+    buffer.writeln('🎮 Controller Keybinds (${activeProfile.name})');
+    buffer.writeln('Active Period: ${_activeTab.toUpperCase()}');
+    buffer.writeln('------------------------');
+    if (activeBindings.isEmpty) {
+      buffer.writeln('No bindings configured for this period.');
+    } else {
+      for (final b in activeBindings) {
+        final keyBadge = GamepadService.getShortBadgeLabel(b.inputKey, controllerType: activeProfile.controllerType);
+        final actionName = _getBindingSummary(b);
+        buffer.writeln('• $keyBadge: $actionName');
+      }
+    }
+    buffer.write('\n(Tap or hover to view active mappings)');
+
+    final isControllerConnected = GamepadService.instance.connectedDevices.isNotEmpty;
+
+    return Tooltip(
+      message: buffer.toString(),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      textStyle: const TextStyle(fontSize: 12, color: Colors.white, fontFamily: 'monospace'),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.5)),
+      ),
+      child: InkWell(
+        onTap: () => _showGamepadCheatSheetModal(context, activeProfile),
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isControllerConnected
+                  ? ObsidianUITheme.successGreen.withValues(alpha: 0.6)
+                  : ObsidianUITheme.primaryAccent.withValues(alpha: 0.4),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.sports_esports_rounded,
+                size: 14,
+                color: isControllerConnected ? ObsidianUITheme.successGreen : ObsidianUITheme.primaryAccent,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                'Keybinds',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: ObsidianUITheme.getPrimaryTextColor(context),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Container(
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isControllerConnected ? ObsidianUITheme.successGreen : ObsidianUITheme.warningOrange,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showGamepadCheatSheetModal(BuildContext context, GamepadProfile activeProfile) {
+    final surfaceColor = ObsidianUITheme.getSurfaceColor(context);
+    final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return Container(
+          decoration: BoxDecoration(
+            color: surfaceColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.75,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Icon(Icons.sports_esports_rounded, color: ObsidianUITheme.primaryAccent, size: 24),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Controller & Keybind Cheat Sheet',
+                          style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: primaryTextColor),
+                        ),
+                        Text(
+                          'Active Profile: ${activeProfile.name} (${activeProfile.controllerType.toUpperCase()})',
+                          style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.of(ctx).pop(),
+                  ),
+                ],
+              ),
+              const Divider(height: 20),
+              Expanded(
+                child: ListView(
+                  children: [
+                    _buildCheatSheetPhaseSection('GLOBAL ACTIONS', 'global', activeProfile, ObsidianUITheme.primaryAccent),
+                    _buildCheatSheetPhaseSection('AUTONOMOUS PERIOD', 'auto', activeProfile, ObsidianUITheme.primaryAccent),
+                    _buildCheatSheetPhaseSection('TELEOPERATED PERIOD', 'teleop', activeProfile, ObsidianUITheme.secondaryAccent),
+                    _buildCheatSheetPhaseSection('ENDGAME PERIOD', 'endgame', activeProfile, ObsidianUITheme.successGreen),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCheatSheetPhaseSection(String title, String phase, GamepadProfile profile, Color accentColor) {
+    final bindings = profile.bindings.where((b) => b.phase.toLowerCase() == phase).toList();
+    if (bindings.isEmpty) return const SizedBox.shrink();
+
+    final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: accentColor, letterSpacing: 0.8),
+          ),
+          const SizedBox(height: 6),
+          ...bindings.map((b) {
+            final keyBadge = GamepadService.getShortBadgeLabel(b.inputKey, controllerType: profile.controllerType);
+            final summary = _getBindingSummary(b);
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3.0),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.5)),
+                    ),
+                    child: Text(
+                      keyBadge,
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      summary,
+                      style: TextStyle(fontSize: 13, color: primaryTextColor, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                  Text(
+                    b.triggerMode == GamepadTriggerMode.scaledTrigger
+                        ? 'Analog Trigger'
+                        : (b.triggerMode == GamepadTriggerMode.continuousHold ? 'Hold' : 'Tap'),
+                    style: TextStyle(fontSize: 11, color: secondaryTextColor),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
   Widget _buildActiveTabFields(List<ScoutingFieldModel> allFields, {bool isDesktop = false}) {
     final activeFields = allFields.where((f) {
       final t = f.type.toLowerCase();
@@ -755,14 +1174,20 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            sectionTitle,
-            style: TextStyle(
-              fontSize: 12.0,
-              fontWeight: FontWeight.bold,
-              color: accentColor,
-              letterSpacing: 1.0,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                sectionTitle,
+                style: TextStyle(
+                  fontSize: 12.0,
+                  fontWeight: FontWeight.bold,
+                  color: accentColor,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              _buildGamepadCheatSheetButton(),
+            ],
           ),
           const SizedBox(height: 12.0),
           if (activeFields.isEmpty)
@@ -793,6 +1218,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                       child: DynamicFieldWidget(
                         field: field,
                         currentValue: _formData[field.id],
+                        currentPhase: _activeTab,
                         onChanged: (val) => setState(() => _formData[field.id] = val),
                       ),
                     );
@@ -806,6 +1232,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                   child: DynamicFieldWidget(
                     field: field,
                     currentValue: _formData[field.id],
+                    currentPhase: _activeTab,
                     onChanged: (val) => setState(() => _formData[field.id] = val),
                   ),
                 )),
@@ -937,75 +1364,113 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                         children: [
                           _buildPointsPreview(points),
                           const SizedBox(height: 10.0),
-                          ObsidianGlassCard(
-                            onTap: _generateBarcode,
-                            child: Center(
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.qr_code_2_rounded, color: ObsidianUITheme.secondaryAccent, size: 20.0),
-                                  const SizedBox(width: 8.0),
-                                  Text(
-                                    context.tr('qr.button_label').toUpperCase(),
-                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.0, color: ObsidianUITheme.getPrimaryTextColor(context)),
+                          Builder(
+                            builder: (context) {
+                              final qrBinding = _findGlobalActionBinding(GamepadActionType.barcode);
+                              return Tooltip(
+                                message: qrBinding != null
+                                    ? 'Generate QR Code (${GamepadService.getShortBadgeLabel(qrBinding.inputKey, controllerType: GamepadService.instance.activeProfile?.controllerType ?? 'xbox')})'
+                                    : 'Generate QR Code',
+                                child: ObsidianGlassCard(
+                                  onTap: _generateBarcode,
+                                  child: Center(
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.qr_code_2_rounded, color: ObsidianUITheme.secondaryAccent, size: 20.0),
+                                        const SizedBox(width: 8.0),
+                                        Text(
+                                          context.tr('qr.button_label').toUpperCase(),
+                                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.0, color: ObsidianUITheme.getPrimaryTextColor(context)),
+                                        ),
+                                        if (qrBinding != null) ...[
+                                          const SizedBox(width: 4.0),
+                                          _buildGamepadBadge(qrBinding.inputKey, color: ObsidianUITheme.secondaryAccent),
+                                        ],
+                                      ],
+                                    ),
                                   ),
-                                ],
-                              ),
-                            ),
+                                ),
+                              );
+                            },
                           ),
                           const SizedBox(height: 10.0),
                           Builder(
                             builder: (context) {
                               final isOnline = widget.apiService.isOnline;
                               final primaryColor = ObsidianUITheme.getPrimaryTextColor(context);
-                              return ObsidianGlassCard(
-                                onTap: _isSubmitting ? null : _submitData,
-                                child: Center(
-                                  child: _isSubmitting
-                                      ? SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianUITheme.primaryAccent),
-                                        )
-                                      : Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Icon(
-                                              isOnline ? Icons.send_rounded : Icons.save_rounded,
-                                              color: isOnline ? ObsidianUITheme.primaryAccent : ObsidianUITheme.warningOrange,
-                                              size: 18.0,
-                                            ),
-                                            const SizedBox(width: 8.0),
-                                            Text(
-                                              isOnline ? context.tr('scout.save_entry').toUpperCase() : '${context.tr('scout.save_entry')} (OFFLINE)'.toUpperCase(),
-                                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.0, color: primaryColor),
-                                            ),
-                                          ],
-                                        ),
+                              final submitBinding = _findGlobalActionBinding(GamepadActionType.submit);
+                              return Tooltip(
+                                message: submitBinding != null
+                                    ? 'Save Entry (${GamepadService.getShortBadgeLabel(submitBinding.inputKey, controllerType: GamepadService.instance.activeProfile?.controllerType ?? 'xbox')})'
+                                    : 'Save Entry',
+                                child: ObsidianGlassCard(
+                                  onTap: _isSubmitting ? null : _submitData,
+                                  child: Center(
+                                    child: _isSubmitting
+                                        ? SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianUITheme.primaryAccent),
+                                          )
+                                        : Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                isOnline ? Icons.send_rounded : Icons.save_rounded,
+                                                color: isOnline ? ObsidianUITheme.primaryAccent : ObsidianUITheme.warningOrange,
+                                                size: 18.0,
+                                              ),
+                                              const SizedBox(width: 8.0),
+                                              Text(
+                                                isOnline ? context.tr('scout.save_entry').toUpperCase() : '${context.tr('scout.save_entry')} (OFFLINE)'.toUpperCase(),
+                                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.0, color: primaryColor),
+                                              ),
+                                              if (submitBinding != null) ...[
+                                                const SizedBox(width: 4.0),
+                                                _buildGamepadBadge(submitBinding.inputKey, color: ObsidianUITheme.primaryAccent),
+                                              ],
+                                            ],
+                                          ),
+                                  ),
                                 ),
                               );
                             },
                           ),
                           const SizedBox(height: 10.0),
-                          ObsidianGlassCard(
-                            onTap: _confirmAndResetForm,
-                            child: Center(
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.refresh_rounded, size: 16.0, color: ObsidianUITheme.getSecondaryTextColor(context)),
-                                  const SizedBox(width: 6.0),
-                                  Text(
-                                    'CLEAR FORM',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12.0,
-                                      color: ObsidianUITheme.getSecondaryTextColor(context),
+                          Builder(
+                            builder: (context) {
+                              final clearBinding = _findGlobalActionBinding(GamepadActionType.clearForm);
+                              return Tooltip(
+                                message: clearBinding != null
+                                    ? 'Clear Form (${GamepadService.getShortBadgeLabel(clearBinding.inputKey, controllerType: GamepadService.instance.activeProfile?.controllerType ?? 'xbox')})'
+                                    : 'Clear Form',
+                                child: ObsidianGlassCard(
+                                  onTap: _confirmAndResetForm,
+                                  child: Center(
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.refresh_rounded, size: 16.0, color: ObsidianUITheme.getSecondaryTextColor(context)),
+                                        const SizedBox(width: 6.0),
+                                        Text(
+                                          'CLEAR FORM',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12.0,
+                                            color: ObsidianUITheme.getSecondaryTextColor(context),
+                                          ),
+                                        ),
+                                        if (clearBinding != null) ...[
+                                          const SizedBox(width: 4.0),
+                                          _buildGamepadBadge(clearBinding.inputKey, color: ObsidianUITheme.getSecondaryTextColor(context)),
+                                        ],
+                                      ],
                                     ),
                                   ),
-                                ],
-                              ),
-                            ),
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ),
@@ -1142,21 +1607,35 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
               _buildPointsPreview(points),
 
               // Generate QR / JAB Code Button Card
-              ObsidianGlassCard(
-                onTap: _generateBarcode,
-                child: Center(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.qr_code_2_rounded, color: ObsidianUITheme.secondaryAccent),
-                      const SizedBox(width: 10.0),
-                      Text(
-                        context.tr('qr.button_label').toUpperCase(),
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.0, color: ObsidianUITheme.getPrimaryTextColor(context)),
+              Builder(
+                builder: (context) {
+                  final qrBinding = _findGlobalActionBinding(GamepadActionType.barcode);
+                  return Tooltip(
+                    message: qrBinding != null
+                        ? 'Generate QR Code (${GamepadService.getShortBadgeLabel(qrBinding.inputKey, controllerType: GamepadService.instance.activeProfile?.controllerType ?? 'xbox')})'
+                        : 'Generate QR Code',
+                    child: ObsidianGlassCard(
+                      onTap: _generateBarcode,
+                      child: Center(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.qr_code_2_rounded, color: ObsidianUITheme.secondaryAccent),
+                            const SizedBox(width: 10.0),
+                            Text(
+                              context.tr('qr.button_label').toUpperCase(),
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.0, color: ObsidianUITheme.getPrimaryTextColor(context)),
+                            ),
+                            if (qrBinding != null) ...[
+                              const SizedBox(width: 6.0),
+                              _buildGamepadBadge(qrBinding.inputKey, color: ObsidianUITheme.secondaryAccent),
+                            ],
+                          ],
+                        ),
                       ),
-                    ],
-                  ),
-                ),
+                    ),
+                  );
+                },
               ),
 
               // Submit Button
@@ -1164,60 +1643,84 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                 builder: (context) {
                   final isOnline = widget.apiService.isOnline;
                   final primaryColor = ObsidianUITheme.getPrimaryTextColor(context);
-                  return ObsidianGlassCard(
-                    onTap: _isSubmitting ? null : _submitData,
-                    child: Center(
-                      child: _isSubmitting
-                          ? CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  isOnline ? Icons.send_rounded : Icons.save_rounded,
-                                  color: isOnline ? ObsidianUITheme.primaryAccent : ObsidianUITheme.warningOrange,
-                                ),
-                                const SizedBox(width: 10.0),
-                                Text(
-                                  isOnline ? context.tr('scout.save_entry').toUpperCase() : '${context.tr('scout.save_entry')} (OFFLINE)'.toUpperCase(),
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13.0,
-                                    color: primaryColor,
+                  final submitBinding = _findGlobalActionBinding(GamepadActionType.submit);
+                  return Tooltip(
+                    message: submitBinding != null
+                        ? 'Save Entry (${GamepadService.getShortBadgeLabel(submitBinding.inputKey, controllerType: GamepadService.instance.activeProfile?.controllerType ?? 'xbox')})'
+                        : 'Save Entry',
+                    child: ObsidianGlassCard(
+                      onTap: _isSubmitting ? null : _submitData,
+                      child: Center(
+                        child: _isSubmitting
+                            ? CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    isOnline ? Icons.send_rounded : Icons.save_rounded,
+                                    color: isOnline ? ObsidianUITheme.primaryAccent : ObsidianUITheme.warningOrange,
                                   ),
-                                ),
-                              ],
-                            ),
+                                  const SizedBox(width: 10.0),
+                                  Text(
+                                    isOnline ? context.tr('scout.save_entry').toUpperCase() : '${context.tr('scout.save_entry')} (OFFLINE)'.toUpperCase(),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13.0,
+                                      color: primaryColor,
+                                    ),
+                                  ),
+                                  if (submitBinding != null) ...[
+                                    const SizedBox(width: 6.0),
+                                    _buildGamepadBadge(submitBinding.inputKey, color: ObsidianUITheme.primaryAccent),
+                                  ],
+                                ],
+                              ),
+                      ),
                     ),
                   );
                 },
               ),
 
               // Clear Form Button
-              ObsidianGlassCard(
-                onTap: _confirmAndResetForm,
-                child: Center(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.refresh_rounded, size: 18.0, color: ObsidianUITheme.getSecondaryTextColor(context)),
-                      const SizedBox(width: 8.0),
-                      Builder(
-                        builder: (ctx) {
-                          final clearLabel = ctx.tr('scout.clear_form');
-                          final displayClear = (clearLabel == 'scout.clear_form' || clearLabel == 'scout.clear') ? 'Clear form' : clearLabel;
-                          return Text(
-                            displayClear.toUpperCase(),
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12.0,
-                              color: ObsidianUITheme.getSecondaryTextColor(ctx),
+              Builder(
+                builder: (context) {
+                  final clearBinding = _findGlobalActionBinding(GamepadActionType.clearForm);
+                  return Tooltip(
+                    message: clearBinding != null
+                        ? 'Clear Form (${GamepadService.getShortBadgeLabel(clearBinding.inputKey, controllerType: GamepadService.instance.activeProfile?.controllerType ?? 'xbox')})'
+                        : 'Clear Form',
+                    child: ObsidianGlassCard(
+                      onTap: _confirmAndResetForm,
+                      child: Center(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.refresh_rounded, size: 18.0, color: ObsidianUITheme.getSecondaryTextColor(context)),
+                            const SizedBox(width: 8.0),
+                            Builder(
+                              builder: (ctx) {
+                                final clearLabel = ctx.tr('scout.clear_form');
+                                final displayClear = (clearLabel == 'scout.clear_form' || clearLabel == 'scout.clear') ? 'Clear form' : clearLabel;
+                                return Text(
+                                  displayClear.toUpperCase(),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12.0,
+                                    color: ObsidianUITheme.getSecondaryTextColor(ctx),
+                                  ),
+                                );
+                              },
                             ),
-                          );
-                        },
+                            if (clearBinding != null) ...[
+                              const SizedBox(width: 6.0),
+                              _buildGamepadBadge(clearBinding.inputKey, color: ObsidianUITheme.getSecondaryTextColor(context)),
+                            ],
+                          ],
+                        ),
                       ),
-                    ],
-                  ),
-                ),
+                    ),
+                  );
+                },
               ),
             ],
           ],

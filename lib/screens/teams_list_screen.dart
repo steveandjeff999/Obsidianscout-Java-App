@@ -39,7 +39,9 @@ class _TeamsListScreenState extends State<TeamsListScreen> {
   void didUpdateWidget(covariant TeamsListScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isVisible && !oldWidget.isVisible) {
-      _loadTeams();
+      if (_teams.isEmpty || !widget.apiService.isCacheFresh('cache_teams_all')) {
+        _loadTeams();
+      }
     }
   }
 

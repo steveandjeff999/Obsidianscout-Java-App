@@ -51,6 +51,7 @@ import 'services/api_service.dart';
 import 'services/auth_storage_service.dart';
 import 'services/biometric_auth_service.dart';
 import 'services/fcm_helper.dart';
+import 'services/gamepad_service.dart';
 import 'services/notification_websocket_service.dart';
 import 'widgets/obsidian_glass_card.dart';
 import 'models/desktop_tab_model.dart';
@@ -60,6 +61,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final apiService = ApiService();
   await apiService.init();
+  await GamepadService.instance.init();
   runApp(ObsidianscoutApp(apiService: apiService));
 }
 
