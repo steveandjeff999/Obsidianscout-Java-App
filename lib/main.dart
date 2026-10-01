@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -59,10 +60,33 @@ import 'widgets/obsidian_desktop_tab_bar.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    debugPrint('FLUTTER_ERROR: ${details.exception}\n${details.stack}');
+  };
+
+  PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
+    debugPrint('PLATFORM_ERROR: $error\nSTACK_TRACE:\n$stack');
+    // ignore: avoid_print
+    print('PLATFORM_ERROR: $error\nSTACK_TRACE:\n$stack');
+    return true;
+  };
+
   final apiService = ApiService();
-  await apiService.init();
-  await GamepadService.instance.init();
-  GamepadService.instance.attachApiService(apiService);
+  try {
+    await apiService.init();
+  } catch (e, st) {
+    debugPrint('[ApiService] Init error: $e\n$st');
+  }
+
+  try {
+    await GamepadService.instance.init();
+    GamepadService.instance.attachApiService(apiService);
+  } catch (e, st) {
+    debugPrint('[GamepadService] Init error: $e\n$st');
+  }
+
   runApp(ObsidianscoutApp(apiService: apiService));
 }
 
