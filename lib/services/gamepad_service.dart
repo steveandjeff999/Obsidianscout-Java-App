@@ -31,6 +31,7 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
   // Gamepad stream subscription
   StreamSubscription<GamepadEvent>? _gamepadSubscription;
   Timer? _devicePollTimer;
+  final GamepadNormalizer _normalizer = GamepadNormalizer();
 
   // Controllers list
   List<GamepadDeviceInfo> _connectedDevices = [];
@@ -227,28 +228,145 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
     return false; // Don't block OS event
   }
 
+  static String _buttonToCanonicalKey(GamepadButton button) {
+    switch (button) {
+      case GamepadButton.a:
+        return 'button_a';
+      case GamepadButton.b:
+        return 'button_b';
+      case GamepadButton.x:
+        return 'button_x';
+      case GamepadButton.y:
+        return 'button_y';
+      case GamepadButton.leftBumper:
+        return 'shoulder_l';
+      case GamepadButton.rightBumper:
+        return 'shoulder_r';
+      case GamepadButton.leftTrigger:
+        return 'trigger_l';
+      case GamepadButton.rightTrigger:
+        return 'trigger_r';
+      case GamepadButton.back:
+        return 'button_back';
+      case GamepadButton.start:
+      case GamepadButton.home:
+        return 'button_start';
+      case GamepadButton.leftStick:
+        return 'thumb_l';
+      case GamepadButton.rightStick:
+        return 'thumb_r';
+      case GamepadButton.dpadUp:
+        return 'dpad_up';
+      case GamepadButton.dpadDown:
+        return 'dpad_down';
+      case GamepadButton.dpadLeft:
+        return 'dpad_left';
+      case GamepadButton.dpadRight:
+        return 'dpad_right';
+      case GamepadButton.touchpad:
+        return 'button_back';
+    }
+  }
+
+  static String _axisToCanonicalKey(GamepadAxis axis) {
+    switch (axis) {
+      case GamepadAxis.leftStickX:
+        return 'stick_l_x';
+      case GamepadAxis.leftStickY:
+        return 'stick_l_y';
+      case GamepadAxis.rightStickX:
+        return 'stick_r_x';
+      case GamepadAxis.rightStickY:
+        return 'stick_r_y';
+      case GamepadAxis.leftTrigger:
+        return 'trigger_l';
+      case GamepadAxis.rightTrigger:
+        return 'trigger_r';
+    }
+  }
+
   void _handleRawGamepadEvent(GamepadEvent event) {
+    // 1. Try normalizing via GamepadNormalizer (handles platform-specific mappings on Android, Windows, etc.)
+    final normalizedEvents = _normalizer.normalize(event);
+    if (normalizedEvents.isNotEmpty) {
+      for (final norm in normalizedEvents) {
+        if (norm.button != null) {
+          final canonicalKey = _buttonToCanonicalKey(norm.button!);
+          final isPressed = norm.value > 0.5;
+          _processInput(
+            inputKey: canonicalKey,
+            value: norm.value,
+            isPressed: isPressed,
+            isAnalog: false,
+            gamepadId: event.gamepadId,
+          );
+        } else if (norm.axis != null) {
+          final canonicalAxis = _axisToCanonicalKey(norm.axis!);
+          if (canonicalAxis == 'trigger_l' || canonicalAxis == 'trigger_r') {
+            final val = norm.value.clamp(0.0, 1.0);
+            final cleanVal = val < 0.08 ? 0.0 : val;
+            _processInput(
+              inputKey: canonicalAxis,
+              value: cleanVal,
+              isPressed: cleanVal >= 0.15,
+              isAnalog: true,
+              gamepadId: event.gamepadId,
+            );
+          } else if (canonicalAxis == 'stick_l_x') {
+            _processStickAxis(stickPrefix: 'stick_l', isXAxis: true, value: norm.value, gamepadId: event.gamepadId);
+          } else if (canonicalAxis == 'stick_l_y') {
+            _processStickAxis(stickPrefix: 'stick_l', isXAxis: false, value: norm.value, gamepadId: event.gamepadId);
+          } else if (canonicalAxis == 'stick_r_x') {
+            _processStickAxis(stickPrefix: 'stick_r', isXAxis: true, value: norm.value, gamepadId: event.gamepadId);
+          } else if (canonicalAxis == 'stick_r_y') {
+            _processStickAxis(stickPrefix: 'stick_r', isXAxis: false, value: norm.value, gamepadId: event.gamepadId);
+          }
+        }
+      }
+      return;
+    }
+
+    // 2. Fallback: direct string key & axis normalization
     final normalizedKey = _normalizeRawGamepadKey(event.key);
-    final value = event.value;
+    final rawValue = event.value;
 
     // Decompose analog stick axes into directional virtual button events
     if (normalizedKey == 'stick_l_x') {
-      _processStickAxis(stickPrefix: 'stick_l', isXAxis: true, value: value, gamepadId: event.gamepadId);
+      _processStickAxis(stickPrefix: 'stick_l', isXAxis: true, value: rawValue, gamepadId: event.gamepadId);
+      return;
     } else if (normalizedKey == 'stick_l_y') {
-      _processStickAxis(stickPrefix: 'stick_l', isXAxis: false, value: value, gamepadId: event.gamepadId);
+      _processStickAxis(stickPrefix: 'stick_l', isXAxis: false, value: rawValue, gamepadId: event.gamepadId);
+      return;
     } else if (normalizedKey == 'stick_r_x') {
-      _processStickAxis(stickPrefix: 'stick_r', isXAxis: true, value: value, gamepadId: event.gamepadId);
+      _processStickAxis(stickPrefix: 'stick_r', isXAxis: true, value: rawValue, gamepadId: event.gamepadId);
+      return;
     } else if (normalizedKey == 'stick_r_y') {
-      _processStickAxis(stickPrefix: 'stick_r', isXAxis: false, value: value, gamepadId: event.gamepadId);
+      _processStickAxis(stickPrefix: 'stick_r', isXAxis: false, value: rawValue, gamepadId: event.gamepadId);
+      return;
+    }
+
+    // Trigger normalization across Android / Windows:
+    // Some Android controllers use -1.0 (released) to 1.0 (pressed) for AXIS_BRAKE / AXIS_GAS
+    double finalValue = rawValue;
+    if (normalizedKey == 'trigger_l' || normalizedKey == 'trigger_r') {
+      if (rawValue < -0.1) {
+        // -1.0 to 1.0 mapping -> normalize to 0.0 to 1.0
+        finalValue = ((rawValue + 1.0) / 2.0).clamp(0.0, 1.0);
+      } else {
+        finalValue = rawValue.clamp(0.0, 1.0);
+      }
+      if (finalValue < 0.08) finalValue = 0.0;
     }
 
     final isAnalog = _isKeyAnalog(normalizedKey);
     final threshold = isAnalog ? 0.15 : 0.4;
-    final isPressed = value.abs() > threshold;
+    final isPressed = (normalizedKey == 'trigger_l' || normalizedKey == 'trigger_r')
+        ? finalValue >= threshold
+        : finalValue.abs() > threshold;
 
     _processInput(
       inputKey: normalizedKey,
-      value: value,
+      value: finalValue,
       isPressed: isPressed,
       isAnalog: isAnalog,
       gamepadId: event.gamepadId,
@@ -839,12 +957,16 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
 
   bool _isKeyAnalog(String key) {
     final lower = key.toLowerCase();
-    return lower.startsWith('trigger_') ||
-        lower.startsWith('stick_') ||
+    return lower == 'trigger_l' ||
+        lower == 'trigger_r' ||
         lower == 'l2' ||
         lower == 'r2' ||
         lower == 'lefttrigger' ||
-        lower == 'righttrigger';
+        lower == 'righttrigger' ||
+        lower.contains('brake') ||
+        lower.contains('gas') ||
+        lower.contains('throttle') ||
+        lower.contains('rudder');
   }
 
   String? _normalizeLogicalKey(LogicalKeyboardKey key) {
@@ -914,8 +1036,8 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
     if (label.contains('button y')) return 'button_y';
     if (label.contains('l1') || label.contains('left bumper')) return 'shoulder_l';
     if (label.contains('r1') || label.contains('right bumper')) return 'shoulder_r';
-    if (label.contains('l2') || label.contains('left trigger')) return 'trigger_l';
-    if (label.contains('r2') || label.contains('right trigger')) return 'trigger_r';
+    if (label.contains('l2') || label.contains('left trigger') || label.contains('brake')) return 'trigger_l';
+    if (label.contains('r2') || label.contains('right trigger') || label.contains('gas')) return 'trigger_r';
     if (label.contains('dpad up') || label.contains('d-pad up')) return 'dpad_up';
     if (label.contains('dpad down') || label.contains('d-pad down')) return 'dpad_down';
     if (label.contains('dpad left') || label.contains('d-pad left')) return 'dpad_left';
@@ -929,39 +1051,253 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
   String _normalizeRawGamepadKey(String key) {
     final lower = key.toLowerCase().replaceAll('-', '_').replaceAll(' ', '_').trim();
     
-    // Face buttons
-    if (lower == 'a' || lower == 'buttona' || lower == 'button_a' || lower == 'south' || lower == 'cross' || lower == 'button_south' || lower == 'button0') return 'button_a';
-    if (lower == 'b' || lower == 'buttonb' || lower == 'button_b' || lower == 'east' || lower == 'circle' || lower == 'button_east' || lower == 'button1') return 'button_b';
-    if (lower == 'x' || lower == 'buttonx' || lower == 'button_x' || lower == 'west' || lower == 'square' || lower == 'button_west' || lower == 'button2') return 'button_x';
-    if (lower == 'y' || lower == 'buttony' || lower == 'button_y' || lower == 'north' || lower == 'triangle' || lower == 'button_north' || lower == 'button3') return 'button_y';
+    // Face buttons (including Android KeyEvent.keyCodeToString: KEYCODE_BUTTON_A, etc.)
+    if (lower == 'a' ||
+        lower == 'buttona' ||
+        lower == 'button_a' ||
+        lower == 'south' ||
+        lower == 'cross' ||
+        lower == 'button_south' ||
+        lower == 'button0' ||
+        lower == 'keycode_button_a' ||
+        lower == 'keycode_a') {
+      return 'button_a';
+    }
+    if (lower == 'b' ||
+        lower == 'buttonb' ||
+        lower == 'button_b' ||
+        lower == 'east' ||
+        lower == 'circle' ||
+        lower == 'button_east' ||
+        lower == 'button1' ||
+        lower == 'keycode_button_b' ||
+        lower == 'keycode_b') {
+      return 'button_b';
+    }
+    if (lower == 'x' ||
+        lower == 'buttonx' ||
+        lower == 'button_x' ||
+        lower == 'west' ||
+        lower == 'square' ||
+        lower == 'button_west' ||
+        lower == 'button2' ||
+        lower == 'keycode_button_x' ||
+        lower == 'keycode_x') {
+      return 'button_x';
+    }
+    if (lower == 'y' ||
+        lower == 'buttony' ||
+        lower == 'button_y' ||
+        lower == 'north' ||
+        lower == 'triangle' ||
+        lower == 'button_north' ||
+        lower == 'button3' ||
+        lower == 'keycode_button_y' ||
+        lower == 'keycode_y') {
+      return 'button_y';
+    }
 
     // Bumpers / Shoulders
-    if (lower == 'lb' || lower == 'l1' || lower == 'leftshoulder' || lower == 'left_shoulder' || lower == 'left_bumper' || lower == 'shoulder_l' || lower == 'button4' || lower == 'button_left_shoulder') return 'shoulder_l';
-    if (lower == 'rb' || lower == 'r1' || lower == 'rightshoulder' || lower == 'right_shoulder' || lower == 'right_bumper' || lower == 'shoulder_r' || lower == 'button5' || lower == 'button_right_shoulder') return 'shoulder_r';
+    if (lower == 'lb' ||
+        lower == 'l1' ||
+        lower == 'leftshoulder' ||
+        lower == 'left_shoulder' ||
+        lower == 'left_bumper' ||
+        lower == 'shoulder_l' ||
+        lower == 'button4' ||
+        lower == 'button_left_shoulder' ||
+        lower == 'keycode_button_l1' ||
+        lower == 'keycode_button_left_shoulder') {
+      return 'shoulder_l';
+    }
+    if (lower == 'rb' ||
+        lower == 'r1' ||
+        lower == 'rightshoulder' ||
+        lower == 'right_shoulder' ||
+        lower == 'right_bumper' ||
+        lower == 'shoulder_r' ||
+        lower == 'button5' ||
+        lower == 'button_right_shoulder' ||
+        lower == 'keycode_button_r1' ||
+        lower == 'keycode_button_right_shoulder') {
+      return 'shoulder_r';
+    }
 
-    // Triggers
-    if (lower == 'lt' || lower == 'l2' || lower == 'lefttrigger' || lower == 'left_trigger' || lower == 'trigger_l' || lower == 'axis_lt' || lower == 'axis_l2' || lower == 'axis2' || lower == 'axis4') return 'trigger_l';
-    if (lower == 'rt' || lower == 'r2' || lower == 'righttrigger' || lower == 'right_trigger' || lower == 'trigger_r' || lower == 'axis_rt' || lower == 'axis_r2' || lower == 'axis5') return 'trigger_r';
+    // Triggers (Analog triggers: Android AXIS_BRAKE, AXIS_GAS, AXIS_LTRIGGER, AXIS_RTRIGGER, KEYCODE_BUTTON_L2, KEYCODE_BUTTON_R2)
+    // NOTE: AXIS_Z and AXIS_RZ are RIGHT STICK in Android MotionEvent! They must NOT be mapped to triggers.
+    if (lower == 'lt' ||
+        lower == 'l2' ||
+        lower == 'lefttrigger' ||
+        lower == 'left_trigger' ||
+        lower == 'trigger_l' ||
+        lower == 'trigger_left' ||
+        lower == 'axis_lt' ||
+        lower == 'axis_l2' ||
+        lower == 'axis_ltrigger' ||
+        lower == 'ltrigger' ||
+        lower == 'axis_brake' ||
+        lower == 'brake' ||
+        lower == 'btn_tl2' ||
+        lower == 'tl2' ||
+        lower == 'button_l2' ||
+        lower == 'keycode_button_l2' ||
+        lower == 'button_left_trigger') {
+      return 'trigger_l';
+    }
+
+    if (lower == 'rt' ||
+        lower == 'r2' ||
+        lower == 'righttrigger' ||
+        lower == 'right_trigger' ||
+        lower == 'trigger_r' ||
+        lower == 'trigger_right' ||
+        lower == 'axis_rt' ||
+        lower == 'axis_r2' ||
+        lower == 'axis_rtrigger' ||
+        lower == 'rtrigger' ||
+        lower == 'axis_gas' ||
+        lower == 'gas' ||
+        lower == 'axis_throttle' ||
+        lower == 'throttle' ||
+        lower == 'btn_tr2' ||
+        lower == 'tr2' ||
+        lower == 'button_r2' ||
+        lower == 'keycode_button_r2' ||
+        lower == 'button_right_trigger') {
+      return 'trigger_r';
+    }
 
     // D-Pad
-    if (lower == 'dpadup' || lower == 'dpad_up' || lower == 'dpup' || lower == 'up' || lower == 'hat0_up' || lower == 'pov_up') return 'dpad_up';
-    if (lower == 'dpaddown' || lower == 'dpad_down' || lower == 'dpdown' || lower == 'down' || lower == 'hat0_down' || lower == 'pov_down') return 'dpad_down';
-    if (lower == 'dpadleft' || lower == 'dpad_left' || lower == 'dpleft' || lower == 'left' || lower == 'hat0_left' || lower == 'pov_left') return 'dpad_left';
-    if (lower == 'dpadright' || lower == 'dpad_right' || lower == 'dpright' || lower == 'right' || lower == 'hat0_right' || lower == 'pov_right') return 'dpad_right';
+    if (lower == 'dpadup' ||
+        lower == 'dpad_up' ||
+        lower == 'dpup' ||
+        lower == 'up' ||
+        lower == 'hat0_up' ||
+        lower == 'pov_up' ||
+        lower == 'keycode_dpad_up' ||
+        lower == 'axis_hat_y_up') {
+      return 'dpad_up';
+    }
+    if (lower == 'dpaddown' ||
+        lower == 'dpad_down' ||
+        lower == 'dpdown' ||
+        lower == 'down' ||
+        lower == 'hat0_down' ||
+        lower == 'pov_down' ||
+        lower == 'keycode_dpad_down' ||
+        lower == 'axis_hat_y_down') {
+      return 'dpad_down';
+    }
+    if (lower == 'dpadleft' ||
+        lower == 'dpad_left' ||
+        lower == 'dpleft' ||
+        lower == 'left' ||
+        lower == 'hat0_left' ||
+        lower == 'pov_left' ||
+        lower == 'keycode_dpad_left' ||
+        lower == 'axis_hat_x_left') {
+      return 'dpad_left';
+    }
+    if (lower == 'dpadright' ||
+        lower == 'dpad_right' ||
+        lower == 'dpright' ||
+        lower == 'right' ||
+        lower == 'hat0_right' ||
+        lower == 'pov_right' ||
+        lower == 'keycode_dpad_right' ||
+        lower == 'axis_hat_x_right') {
+      return 'dpad_right';
+    }
 
-    // Thumb stick click
-    if (lower == 'ls' || lower == 'l3' || lower == 'leftthumbstick' || lower == 'left_thumbstick' || lower == 'thumb_l' || lower == 'button8' || lower == 'button_thumb_l') return 'thumb_l';
-    if (lower == 'rs' || lower == 'r3' || lower == 'rightthumbstick' || lower == 'right_thumbstick' || lower == 'thumb_r' || lower == 'button9' || lower == 'button_thumb_r') return 'thumb_r';
+    // Thumb stick clicks
+    if (lower == 'ls' ||
+        lower == 'l3' ||
+        lower == 'leftthumbstick' ||
+        lower == 'left_thumbstick' ||
+        lower == 'thumb_l' ||
+        lower == 'button8' ||
+        lower == 'button_thumb_l' ||
+        lower == 'keycode_button_thumbl' ||
+        lower == 'keycode_thumbl') {
+      return 'thumb_l';
+    }
+    if (lower == 'rs' ||
+        lower == 'r3' ||
+        lower == 'rightthumbstick' ||
+        lower == 'right_thumbstick' ||
+        lower == 'thumb_r' ||
+        lower == 'button9' ||
+        lower == 'button_thumb_r' ||
+        lower == 'keycode_button_thumbr' ||
+        lower == 'keycode_thumbr') {
+      return 'thumb_r';
+    }
 
     // Start / Back / Menu
-    if (lower == 'start' || lower == 'buttonstart' || lower == 'button_start' || lower == 'menu' || lower == 'options' || lower == 'button7') return 'button_start';
-    if (lower == 'back' || lower == 'buttonback' || lower == 'button_back' || lower == 'select' || lower == 'view' || lower == 'share' || lower == 'button6') return 'button_back';
+    if (lower == 'start' ||
+        lower == 'buttonstart' ||
+        lower == 'button_start' ||
+        lower == 'menu' ||
+        lower == 'options' ||
+        lower == 'button7' ||
+        lower == 'keycode_button_start' ||
+        lower == 'keycode_button_mode' ||
+        lower == 'keycode_menu') {
+      return 'button_start';
+    }
+    if (lower == 'back' ||
+        lower == 'buttonback' ||
+        lower == 'button_back' ||
+        lower == 'select' ||
+        lower == 'view' ||
+        lower == 'share' ||
+        lower == 'button6' ||
+        lower == 'keycode_button_select' ||
+        lower == 'keycode_back') {
+      return 'button_back';
+    }
 
-    // Stick axes
-    if (lower == 'leftthumbstickx' || lower == 'stick_lx' || lower == 'axis_lx' || lower == 'stick_l_x' || lower == 'axis0') return 'stick_l_x';
-    if (lower == 'leftthumbsticky' || lower == 'stick_ly' || lower == 'axis_ly' || lower == 'stick_l_y' || lower == 'axis1') return 'stick_l_y';
-    if (lower == 'rightthumbstickx' || lower == 'stick_rx' || lower == 'axis_rx' || lower == 'stick_r_x' || lower == 'axis2' || lower == 'axis3') return 'stick_r_x';
-    if (lower == 'rightthumbsticky' || lower == 'stick_ry' || lower == 'axis_ry' || lower == 'stick_r_y' || lower == 'axis3' || lower == 'axis4') return 'stick_r_y';
+    // Stick axes (Left Stick = X/Y, Right Stick = Z/RZ or RX/RY in Android MotionEvent)
+    if (lower == 'leftthumbstickx' ||
+        lower == 'stick_lx' ||
+        lower == 'axis_lx' ||
+        lower == 'stick_l_x' ||
+        lower == 'axis0' ||
+        lower == 'axis_x' ||
+        lower == 'x') {
+      return 'stick_l_x';
+    }
+    if (lower == 'leftthumbsticky' ||
+        lower == 'stick_ly' ||
+        lower == 'axis_ly' ||
+        lower == 'stick_l_y' ||
+        lower == 'axis1' ||
+        lower == 'axis_y' ||
+        lower == 'y') {
+      return 'stick_l_y';
+    }
+    if (lower == 'rightthumbstickx' ||
+        lower == 'stick_rx' ||
+        lower == 'axis_rx' ||
+        lower == 'stick_r_x' ||
+        lower == 'axis2' ||
+        lower == 'axis3' ||
+        lower == 'axis_z' ||
+        lower == 'axis_rx' ||
+        lower == 'z') {
+      return 'stick_r_x';
+    }
+    if (lower == 'rightthumbsticky' ||
+        lower == 'stick_ry' ||
+        lower == 'axis_ry' ||
+        lower == 'stick_r_y' ||
+        lower == 'axis4' ||
+        lower == 'axis5' ||
+        lower == 'axis_rz' ||
+        lower == 'axis_ry' ||
+        lower == 'rz') {
+      return 'stick_r_y';
+    }
 
     return lower;
   }
