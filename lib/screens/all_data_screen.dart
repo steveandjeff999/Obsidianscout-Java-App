@@ -9,6 +9,7 @@ import '../widgets/obsidian_feedback.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/conflict_resolution_modal.dart';
 import '../widgets/obsidian_image_preview_card.dart';
+import '../widgets/obsidian_share_modal.dart';
 
 class UnifiedScoutingEntry {
   final String id;
@@ -529,13 +530,60 @@ class _AllDataScreenState extends State<AllDataScreen> {
                   children: [
                     Icon(Icons.dataset_rounded, color: ObsidianUITheme.primaryAccent, size: 26),
                     const SizedBox(width: 10),
-                    Text(
-                      'All Scouting Data',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: primaryTextColor,
+                    Expanded(
+                      child: Text(
+                        'All Scouting Data',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: primaryTextColor,
+                        ),
                       ),
+                    ),
+                    IconButton(
+                      tooltip: 'Share Filtered Data',
+                      icon: const Icon(Icons.share_rounded, size: 20),
+                      style: IconButton.styleFrom(
+                        backgroundColor: ObsidianUITheme.getPrimaryAccent(context).withValues(alpha: 0.15),
+                        foregroundColor: ObsidianUITheme.getPrimaryAccent(context),
+                      ),
+                      onPressed: () {
+                        ObsidianShareModal.show(
+                          context,
+                          apiService: widget.apiService,
+                          resourceType: 'all_data',
+                          defaultTitle: 'Scouting Data (${_selectedEventKey != 'all' ? _selectedEventKey : 'All Events'})',
+                          queryConfig: {
+                            'eventKey': _selectedEventKey,
+                            'teamQuery': _teamQuery,
+                            'type': _selectedType,
+                            'matchNumber': _matchNumberQuery,
+                            'sortBy': _sortBy,
+                            'conflictsOnly': _conflictsOnly,
+                          },
+                          snapshotData: {
+                            'entries': _filteredEntries.take(100).map((e) => {
+                              'id': e.id,
+                              'type': e.type,
+                              'targetTeamNumber': e.targetTeamNumber,
+                              'matchNumber': e.matchNumber,
+                              'eventKey': e.eventKey,
+                              'scoutUsername': e.scoutUsername,
+                              'data': e.data,
+                            }).toList(),
+                          },
+                        );
+                      },
+                    ),
+                    const SizedBox(width: 6),
+                    IconButton(
+                      tooltip: 'Export CSV',
+                      icon: const Icon(Icons.download_rounded, size: 20),
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.blueAccent.withValues(alpha: 0.15),
+                        foregroundColor: Colors.blueAccent,
+                      ),
+                      onPressed: _exportCsv,
                     ),
                   ],
                 ),

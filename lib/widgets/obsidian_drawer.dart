@@ -249,6 +249,13 @@ class ObsidianNavigationDrawer extends StatelessWidget {
             'subKey': 'subtitle.chat',
           },
           {
+            'pageId': 'shared-links',
+            'index': 32,
+            'icon': Icons.share_rounded,
+            'labelKey': 'nav.shared_links',
+            'subKey': 'subtitle.shared_links',
+          },
+          {
             'pageId': 'admin-settings',
             'index': 10,
             'icon': Icons.tune_rounded,

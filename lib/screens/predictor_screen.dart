@@ -6,6 +6,7 @@ import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../theme/obsidian_responsive.dart';
 import '../widgets/obsidian_glass_card.dart';
+import '../widgets/obsidian_share_modal.dart';
 
 class PredictorScreen extends StatefulWidget {
   final ApiService apiService;
@@ -171,6 +172,7 @@ class _PredictorScreenState extends State<PredictorScreen> {
     final isDark = ObsidianUITheme.isDark(context);
     final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
     final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+    final primaryAccent = ObsidianUITheme.getPrimaryAccent(context);
     final isDesktop = ObsidianResponsive.isDesktop(context, overrideMode: widget.apiService.uiMode);
 
     final settings = widget.apiService.currentSettings;
@@ -238,6 +240,43 @@ class _PredictorScreenState extends State<PredictorScreen> {
                         ],
                       ),
                     ),
+                    if (_selectedMatchKey != null)
+                      IconButton(
+                        tooltip: 'Share Match Prediction',
+                        icon: const Icon(Icons.share_rounded, size: 20),
+                        style: IconButton.styleFrom(
+                          backgroundColor: primaryAccent.withValues(alpha: 0.15),
+                          foregroundColor: primaryAccent,
+                        ),
+                        onPressed: () {
+                          final match = _matches.firstWhere(
+                            (m) => m.matchKey == _selectedMatchKey,
+                            orElse: () => MatchModel(
+                              matchKey: _selectedMatchKey ?? '',
+                              eventKey: '',
+                              compLevel: 'qm',
+                              label: '',
+                              redTeams: [],
+                              blueTeams: [],
+                            ),
+                          );
+                          final label = match.label.isNotEmpty
+                              ? match.label
+                              : (_selectedMatchKey ?? 'Match');
+                          ObsidianShareModal.show(
+                            context,
+                            apiService: widget.apiService,
+                            resourceType: 'predictor',
+                            defaultTitle: 'Prediction - $label',
+                            queryConfig: {
+                              'matchKey': _selectedMatchKey,
+                              'dataSource': _dataSource,
+                              'usePrescout': _usePrescout,
+                            },
+                            snapshotData: _prediction?.toJson(),
+                          );
+                        },
+                      ),
                   ],
                 ),
                 const SizedBox(height: 18.0),

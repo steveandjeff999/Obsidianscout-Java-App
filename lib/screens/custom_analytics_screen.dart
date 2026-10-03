@@ -9,6 +9,7 @@ import '../services/api_service.dart';
 import '../models/custom_analytics_models.dart';
 import '../models/graph_models.dart';
 import '../widgets/obsidian_chart_interactive_wrapper.dart';
+import '../widgets/obsidian_share_modal.dart';
 import 'graphs_screen.dart';
 
 class CustomAnalyticsScreen extends StatefulWidget {
@@ -1014,6 +1015,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.primaryAccent, minimumSize: const Size.fromHeight(40)),
                             onPressed: () async {
+                              final messenger = ScaffoldMessenger.of(context);
                               final title = titleController.text.trim();
                               if (title.isEmpty) return;
 
@@ -1055,8 +1057,9 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
                                 _savedReports = updatedReports;
                               });
 
-                              final messenger = ScaffoldMessenger.of(context);
-                              Navigator.of(ctx).pop();
+                              if (ctx.mounted) {
+                                Navigator.of(ctx).pop();
+                              }
                               messenger.showSnackBar(
                                 const SnackBar(content: Text('Report saved successfully!'), backgroundColor: ObsidianUITheme.successGreen),
                               );
@@ -2237,12 +2240,26 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
                   children: [
                     _buildToolbarButton('Reports', Icons.folder_open_rounded, () => _openReportLibraryModal(false)),
                     _buildToolbarButton('Templates', Icons.auto_awesome_mosaic_rounded, _openTemplatesModal),
+                    _buildToolbarButton('Formula', Icons.calculate_rounded, _openCalculatedMetricModal),
                     _buildToolbarButton(_isSlicersExpanded ? 'Hide Filters' : 'Filters', Icons.filter_alt_rounded, () {
                       setState(() => _isSlicersExpanded = !_isSlicersExpanded);
                     }),
-                    _buildToolbarButton('New Metric', Icons.calculate_rounded, _openCalculatedMetricModal),
-                    _buildToolbarButton('Add Visual', Icons.add_chart_rounded, () => _openWidgetEditor(-1), isPrimary: true),
                     _buildToolbarButton('Save', Icons.save_rounded, () => _openReportLibraryModal(true)),
+                    _buildToolbarButton('Share', Icons.share_rounded, () {
+                      ObsidianShareModal.show(
+                        context,
+                        apiService: widget.apiService,
+                        defaultTitle: _currentReport.title,
+                        resourceType: 'custom_analytics',
+                        targetEventKey: _currentReport.slicers.eventKey.isNotEmpty ? _currentReport.slicers.eventKey : null,
+                        queryConfig: _currentReport.toJson(),
+                        snapshotData: {
+                          'title': _currentReport.title,
+                          'widgetsCount': _currentReport.widgets.length,
+                          'teamsCount': _dataset.teams.length,
+                        },
+                      );
+                    }),
                   ],
                 ),
               ],

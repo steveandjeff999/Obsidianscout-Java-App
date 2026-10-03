@@ -10,6 +10,7 @@ import '../models/graph_models.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../services/api_service.dart';
 import '../widgets/obsidian_chart_interactive_wrapper.dart';
+import '../widgets/obsidian_share_modal.dart';
 
 // Reserved fields that are metadata, not graphable
 const _reserved = {'eventKey', 'matchKey', 'matchNumber', 'targetTeamNumber'};
@@ -1232,52 +1233,136 @@ class _GraphsScreenState extends State<GraphsScreen> {
             ),
           ),
 
-          // === Generate Button ===
+          // === Generate & Share Buttons ===
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Material(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(16),
-              child: InkWell(
-                onTap: _generateGraphs,
-                borderRadius: BorderRadius.circular(16),
-                child: Ink(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [ObsidianUITheme.primaryAccent, Color(0xFF6366F1)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Material(
+                    color: Colors.transparent,
                     borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.35),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  child: Center(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.auto_graph_rounded, color: Colors.white, size: 20),
-                        const SizedBox(width: 10),
-                        Text(
-                          context.tr('graphs.generate').toUpperCase(),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15.0,
-                            color: Colors.white,
-                            letterSpacing: 0.8,
+                    child: InkWell(
+                      onTap: _generateGraphs,
+                      borderRadius: BorderRadius.circular(16),
+                      child: Ink(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [ObsidianUITheme.primaryAccent, Color(0xFF6366F1)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.35),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        child: Center(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.auto_graph_rounded, color: Colors.white, size: 20),
+                              const SizedBox(width: 10),
+                              Text(
+                                context.tr('graphs.generate').toUpperCase(),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15.0,
+                                  color: Colors.white,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
-              ),
+                const SizedBox(width: 10),
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () {
+                      final metricName = _selectedMetric?.label ?? 'Scouting Graphs';
+                      final filteredEntries = _getFilteredEntriesForTeams();
+                      final teamsList = _selectedTeams.toList();
+                      final graphTypesList = _selectedGraphTypes.toList();
+
+                      ObsidianShareModal.show(
+                        context,
+                        apiService: widget.apiService,
+                        defaultTitle: '${_eventKey ?? "Scouting"} - $metricName',
+                        resourceType: 'graph',
+                        targetEventKey: _eventKey,
+                        queryConfig: {
+                          'eventKey': _eventKey,
+                          'metric': _selectedMetric?.id,
+                          'metricId': _selectedMetric?.id,
+                          'metricName': _selectedMetric?.label,
+                          'selectedTeams': teamsList,
+                          'graphTypes': graphTypesList,
+                          'selectedGraphTypes': graphTypesList,
+                          'datasource': _datasource,
+                          'dataView': _dataView,
+                          'sort': _sort,
+                          'includePrescout': _includePrescout,
+                        },
+                        snapshotData: {
+                          'eventKey': _eventKey,
+                          'metricId': _selectedMetric?.id,
+                          'metricName': _selectedMetric?.label,
+                          'selectedTeams': teamsList,
+                          'selectedGraphTypes': graphTypesList,
+                          'datasource': _datasource,
+                          'dataView': _dataView,
+                          'sort': _sort,
+                          'includePrescout': _includePrescout,
+                          'entries': filteredEntries.map((e) => {
+                            'targetTeamNumber': e.targetTeamNumber,
+                            'teamNumber': e.targetTeamNumber,
+                            'matchNumber': e.matchNumber,
+                            'matchKey': e.matchKey,
+                            'eventKey': e.eventKey,
+                            'isPrescout': e.isPrescout,
+                            'data': e.data,
+                          }).toList(),
+                          'teams': _teams.map((t) => {
+                            'teamNumber': t.teamNumber,
+                            'nickname': t.name,
+                            'name': t.name,
+                            'epa': t.epa,
+                            'opr': t.opr,
+                            'exp': t.exp,
+                            'averagePoints': t.averagePoints,
+                          }).toList(),
+                          'statsHistory': _statsHistory?.toJson(),
+                          'settings': _settings?.toJson(),
+                        },
+                      );
+                    },
+                    child: Ink(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: ObsidianUITheme.getGlassSurfaceColor(context),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
+                      ),
+                      child: Icon(
+                        Icons.share_outlined,
+                        color: ObsidianUITheme.primaryAccent,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
 
