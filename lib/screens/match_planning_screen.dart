@@ -719,7 +719,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
 
                       return DropdownButtonFormField<String>(
                         isExpanded: true,
-                        value: safeEventValue,
+                        initialValue: safeEventValue,
                         decoration: InputDecoration(
                           labelText: context.tr('events.title', 'Event'),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -763,7 +763,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
 
                       return DropdownButtonFormField<String>(
                         isExpanded: true,
-                        value: safeMatchValue,
+                        initialValue: safeMatchValue,
                         decoration: InputDecoration(
                           labelText: context.tr('nav.matches', 'Select Match'),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),

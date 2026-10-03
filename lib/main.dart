@@ -48,6 +48,7 @@ import 'screens/theme_editor_screen.dart';
 import 'screens/my_assignments_screen.dart';
 import 'screens/scout_assignments_screen.dart';
 import 'screens/match_planning_screen.dart';
+import 'screens/team_shared_links_screen.dart';
 import 'services/api_service.dart';
 import 'services/auth_storage_service.dart';
 import 'services/biometric_auth_service.dart';
@@ -416,6 +417,8 @@ class _MainShellState extends State<MainShell> {
         return Icons.assignment_rounded;
       case 31:
         return Icons.draw_rounded;
+      case 32:
+        return Icons.share_rounded;
       default:
         return Icons.dashboard_rounded;
     }
@@ -487,6 +490,8 @@ class _MainShellState extends State<MainShell> {
         return context.tr('nav.scout_assignments', 'Scout Assignments');
       case 31:
         return context.tr('nav.match_planning', 'Match Planning');
+      case 32:
+        return context.tr('nav.shared_links', 'Shared Links');
       default:
         return 'Dashboard';
     }
@@ -751,6 +756,7 @@ class _MainShellState extends State<MainShell> {
     'nav.my_assignments',
     'nav.scout_assignments',
     'nav.match_planning',
+    'nav.shared_links',
   ];
   final List<String> _subtitleKeys = [
     'subtitle.dashboard',
@@ -785,6 +791,7 @@ class _MainShellState extends State<MainShell> {
     'subtitle.my_assignments',
     'subtitle.scout_assignments',
     'subtitle.match_planning',
+    'subtitle.shared_links',
   ];
 
   String _getPageIdForIndex(int index) {
@@ -853,6 +860,8 @@ class _MainShellState extends State<MainShell> {
         return 'scout-assignments';
       case 31:
         return 'match-planning';
+      case 32:
+        return 'shared-links';
       default:
         return 'dashboard';
     }
@@ -1214,6 +1223,12 @@ class _MainShellState extends State<MainShell> {
           isVisible: isTabActive && _currentIndex == 31,
           isBarsVisible: _isBarsVisible,
         );
+      case 32:
+        return TeamSharedLinksScreen(
+          apiService: widget.apiService,
+          isVisible: isTabActive && _currentIndex == 32,
+          isBarsVisible: _isBarsVisible,
+        );
       default:
         return DashboardScreen(
           apiService: widget.apiService,
@@ -1245,7 +1260,7 @@ class _MainShellState extends State<MainShell> {
                 builder: (context) => ObsidianAnimatedIndexedStack(
                   key: ValueKey('tab_stack_${tab.id}'),
                   index: tab.screenIndex,
-                  itemCount: 32,
+                  itemCount: 33,
                   itemBuilder: (ctx, idx) => _buildScreenByIndex(
                     idx,
                     isTabActive: tab.id == _activeTabId,
@@ -1291,7 +1306,7 @@ class _MainShellState extends State<MainShell> {
     final mainIndexedStack = ObsidianAnimatedIndexedStack(
       key: const ValueKey('obsidian_main_indexed_stack'),
       index: _currentIndex,
-      itemCount: 32,
+      itemCount: 33,
       itemBuilder: (ctx, idx) => _buildScreenByIndex(
         idx,
         isTabActive: true,

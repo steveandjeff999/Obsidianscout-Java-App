@@ -19,6 +19,7 @@ import '../models/assignment_models.dart';
 import '../models/graph_models.dart';
 import '../models/match_planning_models.dart';
 import '../models/gamepad_models.dart';
+import '../models/share_models.dart';
 import '../theme/obsidian_ui_theme.dart';
 import 'auth_storage_service.dart';
 import 'scout_history_service.dart';
@@ -5559,6 +5560,128 @@ class ApiService {
       return response.statusCode >= 200 && response.statusCode < 300;
     } catch (e) {
       debugPrint('[ApiService] deleteGamepadProfile error: $e');
+      return false;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Share Links API
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  Future<ShareLinkModel?> createSharedLink(CreateShareRequest req) async {
+    if (!_isOnline) return null;
+    try {
+      final uri = Uri.parse('$_currentServerUrl/api/shares');
+      final response = await http.post(
+        uri,
+        headers: _headers,
+        body: jsonEncode(req.toJson()),
+      ).timeout(heavyRequestTimeout);
+      _checkResponse(response);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          invalidateMemoryCache("cache_team_shares");
+          return ShareLinkModel.fromJson(decoded);
+        }
+      }
+    } catch (e) {
+      debugPrint('[ApiService] createSharedLink error: $e');
+    }
+    return null;
+  }
+
+  Future<List<ShareLinkModel>> getTeamSharedLinks({String? statusFilter}) async {
+    if (!_isOnline) return [];
+    try {
+      final query = statusFilter != null && statusFilter.isNotEmpty ? '?status=${Uri.encodeComponent(statusFilter)}' : '';
+      final uri = Uri.parse('$_currentServerUrl/api/shares/team$query');
+      final response = await http.get(uri, headers: _headers).timeout(requestTimeout);
+      _checkResponse(response);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is List) {
+          return decoded.map((item) => ShareLinkModel.fromJson(item as Map<String, dynamic>)).toList();
+        }
+      }
+    } catch (e) {
+      debugPrint('[ApiService] getTeamSharedLinks error: $e');
+    }
+    return [];
+  }
+
+  Future<ResolvedSharePayload?> resolveSharedLink(String token, {String? pin}) async {
+    try {
+      final query = pin != null && pin.isNotEmpty ? '?pin=${Uri.encodeComponent(pin)}' : '';
+      final uri = Uri.parse('$_currentServerUrl/api/shares/resolve/${Uri.encodeComponent(token)}$query');
+      final response = await http.get(uri, headers: _headers).timeout(requestTimeout);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          return ResolvedSharePayload.fromJson(decoded);
+        }
+      } else if (response.statusCode == 404) {
+        return null;
+      } else {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          return ResolvedSharePayload.fromJson(decoded);
+        }
+      }
+    } catch (e) {
+      debugPrint('[ApiService] resolveSharedLink error: $e');
+    }
+    return null;
+  }
+
+  Future<ResolvedSharePayload?> verifySharedPin(String token, String pin) async {
+    try {
+      final uri = Uri.parse('$_currentServerUrl/api/shares/verify-pin/${Uri.encodeComponent(token)}');
+      final response = await http.post(
+        uri,
+        headers: _headers,
+        body: jsonEncode({'pin': pin}),
+      ).timeout(requestTimeout);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          return ResolvedSharePayload.fromJson(decoded);
+        }
+      }
+    } catch (e) {
+      debugPrint('[ApiService] verifySharedPin error: $e');
+    }
+    return null;
+  }
+
+  Future<bool> revokeSharedLink(String token) async {
+    if (!_isOnline) return false;
+    try {
+      final uri = Uri.parse('$_currentServerUrl/api/shares/${Uri.encodeComponent(token)}/revoke');
+      final response = await http.post(uri, headers: _headers).timeout(requestTimeout);
+      _checkResponse(response);
+      invalidateMemoryCache("cache_team_shares");
+      return response.statusCode >= 200 && response.statusCode < 300;
+    } catch (e) {
+      debugPrint('[ApiService] revokeSharedLink error: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteSharedLink(String token) async {
+    if (!_isOnline) return false;
+    try {
+      final uri = Uri.parse('$_currentServerUrl/api/shares/${Uri.encodeComponent(token)}');
+      final response = await http.delete(uri, headers: _headers).timeout(requestTimeout);
+      _checkResponse(response);
+      invalidateMemoryCache("cache_team_shares");
+      return response.statusCode >= 200 && response.statusCode < 300;
+    } catch (e) {
+      debugPrint('[ApiService] deleteSharedLink error: $e');
       return false;
     }
   }
