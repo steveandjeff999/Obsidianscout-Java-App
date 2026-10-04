@@ -443,10 +443,12 @@ class _EventsScreenState extends State<EventsScreen> {
                           }
 
                           setModalState(() => isSaving = false);
+                          if (res.isSuccess && modalCtx.mounted) {
+                            Navigator.of(modalCtx).pop();
+                          }
                           if (!mounted) return;
 
                           if (res.isSuccess) {
-                            Navigator.of(modalCtx).pop();
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(context.tr('events.saved_success', 'Event saved successfully')),
