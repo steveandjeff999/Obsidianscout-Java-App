@@ -135,8 +135,10 @@ void main() {
       // Verify that toolbar buttons are present
       expect(find.text('Reports'), findsOneWidget);
       expect(find.text('Templates'), findsOneWidget);
-      expect(find.text('New Metric'), findsOneWidget);
-      expect(find.text('Add Visual'), findsOneWidget);
+      expect(find.text('Formula'), findsOneWidget);
+      expect(find.text('Hide Filters'), findsOneWidget);
+      expect(find.text('Save'), findsOneWidget);
+      expect(find.text('Share'), findsOneWidget);
     });
   });
 }

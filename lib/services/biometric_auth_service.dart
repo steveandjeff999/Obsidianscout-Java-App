@@ -41,10 +41,8 @@ class BiometricAuthService {
     try {
       return await _auth.authenticate(
         localizedReason: reason,
-        options: const AuthenticationOptions(
-          stickyAuth: true,
-          biometricOnly: false, // Allows device PIN/passcode fallback if configured
-        ),
+        persistAcrossBackgrounding: true,
+        biometricOnly: false, // Allows device PIN/passcode fallback if configured
       );
     } on PlatformException catch (e) {
       debugPrint('[BiometricAuthService] authenticate PlatformException: ${e.code} - ${e.message}');

@@ -418,8 +418,10 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
                     : () async {
                         setDialogState(() => isClearing = true);
                         final cleared = await widget.apiService.clearReportedErrors(clearTarget);
-                        if (mounted) {
+                        if (ctx.mounted) {
                           Navigator.of(ctx).pop();
+                        }
+                        if (mounted) {
                           if (cleared != null) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
