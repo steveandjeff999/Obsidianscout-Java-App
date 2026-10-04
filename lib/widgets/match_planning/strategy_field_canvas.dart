@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'dart:ui' as ui;
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import '../../models/match_planning_models.dart';
 import '../../models/team_match_models.dart';
 import 'draggable_team_marker.dart';
+import 'stylus_quick_popup.dart';
 
 class StrategyFieldCanvas extends StatefulWidget {
   final GlobalKey repaintBoundaryKey;
@@ -17,6 +20,10 @@ class StrategyFieldCanvas extends StatefulWidget {
   final Function(String stationId, TeamMarkerPosition pos) onMarkerPositionChanged;
   final VoidCallback onMarkerDragEnd;
 
+  final ValueChanged<String>? onToolChanged;
+  final ValueChanged<String>? onColorChanged;
+  final ValueChanged<double>? onStrokeWidthChanged;
+
   const StrategyFieldCanvas({
     super.key,
     required this.repaintBoundaryKey,
@@ -30,6 +37,9 @@ class StrategyFieldCanvas extends StatefulWidget {
     required this.onStrokeCompleted,
     required this.onMarkerPositionChanged,
     required this.onMarkerDragEnd,
+    this.onToolChanged,
+    this.onColorChanged,
+    this.onStrokeWidthChanged,
   });
 
   @override
@@ -40,12 +50,99 @@ class _StrategyFieldCanvasState extends State<StrategyFieldCanvas> {
   StrokeAnnotation? _currentStroke;
   String? _draggingStationId;
 
-  void _handlePanStart(DragStartDetails details, Size size) {
+  // Stylus, S Pen & Palm Rejection State
+  bool _isPenActive = false;
+  bool _barrelWasDown = false;
+  bool _barrelHoldActive = false;
+  String _previousToolBeforeErase = 'pen';
+  Timer? _barrelHoldTimer;
+  Offset? _popupPosition; // When non-null, StylusQuickPopup is displayed at this local position
+
+  void _checkStylusBarrelButton(PointerEvent event, Size size) {
+    if (event.kind != PointerDeviceKind.stylus && event.kind != PointerDeviceKind.invertedStylus) {
+      return;
+    }
+
+    final isBarrelDown = (event.buttons & kPrimaryStylusButton) != 0 ||
+        (event.buttons & kSecondaryStylusButton) != 0;
+
+    // Hardware inverted stylus tip (eraser end)
+    if (event.kind == PointerDeviceKind.invertedStylus && widget.activeTool != 'eraser') {
+      _previousToolBeforeErase = widget.activeTool;
+      widget.onToolChanged?.call('eraser');
+      _barrelHoldActive = true;
+    }
+
+    // RISING EDGE: Button just pressed
+    if (isBarrelDown && !_barrelWasDown) {
+      _barrelWasDown = true;
+      _barrelHoldTimer?.cancel();
+
+      // If held past 250ms -> Hold to Erase (Samsung Notes style)
+      _barrelHoldTimer = Timer(const Duration(milliseconds: 250), () {
+        if (_barrelWasDown && mounted) {
+          _previousToolBeforeErase = widget.activeTool;
+          widget.onToolChanged?.call('eraser');
+          setState(() {
+            _barrelHoldActive = true;
+            if (_currentStroke != null) {
+              _currentStroke = StrokeAnnotation(
+                tool: 'eraser',
+                color: widget.currentColor,
+                widthRatio: (widget.strokeWidth * 3.5) / 1000.0,
+                points: _currentStroke!.points,
+              );
+            }
+          });
+        }
+      });
+    }
+    // FALLING EDGE: Button released
+    else if (!isBarrelDown && _barrelWasDown) {
+      _barrelWasDown = false;
+      _barrelHoldTimer?.cancel();
+      _barrelHoldTimer = null;
+
+      if (_barrelHoldActive) {
+        // Revert from momentary eraser back to prior tool
+        _barrelHoldActive = false;
+        widget.onToolChanged?.call(_previousToolBeforeErase);
+      } else {
+        // Released before 250ms -> Click to open Quick Popup!
+        setState(() {
+          _popupPosition = event.localPosition;
+          // If a click tap started a 1-point stroke just for the button press, discard it
+          if (_currentStroke != null && _currentStroke!.points.length <= 2) {
+            _currentStroke = null;
+          }
+        });
+      }
+    }
+  }
+
+  void _handlePointerDown(PointerDownEvent event, Size size) {
     if (size.width <= 0 || size.height <= 0) return;
 
-    final xRatio = (details.localPosition.dx / size.width).clamp(0.0, 1.0);
-    final yRatio = (details.localPosition.dy / size.height).clamp(0.0, 1.0);
+    // Active Palm Rejection: If pen is active/drawing, swallow all finger touches!
+    if (_isPenActive && event.kind == PointerDeviceKind.touch) {
+      return;
+    }
 
+    // Dismiss popup on tap
+    if (_popupPosition != null) {
+      setState(() => _popupPosition = null);
+    }
+
+    if (event.kind == PointerDeviceKind.stylus || event.kind == PointerDeviceKind.invertedStylus) {
+      _isPenActive = true;
+    }
+
+    _checkStylusBarrelButton(event, size);
+
+    final xRatio = (event.localPosition.dx / size.width).clamp(0.0, 1.0);
+    final yRatio = (event.localPosition.dy / size.height).clamp(0.0, 1.0);
+
+    // Uniform stroke size dictated by widget.strokeWidth directly (no variable pressure curves)
     final widthRatio = (widget.activeTool == 'eraser'
             ? widget.strokeWidth * 3.5
             : widget.strokeWidth) /
@@ -61,18 +158,31 @@ class _StrategyFieldCanvasState extends State<StrategyFieldCanvas> {
     });
   }
 
-  void _handlePanUpdate(DragUpdateDetails details, Size size) {
+  void _handlePointerMove(PointerMoveEvent event, Size size) {
+    // Active Palm Rejection: discard touch events while pen is drawing
+    if (_isPenActive && event.kind == PointerDeviceKind.touch) {
+      return;
+    }
+
+    _checkStylusBarrelButton(event, size);
+
     if (_currentStroke == null || size.width <= 0 || size.height <= 0) return;
 
-    final xRatio = (details.localPosition.dx / size.width).clamp(0.0, 1.0);
-    final yRatio = (details.localPosition.dy / size.height).clamp(0.0, 1.0);
+    final xRatio = (event.localPosition.dx / size.width).clamp(0.0, 1.0);
+    final yRatio = (event.localPosition.dy / size.height).clamp(0.0, 1.0);
 
     setState(() {
       _currentStroke!.points.add(StrokePoint(xRatio, yRatio));
     });
   }
 
-  void _handlePanEnd(DragEndDetails details) {
+  void _handlePointerUp(PointerUpEvent event, Size size) {
+    _checkStylusBarrelButton(event, size);
+
+    if (event.kind == PointerDeviceKind.stylus || event.kind == PointerDeviceKind.invertedStylus) {
+      _isPenActive = false;
+    }
+
     if (_currentStroke != null) {
       final finished = _currentStroke!;
       _currentStroke = null;
@@ -80,10 +190,38 @@ class _StrategyFieldCanvasState extends State<StrategyFieldCanvas> {
     }
   }
 
+  void _handlePointerCancel(PointerCancelEvent event, Size size) {
+    _barrelHoldTimer?.cancel();
+    _barrelHoldTimer = null;
+    if (_barrelHoldActive) {
+      _barrelHoldActive = false;
+      widget.onToolChanged?.call(_previousToolBeforeErase);
+    }
+    _barrelWasDown = false;
+    if (event.kind == PointerDeviceKind.stylus || event.kind == PointerDeviceKind.invertedStylus) {
+      _isPenActive = false;
+    }
+    if (_currentStroke != null) {
+      final finished = _currentStroke!;
+      _currentStroke = null;
+      widget.onStrokeCompleted(finished);
+    }
+  }
+
+  void _handlePointerHover(PointerHoverEvent event, Size size) {
+    _checkStylusBarrelButton(event, size);
+  }
+
   int _parseTeamNumber(dynamic raw) {
     if (raw == null) return 0;
     final str = raw.toString().replaceAll(RegExp(r'^(frc|ftc)', caseSensitive: false), '').trim();
     return int.tryParse(str) ?? 0;
+  }
+
+  @override
+  void dispose() {
+    _barrelHoldTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -130,12 +268,14 @@ class _StrategyFieldCanvasState extends State<StrategyFieldCanvas> {
               borderRadius: BorderRadius.circular(12),
               child: Stack(
                 children: [
-                  // 1. Field Background & User Annotations Drawing Layer
-                  GestureDetector(
+                  // 1. Field Background & User Annotations Drawing Layer with Pointer Listener
+                  Listener(
                     behavior: HitTestBehavior.opaque,
-                    onPanStart: (d) => _handlePanStart(d, canvasSize),
-                    onPanUpdate: (d) => _handlePanUpdate(d, canvasSize),
-                    onPanEnd: _handlePanEnd,
+                    onPointerDown: (e) => _handlePointerDown(e, canvasSize),
+                    onPointerMove: (e) => _handlePointerMove(e, canvasSize),
+                    onPointerUp: (e) => _handlePointerUp(e, canvasSize),
+                    onPointerCancel: (e) => _handlePointerCancel(e, canvasSize),
+                    onPointerHover: (e) => _handlePointerHover(e, canvasSize),
                     child: CustomPaint(
                       size: canvasSize,
                       painter: _FieldStrategyPainter(
@@ -149,7 +289,21 @@ class _StrategyFieldCanvasState extends State<StrategyFieldCanvas> {
                   // 2. Draggable Square Robot Team Markers
                   if (widget.currentMatch != null) ..._buildTeamMarkers(canvasWidth, canvasHeight),
 
-                  // 3. Placeholder Empty State when no match loaded
+                  // 3. Stylus Quick Popup Overlay (Samsung Notes Style)
+                  if (_popupPosition != null)
+                    StylusQuickPopup(
+                      position: _popupPosition!,
+                      canvasSize: canvasSize,
+                      activeTool: widget.activeTool,
+                      currentColor: widget.currentColor,
+                      strokeWidth: widget.strokeWidth,
+                      onToolChanged: (t) => widget.onToolChanged?.call(t),
+                      onColorChanged: (c) => widget.onColorChanged?.call(c),
+                      onStrokeWidthChanged: (w) => widget.onStrokeWidthChanged?.call(w),
+                      onClose: () => setState(() => _popupPosition = null),
+                    ),
+
+                  // 4. Placeholder Empty State when no match loaded
                   if (widget.currentMatch == null)
                     Center(
                       child: Container(
