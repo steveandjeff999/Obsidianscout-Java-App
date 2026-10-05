@@ -1,8 +1,10 @@
 import 'dart:ui' as ui;
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import '../../models/match_planning_models.dart';
 import '../../models/team_match_models.dart';
 import 'draggable_team_marker.dart';
+import 'canvas_toolbar.dart';
 
 class StrategyFieldCanvas extends StatefulWidget {
   final GlobalKey repaintBoundaryKey;
@@ -10,12 +12,18 @@ class StrategyFieldCanvas extends StatefulWidget {
   final String activeTool; // 'pen' | 'eraser'
   final String currentColor;
   final double strokeWidth;
+  final double? penStrokeWidth;
+  final double? eraserStrokeWidth;
   final ui.Image? fieldImage;
   final MatchModel? currentMatch;
   final Map<int, TeamModel> teamMap;
   final ValueChanged<StrokeAnnotation> onStrokeCompleted;
   final Function(String stationId, TeamMarkerPosition pos) onMarkerPositionChanged;
   final VoidCallback onMarkerDragEnd;
+
+  final ValueChanged<String>? onToolChanged;
+  final ValueChanged<String>? onColorChanged;
+  final ValueChanged<double>? onStrokeWidthChanged;
 
   const StrategyFieldCanvas({
     super.key,
@@ -24,12 +32,17 @@ class StrategyFieldCanvas extends StatefulWidget {
     required this.activeTool,
     required this.currentColor,
     required this.strokeWidth,
+    this.penStrokeWidth,
+    this.eraserStrokeWidth,
     required this.fieldImage,
     required this.currentMatch,
     this.teamMap = const {},
     required this.onStrokeCompleted,
     required this.onMarkerPositionChanged,
     required this.onMarkerDragEnd,
+    this.onToolChanged,
+    this.onColorChanged,
+    this.onStrokeWidthChanged,
   });
 
   @override
@@ -38,22 +51,140 @@ class StrategyFieldCanvas extends StatefulWidget {
 
 class _StrategyFieldCanvasState extends State<StrategyFieldCanvas> {
   StrokeAnnotation? _currentStroke;
-  String? _draggingStationId;
 
-  void _handlePanStart(DragStartDetails details, Size size) {
+  // Stylus, S Pen & Palm Rejection State
+  bool _isPenActive = false;
+  bool _barrelWasDown = false;
+  bool _barrelHoldActive = false;
+  String _previousToolBeforeErase = 'pen';
+  int _barrelDownTimestamp = 0;
+  int _lastColorCycleTimestamp = 0;
+  bool _strokeDrawnWhileBarrelDown = false;
+
+  void _checkStylusBarrelButton(PointerEvent event, Size size) {
+    if (event.kind != PointerDeviceKind.stylus && event.kind != PointerDeviceKind.invertedStylus) {
+      return;
+    }
+
+    final isBarrelDown = (event.buttons & kPrimaryStylusButton) != 0 ||
+        (event.buttons & kSecondaryStylusButton) != 0;
+    final now = DateTime.now().millisecondsSinceEpoch;
+
+    // Hardware inverted stylus tip (eraser end)
+    if (event.kind == PointerDeviceKind.invertedStylus && widget.activeTool != 'eraser') {
+      _previousToolBeforeErase = widget.activeTool;
+      widget.onToolChanged?.call('eraser');
+      _barrelHoldActive = true;
+    }
+
+    // RISING EDGE: Button just pressed
+    if (isBarrelDown && !_barrelWasDown) {
+      _barrelWasDown = true;
+      _barrelDownTimestamp = now;
+      _strokeDrawnWhileBarrelDown = false;
+
+      // Immediately activate eraser so there is ZERO delay or pen-tool flash!
+      if (!_barrelHoldActive) {
+        _previousToolBeforeErase = widget.activeTool == 'eraser' ? 'pen' : widget.activeTool;
+        _barrelHoldActive = true;
+        widget.onToolChanged?.call('eraser');
+      }
+
+      final eraserSize = widget.eraserStrokeWidth ?? (widget.strokeWidth > 15 ? widget.strokeWidth : 22.0);
+      if (_currentStroke != null) {
+        _strokeDrawnWhileBarrelDown = true;
+        setState(() {
+          _currentStroke = StrokeAnnotation(
+            tool: 'eraser',
+            color: widget.currentColor,
+            widthRatio: eraserSize / 1000.0,
+            points: _currentStroke!.points,
+          );
+        });
+      }
+    }
+    // FALLING EDGE: Button released
+    else if (!isBarrelDown && _barrelWasDown) {
+      _barrelWasDown = false;
+      final pressDuration = now - _barrelDownTimestamp;
+
+      // If held for >= 450ms OR if an erase stroke was drawn during the press -> this was a HOLD TO ERASE action!
+      if (_strokeDrawnWhileBarrelDown || pressDuration >= 450) {
+        if (_barrelHoldActive) {
+          _barrelHoldActive = false;
+          widget.onToolChanged?.call(_previousToolBeforeErase);
+        }
+      } else {
+        // Quick tap release (<450ms without drawing an erase stroke) -> This was a CLICK to cycle color!
+        if (_barrelHoldActive) {
+          _barrelHoldActive = false;
+          widget.onToolChanged?.call(_previousToolBeforeErase == 'eraser' ? 'pen' : _previousToolBeforeErase);
+        }
+
+        // Discard accidental 1-2 point tap mark if one was started
+        if (_currentStroke != null && _currentStroke!.points.length <= 2) {
+          setState(() {
+            _currentStroke = null;
+          });
+        }
+
+        // Debounce: prevent single physical click from cycling multiple times (contact bounce)
+        if (now - _lastColorCycleTimestamp >= 350) {
+          _lastColorCycleTimestamp = now;
+          final colors = CanvasToolbar.colorSwatches.map((s) => s['hex']!).toList();
+          final currentIndex = colors.indexWhere(
+            (c) => c.toLowerCase() == widget.currentColor.toLowerCase(),
+          );
+          final nextIndex = (currentIndex + 1) % colors.length;
+          final nextColor = colors[nextIndex];
+          widget.onColorChanged?.call(nextColor);
+          if (widget.activeTool != 'pen') {
+            widget.onToolChanged?.call('pen');
+          }
+        }
+      }
+    }
+  }
+
+  void _handlePointerDown(PointerDownEvent event, Size size) {
     if (size.width <= 0 || size.height <= 0) return;
 
-    final xRatio = (details.localPosition.dx / size.width).clamp(0.0, 1.0);
-    final yRatio = (details.localPosition.dy / size.height).clamp(0.0, 1.0);
+    // Active Palm Rejection: If pen is active/drawing, swallow all finger touches!
+    if (_isPenActive && event.kind == PointerDeviceKind.touch) {
+      return;
+    }
 
-    final widthRatio = (widget.activeTool == 'eraser'
-            ? widget.strokeWidth * 3.5
-            : widget.strokeWidth) /
-        1000.0;
+    if (event.kind == PointerDeviceKind.stylus || event.kind == PointerDeviceKind.invertedStylus) {
+      _isPenActive = true;
+    }
+
+    _checkStylusBarrelButton(event, size);
+
+    final isBarrelDown = (event.buttons & kPrimaryStylusButton) != 0 ||
+        (event.buttons & kSecondaryStylusButton) != 0;
+
+    // If barrel button is held on touch-down, guarantee tool is eraser immediately!
+    if (isBarrelDown) {
+      _strokeDrawnWhileBarrelDown = true;
+      if (!_barrelHoldActive) {
+        _previousToolBeforeErase = widget.activeTool == 'eraser' ? 'pen' : widget.activeTool;
+        _barrelHoldActive = true;
+        widget.onToolChanged?.call('eraser');
+      }
+    }
+
+    final effectiveTool = (isBarrelDown || widget.activeTool == 'eraser') ? 'eraser' : widget.activeTool;
+    final effectiveWidth = effectiveTool == 'eraser'
+        ? (widget.eraserStrokeWidth ?? widget.strokeWidth)
+        : (widget.penStrokeWidth ?? widget.strokeWidth);
+    final widthRatio = effectiveWidth / 1000.0;
+
+    final xRatio = (event.localPosition.dx / size.width).clamp(0.0, 1.0);
+    final yRatio = (event.localPosition.dy / size.height).clamp(0.0, 1.0);
 
     setState(() {
       _currentStroke = StrokeAnnotation(
-        tool: widget.activeTool,
+        tool: effectiveTool,
         color: widget.currentColor,
         widthRatio: widthRatio,
         points: [StrokePoint(xRatio, yRatio)],
@@ -61,18 +192,37 @@ class _StrategyFieldCanvasState extends State<StrategyFieldCanvas> {
     });
   }
 
-  void _handlePanUpdate(DragUpdateDetails details, Size size) {
+  void _handlePointerMove(PointerMoveEvent event, Size size) {
+    // Active Palm Rejection: discard touch events while pen is drawing
+    if (_isPenActive && event.kind == PointerDeviceKind.touch) {
+      return;
+    }
+
+    _checkStylusBarrelButton(event, size);
+
+    final isBarrelDown = (event.buttons & kPrimaryStylusButton) != 0 ||
+        (event.buttons & kSecondaryStylusButton) != 0;
+    if (isBarrelDown) {
+      _strokeDrawnWhileBarrelDown = true;
+    }
+
     if (_currentStroke == null || size.width <= 0 || size.height <= 0) return;
 
-    final xRatio = (details.localPosition.dx / size.width).clamp(0.0, 1.0);
-    final yRatio = (details.localPosition.dy / size.height).clamp(0.0, 1.0);
+    final xRatio = (event.localPosition.dx / size.width).clamp(0.0, 1.0);
+    final yRatio = (event.localPosition.dy / size.height).clamp(0.0, 1.0);
 
     setState(() {
       _currentStroke!.points.add(StrokePoint(xRatio, yRatio));
     });
   }
 
-  void _handlePanEnd(DragEndDetails details) {
+  void _handlePointerUp(PointerUpEvent event, Size size) {
+    _checkStylusBarrelButton(event, size);
+
+    if (event.kind == PointerDeviceKind.stylus || event.kind == PointerDeviceKind.invertedStylus) {
+      _isPenActive = false;
+    }
+
     if (_currentStroke != null) {
       final finished = _currentStroke!;
       _currentStroke = null;
@@ -80,10 +230,36 @@ class _StrategyFieldCanvasState extends State<StrategyFieldCanvas> {
     }
   }
 
+  void _handlePointerCancel(PointerCancelEvent event, Size size) {
+    if (_barrelHoldActive) {
+      _barrelHoldActive = false;
+      widget.onToolChanged?.call(_previousToolBeforeErase);
+    }
+    _barrelWasDown = false;
+    _strokeDrawnWhileBarrelDown = false;
+    if (event.kind == PointerDeviceKind.stylus || event.kind == PointerDeviceKind.invertedStylus) {
+      _isPenActive = false;
+    }
+    if (_currentStroke != null) {
+      final finished = _currentStroke!;
+      _currentStroke = null;
+      widget.onStrokeCompleted(finished);
+    }
+  }
+
+  void _handlePointerHover(PointerHoverEvent event, Size size) {
+    _checkStylusBarrelButton(event, size);
+  }
+
   int _parseTeamNumber(dynamic raw) {
     if (raw == null) return 0;
     final str = raw.toString().replaceAll(RegExp(r'^(frc|ftc)', caseSensitive: false), '').trim();
     return int.tryParse(str) ?? 0;
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   @override
@@ -130,18 +306,32 @@ class _StrategyFieldCanvasState extends State<StrategyFieldCanvas> {
               borderRadius: BorderRadius.circular(12),
               child: Stack(
                 children: [
-                  // 1. Field Background & User Annotations Drawing Layer
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onPanStart: (d) => _handlePanStart(d, canvasSize),
-                    onPanUpdate: (d) => _handlePanUpdate(d, canvasSize),
-                    onPanEnd: _handlePanEnd,
-                    child: CustomPaint(
-                      size: canvasSize,
-                      painter: _FieldStrategyPainter(
-                        plan: widget.plan,
-                        currentStroke: _currentStroke,
-                        fieldImage: widget.fieldImage,
+                  // 1. Field Background & User Annotations Drawing Layer with Pointer Listener (Isolated in RepaintBoundary)
+                  // Wrapped in RawGestureDetector with EagerGestureRecognizer so touching/drawing on the canvas
+                  // eagerly claims all pointer gestures and completely prevents parent Scrollables from scrolling
+                  RepaintBoundary(
+                    child: RawGestureDetector(
+                      gestures: <Type, GestureRecognizerFactory>{
+                        EagerGestureRecognizer: GestureRecognizerFactoryWithHandlers<EagerGestureRecognizer>(
+                          () => EagerGestureRecognizer(),
+                          (EagerGestureRecognizer instance) {},
+                        ),
+                      },
+                      child: Listener(
+                        behavior: HitTestBehavior.opaque,
+                        onPointerDown: (e) => _handlePointerDown(e, canvasSize),
+                        onPointerMove: (e) => _handlePointerMove(e, canvasSize),
+                        onPointerUp: (e) => _handlePointerUp(e, canvasSize),
+                        onPointerCancel: (e) => _handlePointerCancel(e, canvasSize),
+                        onPointerHover: (e) => _handlePointerHover(e, canvasSize),
+                        child: CustomPaint(
+                          size: canvasSize,
+                          painter: _FieldStrategyPainter(
+                            plan: widget.plan,
+                            currentStroke: _currentStroke,
+                            fieldImage: widget.fieldImage,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -226,15 +416,10 @@ class _StrategyFieldCanvasState extends State<StrategyFieldCanvas> {
               position: pos,
               canvasWidth: canvasWidth,
               canvasHeight: canvasHeight,
-              isDragging: _draggingStationId == stId,
               onPositionChanged: (newPos) {
-                setState(() => _draggingStationId = stId);
                 widget.onMarkerPositionChanged(stId, newPos);
               },
-              onDragEnd: () {
-                setState(() => _draggingStationId = null);
-                widget.onMarkerDragEnd();
-              },
+              onDragEnd: widget.onMarkerDragEnd,
             ),
           );
         }
