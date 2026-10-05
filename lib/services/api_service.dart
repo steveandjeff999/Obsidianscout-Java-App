@@ -857,6 +857,7 @@ class ApiService {
     String program = "FRC",
     bool keepMeLoggedIn = false,
   }) async {
+    lastLoginError = null;
     try {
       final response = await http.post(
         Uri.parse('$_currentServerUrl/api/auth/login'),
@@ -918,10 +919,27 @@ class ApiService {
         } catch (_) {}
         return true;
       }
+      lastLoginError = _extractServerError(response);
       return false;
     } catch (e) {
       return false;
     }
+  }
+
+  /// The server's error message from the most recent failed [login] (for example the
+  /// "Too many failed attempts" rate-limit message), or null for network failures.
+  String? lastLoginError;
+
+  String? _extractServerError(http.Response response) {
+    try {
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map) {
+        final message = decoded['error'] ?? decoded['message'];
+        if (message != null && message.toString().trim().isNotEmpty) return message.toString();
+      }
+    } catch (_) {}
+    if (response.statusCode == 429) return 'Too many failed attempts. Please wait 60 seconds.';
+    return null;
   }
 
   Future<ApiResponse<void>> register(

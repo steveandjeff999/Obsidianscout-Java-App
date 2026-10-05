@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../l10n/app_localizations.dart';
+import '../models/account_rules.dart';
 import '../models/config_models.dart';
 import '../services/api_service.dart';
 import '../services/image_utils.dart';
@@ -547,6 +548,19 @@ class _UsersScreenState extends State<UsersScreen> {
                                   final navigator = Navigator.of(dialogCtx);
                                   final messenger = ScaffoldMessenger.of(context);
 
+                                  // Same rules as the server: only validate what is actually being changed.
+                                  final usernameError = (canChangeUsername && newUsername != user.username)
+                                      ? AccountRules.validateUsername(newUsername)
+                                      : null;
+                                  final passwordError = newPassword.isNotEmpty ? AccountRules.validatePassword(newPassword) : null;
+                                  final validationError = usernameError ?? passwordError;
+                                  if (validationError != null) {
+                                    messenger.showSnackBar(
+                                      SnackBar(backgroundColor: ObsidianUITheme.errorRed, content: Text(validationError)),
+                                    );
+                                    return;
+                                  }
+
                                   setModalState(() => isSaving = true);
 
                                   final res = await widget.apiService.updateAdminUser(
@@ -946,7 +960,7 @@ class _UsersScreenState extends State<UsersScreen> {
         const SizedBox(height: 4),
         TextFormField(
           controller: _createUsernameController,
-          validator: (v) => (v == null || v.trim().isEmpty) ? 'Username is required' : null,
+          validator: (v) => AccountRules.validateUsername(v),
           decoration: const InputDecoration(
             hintText: 'e.g. scout_john',
             isDense: true,
@@ -1008,7 +1022,7 @@ class _UsersScreenState extends State<UsersScreen> {
         TextFormField(
           controller: _createPasswordController,
           obscureText: true,
-          validator: (v) => (v == null || v.isEmpty) ? 'Password is required' : null,
+          validator: (v) => AccountRules.validatePassword(v),
           decoration: const InputDecoration(
             hintText: '••••••••',
             isDense: true,

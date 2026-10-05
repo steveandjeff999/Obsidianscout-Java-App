@@ -7,6 +7,7 @@ import '../widgets/reset_password_modal.dart';
 import '../services/api_service.dart';
 import '../services/auth_storage_service.dart';
 import '../services/biometric_auth_service.dart';
+import '../models/account_rules.dart';
 import '../models/api_response.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -196,7 +197,8 @@ class _LoginScreenState extends State<LoginScreen> {
     await widget.apiService.setServerUrl(_serverUrlController.text.trim());
 
     final username = _usernameController.text.trim();
-    final password = _passwordController.text.trim();
+    // Passwords are sent exactly as typed (registration does not trim them either).
+    final password = _passwordController.text;
     final teamNum = int.tryParse(_teamNumberController.text.trim()) ?? 0;
 
     final success = await widget.apiService.login(
@@ -250,9 +252,11 @@ class _LoginScreenState extends State<LoginScreen> {
         }
         widget.onLoginSuccess();
       } else {
+        // Prefer the server's reason (e.g. rate limiting) when there is one.
+        final serverMessage = widget.apiService.lastLoginError;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Login failed. Please check your credentials and server connection.'),
+          SnackBar(
+            content: Text(serverMessage ?? 'Login failed. Please check your credentials and server connection.'),
             backgroundColor: ObsidianUITheme.errorRed,
           ),
         );
@@ -975,7 +979,7 @@ class _LoginScreenState extends State<LoginScreen> {
               prefixIcon: Icon(Icons.person_add_outlined, color: ObsidianUITheme.secondaryAccent),
               enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
             ),
-            validator: (val) => val == null || val.trim().isEmpty ? context.tr('login.username') : null,
+            validator: (val) => AccountRules.validateUsername(val),
           ),
           const SizedBox(height: 12.0),
           TextFormField(
@@ -1069,7 +1073,7 @@ class _LoginScreenState extends State<LoginScreen> {
               prefixIcon: Icon(Icons.lock_outline, color: secondaryTextColor),
               enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
             ),
-            validator: (val) => val == null || val.length < 4 ? context.tr('login.password') : null,
+            validator: (val) => AccountRules.validatePassword(val),
           ),
           const SizedBox(height: 12.0),
           TextFormField(
