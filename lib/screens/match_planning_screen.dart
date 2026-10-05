@@ -55,9 +55,23 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
   // Drawing tools state
   String _activeTool = 'pen'; // 'pen' | 'eraser'
   String _currentColor = '#ffffff';
-  double _strokeWidth = 6.0;
+  double _penStrokeWidth = 6.0;
+  double _eraserStrokeWidth = 22.0;
   String _saveStatus = 'saved'; // 'saving' | 'saved' | 'error' | 'idle'
   bool _isFullscreen = false;
+  final ScrollController _fullscreenScrollController = ScrollController();
+
+  double get _currentStrokeWidth => _activeTool == 'eraser' ? _eraserStrokeWidth : _penStrokeWidth;
+
+  void _handleStrokeWidthChanged(double val) {
+    setState(() {
+      if (_activeTool == 'eraser') {
+        _eraserStrokeWidth = val;
+      } else {
+        _penStrokeWidth = val;
+      }
+    });
+  }
 
   Timer? _autoSaveTimer;
   Timer? _pollTimer;
@@ -110,6 +124,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
     _autoSaveTimer?.cancel();
     _stopPolling();
     _onlineSub?.cancel();
+    _fullscreenScrollController.dispose();
     super.dispose();
   }
 
@@ -574,9 +589,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
   }
 
   void _handleMarkerPositionChanged(String stationId, TeamMarkerPosition pos) {
-    setState(() {
-      _plan.teamMarkerPositions[stationId] = pos;
-    });
+    _plan.teamMarkerPositions[stationId] = pos;
   }
 
   void _handleMarkerDragEnd() {
@@ -867,14 +880,14 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                       child: CanvasToolbar(
                         activeTool: _activeTool,
                         currentColor: _currentColor,
-                        strokeWidth: _strokeWidth,
+                        strokeWidth: _currentStrokeWidth,
                         canUndo: _undoStack.isNotEmpty,
                         canRedo: _redoStack.isNotEmpty,
                         isFullscreen: _isFullscreen,
                         saveStatus: _saveStatus,
                         onToolChanged: (tool) => setState(() => _activeTool = tool),
                         onColorChanged: (color) => setState(() => _currentColor = color),
-                        onStrokeWidthChanged: (val) => setState(() => _strokeWidth = val),
+                        onStrokeWidthChanged: _handleStrokeWidthChanged,
                         onUndo: _handleUndo,
                         onRedo: _handleRedo,
                         onClear: _handleClearCanvas,
@@ -910,13 +923,18 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                                   plan: _plan,
                                   activeTool: _activeTool,
                                   currentColor: _currentColor,
-                                  strokeWidth: _strokeWidth,
+                                  strokeWidth: _currentStrokeWidth,
+                                  penStrokeWidth: _penStrokeWidth,
+                                  eraserStrokeWidth: _eraserStrokeWidth,
                                   fieldImage: _fieldImage,
                                   currentMatch: _selectedMatch,
                                   teamMap: _teamMap,
                                   onStrokeCompleted: _handleStrokeCompleted,
                                   onMarkerPositionChanged: _handleMarkerPositionChanged,
                                   onMarkerDragEnd: _handleMarkerDragEnd,
+                                  onToolChanged: (tool) => setState(() => _activeTool = tool),
+                                  onColorChanged: (color) => setState(() => _currentColor = color),
+                                  onStrokeWidthChanged: _handleStrokeWidthChanged,
                                 ),
                               ),
                               const SizedBox(width: 10),
@@ -937,13 +955,18 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                                 plan: _plan,
                                 activeTool: _activeTool,
                                 currentColor: _currentColor,
-                                strokeWidth: _strokeWidth,
+                                strokeWidth: _currentStrokeWidth,
+                                penStrokeWidth: _penStrokeWidth,
+                                eraserStrokeWidth: _eraserStrokeWidth,
                                 fieldImage: _fieldImage,
                                 currentMatch: _selectedMatch,
                                 teamMap: _teamMap,
                                 onStrokeCompleted: _handleStrokeCompleted,
                                 onMarkerPositionChanged: _handleMarkerPositionChanged,
                                 onMarkerDragEnd: _handleMarkerDragEnd,
+                                onToolChanged: (tool) => setState(() => _activeTool = tool),
+                                onColorChanged: (color) => setState(() => _currentColor = color),
+                                onStrokeWidthChanged: _handleStrokeWidthChanged,
                               ),
                               const SizedBox(height: 12),
                               // Driver stations below canvas
@@ -1245,6 +1268,30 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
   Widget _buildFullscreenWorkspace(BuildContext context) {
     final matchLabel = _selectedMatch?.label ?? (_selectedMatch?.matchNumber != null ? 'Match ${_selectedMatch!.matchNumber}' : 'Match Planning');
     final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+
+    // Build match dropdown items for quick match switching while in fullscreen
+    final seenMatchKeys = <String>{};
+    final matchItems = <DropdownMenuItem<String>>[];
+    for (final m in _matches) {
+      if (m.matchKey.isNotEmpty && seenMatchKeys.add(m.matchKey)) {
+        final label = m.label.isNotEmpty ? m.label : (m.matchNumber != null ? 'Match ${m.matchNumber}' : m.matchKey);
+        matchItems.add(
+          DropdownMenuItem<String>(
+            value: m.matchKey,
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+            ),
+          ),
+        );
+      }
+    }
+    final currentSelectedKey = _selectedMatch?.matchKey;
+    final String? safeMatchValue = (currentSelectedKey != null && seenMatchKeys.contains(currentSelectedKey))
+        ? currentSelectedKey
+        : (matchItems.isNotEmpty ? matchItems.first.value : null);
 
     return PopScope(
       canPop: false,
@@ -1280,28 +1327,57 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                                 onPressed: () => setState(() => _isFullscreen = false),
                               ),
                               const SizedBox(width: 4),
-                              Text(
-                                matchLabel,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
-                                  color: primaryTextColor,
+                              if (matchItems.isNotEmpty)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.08),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                                  ),
+                                  child: DropdownButtonHideUnderline(
+                                    child: DropdownButton<String>(
+                                      value: safeMatchValue,
+                                      dropdownColor: const Color(0xFF1E293B),
+                                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: primaryTextColor),
+                                      icon: const Icon(Icons.arrow_drop_down, color: Colors.white70, size: 20),
+                                      isDense: true,
+                                      items: matchItems,
+                                      onChanged: (val) {
+                                        if (val != null && _matches.isNotEmpty) {
+                                          final match = _matches.firstWhere(
+                                            (m) => m.matchKey == val,
+                                            orElse: () => _matches.first,
+                                          );
+                                          _selectMatch(match);
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                )
+                              else
+                                Text(
+                                  matchLabel,
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800,
+                                    color: primaryTextColor,
+                                  ),
                                 ),
-                              ),
                               const SizedBox(width: 16),
                               Expanded(
                                 child: Center(
                                   child: CanvasToolbar(
                                     activeTool: _activeTool,
                                     currentColor: _currentColor,
-                                    strokeWidth: _strokeWidth,
+                                    strokeWidth: _currentStrokeWidth,
                                     canUndo: _undoStack.isNotEmpty,
                                     canRedo: _redoStack.isNotEmpty,
                                     isFullscreen: _isFullscreen,
                                     saveStatus: _saveStatus,
                                     onToolChanged: (tool) => setState(() => _activeTool = tool),
                                     onColorChanged: (color) => setState(() => _currentColor = color),
-                                    onStrokeWidthChanged: (val) => setState(() => _strokeWidth = val),
+                                    onStrokeWidthChanged: _handleStrokeWidthChanged,
                                     onUndo: _handleUndo,
                                     onRedo: _handleRedo,
                                     onClear: _handleClearCanvas,
@@ -1311,6 +1387,18 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                                 ),
                               ),
                               const SizedBox(width: 8),
+                              IconButton(
+                                icon: const Icon(Icons.analytics_outlined, color: Colors.white70, size: 20),
+                                tooltip: 'Scroll to Alliance Stats',
+                                onPressed: () {
+                                  _fullscreenScrollController.animateTo(
+                                    420.0,
+                                    duration: const Duration(milliseconds: 350),
+                                    curve: Curves.easeInOut,
+                                  );
+                                },
+                              ),
+                              const SizedBox(width: 4),
                               FilledButton.tonalIcon(
                                 onPressed: () => setState(() => _isFullscreen = false),
                                 icon: const Icon(Icons.fullscreen_exit_rounded, size: 18),
@@ -1335,15 +1423,46 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                                   ),
                                   const SizedBox(width: 4),
                                   Expanded(
-                                    child: Text(
-                                      matchLabel,
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w800,
-                                        color: primaryTextColor,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
+                                    child: matchItems.isNotEmpty
+                                        ? DropdownButtonHideUnderline(
+                                            child: DropdownButton<String>(
+                                              value: safeMatchValue,
+                                              dropdownColor: const Color(0xFF1E293B),
+                                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: primaryTextColor),
+                                              icon: const Icon(Icons.arrow_drop_down, color: Colors.white70, size: 18),
+                                              isDense: true,
+                                              items: matchItems,
+                                              onChanged: (val) {
+                                                if (val != null && _matches.isNotEmpty) {
+                                                  final match = _matches.firstWhere(
+                                                    (m) => m.matchKey == val,
+                                                    orElse: () => _matches.first,
+                                                  );
+                                                  _selectMatch(match);
+                                                }
+                                              },
+                                            ),
+                                          )
+                                        : Text(
+                                            matchLabel,
+                                            style: TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w800,
+                                              color: primaryTextColor,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.analytics_outlined, color: Colors.white70, size: 18),
+                                    tooltip: 'Scroll to Alliance Stats',
+                                    onPressed: () {
+                                      _fullscreenScrollController.animateTo(
+                                        460.0,
+                                        duration: const Duration(milliseconds: 350),
+                                        curve: Curves.easeInOut,
+                                      );
+                                    },
                                   ),
                                   IconButton(
                                     icon: const Icon(Icons.fullscreen_exit_rounded, color: Colors.white),
@@ -1357,14 +1476,14 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                                 child: CanvasToolbar(
                                   activeTool: _activeTool,
                                   currentColor: _currentColor,
-                                  strokeWidth: _strokeWidth,
+                                  strokeWidth: _currentStrokeWidth,
                                   canUndo: _undoStack.isNotEmpty,
                                   canRedo: _redoStack.isNotEmpty,
                                   isFullscreen: _isFullscreen,
                                   saveStatus: _saveStatus,
                                   onToolChanged: (tool) => setState(() => _activeTool = tool),
                                   onColorChanged: (color) => setState(() => _currentColor = color),
-                                  onStrokeWidthChanged: (val) => setState(() => _strokeWidth = val),
+                                  onStrokeWidthChanged: _handleStrokeWidthChanged,
                                   onUndo: _handleUndo,
                                   onRedo: _handleRedo,
                                   onClear: _handleClearCanvas,
@@ -1376,81 +1495,196 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                           ),
                   ),
 
-                  // Fullscreen Workspace Body
+                  // Fullscreen Workspace Body with Full Scrolling Support
                   Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: isWideScreen
-                          ? Row(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                // Blue Stations
-                                SizedBox(
-                                  width: 135,
-                                  child: _buildDriverStationColumn('Blue Alliance', 'blue', _selectedMatch?.blueTeams ?? []),
+                    child: SingleChildScrollView(
+                      controller: _fullscreenScrollController,
+                      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+                      padding: const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 48.0),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 1600.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // Strategy Workspace (Driver stations + canvas)
+                              LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final width = constraints.maxWidth;
+                                  final isLargeDesktop = width >= 960;
+                                  final isTabletLandscape = width >= 700 && width < 960;
+
+                                  if (isLargeDesktop || isTabletLandscape) {
+                                    final dsWidth = isLargeDesktop ? 140.0 : 115.0;
+                                    return Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        // Blue Driver Station (Left)
+                                        SizedBox(
+                                          width: dsWidth,
+                                          child: _buildDriverStationColumn('Blue Alliance', 'blue', _selectedMatch?.blueTeams ?? []),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        // Strategy Canvas (Center)
+                                        Expanded(
+                                          child: Center(
+                                            child: StrategyFieldCanvas(
+                                              repaintBoundaryKey: _repaintBoundaryKey,
+                                              plan: _plan,
+                                              activeTool: _activeTool,
+                                              currentColor: _currentColor,
+                                              strokeWidth: _currentStrokeWidth,
+                                              penStrokeWidth: _penStrokeWidth,
+                                              eraserStrokeWidth: _eraserStrokeWidth,
+                                              fieldImage: _fieldImage,
+                                              currentMatch: _selectedMatch,
+                                              teamMap: _teamMap,
+                                              onStrokeCompleted: _handleStrokeCompleted,
+                                              onMarkerPositionChanged: _handleMarkerPositionChanged,
+                                              onMarkerDragEnd: _handleMarkerDragEnd,
+                                              onToolChanged: (tool) => setState(() => _activeTool = tool),
+                                              onColorChanged: (color) => setState(() => _currentColor = color),
+                                              onStrokeWidthChanged: _handleStrokeWidthChanged,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        // Red Driver Station (Right)
+                                        SizedBox(
+                                          width: dsWidth,
+                                          child: _buildDriverStationColumn('Red Alliance', 'red', _selectedMatch?.redTeams ?? []),
+                                        ),
+                                      ],
+                                    );
+                                  } else {
+                                    return Column(
+                                      children: [
+                                        StrategyFieldCanvas(
+                                          repaintBoundaryKey: _repaintBoundaryKey,
+                                          plan: _plan,
+                                          activeTool: _activeTool,
+                                          currentColor: _currentColor,
+                                          strokeWidth: _currentStrokeWidth,
+                                          penStrokeWidth: _penStrokeWidth,
+                                          eraserStrokeWidth: _eraserStrokeWidth,
+                                          fieldImage: _fieldImage,
+                                          currentMatch: _selectedMatch,
+                                          teamMap: _teamMap,
+                                          onStrokeCompleted: _handleStrokeCompleted,
+                                          onMarkerPositionChanged: _handleMarkerPositionChanged,
+                                          onMarkerDragEnd: _handleMarkerDragEnd,
+                                          onToolChanged: (tool) => setState(() => _activeTool = tool),
+                                          onColorChanged: (color) => setState(() => _currentColor = color),
+                                          onStrokeWidthChanged: _handleStrokeWidthChanged,
+                                        ),
+                                        const SizedBox(height: 12),
+                                        if (width >= 360)
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: _buildDriverStationColumn('Blue Alliance', 'blue', _selectedMatch?.blueTeams ?? []),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Expanded(
+                                                child: _buildDriverStationColumn('Red Alliance', 'red', _selectedMatch?.redTeams ?? []),
+                                              ),
+                                            ],
+                                          )
+                                        else ...[
+                                          _buildDriverStationColumn('Blue Alliance', 'blue', _selectedMatch?.blueTeams ?? []),
+                                          const SizedBox(height: 8),
+                                          _buildDriverStationColumn('Red Alliance', 'red', _selectedMatch?.redTeams ?? []),
+                                        ],
+                                      ],
+                                    );
+                                  }
+                                },
+                              ),
+
+                              const SizedBox(height: 24),
+
+                              // Alliance & Team Performance Stats Section
+                              if (_selectedMatch != null) ...[
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Alliance & Team Performance Stats',
+                                              style: TextStyle(
+                                                fontSize: 17,
+                                                fontWeight: FontWeight.w900,
+                                                color: primaryTextColor,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              'Comprehensive stats, pit specs, and qualitative scouter notes for each team in this match',
+                                              style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      TextButton.icon(
+                                        onPressed: () {
+                                          _fullscreenScrollController.animateTo(
+                                            0.0,
+                                            duration: const Duration(milliseconds: 350),
+                                            curve: Curves.easeInOut,
+                                          );
+                                        },
+                                        icon: const Icon(Icons.arrow_upward_rounded, size: 16),
+                                        label: const Text('Back to Canvas', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                        style: TextButton.styleFrom(
+                                          foregroundColor: ObsidianUITheme.primaryAccent,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                const SizedBox(width: 10),
-                                // Strategy Canvas in Center
-                                Expanded(
+                                const SizedBox(height: 14),
+
+                                // Blue Alliance Cards
+                                _buildAllianceTeamCardsSection('Blue Alliance', 'blue', _selectedMatch!.blueTeams),
+
+                                const SizedBox(height: 20),
+
+                                // Red Alliance Cards
+                                _buildAllianceTeamCardsSection('Red Alliance', 'red', _selectedMatch!.redTeams),
+                              ] else ...[
+                                ObsidianGlassCard(
+                                  margin: EdgeInsets.zero,
                                   child: Center(
-                                    child: StrategyFieldCanvas(
-                                      repaintBoundaryKey: _repaintBoundaryKey,
-                                      plan: _plan,
-                                      activeTool: _activeTool,
-                                      currentColor: _currentColor,
-                                      strokeWidth: _strokeWidth,
-                                      fieldImage: _fieldImage,
-                                      currentMatch: _selectedMatch,
-                                      teamMap: _teamMap,
-                                      onStrokeCompleted: _handleStrokeCompleted,
-                                      onMarkerPositionChanged: _handleMarkerPositionChanged,
-                                      onMarkerDragEnd: _handleMarkerDragEnd,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(16.0),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.sports_esports_outlined, size: 40, color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.6)),
+                                          const SizedBox(height: 10),
+                                          Text(
+                                            _matches.isEmpty
+                                                ? 'No matches scheduled for this event yet.'
+                                                : 'Select a match above to view alliance statistics and team strategy cards.',
+                                            style: TextStyle(color: secondaryTextColor, fontSize: 13, fontWeight: FontWeight.w500),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 10),
-                                // Red Stations
-                                SizedBox(
-                                  width: 135,
-                                  child: _buildDriverStationColumn('Red Alliance', 'red', _selectedMatch?.redTeams ?? []),
-                                ),
                               ],
-                            )
-                          : Column(
-                              children: [
-                                // Canvas expanded
-                                Expanded(
-                                  child: Center(
-                                    child: StrategyFieldCanvas(
-                                      repaintBoundaryKey: _repaintBoundaryKey,
-                                      plan: _plan,
-                                      activeTool: _activeTool,
-                                      currentColor: _currentColor,
-                                      strokeWidth: _strokeWidth,
-                                      fieldImage: _fieldImage,
-                                      currentMatch: _selectedMatch,
-                                      teamMap: _teamMap,
-                                      onStrokeCompleted: _handleStrokeCompleted,
-                                      onMarkerPositionChanged: _handleMarkerPositionChanged,
-                                      onMarkerDragEnd: _handleMarkerDragEnd,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                // Driver stations row on mobile
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: _buildDriverStationColumn('Blue Alliance', 'blue', _selectedMatch?.blueTeams ?? []),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: _buildDriverStationColumn('Red Alliance', 'red', _selectedMatch?.redTeams ?? []),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -1462,3 +1696,4 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
     );
   }
 }
+
