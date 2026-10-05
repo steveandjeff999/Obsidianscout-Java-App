@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
 import '../models/api_response.dart';
+import '../models/account_rules.dart';
 import '../models/config_models.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
@@ -58,6 +59,8 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
   bool _useTbaOpr = false;
   bool _chatEnabled = true;
   bool _registrationLocked = false;
+  /// Roles allowed on the create-account page; null until the server reports them (then treated as all roles).
+  List<String>? _selfRegisterRoles;
   List<String> _scoutPages = [];
   List<String> _analyticsPages = [];
   List<String> _adminPages = [];
@@ -148,6 +151,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     _useTbaOpr = fresh.useTbaOpr;
     _chatEnabled = fresh.chatEnabled;
     _registrationLocked = fresh.registrationLocked;
+    _selfRegisterRoles = fresh.selfRegisterRoles == null ? null : List<String>.from(fresh.selfRegisterRoles!);
     _scoutPages = List<String>.from(fresh.scoutPages);
     _analyticsPages = List<String>.from(fresh.analyticsPages);
     _adminPages = List<String>.from(fresh.adminPages);
@@ -215,6 +219,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       _useTbaOpr = _currentSettings.useTbaOpr;
       _chatEnabled = _currentSettings.chatEnabled;
       _registrationLocked = _currentSettings.registrationLocked;
+      _selfRegisterRoles = _currentSettings.selfRegisterRoles == null ? null : List<String>.from(_currentSettings.selfRegisterRoles!);
       _scoutPages = List<String>.from(_currentSettings.scoutPages);
       _analyticsPages = List<String>.from(_currentSettings.analyticsPages);
       _adminPages = List<String>.from(_currentSettings.adminPages);
@@ -504,6 +509,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       useTbaOpr: _useTbaOpr,
       chatEnabled: _chatEnabled,
       registrationLocked: _registrationLocked,
+      selfRegisterRoles: _selfRegisterRoles,
       apiKeys: _currentSettings.apiKeys.copyWith(
         tbaKey: _tbaKeyController.text.trim(),
         firstUsername: _firstUsernameController.text.trim(),
@@ -554,6 +560,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     final updated = _currentSettings.copyWith(
       chatEnabled: _chatEnabled,
       registrationLocked: _registrationLocked,
+      selfRegisterRoles: _selfRegisterRoles,
       scoutPages: _scoutPages,
       analyticsPages: _analyticsPages,
       adminPages: _adminPages,
@@ -3650,6 +3657,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                 controlAffinity: ListTileControlAffinity.leading,
                 onChanged: (val) => setState(() => _registrationLocked = val ?? false),
               ),
+              _buildSelfRegisterRolesSection(primaryTextColor, secondaryTextColor),
             ],
           ),
         ),
@@ -3682,6 +3690,57 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
           ),
         ),
       ],
+    );
+  }
+
+  /// Roles new users may pick on the create-account page. All roles by default; only changes
+  /// when an admin unchecks one. Greyed out while registration is locked.
+  Widget _buildSelfRegisterRolesSection(Color primaryTextColor, Color secondaryTextColor) {
+    final allowed = _selfRegisterRoles ?? AccountRules.selfRegisterRoles;
+    const labels = {'ADMIN': 'Admin', 'ANALYTICS': 'Analytics', 'SCOUT': 'Scout'};
+    return Opacity(
+      opacity: _registrationLocked ? 0.5 : 1.0,
+      child: Padding(
+        padding: const EdgeInsets.only(left: 40, bottom: 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Roles new users can choose when creating an account',
+                style: TextStyle(color: primaryTextColor, fontSize: 13, fontWeight: FontWeight.w600)),
+            Wrap(
+              spacing: 16,
+              children: AccountRules.selfRegisterRoles.map((role) {
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Checkbox(
+                      value: allowed.contains(role),
+                      activeColor: ObsidianUITheme.primaryAccent,
+                      onChanged: _registrationLocked
+                          ? null
+                          : (val) => setState(() {
+                                final next = List<String>.from(allowed);
+                                if (val == true) {
+                                  if (!next.contains(role)) next.add(role);
+                                } else {
+                                  next.remove(role);
+                                }
+                                // Keep the server's canonical order.
+                                _selfRegisterRoles = AccountRules.selfRegisterRoles.where(next.contains).toList();
+                              }),
+                    ),
+                    Text(labels[role] ?? role, style: TextStyle(color: primaryTextColor, fontSize: 13)),
+                  ],
+                );
+              }).toList(),
+            ),
+            Text(
+              'Admins can always create accounts with any role from the Users page. Unchecking every role works like locking registration.',
+              style: TextStyle(color: secondaryTextColor, fontSize: 11),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

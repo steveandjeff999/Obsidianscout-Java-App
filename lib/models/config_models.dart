@@ -473,7 +473,10 @@ class UserModel {
   bool canEdit(UserModel targetUser) {
     if (isSuperAdmin) return true;
     if (isAdmin) {
-      return !targetUser.isSuperAdmin && targetUser.teamNumber == teamNumber;
+      // The server treats FRC and FTC teams with the same number as different teams.
+      return !targetUser.isSuperAdmin &&
+          targetUser.teamNumber == teamNumber &&
+          targetUser.program.toUpperCase() == program.toUpperCase();
     }
     return false;
   }
@@ -707,6 +710,8 @@ class AppSettingsModel {
   final String preferredSource;
   final bool chatEnabled;
   final bool registrationLocked;
+  /// Roles allowed on the create-account page (null = not reported by the server; keep its value).
+  final List<String>? selfRegisterRoles;
   final bool useStatboticsEpa;
   final bool useMatch13Exp;
   final bool useTbaOpr;
@@ -730,6 +735,7 @@ class AppSettingsModel {
     this.preferredSource = 'tba',
     this.chatEnabled = true,
     this.registrationLocked = false,
+    this.selfRegisterRoles,
     this.useStatboticsEpa = false,
     this.useMatch13Exp = false,
     this.useTbaOpr = false,
@@ -839,6 +845,9 @@ class AppSettingsModel {
       preferredSource: settingsMap['preferredSource']?.toString() ?? 'tba',
       chatEnabled: settingsMap['chatEnabled'] != false,
       registrationLocked: parseBool(settingsMap['registrationLocked'] ?? json['registrationLocked']),
+      selfRegisterRoles: (settingsMap['selfRegisterRoles'] is List)
+          ? (settingsMap['selfRegisterRoles'] as List).map((e) => e.toString().toUpperCase()).toList()
+          : null,
       useStatboticsEpa: parseBool(rawEpa),
       useMatch13Exp: parseBool(rawExp),
       useTbaOpr: parseBool(rawOpr),
@@ -865,6 +874,7 @@ class AppSettingsModel {
       'preferredSource': preferredSource,
       'chatEnabled': chatEnabled,
       'registrationLocked': registrationLocked,
+      if (selfRegisterRoles != null) 'selfRegisterRoles': selfRegisterRoles,
       'useStatboticsEpa': useStatboticsEpa,
       'useMatch13Exp': useMatch13Exp,
       'useTbaOpr': useTbaOpr,
@@ -890,6 +900,7 @@ class AppSettingsModel {
     String? preferredSource,
     bool? chatEnabled,
     bool? registrationLocked,
+    List<String>? selfRegisterRoles,
     bool? useStatboticsEpa,
     bool? useMatch13Exp,
     bool? useTbaOpr,
@@ -913,6 +924,7 @@ class AppSettingsModel {
       preferredSource: preferredSource ?? this.preferredSource,
       chatEnabled: chatEnabled ?? this.chatEnabled,
       registrationLocked: registrationLocked ?? this.registrationLocked,
+      selfRegisterRoles: selfRegisterRoles ?? this.selfRegisterRoles,
       useStatboticsEpa: useStatboticsEpa ?? this.useStatboticsEpa,
       useMatch13Exp: useMatch13Exp ?? this.useMatch13Exp,
       useTbaOpr: useTbaOpr ?? this.useTbaOpr,

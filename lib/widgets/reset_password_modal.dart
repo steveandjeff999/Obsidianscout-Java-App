@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
+import '../models/account_rules.dart';
 import '../services/api_service.dart';
 
 class ResetPasswordModal extends StatefulWidget {
@@ -396,7 +397,7 @@ class _ResetPasswordModalState extends State<ResetPasswordModal> {
                             prefixIcon: Icon(Icons.lock_outline, color: secondaryTextColor),
                             enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: borderColor)),
                           ),
-                          validator: (val) => val == null || val.length < 4 ? 'Password must be at least 4 characters' : null,
+                          validator: (val) => AccountRules.validatePassword(val),
                         ),
                         const SizedBox(height: 12.0),
                         TextFormField(
