@@ -169,10 +169,9 @@ class CanvasToolbar extends StatelessWidget {
                       thumbColor: Colors.white,
                     ),
                     child: Slider(
-                      value: strokeWidth,
+                      value: strokeWidth.clamp(2.0, 48.0),
                       min: 2,
-                      max: 32,
-                      divisions: 15,
+                      max: 48,
                       onChanged: onStrokeWidthChanged,
                     ),
                   ),
@@ -187,8 +186,8 @@ class CanvasToolbar extends StatelessWidget {
                     border: Border.all(color: Colors.white24),
                   ),
                   child: Container(
-                    width: (strokeWidth * 0.55).clamp(3.0, 16.0),
-                    height: (strokeWidth * 0.55).clamp(3.0, 16.0),
+                    width: (strokeWidth * 0.45).clamp(3.0, 18.0),
+                    height: (strokeWidth * 0.45).clamp(3.0, 18.0),
                     decoration: BoxDecoration(
                       color: activeTool == 'eraser' ? const Color(0xFFCBD5E1) : _parseColor(currentColor),
                       shape: BoxShape.circle,
