@@ -5,7 +5,7 @@ import 'package:obsidianscout_app/models/team_match_models.dart';
 import 'package:obsidianscout_app/models/validation_models.dart';
 
 void main() {
-  group('Match 13 EXP Support Tests', () {
+  group('Match 13 xP Support Tests', () {
     test('AppSettingsModel parses and serializes useMatch13Exp and match13BaseUrl', () {
       final json = {
         'useStatboticsEpa': true,

@@ -553,7 +553,7 @@ class _SharedViewScreenState extends State<SharedViewScreen> {
                     const DropdownMenuItem(value: 'all', child: Text('All Sources')),
                     const DropdownMenuItem(value: 'scouted', child: Text('Scouted Data')),
                     if (effectiveUseEpa) const DropdownMenuItem(value: 'epa', child: Text('Statbotics EPA')),
-                    if (effectiveUseExp) const DropdownMenuItem(value: 'exp', child: Text('Match 13 EXP')),
+                    if (effectiveUseExp) const DropdownMenuItem(value: 'exp', child: Text('Match 13 xP')),
                     if (effectiveUseOpr) DropdownMenuItem(value: 'opr', child: Text(isFtc ? 'FTC Scout OPR' : 'TBA OPR')),
                   ],
                   onChanged: (v) => setState(() => _datasource = v ?? 'scouted'),

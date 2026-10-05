@@ -3286,8 +3286,8 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                   onChanged: (val) => setState(() => _useStatboticsEpa = val ?? false),
                 ),
                 CheckboxListTile(
-                  title: Text('Use Match 13 EXP', style: TextStyle(color: primaryTextColor, fontSize: 13)),
-                  subtitle: Text('Pull expected points (EXP/XP) metrics for FRC teams from Match 13', style: TextStyle(color: secondaryTextColor, fontSize: 11)),
+                  title: Text('Use Match 13 xP', style: TextStyle(color: primaryTextColor, fontSize: 13)),
+                  subtitle: Text('Pull expected points (xP) metrics for FRC teams from Match 13', style: TextStyle(color: secondaryTextColor, fontSize: 11)),
                   value: _useMatch13Exp,
                   activeColor: ObsidianUITheme.primaryAccent,
                   contentPadding: EdgeInsets.zero,

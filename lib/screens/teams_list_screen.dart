@@ -216,7 +216,7 @@ class _TeamsListScreenState extends State<TeamsListScreen> {
                         ('number', Icons.tag_rounded, '# Number'),
                         ('name', Icons.sort_by_alpha_rounded, 'Name'),
                         if (_effectiveUseEpa) ('epa', Icons.electric_bolt_rounded, 'EPA'),
-                        if (_effectiveUseExp) ('exp', Icons.bolt_rounded, 'EXP'),
+                        if (_effectiveUseExp) ('exp', Icons.bolt_rounded, 'xP'),
                         if (_effectiveUseOpr) ('opr', Icons.leaderboard_rounded, 'OPR'),
                       ])
                         Padding(
@@ -377,7 +377,7 @@ class _TeamsListScreenState extends State<TeamsListScreen> {
                       if (team.epa != null && _effectiveUseEpa)
                         _statBadge(context, 'EPA', team.epa!.toStringAsFixed(1), Colors.amber),
                       if (team.exp != null && _effectiveUseExp)
-                        _statBadge(context, 'EXP', team.exp!.toStringAsFixed(1), Colors.purpleAccent),
+                        _statBadge(context, 'xP', team.exp!.toStringAsFixed(1), Colors.purpleAccent),
                       if (team.opr != null && _effectiveUseOpr)
                         _statBadge(context, 'OPR', team.opr!.toStringAsFixed(1), ObsidianUITheme.primaryAccent),
                       if (team.averagePoints != null)

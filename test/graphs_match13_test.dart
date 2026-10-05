@@ -4,7 +4,7 @@ import 'package:obsidianscout_app/models/graph_models.dart';
 import 'package:obsidianscout_app/models/team_match_models.dart';
 
 void main() {
-  group('Match 13 EXP Models & Helpers Tests', () {
+  group('Match 13 xP Models & Helpers Tests', () {
     test('StatsHistoryModel serialization and deserialization', () {
       final json = {
         'oprs': {'118': 42.5},

@@ -461,7 +461,7 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
                   const SizedBox(width: 8),
                 ],
                 if (_effectiveUseExp) ...[
-                  Expanded(child: _statCard(context.tr('team_details.exp', 'EXP'), widget.team.exp?.toStringAsFixed(1) ?? '--', Colors.purpleAccent, Icons.bolt_rounded)),
+                  Expanded(child: _statCard(context.tr('team_details.exp', 'xP'), widget.team.exp?.toStringAsFixed(1) ?? '--', Colors.purpleAccent, Icons.bolt_rounded)),
                   const SizedBox(width: 8),
                 ],
                 if (_effectiveUseOpr) ...[

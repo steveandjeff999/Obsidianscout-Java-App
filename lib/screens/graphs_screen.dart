@@ -800,7 +800,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
     final isFtc = _settings?.program == 'FTC';
     switch (ds) {
       case 'epa': return 'Statbotics EPA';
-      case 'exp': return 'Match 13 EXP';
+      case 'exp': return 'Match 13 xP';
       case 'opr': return isFtc ? 'FTC Scout OPR' : 'TBA OPR';
       case 'all': return 'All Sources';
       default: return 'Scouted Data';
@@ -1063,7 +1063,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
                         if (effectiveUseEpa)
                           const DropdownMenuItem(value: 'epa', child: Text('Statbotics EPA', overflow: TextOverflow.ellipsis)),
                         if (effectiveUseExp)
-                          const DropdownMenuItem(value: 'exp', child: Text('Match 13 EXP', overflow: TextOverflow.ellipsis)),
+                          const DropdownMenuItem(value: 'exp', child: Text('Match 13 xP', overflow: TextOverflow.ellipsis)),
                         if (effectiveUseOpr)
                           DropdownMenuItem(value: 'opr', child: Text(isFtc ? 'FTC Scout OPR' : 'TBA OPR', overflow: TextOverflow.ellipsis)),
                       ];
@@ -1568,7 +1568,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
             ));
           }
 
-          // 2. Match 13 EXP series
+          // 2. Match 13 xP series
           if (effectiveUseExp && rawMatch13History.isNotEmpty) {
             final expMatches = <({String label, double value, int sortWeight})>[];
             for (final matchObj in rawMatch13History) {
@@ -1586,7 +1586,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
 
             if (expMatches.isNotEmpty) {
               seriesList.add(GraphSeries(
-                name: 'Team $teamNum (Match 13 EXP)',
+                name: 'Team $teamNum (Match 13 xP)',
                 x: expMatches.map((m) => m.label).toList(),
                 y: expMatches.map((m) => m.value).toList(),
               ));
@@ -1653,7 +1653,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
           if (effectiveUseEpa)
             GraphSeries(name: 'Statbotics EPA', x: labels, y: data.map((d) => d.epa).toList()),
           if (effectiveUseExp)
-            GraphSeries(name: 'Match 13 EXP', x: labels, y: data.map((d) => d.exp).toList()),
+            GraphSeries(name: 'Match 13 xP', x: labels, y: data.map((d) => d.exp).toList()),
           if (effectiveUseOpr)
             GraphSeries(name: isFtc ? 'FTC Scout OPR' : 'TBA OPR', x: labels, y: data.map((d) => d.opr).toList()),
         ];
@@ -1682,7 +1682,7 @@ class _GraphsScreenState extends State<GraphsScreen> {
         seriesList.add(GraphSeries(name: 'Statbotics EPA', x: labels, y: data.map((d) => d.epa).toList()));
       }
       if ((_datasource == 'exp' || _datasource == 'all') && effectiveUseExp) {
-        seriesList.add(GraphSeries(name: 'Match 13 EXP', x: labels, y: data.map((d) => d.exp).toList()));
+        seriesList.add(GraphSeries(name: 'Match 13 xP', x: labels, y: data.map((d) => d.exp).toList()));
       }
       if ((_datasource == 'opr' || _datasource == 'all') && effectiveUseOpr) {
         seriesList.add(GraphSeries(name: isFtc ? 'FTC Scout OPR' : 'TBA OPR', x: labels, y: data.map((d) => d.opr).toList()));
