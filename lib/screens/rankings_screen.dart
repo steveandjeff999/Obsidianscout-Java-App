@@ -310,7 +310,7 @@ class _RankingsScreenState extends State<RankingsScreen> {
                                             if (_effectiveUseExp)
                                               DropdownMenuItem(
                                                 value: 'exp',
-                                                child: Text(context.tr('rankings.metric.exp', 'Match 13 EXP')),
+                                                child: Text(context.tr('rankings.metric.exp', 'Match 13 xP')),
                                               ),
                                             if (((_effectiveUseEpa ? 1 : 0) + (_effectiveUseOpr ? 1 : 0) + (_effectiveUseExp ? 1 : 0)) >= 1)
                                               DropdownMenuItem(
@@ -569,7 +569,7 @@ class _RankingsScreenState extends State<RankingsScreen> {
                   child: Row(
                     children: [
                       Text(
-                        'EXP',
+                        'xP',
                         style: TextStyle(
                           color: _activeSortMetric == 'exp' ? ObsidianUITheme.primaryAccent : primaryTextColor,
                           fontWeight: _activeSortMetric == 'exp' ? FontWeight.bold : FontWeight.w600,
@@ -711,7 +711,7 @@ class _RankingsScreenState extends State<RankingsScreen> {
                         if (showExp && t.exp != null)
                           Padding(
                             padding: const EdgeInsets.only(left: 6),
-                            child: Text('EXP: ${t.exp!.toStringAsFixed(1)}', style: TextStyle(fontSize: 11, color: secondaryTextColor)),
+                            child: Text('xP: ${t.exp!.toStringAsFixed(1)}', style: TextStyle(fontSize: 11, color: secondaryTextColor)),
                           ),
                       ],
                     ),

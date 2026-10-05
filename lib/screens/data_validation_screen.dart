@@ -1262,14 +1262,14 @@ class _DataValidationScreenState extends State<DataValidationScreen> {
                 ),
               ),
 
-              // Match 13 EXP
+              // Match 13 xP
               if (useExp)
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'MATCH 13 EXP',
+                        'MATCH 13 xP',
                         style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700, color: secondaryTextColor),
                       ),
                       const SizedBox(height: 2.0),

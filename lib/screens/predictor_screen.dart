@@ -369,7 +369,7 @@ class _PredictorScreenState extends State<PredictorScreen> {
                                   if (effectiveExp)
                                     DropdownMenuItem(
                                       value: 'exp',
-                                      child: Text(context.tr('predictor.match13_exp', 'Match 13 EXP')),
+                                      child: Text(context.tr('predictor.match13_exp', 'Match 13 xP')),
                                     ),
                                   if (effectiveEpa)
                                     DropdownMenuItem(
@@ -595,10 +595,10 @@ class _PredictorScreenState extends State<PredictorScreen> {
 
             if (effectiveExp && (_dataSource == 'all' || _dataSource == 'exp')) ...[
               _buildComparisonBar(
-                title: context.tr('predictor.match13_exp', 'Match 13 EXP'),
+                title: context.tr('predictor.match13_exp', 'Match 13 xP'),
                 redVal: match13Pred?.redScore ?? redExp,
                 blueVal: match13Pred?.blueScore ?? blueExp,
-                unit: 'EXP',
+                unit: 'xP',
                 isDark: isDark,
               ),
               const SizedBox(height: 14.0),
@@ -785,7 +785,7 @@ class _PredictorScreenState extends State<PredictorScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      context.tr('predictor.match13_exp', 'Match 13 EXP Prediction'),
+                      context.tr('predictor.match13_exp', 'Match 13 xP Prediction'),
                       style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.w600, color: ObsidianUITheme.getSecondaryTextColor(context)),
                     ),
                     const SizedBox(height: 2.0),

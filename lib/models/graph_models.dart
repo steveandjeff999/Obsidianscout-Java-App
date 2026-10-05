@@ -232,7 +232,7 @@ class StatsHistoryModel {
   }
 }
 
-/// Helper to extract Match 13 EXP team object from a Match 13 match object
+/// Helper to extract Match 13 xP team object from a Match 13 match object
 dynamic extractTeamExpData(dynamic matchObj, int teamNumber) {
   if (matchObj is! Map) return null;
   final teams = matchObj['teams'];

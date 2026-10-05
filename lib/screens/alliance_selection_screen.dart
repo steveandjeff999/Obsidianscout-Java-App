@@ -509,7 +509,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                                     style: TextStyle(fontWeight: FontWeight.bold, color: ObsidianUITheme.getPrimaryTextColor(context)),
                                   ),
                                   subtitle: Text(
-                                    'Avg: ${team.averagePoints?.toStringAsFixed(1) ?? '-'}${_effectiveUseExp ? ' | EXP: ${team.exp?.toStringAsFixed(1) ?? '-'}' : ''}${_effectiveUseEpa ? ' | EPA: ${team.epa?.toStringAsFixed(1) ?? '-'}' : ''}${_effectiveUseOpr ? ' | OPR: ${team.opr?.toStringAsFixed(1) ?? '-'}' : ''}',
+                                    'Avg: ${team.averagePoints?.toStringAsFixed(1) ?? '-'}${_effectiveUseExp ? ' | xP: ${team.exp?.toStringAsFixed(1) ?? '-'}' : ''}${_effectiveUseEpa ? ' | EPA: ${team.epa?.toStringAsFixed(1) ?? '-'}' : ''}${_effectiveUseOpr ? ' | OPR: ${team.opr?.toStringAsFixed(1) ?? '-'}' : ''}',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(fontSize: 11, color: ObsidianUITheme.getTertiaryTextColor(context)),
@@ -579,7 +579,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                     _buildMetricCard('Scouted Avg', team.averagePoints?.toStringAsFixed(1) ?? '-', Colors.amberAccent),
                     if (_effectiveUseExp) ...[
                       const SizedBox(width: 8),
-                      _buildMetricCard('Match 13 EXP', team.exp?.toStringAsFixed(1) ?? '-', const Color(0xFF10B981)),
+                      _buildMetricCard('Match 13 xP', team.exp?.toStringAsFixed(1) ?? '-', const Color(0xFF10B981)),
                     ],
                     if (_effectiveUseEpa) ...[
                       const SizedBox(width: 8),
@@ -1082,7 +1082,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                         DropdownMenuItem(value: 'weighted', child: Text(context.tr('alliance-selection.weighted'))),
                         DropdownMenuItem(value: 'scouted', child: Text(context.tr('alliance-selection.scouted_avg'))),
                         if (_effectiveUseExp)
-                          DropdownMenuItem(value: 'exp', child: Text(context.tr('alliance-selection.match13_exp', 'Match 13 EXP'))),
+                          DropdownMenuItem(value: 'exp', child: Text(context.tr('alliance-selection.match13_exp', 'Match 13 xP'))),
                         if (_effectiveUseEpa)
                           DropdownMenuItem(value: 'epa', child: Text(context.tr('alliance-selection.epa'))),
                         if (_effectiveUseOpr)
@@ -1169,7 +1169,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
                               style: TextStyle(fontWeight: FontWeight.bold, color: primaryTextColor, fontSize: 12),
                             ),
                             subtitle: Text(
-                              'Avg: ${team.averagePoints?.toStringAsFixed(1) ?? '-'}${_effectiveUseExp ? ' | EXP: ${team.exp?.toStringAsFixed(1) ?? '-'}' : ''}${_effectiveUseEpa ? ' | EPA: ${team.epa?.toStringAsFixed(1) ?? '-'}' : ''}${_effectiveUseOpr ? ' | OPR: ${team.opr?.toStringAsFixed(1) ?? '-'}' : ''}',
+                              'Avg: ${team.averagePoints?.toStringAsFixed(1) ?? '-'}${_effectiveUseExp ? ' | xP: ${team.exp?.toStringAsFixed(1) ?? '-'}' : ''}${_effectiveUseEpa ? ' | EPA: ${team.epa?.toStringAsFixed(1) ?? '-'}' : ''}${_effectiveUseOpr ? ' | OPR: ${team.opr?.toStringAsFixed(1) ?? '-'}' : ''}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(fontSize: 10, color: secondaryTextColor),

@@ -147,8 +147,8 @@ class _TeamStrategyCardState extends State<TeamStrategyCard> with SingleTickerPr
       return GraphDataSeries(
         labels: teamItems.map((e) => e['label'] as String).toList(),
         values: teamItems.map((e) => (e['val'] as num).toDouble()).toList(),
-        title: 'Match 13 EXP',
-        unit: 'EXP',
+        title: 'Match 13 xP',
+        unit: 'xP',
         color: const Color(0xFFF59E0B),
       );
     }
@@ -363,7 +363,7 @@ class _TeamStrategyCardState extends State<TeamStrategyCard> with SingleTickerPr
               if (!widget.isFtc && widget.useStatboticsEpa)
                 _buildStatPill('Statbotics EPA', epaStr, ObsidianUITheme.primaryAccent, isDark),
               if (!widget.isFtc && widget.useMatch13Exp)
-                _buildStatPill('Match 13 EXP', expStr, const Color(0xFFF59E0B), isDark),
+                _buildStatPill('Match 13 xP', expStr, const Color(0xFFF59E0B), isDark),
               if (widget.useTbaOpr)
                 _buildStatPill(widget.isFtc ? 'FTC OPR' : 'TBA OPR', oprStr, const Color(0xFF8B5CF6), isDark),
               _buildStatPill('Matches', '${teamMatches.length}', primaryTextColor, isDark),

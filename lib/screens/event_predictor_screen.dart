@@ -406,7 +406,7 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> {
                                   if (effectiveExp)
                                     DropdownMenuItem(
                                       value: 'exp',
-                                      child: Text(context.tr('predictor.match13_exp', 'Match 13 EXP')),
+                                      child: Text(context.tr('predictor.match13_exp', 'Match 13 xP')),
                                     ),
                                   if (effectiveEpa)
                                     DropdownMenuItem(
