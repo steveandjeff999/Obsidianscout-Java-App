@@ -57,6 +57,7 @@ dependencies:
   gamepads_platform_interface: ^0.1.4
   gamepads_android: ^0.1.10
   win32_gamepad: ^1.0.11
+  window_manager: ^0.5.2
 
 dev_dependencies:
   flutter_test:

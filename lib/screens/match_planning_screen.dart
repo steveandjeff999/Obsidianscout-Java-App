@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'dart:ui' as ui;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/config_models.dart';
@@ -39,6 +42,7 @@ class MatchPlanningScreen extends StatefulWidget {
 
 class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
   final GlobalKey _repaintBoundaryKey = GlobalKey();
+  final GlobalKey _fullscreenRepaintBoundaryKey = GlobalKey();
 
   bool _isLoading = true;
   String _currentEventKey = '';
@@ -59,9 +63,88 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
   double _eraserStrokeWidth = 22.0;
   String _saveStatus = 'saved'; // 'saving' | 'saved' | 'error' | 'idle'
   bool _isFullscreen = false;
+  VoidCallback? _fullscreenRouteRebuild;
   final ScrollController _fullscreenScrollController = ScrollController();
 
   double get _currentStrokeWidth => _activeTool == 'eraser' ? _eraserStrokeWidth : _penStrokeWidth;
+
+  @override
+  void setState(VoidCallback fn) {
+    super.setState(fn);
+    _fullscreenRouteRebuild?.call();
+  }
+
+  Future<void> _enterFullscreen() async {
+    if (_isFullscreen) return;
+    setState(() {
+      _isFullscreen = true;
+    });
+
+    if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+      try {
+        await windowManager.setFullScreen(true);
+      } catch (e) {
+        debugPrint('[window_manager] Enter fullscreen error: $e');
+      }
+    } else {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    }
+
+    if (!mounted) return;
+
+    Navigator.of(context, rootNavigator: true)
+        .push(
+      PageRouteBuilder(
+        opaque: true,
+        pageBuilder: (fullscreenContext, animation, secondaryAnimation) {
+          return StatefulBuilder(
+            builder: (ctx, setRouteState) {
+              _fullscreenRouteRebuild = () {
+                if (mounted) {
+                  setRouteState(() {});
+                }
+              };
+              return _buildFullscreenWorkspace(fullscreenContext);
+            },
+          );
+        },
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+      ),
+    )
+        .then((_) {
+      _exitFullscreen(popRoute: false);
+    });
+  }
+
+  Future<void> _exitFullscreen({bool popRoute = true}) async {
+    _fullscreenRouteRebuild = null;
+
+    if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+      try {
+        await windowManager.setFullScreen(false);
+      } catch (e) {
+        debugPrint('[window_manager] Exit fullscreen error: $e');
+      }
+    } else {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    }
+
+    if (_isFullscreen) {
+      if (mounted) {
+        setState(() {
+          _isFullscreen = false;
+        });
+      } else {
+        _isFullscreen = false;
+      }
+    }
+    if (!mounted) return;
+    if (popRoute && Navigator.of(context, rootNavigator: true).canPop()) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
+  }
 
   void _handleStrokeWidthChanged(double val) {
     setState(() {
@@ -121,6 +204,15 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
 
   @override
   void dispose() {
+    if (_isFullscreen) {
+      if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+        try {
+          windowManager.setFullScreen(false);
+        } catch (_) {}
+      } else {
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      }
+    }
     _autoSaveTimer?.cancel();
     _stopPolling();
     _onlineSub?.cancel();
@@ -598,7 +690,8 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
 
   Future<void> _exportPlanImage() async {
     try {
-      final boundary = _repaintBoundaryKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      final targetKey = _isFullscreen ? _fullscreenRepaintBoundaryKey : _repaintBoundaryKey;
+      final boundary = targetKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) return;
 
       final image = await boundary.toImage(pixelRatio: 2.5);
@@ -678,10 +771,6 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
           ],
         ),
       );
-    }
-
-    if (_isFullscreen) {
-      return _buildFullscreenWorkspace(context);
     }
 
     final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
@@ -891,7 +980,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                         onUndo: _handleUndo,
                         onRedo: _handleRedo,
                         onClear: _handleClearCanvas,
-                        onToggleFullscreen: () => setState(() => _isFullscreen = !_isFullscreen),
+                        onToggleFullscreen: _enterFullscreen,
                         onExport: _exportPlanImage,
                       ),
                     ),
@@ -1293,13 +1382,20 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
         ? currentSelectedKey
         : (matchItems.isNotEmpty ? matchItems.first.value : null);
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) {
-          setState(() => _isFullscreen = false);
-        }
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.escape): _exitFullscreen,
+        const SingleActivator(LogicalKeyboardKey.f11): _exitFullscreen,
       },
+      child: Focus(
+        autofocus: true,
+        child: PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) {
+            if (!didPop) {
+              _exitFullscreen();
+            }
+          },
       child: Scaffold(
         backgroundColor: const Color(0xFF090D16),
         body: SafeArea(
@@ -1324,37 +1420,37 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                               IconButton(
                                 icon: const Icon(Icons.arrow_back_rounded, color: Colors.white70),
                                 tooltip: 'Exit Fullscreen',
-                                onPressed: () => setState(() => _isFullscreen = false),
+                                onPressed: _exitFullscreen,
                               ),
                               const SizedBox(width: 4),
                               if (matchItems.isNotEmpty)
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.08),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
-                                  ),
-                                  child: DropdownButtonHideUnderline(
-                                    child: DropdownButton<String>(
-                                      value: safeMatchValue,
-                                      dropdownColor: const Color(0xFF1E293B),
-                                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: primaryTextColor),
-                                      icon: const Icon(Icons.arrow_drop_down, color: Colors.white70, size: 20),
-                                      isDense: true,
-                                      items: matchItems,
-                                      onChanged: (val) {
-                                        if (val != null && _matches.isNotEmpty) {
-                                          final match = _matches.firstWhere(
-                                            (m) => m.matchKey == val,
-                                            orElse: () => _matches.first,
-                                          );
-                                          _selectMatch(match);
-                                        }
-                                      },
-                                    ),
-                                  ),
-                                )
+                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                   decoration: BoxDecoration(
+                                     color: Colors.white.withValues(alpha: 0.08),
+                                     borderRadius: BorderRadius.circular(8),
+                                     border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                                   ),
+                                   child: DropdownButtonHideUnderline(
+                                     child: DropdownButton<String>(
+                                       value: safeMatchValue,
+                                       dropdownColor: const Color(0xFF1E293B),
+                                       style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: primaryTextColor),
+                                       icon: const Icon(Icons.arrow_drop_down, color: Colors.white70, size: 20),
+                                       isDense: true,
+                                       items: matchItems,
+                                       onChanged: (val) {
+                                         if (val != null && _matches.isNotEmpty) {
+                                           final match = _matches.firstWhere(
+                                             (m) => m.matchKey == val,
+                                             orElse: () => _matches.first,
+                                           );
+                                           _selectMatch(match);
+                                         }
+                                       },
+                                     ),
+                                   ),
+                                 )
                               else
                                 Text(
                                   matchLabel,
@@ -1381,7 +1477,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                                     onUndo: _handleUndo,
                                     onRedo: _handleRedo,
                                     onClear: _handleClearCanvas,
-                                    onToggleFullscreen: () => setState(() => _isFullscreen = false),
+                                    onToggleFullscreen: _exitFullscreen,
                                     onExport: _exportPlanImage,
                                   ),
                                 ),
@@ -1400,7 +1496,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                               ),
                               const SizedBox(width: 4),
                               FilledButton.tonalIcon(
-                                onPressed: () => setState(() => _isFullscreen = false),
+                                onPressed: _exitFullscreen,
                                 icon: const Icon(Icons.fullscreen_exit_rounded, size: 18),
                                 label: const Text('Exit', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                                 style: FilledButton.styleFrom(
@@ -1419,7 +1515,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                                   IconButton(
                                     icon: const Icon(Icons.arrow_back_rounded, color: Colors.white70),
                                     tooltip: 'Exit Fullscreen',
-                                    onPressed: () => setState(() => _isFullscreen = false),
+                                    onPressed: _exitFullscreen,
                                   ),
                                   const SizedBox(width: 4),
                                   Expanded(
@@ -1467,7 +1563,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                                   IconButton(
                                     icon: const Icon(Icons.fullscreen_exit_rounded, color: Colors.white),
                                     tooltip: 'Exit Fullscreen',
-                                    onPressed: () => setState(() => _isFullscreen = false),
+                                    onPressed: _exitFullscreen,
                                   ),
                                 ],
                               ),
@@ -1487,7 +1583,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                                   onUndo: _handleUndo,
                                   onRedo: _handleRedo,
                                   onClear: _handleClearCanvas,
-                                  onToggleFullscreen: () => setState(() => _isFullscreen = false),
+                                  onToggleFullscreen: _exitFullscreen,
                                   onExport: _exportPlanImage,
                                 ),
                               ),
@@ -1529,7 +1625,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                                         Expanded(
                                           child: Center(
                                             child: StrategyFieldCanvas(
-                                              repaintBoundaryKey: _repaintBoundaryKey,
+                                              repaintBoundaryKey: _fullscreenRepaintBoundaryKey,
                                               plan: _plan,
                                               activeTool: _activeTool,
                                               currentColor: _currentColor,
@@ -1560,7 +1656,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                                     return Column(
                                       children: [
                                         StrategyFieldCanvas(
-                                          repaintBoundaryKey: _repaintBoundaryKey,
+                                          repaintBoundaryKey: _fullscreenRepaintBoundaryKey,
                                           plan: _plan,
                                           activeTool: _activeTool,
                                           currentColor: _currentColor,
@@ -1693,7 +1789,9 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
           ),
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 }
 
