@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
@@ -6,6 +8,8 @@ import '../models/api_response.dart';
 import '../models/account_rules.dart';
 import '../models/config_models.dart';
 import '../services/api_service.dart';
+import '../services/config_collab/config_collab_session.dart';
+import '../services/config_collab/config_sync_engine.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_feedback.dart';
 import '../widgets/obsidian_glass_card.dart';
@@ -40,6 +44,18 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
   final TextEditingController _rawJsonController = TextEditingController();
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _versionController = TextEditingController();
+
+  // Live editing: the form syncs with everyone else editing it (website or app).
+  ConfigCollabSession? _collab;
+  CollabStatus _collabStatus = CollabStatus.offline;
+  List<CollabEditor> _collabEditors = const [];
+  List<String> _viewKeys = const []; // live-editing key of each entry in _currentConfig.fields
+  KeyedDoc? _rawBase; // the view the raw JSON text was last synced from
+  bool _rawStale = false; // others changed the form while the raw JSON editor had focus
+  String? _focusedCardKey;
+  Timer? _rawCommitTimer;
+  StreamSubscription<bool>? _onlineSub;
+  final FocusNode _rawFocus = FocusNode();
 
   // API Settings & Permissions State
   AppSettingsModel _currentSettings = AppSettingsModel();
@@ -128,6 +144,12 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     }
     _loadCurrentTabData();
     widget.apiService.settingsNotifier.addListener(_onSettingsChanged);
+    _onlineSub = widget.apiService.onOnlineStatusChanged.listen((online) {
+      if (online) _collab?.reconnectNow();
+    });
+    _rawFocus.addListener(() {
+      if (!_rawFocus.hasFocus) _onRawEditorBlur();
+    });
   }
 
   /// Called whenever [ApiService.settingsNotifier] fires — only when the
@@ -169,12 +191,19 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
   void didUpdateWidget(covariant ConfigEditorScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isVisible && !oldWidget.isVisible) {
-      _loadCurrentTabData();
+      // A form still open for live editing is already current (it may also hold unsaved offline edits).
+      if (_activeMainTab != 'config' || _collab == null) _loadCurrentTabData();
+    } else if (!widget.isVisible && oldWidget.isVisible && _collab?.hasUnsavedChanges != true) {
+      _stopLiveEditing();
     }
   }
 
   @override
   void dispose() {
+    _collab?.close();
+    _onlineSub?.cancel();
+    _rawCommitTimer?.cancel();
+    _rawFocus.dispose();
     widget.apiService.settingsNotifier.removeListener(_onSettingsChanged);
     _rawJsonController.dispose();
     _titleController.dispose();
@@ -237,6 +266,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
   }
 
   Future<void> _loadConfigForKind(String kind) async {
+    _stopLiveEditing();
     setState(() {
       _isLoading = true;
       _rawJsonError = null;
@@ -275,7 +305,155 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
         _rawJsonController.text = const JsonEncoder.withIndent('  ').convert(normalizedConfig.toJson());
         _isLoading = false;
       });
+      if (kind == _activeKind && _activeMainTab == 'config') _startLiveEditing(kind, normalizedConfig.toJson());
       _loadPresets();
+    }
+  }
+
+  // ── Live editing ───────────────────────────────────────────────────────────
+
+  static Map<String, dynamic>? _projectField(Map<String, dynamic> field) {
+    try {
+      return ScoutingFieldModel.fromJson(field).toJson();
+    } catch (_) {
+      return field;
+    }
+  }
+
+  static Map<String, dynamic> _projectRest(Map<String, dynamic> doc) {
+    final top = ScoutingConfigModel.fromJson({...doc, 'fields': const []}).toJson();
+    top.remove('fields');
+    return top;
+  }
+
+  void _startLiveEditing(String kind, Map<String, dynamic> loaded) {
+    _collab?.close();
+    final server = Uri.parse(widget.apiService.serverUrl);
+    final url = Uri(
+      scheme: server.scheme == 'https' ? 'wss' : 'ws',
+      host: server.host,
+      port: server.hasPort ? server.port : null,
+      path: '/api/config-collab/team/$kind',
+    );
+    late final ConfigCollabSession session;
+    session = ConfigCollabSession(
+      url: widget.apiService.isLoggedIn ? url : null,
+      headers: () => widget.apiService.webSocketHeaders,
+      projectField: _projectField,
+      projectRest: _projectRest,
+      onView: (view, source, user) {
+        if (identical(_collab, session) && mounted) _applyView(view);
+      },
+      onStatus: (status) {
+        if (identical(_collab, session) && mounted) setState(() => _collabStatus = status);
+      },
+      onPresence: (editors) {
+        if (identical(_collab, session) && mounted) setState(() => _collabEditors = editors);
+      },
+      onNotice: (level, message) {
+        if (!identical(_collab, session) || !mounted || message.isEmpty) return;
+        if (level == 'error') {
+          ObsidianFeedback.showError(context, title: 'Live Editing', message: message);
+        } else if (level == 'warning') {
+          ObsidianFeedback.showWarning(context, title: 'Live Editing', message: message);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), duration: const Duration(seconds: 2)));
+        }
+      },
+    );
+    _collab = session;
+    _collabEditors = const [];
+    _applyView(session.load(loaded));
+    session.connect();
+  }
+
+  void _stopLiveEditing() {
+    _collab?.close();
+    _collab = null;
+    _collabStatus = CollabStatus.offline;
+    _collabEditors = const [];
+    _focusedCardKey = null;
+  }
+
+  /// Shows the live form without disturbing what the user is typing.
+  void _applyView(KeyedDoc view) {
+    final model = ScoutingConfigModel.fromJson(view.doc);
+    final normalized = model.copyWith(
+      fields: model.fields.map((f) => f.phase?.toLowerCase() == 'general' ? f.copyWith(phase: 'teleop') : f).toList(),
+    );
+    setState(() {
+      _currentConfig = normalized;
+      _viewKeys = view.keys;
+      if (_titleController.text.trim() != normalized.title) _setControllerText(_titleController, normalized.title);
+      if (int.tryParse(_versionController.text.trim()) != normalized.version) {
+        _setControllerText(_versionController, normalized.version.toString());
+      }
+      if (_isRawMode && _rawFocus.hasFocus) {
+        _rawStale = true;
+      } else {
+        _rawJsonController.text = const JsonEncoder.withIndent('  ').convert(view.doc);
+        _rawBase = view;
+        _rawStale = false;
+      }
+    });
+  }
+
+  static void _setControllerText(TextEditingController controller, String text) {
+    final sel = controller.selection;
+    controller.value = TextEditingValue(
+      text: text,
+      selection: sel.isValid
+          ? TextSelection(baseOffset: min(sel.baseOffset, text.length), extentOffset: min(sel.extentOffset, text.length))
+          : TextSelection.collapsed(offset: text.length),
+    );
+  }
+
+  /// Shares the latest visual edit with everyone else editing this form.
+  void _commitLive(Map<String, dynamic> doc) {
+    final collab = _collab;
+    if (collab == null) return;
+    _viewKeys = collab.commit(doc).keys;
+    _rawBase = collab.lastView;
+  }
+
+  /// Shares edits typed into the raw JSON editor, merged with anything others changed meanwhile.
+  bool _commitRawLive() {
+    final collab = _collab;
+    if (collab == null) return false;
+    try {
+      final decoded = jsonDecode(_rawJsonController.text);
+      if (decoded is! Map<String, dynamic>) return false;
+      _rawBase = collab.commit(decoded, _rawBase ?? collab.lastView);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  void _onRawEditorBlur() {
+    _rawCommitTimer?.cancel();
+    final collab = _collab;
+    if (collab == null || !mounted) return;
+    _commitRawLive();
+    if (_rawStale) {
+      setState(() {
+        _rawJsonController.text = const JsonEncoder.withIndent('  ').convert(collab.lastView.doc);
+        _rawBase = collab.lastView;
+        _rawStale = false;
+      });
+    }
+  }
+
+  void _onCardFocusChange(String key, bool hasFocus) {
+    if (hasFocus) {
+      _focusedCardKey = key;
+      _collab?.setFocus(key);
+    } else if (_focusedCardKey == key) {
+      _focusedCardKey = null;
+      // If focus moved to another card, that card reports in before this runs.
+      scheduleMicrotask(() {
+        if (_focusedCardKey == null) _collab?.setFocus(null);
+      });
     }
   }
 
@@ -296,12 +474,15 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     _currentConfig = updated;
     _rawJsonController.text = const JsonEncoder.withIndent('  ').convert(updated.toJson());
     setState(() => _rawJsonError = null);
+    _commitLive(updated.toJson());
   }
 
   bool _syncRawToVisual() {
     try {
       final text = _rawJsonController.text.trim();
-      final Map<String, dynamic> decoded = jsonDecode(text);
+      final Map<String, dynamic> parsed = jsonDecode(text);
+      // While live, merge the raw text with what others changed meanwhile and show the result.
+      final decoded = _commitRawLive() ? _collab!.lastView.doc : parsed;
       final model = ScoutingConfigModel.fromJson(decoded);
       // Normalize general/empty phases to teleop, preserve all sections
       final normalizedFields = model.fields.map((f) {
@@ -327,6 +508,38 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     }
   }
 
+  Future<ApiResponse<void>> _saveConfigJson(String kind, String rawJson) {
+    if (kind == 'pit') return widget.apiService.savePitConfig(rawJson);
+    if (kind == 'qual') return widget.apiService.saveQualConfig(rawJson);
+    return widget.apiService.saveMatchConfig(rawJson);
+  }
+
+  /// Save while live editing: edits already save automatically, so this records a version (Schema
+  /// History) and runs the existing-data check.
+  Future<void> _saveLiveVersion(ConfigCollabSession collab) async {
+    setState(() => _isSaving = true);
+    try {
+      final result = await collab.saveVersion();
+      if (!mounted) return;
+      ObsidianFeedback.showSuccess(
+        context,
+        title: 'Version Saved',
+        message: '${_getKindLabel(_activeKind)} saved. Everyone editing it sees changes as they happen.',
+      );
+      if (result.hasFieldChanges && result.entryCount > 0) {
+        ObsidianFeedback.showWarning(
+          context,
+          title: 'Existing Data',
+          message: '${result.entryCount} saved entries use the old fields (${result.changedFields.join(', ')}). Use Data Migration to update them.',
+        );
+      }
+    } catch (e) {
+      if (mounted) ObsidianFeedback.showError(context, title: 'Save Failed', message: e.toString().replaceFirst('Bad state: ', ''));
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
   Future<void> _handleSave() async {
     if (_isRawMode) {
       if (!_syncRawToVisual()) {
@@ -342,16 +555,31 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       _syncVisualToRaw();
     }
 
+    final collab = _collab;
+    if (collab != null && collab.isLive) {
+      await _saveLiveVersion(collab);
+      return;
+    }
+
     setState(() => _isSaving = true);
+    final kind = _activeKind;
     final rawJson = _rawJsonController.text.trim();
 
     ApiResponse<void> response;
-    if (_activeKind == 'pit') {
-      response = await widget.apiService.savePitConfig(rawJson);
-    } else if (_activeKind == 'qual') {
-      response = await widget.apiService.saveQualConfig(rawJson);
+    if (collab != null && widget.apiService.isOnline) {
+      // Live editing is unavailable: merge with whatever was saved meanwhile, then save as before.
+      response = await collab.saveViaRest<ApiResponse<void>>(
+        () async {
+          final raw = await widget.apiService.fetchRawConfigJson(kind);
+          final decoded = raw == null ? null : jsonDecode(raw);
+          return decoded is Map<String, dynamic> ? decoded : null;
+        },
+        (doc) => _saveConfigJson(kind, jsonEncode(doc)),
+        saved: (r) => r.success,
+      );
     } else {
-      response = await widget.apiService.saveMatchConfig(rawJson);
+      // Offline: the edits stay pending in the live session too and sync once the connection is back.
+      response = await _saveConfigJson(kind, rawJson);
     }
 
     if (mounted) {
@@ -1586,6 +1814,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                   _versionController.text = model.version.toString();
                   _rawJsonController.text = const JsonEncoder.withIndent('  ').convert(model.toJson());
                 });
+                _commitLive(model.toJson());
                 Navigator.of(ctx).pop();
                 ScaffoldMessenger.of(ctx).showSnackBar(
                   SnackBar(content: Text('Config JSON imported successfully!'), backgroundColor: ObsidianUITheme.primaryAccent),
@@ -1676,6 +1905,10 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
 
             // Mode Toggle (Visual Editor vs Raw JSON)
             _buildEditorModeSwitcher(),
+            if (_collab != null) ...[
+              const SizedBox(height: 10),
+              _buildLiveStatusBar(),
+            ],
             const SizedBox(height: 14),
           ],
 
@@ -1710,6 +1943,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       child: GestureDetector(
         onTap: () {
           if (_activeMainTab != tabId) {
+            if (_activeMainTab == 'config') _stopLiveEditing();
             setState(() => _activeMainTab = tabId);
             _loadCurrentTabData();
           }
@@ -2037,7 +2271,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               for (int index = 0; index < fields.length; index++) ...[
-                _buildFieldCard(fields[index], index),
+                _liveCard(index, _buildFieldCard(fields[index], index)),
                 if (index < fields.length - 1) const SizedBox(height: 12),
               ],
             ],
@@ -2086,10 +2320,90 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
         ),
       ),
       for (final f in groupFields) ...[
-        _buildFieldCard(f, fields.indexOf(f)),
+        _liveCard(fields.indexOf(f), _buildFieldCard(f, fields.indexOf(f))),
         const SizedBox(height: 12),
       ],
     ];
+  }
+
+  Widget _buildLiveStatusBar() {
+    final (Color dot, String text) = switch (_collabStatus) {
+      CollabStatus.live => (Colors.greenAccent.shade400, 'Live — changes save automatically'),
+      CollabStatus.readonly => (Colors.greenAccent.shade400, 'Live — view only'),
+      CollabStatus.connecting => (Colors.orangeAccent, 'Connecting to live editing…'),
+      CollabStatus.reconnecting => (Colors.orangeAccent, 'Reconnecting… your changes are kept'),
+      CollabStatus.offline => (ObsidianUITheme.errorRed, 'Offline — your changes are kept; tap Save to save them'),
+    };
+    final mySid = _collab?.sid;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: ObsidianUITheme.getSurfaceColor(context),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
+      ),
+      child: Row(
+        children: [
+          Container(width: 8, height: 8, decoration: BoxDecoration(color: dot, shape: BoxShape.circle)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(text, style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context), fontSize: 12)),
+          ),
+          for (final editor in _collabEditors.take(6))
+            Padding(
+              padding: const EdgeInsets.only(left: 4),
+              child: Tooltip(
+                message: '${editor.username} (Team ${editor.teamNumber})${editor.sid == mySid ? ' — you' : ''}',
+                child: CircleAvatar(
+                  radius: 12,
+                  backgroundColor: ObsidianUITheme.primaryAccent.withValues(alpha: editor.sid == mySid ? 0.45 : 1),
+                  child: Text(
+                    editor.username.length >= 2 ? editor.username.substring(0, 2).toUpperCase() : editor.username.toUpperCase(),
+                    style: const TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Gives a field card a stable identity across live edits (so its inputs follow it when fields move),
+  /// reports which card the user is in, and shows who else is editing it.
+  Widget _liveCard(int index, Widget card) {
+    if (_collab == null || index < 0 || index >= _viewKeys.length) return card;
+    final key = _viewKeys[index];
+    final others = _collabEditors.where((e) => e.focus == key && e.sid != _collab?.sid).toList();
+    return Focus(
+      key: ValueKey('live-card-$key'),
+      canRequestFocus: false,
+      skipTraversal: true,
+      onFocusChange: (hasFocus) => _onCardFocusChange(key, hasFocus),
+      // Same widget structure whether or not someone else is here, so the card's inputs keep their state.
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: others.isEmpty ? Colors.transparent : Colors.orangeAccent.withValues(alpha: 0.8), width: 2),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: others.isEmpty ? EdgeInsets.zero : const EdgeInsets.fromLTRB(10, 6, 10, 0),
+              child: Wrap(
+                spacing: 6,
+                children: [
+                  for (final e in others)
+                    Text('${e.username} is editing', style: const TextStyle(color: Colors.orangeAccent, fontSize: 11, fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
+            card,
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildFieldCard(ScoutingFieldModel field, int index) {
@@ -2196,8 +2510,8 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
           Row(
             children: [
               Expanded(
-                child: TextFormField(
-                  initialValue: field.label,
+                child: _SyncedTextField(
+                  value: field.label,
                   style: TextStyle(color: primaryTextColor, fontSize: 13),
                   decoration: InputDecoration(
                     labelText: isSection ? 'Section Title' : 'Field Label',
@@ -2224,9 +2538,8 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: TextFormField(
-                  key: ValueKey('field_id_${field.id}_$index'),
-                  initialValue: field.id,
+                child: _SyncedTextField(
+                  value: field.id,
                   style: TextStyle(color: primaryTextColor, fontSize: 13),
                   decoration: InputDecoration(
                     labelText: 'Field ID / Slug',
@@ -2253,6 +2566,8 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
             children: [
               Expanded(
                 child: DropdownButtonFormField<String>(
+                  // Keyed by value so a change made by someone else is shown.
+                  key: ValueKey('type-$canonicalType'),
                   isExpanded: true,
                   initialValue: canonicalType,
                   dropdownColor: ObsidianUITheme.getSurfaceColor(context),
@@ -2322,6 +2637,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                 const SizedBox(width: 8),
                 Expanded(
                   child: DropdownButtonFormField<String>(
+                    key: ValueKey('phase-${field.phase}'),
                     isExpanded: true,
                     initialValue: const ['auto', 'teleop', 'endgame', 'postmatch'].contains(field.phase?.toLowerCase() ?? '')
                         ? (field.phase?.toLowerCase() ?? 'teleop')
@@ -2390,8 +2706,9 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                     children: [
                       Text('Min', style: TextStyle(color: secondaryTextColor, fontSize: 11)),
                       const SizedBox(height: 4),
-                      TextFormField(
-                        initialValue: field.min?.toString() ?? '',
+                      _SyncedTextField(
+                        value: field.min?.toString() ?? '',
+                        sameValue: _sameInt,
                         keyboardType: TextInputType.number,
                         style: TextStyle(color: primaryTextColor, fontSize: 12),
                         decoration: InputDecoration(
@@ -2454,10 +2771,10 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                         ),
                       ),
                       const SizedBox(height: 4),
-                      TextFormField(
-                        key: ValueKey('max_${field.id}_${field.max}'),
+                      _SyncedTextField(
                         enabled: field.max != null || canonicalType == 'rating',
-                        initialValue: field.max?.toString() ?? '',
+                        value: field.max?.toString() ?? '',
+                        sameValue: _sameInt,
                         keyboardType: TextInputType.number,
                         style: TextStyle(color: primaryTextColor, fontSize: 12),
                         decoration: InputDecoration(
@@ -2486,8 +2803,9 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                     children: [
                       Text('Step', style: TextStyle(color: secondaryTextColor, fontSize: 11)),
                       const SizedBox(height: 4),
-                      TextFormField(
-                        initialValue: field.step?.toString() ?? '1',
+                      _SyncedTextField(
+                        value: field.step?.toString() ?? '1',
+                        sameValue: _sameInt,
                         keyboardType: TextInputType.number,
                         style: TextStyle(color: primaryTextColor, fontSize: 12),
                         decoration: InputDecoration(
@@ -2554,10 +2872,10 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                           ),
                         ),
                         const SizedBox(height: 4),
-                        TextFormField(
-                          key: ValueKey('doubleStep_${field.id}_${field.doubleStep}'),
+                        _SyncedTextField(
                           enabled: field.doubleStep != null,
-                          initialValue: field.doubleStep?.toString() ?? '',
+                          value: field.doubleStep?.toString() ?? '',
+                          sameValue: _sameInt,
                           keyboardType: TextInputType.number,
                           style: TextStyle(color: primaryTextColor, fontSize: 12),
                           decoration: InputDecoration(
@@ -2585,8 +2903,9 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                         children: [
                           Text('Points per action', style: TextStyle(color: secondaryTextColor, fontSize: 11)),
                           const SizedBox(height: 4),
-                          TextFormField(
-                            initialValue: field.pointsPer?.toString() ?? '',
+                          _SyncedTextField(
+                            value: field.pointsPer?.toString() ?? '',
+                            sameValue: _sameDouble,
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
                             style: TextStyle(color: primaryTextColor, fontSize: 12),
                             decoration: InputDecoration(
@@ -2615,8 +2934,9 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                 children: [
                   Text('Points per action', style: TextStyle(color: secondaryTextColor, fontSize: 11)),
                   const SizedBox(height: 4),
-                  TextFormField(
-                    initialValue: field.pointsPer?.toString() ?? '',
+                  _SyncedTextField(
+                    value: field.pointsPer?.toString() ?? '',
+                    sameValue: _sameDouble,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     style: TextStyle(color: primaryTextColor, fontSize: 12),
                     decoration: InputDecoration(
@@ -2642,8 +2962,9 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
               children: [
                 Text('Points per action', style: TextStyle(color: secondaryTextColor, fontSize: 11)),
                 const SizedBox(height: 4),
-                TextFormField(
-                  initialValue: field.pointsPer?.toString() ?? '',
+                _SyncedTextField(
+                  value: field.pointsPer?.toString() ?? '',
+                  sameValue: _sameDouble,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   style: TextStyle(color: primaryTextColor, fontSize: 12),
                   decoration: InputDecoration(
@@ -2706,8 +3027,8 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                   children: [
                     Expanded(
                       flex: 2,
-                      child: TextFormField(
-                        initialValue: opt.label,
+                      child: _SyncedTextField(
+                        value: opt.label,
                         style: TextStyle(color: primaryTextColor, fontSize: 12),
                         decoration: InputDecoration(
                           labelText: 'Label',
@@ -2728,9 +3049,8 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                     const SizedBox(width: 6),
                     Expanded(
                       flex: 2,
-                      child: TextFormField(
-                        key: ValueKey('opt_val_${opt.value}_$optIdx'),
-                        initialValue: opt.value,
+                      child: _SyncedTextField(
+                        value: opt.value,
                         style: TextStyle(color: primaryTextColor, fontSize: 12),
                         decoration: InputDecoration(
                           labelText: 'Value',
@@ -2751,8 +3071,9 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                       const SizedBox(width: 6),
                       Expanded(
                         flex: 1,
-                        child: TextFormField(
-                          initialValue: opt.points.toString(),
+                        child: _SyncedTextField(
+                          value: opt.points.toString(),
+                          sameValue: _sameDouble,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           style: TextStyle(color: primaryTextColor, fontSize: 12),
                           decoration: InputDecoration(
@@ -2848,6 +3169,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
           ),
           child: TextField(
             controller: _rawJsonController,
+            focusNode: _rawFocus,
             maxLines: 22,
             style: TextStyle(
               fontFamily: 'monospace',
@@ -2865,6 +3187,10 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                   jsonDecode(_rawJsonController.text);
                   setState(() => _rawJsonError = null);
                 } catch (_) {}
+              }
+              if (_collab != null) {
+                _rawCommitTimer?.cancel();
+                _rawCommitTimer = Timer(const Duration(milliseconds: 400), _commitRawLive);
               }
             },
           ),
@@ -3103,6 +3429,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                         _rawJsonController.text = const JsonEncoder.withIndent('  ').convert(updated.toJson());
                         _isLoading = false;
                       });
+                      _commitLive(updated.toJson());
                       ObsidianFeedback.showSuccess(
                         context,
                         title: 'Config Reset',
@@ -3817,6 +4144,72 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
           ),
         ],
       ),
+    );
+  }
+}
+
+bool _sameText(String text, String value) => text == value;
+bool _sameInt(String text, String value) => int.tryParse(text.trim()) == int.tryParse(value.trim());
+bool _sameDouble(String text, String value) => double.tryParse(text.trim()) == double.tryParse(value.trim());
+
+/// A text field whose text follows [value] (such as a change someone else made) without fighting the
+/// user's typing: the text is only replaced when it means something different ([sameValue]).
+class _SyncedTextField extends StatefulWidget {
+  final String value;
+  final ValueChanged<String> onChanged;
+  final bool Function(String text, String value) sameValue;
+  final InputDecoration? decoration;
+  final TextStyle? style;
+  final TextInputType? keyboardType;
+  final bool enabled;
+
+  const _SyncedTextField({
+    required this.value,
+    required this.onChanged,
+    this.sameValue = _sameText,
+    this.decoration,
+    this.style,
+    this.keyboardType,
+    this.enabled = true,
+  });
+
+  @override
+  State<_SyncedTextField> createState() => _SyncedTextFieldState();
+}
+
+class _SyncedTextFieldState extends State<_SyncedTextField> {
+  late final TextEditingController _controller = TextEditingController(text: widget.value);
+
+  @override
+  void didUpdateWidget(covariant _SyncedTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!widget.sameValue(_controller.text, widget.value)) {
+      final text = widget.value;
+      final sel = _controller.selection;
+      _controller.value = TextEditingValue(
+        text: text,
+        selection: sel.isValid
+            ? TextSelection(baseOffset: min(sel.baseOffset, text.length), extentOffset: min(sel.extentOffset, text.length))
+            : TextSelection.collapsed(offset: text.length),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: _controller,
+      enabled: widget.enabled,
+      keyboardType: widget.keyboardType,
+      style: widget.style,
+      decoration: widget.decoration,
+      onChanged: widget.onChanged,
     );
   }
 }
