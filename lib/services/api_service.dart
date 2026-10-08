@@ -768,6 +768,9 @@ class ApiService {
         ...?_sessionCookie == null ? null : {'Cookie': _sessionCookie!},
       };
 
+  /// Headers for the live config-editing WebSocket; the session cookie authenticates it.
+  Map<String, String> get webSocketHeaders => Map<String, String>.of(_headers)..remove('Content-Type');
+
   void _handleUnauthorized([
     String reason = 'Your session has expired. Please log in again.',
     int? epoch,
