@@ -225,6 +225,19 @@ class ObsidianNavigationDrawer extends StatelessWidget {
         ],
       },
       {
+        // Shown only when Settings > Non-Scouting Tools is on (see ApiService.hasPageAccess).
+        'titleKey': 'sidebar.section.non_scouting',
+        'items': [
+          {
+            'pageId': 'match-checklist',
+            'index': 33,
+            'icon': Icons.checklist_rounded,
+            'labelKey': 'nav.match_checklist',
+            'subKey': 'subtitle.match_checklist',
+          },
+        ],
+      },
+      {
         'titleKey': 'sidebar.section.admin',
         'items': [
           {

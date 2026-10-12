@@ -450,6 +450,8 @@ class UserModel {
   final String? email;
   final String? profilePicture;
   final String? notificationPreference;
+  /// Personal Settings > Non-Scouting Tools: shows drive-team tools such as the Match Checklist.
+  final bool nonScoutingToolsEnabled;
   final String? createdAt;
   final String? lastLogin;
 
@@ -462,6 +464,7 @@ class UserModel {
     this.email,
     this.profilePicture,
     this.notificationPreference,
+    this.nonScoutingToolsEnabled = false,
     this.createdAt,
     this.lastLogin,
   });
@@ -519,6 +522,7 @@ class UserModel {
       email: json['email']?.toString(),
       profilePicture: json['profilePicture']?.toString(),
       notificationPreference: json['notificationPreference']?.toString(),
+      nonScoutingToolsEnabled: json['nonScoutingToolsEnabled'] == true,
       createdAt: json['createdAt']?.toString(),
       lastLogin: json['lastLogin']?.toString(),
     );
@@ -534,6 +538,7 @@ class UserModel {
       'email': email,
       'profilePicture': profilePicture,
       'notificationPreference': notificationPreference,
+      'nonScoutingToolsEnabled': nonScoutingToolsEnabled,
       'createdAt': createdAt,
       'lastLogin': lastLogin,
     };
@@ -603,6 +608,8 @@ class ThemePresetModel {
   final String lightRadius;
   final String darkRadius;
   final String btnRadius;
+  final String lightCard;
+  final String darkCard;
 
   const ThemePresetModel({
     this.name = 'Default',
@@ -621,6 +628,8 @@ class ThemePresetModel {
     this.darkMuted = '#c3bfb8',
     this.darkRadius = '999px',
     this.btnRadius = '999px',
+    this.lightCard = '',
+    this.darkCard = '',
   });
 
   factory ThemePresetModel.fromJson(Map<String, dynamic> json) {
@@ -641,6 +650,8 @@ class ThemePresetModel {
       darkMuted: json['darkMuted']?.toString() ?? '#c3bfb8',
       darkRadius: json['darkRadius']?.toString() ?? json['btnRadius']?.toString() ?? '999px',
       btnRadius: json['btnRadius']?.toString() ?? '999px',
+      lightCard: json['lightCard']?.toString() ?? '',
+      darkCard: json['darkCard']?.toString() ?? '',
     );
   }
 
@@ -662,6 +673,8 @@ class ThemePresetModel {
       'darkMuted': darkMuted,
       'darkRadius': darkRadius,
       'btnRadius': darkRadius.isNotEmpty ? darkRadius : btnRadius,
+      'lightCard': lightCard,
+      'darkCard': darkCard,
     };
   }
 
@@ -682,6 +695,8 @@ class ThemePresetModel {
     String? darkMuted,
     String? darkRadius,
     String? btnRadius,
+    String? lightCard,
+    String? darkCard,
   }) {
     return ThemePresetModel(
       name: name ?? this.name,
@@ -700,6 +715,8 @@ class ThemePresetModel {
       darkMuted: darkMuted ?? this.darkMuted,
       darkRadius: darkRadius ?? this.darkRadius,
       btnRadius: btnRadius ?? this.btnRadius,
+      lightCard: lightCard ?? this.lightCard,
+      darkCard: darkCard ?? this.darkCard,
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
 
@@ -235,6 +236,16 @@ class ObsidianPagesModal extends StatelessWidget {
         'desc': 'Interactive field whiteboard, robot placement, & alliance stats',
         'tag': 'Strategy',
         'color': Colors.indigoAccent,
+      },
+      // Non-scouting tools: listed only when enabled in Settings (ApiService.hasPageAccess).
+      {
+        'pageId': 'match-checklist',
+        'index': 33,
+        'icon': Icons.checklist_rounded,
+        'name': context.tr('nav.match_checklist', 'Match Checklist'),
+        'desc': context.tr('pages.match_checklist_desc', 'Pre-match & on-the-field drive team checklists'),
+        'tag': context.tr('pages.tag_non_scouting', 'Drive Team'),
+        'color': Colors.lightGreenAccent,
       },
       {
         'pageId': 'chat',
