@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 class ScoutingFieldModel {
   final String id;
   final String label;
@@ -702,6 +704,84 @@ class ThemePresetModel {
   }
 }
 
+/// Mirrors the server's RecencyBiasSettings: weights recent scouted matches more heavily.
+class RecencyBiasSettingsModel {
+  static const String modeExponential = 'exponential';
+  static const String modeLastN = 'lastN';
+
+  final bool enabled;
+  final String mode;
+  final double halfLifeMatches;
+  final int windowSize;
+  final int minMatches;
+  final double prescoutWeight;
+
+  const RecencyBiasSettingsModel({
+    this.enabled = false,
+    this.mode = modeExponential,
+    this.halfLifeMatches = 4.0,
+    this.windowSize = 6,
+    this.minMatches = 4,
+    this.prescoutWeight = 0.5,
+  });
+
+  factory RecencyBiasSettingsModel.fromJson(Map<String, dynamic> json) {
+    double toDouble(dynamic v, double fallback) => v is num ? v.toDouble() : double.tryParse('$v') ?? fallback;
+    int toInt(dynamic v, int fallback) => v is num ? v.toInt() : int.tryParse('$v') ?? fallback;
+    return RecencyBiasSettingsModel(
+      enabled: json['enabled'] == true,
+      mode: json['mode'] == modeLastN ? modeLastN : modeExponential,
+      halfLifeMatches: toDouble(json['halfLifeMatches'], 4.0),
+      windowSize: toInt(json['windowSize'], 6),
+      minMatches: toInt(json['minMatches'], 4),
+      prescoutWeight: toDouble(json['prescoutWeight'], 0.5),
+    ).normalized();
+  }
+
+  /// Same limits the server enforces.
+  RecencyBiasSettingsModel normalized() => RecencyBiasSettingsModel(
+        enabled: enabled,
+        mode: mode == modeLastN ? modeLastN : modeExponential,
+        halfLifeMatches: halfLifeMatches.isFinite ? halfLifeMatches.clamp(1.0, 20.0).toDouble() : 4.0,
+        windowSize: windowSize.clamp(1, 30).toInt(),
+        minMatches: minMatches.clamp(1, 15).toInt(),
+        prescoutWeight: prescoutWeight.isFinite ? prescoutWeight.clamp(0.0, 1.0).toDouble() : 0.5,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'enabled': enabled,
+        'mode': mode,
+        'halfLifeMatches': halfLifeMatches,
+        'windowSize': windowSize,
+        'minMatches': minMatches,
+        'prescoutWeight': prescoutWeight,
+      };
+
+  RecencyBiasSettingsModel copyWith({
+    bool? enabled,
+    String? mode,
+    double? halfLifeMatches,
+    int? windowSize,
+    int? minMatches,
+    double? prescoutWeight,
+  }) {
+    return RecencyBiasSettingsModel(
+      enabled: enabled ?? this.enabled,
+      mode: mode ?? this.mode,
+      halfLifeMatches: halfLifeMatches ?? this.halfLifeMatches,
+      windowSize: windowSize ?? this.windowSize,
+      minMatches: minMatches ?? this.minMatches,
+      prescoutWeight: prescoutWeight ?? this.prescoutWeight,
+    );
+  }
+
+  /// Weight of the match [age] matches back from the newest (newest = 0).
+  double weightForAge(int age) {
+    if (mode == modeLastN) return age < windowSize ? 1.0 : 0.0;
+    return math.pow(0.5, age / halfLifeMatches).toDouble();
+  }
+}
+
 class AppSettingsModel {
   final int year;
   final String eventCode;
@@ -715,6 +795,8 @@ class AppSettingsModel {
   final bool useStatboticsEpa;
   final bool useMatch13Exp;
   final bool useTbaOpr;
+  /// Null when the server didn't report it; omitted on save so the server keeps its value.
+  final RecencyBiasSettingsModel? recencyBias;
   final List<String> scoutPages;
   final List<String> analyticsPages;
   final List<String> adminPages;
@@ -739,6 +821,7 @@ class AppSettingsModel {
     this.useStatboticsEpa = false,
     this.useMatch13Exp = false,
     this.useTbaOpr = false,
+    this.recencyBias,
     this.scoutPages = defaultScoutPages,
     this.analyticsPages = defaultAnalyticsPages,
     this.adminPages = defaultAdminPages,
@@ -851,6 +934,9 @@ class AppSettingsModel {
       useStatboticsEpa: parseBool(rawEpa),
       useMatch13Exp: parseBool(rawExp),
       useTbaOpr: parseBool(rawOpr),
+      recencyBias: settingsMap['recencyBias'] is Map
+          ? RecencyBiasSettingsModel.fromJson(Map<String, dynamic>.from(settingsMap['recencyBias'] as Map))
+          : null,
       scoutPages: parseList(settingsMap['scoutPages'], defaultScoutPages),
       analyticsPages: parseList(settingsMap['analyticsPages'], defaultAnalyticsPages),
       adminPages: parseList(settingsMap['adminPages'], defaultAdminPages),
@@ -878,6 +964,7 @@ class AppSettingsModel {
       'useStatboticsEpa': useStatboticsEpa,
       'useMatch13Exp': useMatch13Exp,
       'useTbaOpr': useTbaOpr,
+      if (recencyBias != null) 'recencyBias': recencyBias!.toJson(),
       'scoutPages': scoutPages,
       'analyticsPages': analyticsPages,
       'adminPages': adminPages,
@@ -904,6 +991,7 @@ class AppSettingsModel {
     bool? useStatboticsEpa,
     bool? useMatch13Exp,
     bool? useTbaOpr,
+    RecencyBiasSettingsModel? recencyBias,
     List<String>? scoutPages,
     List<String>? analyticsPages,
     List<String>? adminPages,
@@ -928,6 +1016,7 @@ class AppSettingsModel {
       useStatboticsEpa: useStatboticsEpa ?? this.useStatboticsEpa,
       useMatch13Exp: useMatch13Exp ?? this.useMatch13Exp,
       useTbaOpr: useTbaOpr ?? this.useTbaOpr,
+      recencyBias: recencyBias ?? this.recencyBias,
       scoutPages: scoutPages ?? this.scoutPages,
       analyticsPages: analyticsPages ?? this.analyticsPages,
       adminPages: adminPages ?? this.adminPages,

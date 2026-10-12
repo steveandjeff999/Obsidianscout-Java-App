@@ -73,6 +73,8 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
   bool _useStatboticsEpa = false;
   bool _useMatch13Exp = false;
   bool _useTbaOpr = false;
+  /// Null until the server reports it or the user changes it; only sent on save when set.
+  RecencyBiasSettingsModel? _recencyBias;
   bool _chatEnabled = true;
   bool _registrationLocked = false;
   /// Roles allowed on the create-account page; null until the server reports them (then treated as all roles).
@@ -171,6 +173,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     _useStatboticsEpa = fresh.useStatboticsEpa;
     _useMatch13Exp = fresh.useMatch13Exp;
     _useTbaOpr = fresh.useTbaOpr;
+    _recencyBias = fresh.recencyBias;
     _chatEnabled = fresh.chatEnabled;
     _registrationLocked = fresh.registrationLocked;
     _selfRegisterRoles = fresh.selfRegisterRoles == null ? null : List<String>.from(fresh.selfRegisterRoles!);
@@ -246,6 +249,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       _useStatboticsEpa = _currentSettings.useStatboticsEpa;
       _useMatch13Exp = _currentSettings.useMatch13Exp;
       _useTbaOpr = _currentSettings.useTbaOpr;
+      _recencyBias = _currentSettings.recencyBias;
       _chatEnabled = _currentSettings.chatEnabled;
       _registrationLocked = _currentSettings.registrationLocked;
       _selfRegisterRoles = _currentSettings.selfRegisterRoles == null ? null : List<String>.from(_currentSettings.selfRegisterRoles!);
@@ -724,6 +728,160 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     }
   }
 
+  Widget _buildRecencyBiasCard(Color primaryTextColor, Color secondaryTextColor, Color borderColor) {
+    final r = _recencyBias ?? const RecencyBiasSettingsModel();
+    void update(RecencyBiasSettingsModel next) => setState(() => _recencyBias = next.normalized());
+    final isLastN = r.mode == RecencyBiasSettingsModel.modeLastN;
+    final preview = List.generate(8, (age) => r.weightForAge(age).toStringAsFixed(2)).join(', ');
+
+    // Tap (not just hover) so the explanation is reachable on phones.
+    Widget infoTip(String key, String fallback) => Tooltip(
+          message: context.tr(key, fallback),
+          triggerMode: TooltipTriggerMode.tap,
+          showDuration: const Duration(seconds: 6),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Icon(Icons.info_outline_rounded, size: 16, color: secondaryTextColor),
+          ),
+        );
+
+    Widget sliderRow(String label, String tipKey, String tipFallback, String valueText, double value, double min,
+        double max, int divisions, ValueChanged<double> onChanged) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Flexible(child: Text(label, style: TextStyle(color: primaryTextColor, fontSize: 13))),
+              infoTip(tipKey, tipFallback),
+              const Spacer(),
+              Text(valueText, style: TextStyle(color: secondaryTextColor, fontSize: 12, fontWeight: FontWeight.w600)),
+            ],
+          ),
+          Slider(
+            value: value.clamp(min, max).toDouble(),
+            min: min,
+            max: max,
+            divisions: divisions,
+            label: valueText,
+            activeColor: ObsidianUITheme.primaryAccent,
+            onChanged: r.enabled ? onChanged : null,
+          ),
+        ],
+      );
+    }
+
+    return ObsidianGlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.trending_up_rounded, size: 18, color: Colors.amberAccent),
+              const SizedBox(width: 8),
+              Text(context.tr('config.recency_title', 'Recency Bias'),
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primaryTextColor)),
+            ],
+          ),
+          Divider(color: borderColor, height: 20),
+          CheckboxListTile(
+            title: Row(
+              children: [
+                Flexible(
+                  child: Text(context.tr('config.recency_enable', 'Weight recent matches more'),
+                      style: TextStyle(color: primaryTextColor, fontSize: 13)),
+                ),
+                infoTip('config.recency_enable_tip',
+                    "When on, a team's scouted average counts its most recent matches more than its early ones. Useful when robots improve or break during an event."),
+              ],
+            ),
+            subtitle: Text(
+              context.tr('config.recency_desc',
+                  'Weights recent scouted matches more heavily in predictions, team averages, rankings and compare. Data validation always uses plain averages.'),
+              style: TextStyle(color: secondaryTextColor, fontSize: 11),
+            ),
+            value: r.enabled,
+            activeColor: ObsidianUITheme.primaryAccent,
+            contentPadding: EdgeInsets.zero,
+            controlAffinity: ListTileControlAffinity.leading,
+            onChanged: (val) => update(r.copyWith(enabled: val ?? false)),
+          ),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            key: ValueKey('recency-mode-${r.mode}'),
+            initialValue: r.mode,
+            dropdownColor: ObsidianUITheme.getSurfaceColor(context),
+            style: TextStyle(color: primaryTextColor, fontSize: 14),
+            decoration: InputDecoration(
+              labelText: context.tr('config.recency_mode', 'Mode'),
+              labelStyle: TextStyle(color: secondaryTextColor, fontSize: 12),
+              suffixIcon: infoTip('config.recency_mode_tip',
+                  'Exponential decay fades older matches gradually. Last N ignores everything except the most recent N matches.'),
+              isDense: true,
+              enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
+              focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+            ),
+            items: [
+              DropdownMenuItem(
+                value: RecencyBiasSettingsModel.modeExponential,
+                child: Text(context.tr('config.recency_mode_exponential', 'Exponential decay')),
+              ),
+              DropdownMenuItem(
+                value: RecencyBiasSettingsModel.modeLastN,
+                child: Text(context.tr('config.recency_mode_last_n', 'Last N matches only')),
+              ),
+            ],
+            onChanged: r.enabled
+                ? (val) {
+                    if (val != null) update(r.copyWith(mode: val));
+                  }
+                : null,
+          ),
+          const SizedBox(height: 10),
+          if (isLastN)
+            sliderRow(
+              context.tr('config.recency_window', 'Matches to count (N)'),
+              'config.recency_window_tip',
+              "Only this many of a team's most recent matches are counted; older matches are ignored.",
+              '${r.windowSize}', r.windowSize.toDouble(), 1, 30, 29,
+              (v) => update(r.copyWith(windowSize: v.round())),
+            )
+          else
+            sliderRow(
+              context.tr('config.recency_half_life', 'Half-life (matches)'),
+              'config.recency_half_life_tip',
+              "How many matches back a match's weight drops to half. Smaller numbers react faster to recent changes but are noisier.",
+              r.halfLifeMatches.toStringAsFixed(1), r.halfLifeMatches, 1, 20, 38,
+              (v) => update(r.copyWith(halfLifeMatches: (v * 2).round() / 2)),
+            ),
+          sliderRow(
+            context.tr('config.recency_min_matches', 'Minimum matches before weighting'),
+            'config.recency_min_matches_tip',
+            "Teams with fewer scouted matches than this keep a plain average, so one or two matches don't dominate early in an event.",
+            '${r.minMatches}', r.minMatches.toDouble(), 1, 15, 14,
+            (v) => update(r.copyWith(minMatches: v.round())),
+          ),
+          sliderRow(
+            context.tr('config.recency_prescout_weight', 'Prescout weight (0–1)'),
+            'config.recency_prescout_weight_tip',
+            'How much prescout data counts when it is mixed in (0 = ignore, 1 = same as an event match). Prescout always counts as older than event matches.',
+            r.prescoutWeight.toStringAsFixed(2), r.prescoutWeight, 0, 1, 20,
+            (v) => update(r.copyWith(prescoutWeight: (v * 20).round() / 20)),
+          ),
+          Text(
+            r.enabled
+                // Fallback form (not the args form) so English shows if translations didn't load.
+                ? context
+                    .tr('config.recency_preview', 'Weights from newest to oldest match: {weights}…')
+                    .replaceAll('{weights}', preview)
+                : context.tr('config.recency_preview_off', 'Off: every scouted match counts equally.'),
+            style: TextStyle(color: secondaryTextColor, fontSize: 11),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _handleSaveSettings() async {
     setState(() => _isSavingSettings = true);
 
@@ -735,6 +893,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       useStatboticsEpa: _useStatboticsEpa,
       useMatch13Exp: _useMatch13Exp,
       useTbaOpr: _useTbaOpr,
+      recencyBias: _recencyBias,
       chatEnabled: _chatEnabled,
       registrationLocked: _registrationLocked,
       selfRegisterRoles: _selfRegisterRoles,
@@ -3634,6 +3793,9 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
             ],
           ),
         ),
+        const SizedBox(height: 14),
+
+        _buildRecencyBiasCard(primaryTextColor, secondaryTextColor, borderColor),
         const SizedBox(height: 14),
 
         // TBA / FTC Scout Card
