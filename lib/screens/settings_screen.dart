@@ -38,6 +38,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _isLoadingCache = true;
+  bool _savingNonScoutingTools = false;
   bool _isSyncing = false;
   Map<String, int> _cacheSummary = {};
 
@@ -583,6 +584,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   int get _totalBytes => _cacheSummary.values.fold(0, (sum, size) => sum + size);
 
+  Future<void> _setNonScoutingTools(bool enabled) async {
+    setState(() => _savingNonScoutingTools = true);
+    final result = await widget.apiService.setNonScoutingToolsEnabled(enabled);
+    if (!mounted) return;
+    setState(() => _savingNonScoutingTools = false);
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    if (result.isSuccess) {
+      messenger.showSnackBar(SnackBar(
+        content: Text(enabled
+            ? context.tr('settings.non_scouting_tools_enabled', 'Non-scouting tools enabled')
+            : context.tr('settings.non_scouting_tools_disabled', 'Non-scouting tools disabled')),
+        backgroundColor: ObsidianUITheme.primaryAccent,
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ));
+    } else {
+      messenger.showSnackBar(SnackBar(
+        content: Text(result.message == 'offline'
+            ? context.tr('settings.non_scouting_tools_offline', 'Connect to the server to change this setting')
+            : context.tr('settings.non_scouting_tools_failed', 'Could not update the setting')),
+        backgroundColor: ObsidianUITheme.errorRed,
+        behavior: SnackBarBehavior.floating,
+      ));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
@@ -936,6 +964,68 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           ),
+          const SizedBox(height: 16),
+
+          // Non-Scouting Tools (personal, saved to the account so it follows the user to the website)
+          ObsidianGlassCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.handyman_rounded, color: ObsidianUITheme.primaryAccent),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        context.tr('settings.non_scouting_tools', 'Non-Scouting Tools'),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
+                      ),
+                    ),
+                  ],
+                ),
+                Divider(color: borderColor, height: 24),
+                ValueListenableBuilder<int>(
+                  valueListenable: widget.apiService.permissionsNotifier,
+                  builder: (context, _, __) {
+                    final enabled = widget.apiService.nonScoutingToolsEnabled;
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                context.tr('settings.non_scouting_tools_toggle', 'Show non-scouting tools'),
+                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: primaryTextColor),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                context.tr(
+                                  'settings.non_scouting_tools_desc',
+                                  'Adds a Non-Scouting Tools section to the menu with drive-team tools such as the Match Checklist for pre-match and on-the-field checks.',
+                                ),
+                                style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        _savingNonScoutingTools
+                            ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                            : Switch(
+                                value: enabled,
+                                activeTrackColor: ObsidianUITheme.primaryAccent,
+                                activeThumbColor: Colors.white,
+                                onChanged: (value) => _setNonScoutingTools(value),
+                              ),
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
           // Gamepad & Game Controller Card
           ListenableBuilder(
             listenable: GamepadService.instance,

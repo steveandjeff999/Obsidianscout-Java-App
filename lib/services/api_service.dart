@@ -1242,6 +1242,161 @@ class ApiService {
     }
   }
 
+  // Non-Scouting Tools
+
+  /// Pages shown only when the user turns on Non-Scouting Tools.
+  static const List<String> nonScoutingToolPages = ['match-checklist'];
+
+  bool get nonScoutingToolsEnabled => _currentUser?.nonScoutingToolsEnabled ?? false;
+
+  /// Saves the Non-Scouting Tools preference to the user's account (it follows them across devices).
+  Future<ApiResponse<UserModel>> setNonScoutingToolsEnabled(bool enabled) async {
+    if (!_isOnline) {
+      return ApiResponse.error(message: 'offline');
+    }
+    try {
+      final response = await http
+          .put(
+            Uri.parse('$_currentServerUrl/api/user'),
+            headers: _headers,
+            body: jsonEncode({'nonScoutingToolsEnabled': enabled}),
+          )
+          .timeout(requestTimeout);
+      _checkResponse(response);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final decoded = jsonDecode(response.body);
+        final current = _currentUser;
+        final updated = decoded is Map<String, dynamic> && decoded['id'] != null
+            ? UserModel.fromJson({...?current?.toJson(), ...decoded})
+            : UserModel.fromJson({...?current?.toJson(), 'nonScoutingToolsEnabled': enabled});
+        _currentUser = updated;
+        await _setCache('cache_auth_me', jsonEncode({'user': updated.toJson()}));
+        permissionsNotifier.value++;
+        return ApiResponse.success(updated, statusCode: response.statusCode);
+      }
+      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to update setting');
+    } catch (e) {
+      return ApiResponse.error(message: e.toString());
+    }
+  }
+
+  // Match Checklist (drive-team pre-match / on-the-field checklists, edited live)
+
+  /// WebSocket URL for a live checklist document: the team template, or one match's checklist.
+  Uri matchChecklistCollabUri({String? eventKey, String? matchKey}) {
+    final server = Uri.parse(_currentServerUrl);
+    return Uri(
+      scheme: server.scheme == 'https' ? 'wss' : 'ws',
+      host: server.host,
+      port: server.hasPort ? server.port : null,
+      path: '/api/match-checklist/collab',
+      queryParameters: eventKey == null ? {'template': '1'} : {'eventKey': eventKey, 'matchKey': matchKey ?? ''},
+    );
+  }
+
+  Map<String, dynamic> _decodeChecklistDoc(String? raw) {
+    if (raw == null || raw.isEmpty) return <String, dynamic>{};
+    try {
+      final decoded = jsonDecode(raw);
+      return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+    } catch (_) {
+      return <String, dynamic>{};
+    }
+  }
+
+  /// Loads a checklist document, cached for offline use. Null when nothing could be loaded.
+  Future<Map<String, dynamic>?> _fetchChecklistDoc(Uri uri, String cacheKey) async {
+    final cached = await _getCache(cacheKey);
+    if (!_isOnline) return cached == null ? null : _decodeChecklistDoc(cached);
+    try {
+      final response = await http.get(uri, headers: _headers).timeout(requestTimeout);
+      _checkResponse(response);
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          final dataJson = decoded['dataJson']?.toString() ?? '{}';
+          await _setCache(cacheKey, dataJson);
+          return _decodeChecklistDoc(dataJson);
+        }
+      }
+    } catch (_) {}
+    return cached == null ? null : _decodeChecklistDoc(cached);
+  }
+
+  Future<bool> _putChecklistDoc(Uri uri, Map<String, dynamic> body, String cacheKey, String dataJson) async {
+    try {
+      final response = await http.put(uri, headers: _headers, body: jsonEncode(body)).timeout(requestTimeout);
+      _checkResponse(response);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        await _setCache(cacheKey, dataJson);
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  Future<Map<String, dynamic>?> fetchMatchChecklistTemplate() => _fetchChecklistDoc(
+        Uri.parse('$_currentServerUrl/api/match-checklist/template'),
+        'cache_match_checklist_template',
+      );
+
+  Future<bool> saveMatchChecklistTemplate(Map<String, dynamic> doc) {
+    final dataJson = jsonEncode(doc);
+    return _putChecklistDoc(
+      Uri.parse('$_currentServerUrl/api/match-checklist/template'),
+      {'dataJson': dataJson},
+      'cache_match_checklist_template',
+      dataJson,
+    );
+  }
+
+  Future<Map<String, dynamic>?> fetchMatchChecklist(String eventKey, String matchKey) => _fetchChecklistDoc(
+        Uri.parse('$_currentServerUrl/api/match-checklist').replace(queryParameters: {'eventKey': eventKey, 'matchKey': matchKey}),
+        'cache_match_checklist_${eventKey}_$matchKey',
+      );
+
+  Future<bool> saveMatchChecklist(String eventKey, String matchKey, Map<String, dynamic> doc) {
+    final dataJson = jsonEncode(doc);
+    return _putChecklistDoc(
+      Uri.parse('$_currentServerUrl/api/match-checklist'),
+      {'eventKey': eventKey, 'matchKey': matchKey, 'dataJson': dataJson},
+      'cache_match_checklist_${eventKey}_$matchKey',
+      dataJson,
+    );
+  }
+
+  /// Every filled-out checklist for an event, keyed by match key (for per-match progress).
+  Future<Map<String, Map<String, dynamic>>> fetchMatchChecklistsForEvent(String eventKey) async {
+    final cacheKey = 'cache_match_checklists_$eventKey';
+    Map<String, Map<String, dynamic>> parse(String raw) {
+      final out = <String, Map<String, dynamic>>{};
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is List) {
+          for (final row in decoded) {
+            if (row is Map && row['matchKey'] != null) {
+              out[row['matchKey'].toString()] = _decodeChecklistDoc(row['dataJson']?.toString());
+            }
+          }
+        }
+      } catch (_) {}
+      return out;
+    }
+
+    final cached = await _getCache(cacheKey);
+    if (!_isOnline) return cached == null ? {} : parse(cached);
+    try {
+      final uri = Uri.parse('$_currentServerUrl/api/match-checklist/event').replace(queryParameters: {'eventKey': eventKey});
+      final response = await http.get(uri, headers: _headers).timeout(requestTimeout);
+      _checkResponse(response);
+      if (response.statusCode == 200) {
+        await _setCache(cacheKey, response.body);
+        return parse(response.body);
+      }
+    } catch (_) {}
+    return cached == null ? {} : parse(cached);
+  }
+
   // User Profile & Settings
   Future<UserModel?> fetchCurrentUser() async {
     final cached = await _getCache("cache_auth_me");
@@ -1679,6 +1834,11 @@ class ApiService {
   }
 
   bool hasPageAccess(String pageId) {
+    // Non-scouting tools are a personal opt-in (Settings > Non-Scouting Tools), not role pages.
+    if (nonScoutingToolPages.contains(pageId)) {
+      return _currentUser?.nonScoutingToolsEnabled ?? false;
+    }
+
     final role = (_currentUser?.role ?? 'SCOUT').toUpperCase();
 
     // SuperAdmin has full access to all pages unconditionally

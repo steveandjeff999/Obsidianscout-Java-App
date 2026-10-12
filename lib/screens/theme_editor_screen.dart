@@ -36,6 +36,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
   late TextEditingController _lightAccent3Ctrl;
   late TextEditingController _lightInkCtrl;
   late TextEditingController _lightMutedCtrl;
+  late TextEditingController _lightCardCtrl;
   late TextEditingController _lightBgCtrl;
   String _lightRadius = '999px';
   String _lightBgMode = 'solid'; // solid, gradient, preset
@@ -49,6 +50,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
   late TextEditingController _darkAccent3Ctrl;
   late TextEditingController _darkInkCtrl;
   late TextEditingController _darkMutedCtrl;
+  late TextEditingController _darkCardCtrl;
   late TextEditingController _darkBgCtrl;
   String _darkRadius = '999px';
   String _darkBgMode = 'solid'; // solid, gradient, preset
@@ -72,6 +74,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
     _lightAccent3Ctrl = TextEditingController(text: '#255a9c');
     _lightInkCtrl = TextEditingController(text: '#1d1a17');
     _lightMutedCtrl = TextEditingController(text: '#5f5b55');
+    _lightCardCtrl = TextEditingController(text: '#ffffff');
     _lightBgCtrl = TextEditingController(text: '#ffffff');
 
     _darkAccentCtrl = TextEditingController(text: '#3ccfc0');
@@ -79,6 +82,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
     _darkAccent3Ctrl = TextEditingController(text: '#6aa2ff');
     _darkInkCtrl = TextEditingController(text: '#f4f2ed');
     _darkMutedCtrl = TextEditingController(text: '#c3bfb8');
+    _darkCardCtrl = TextEditingController(text: '#111116');
     _darkBgCtrl = TextEditingController(text: '#09090b');
   }
 
@@ -89,6 +93,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
     _lightAccent3Ctrl.dispose();
     _lightInkCtrl.dispose();
     _lightMutedCtrl.dispose();
+    _lightCardCtrl.dispose();
     _lightBgCtrl.dispose();
 
     _darkAccentCtrl.dispose();
@@ -96,6 +101,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
     _darkAccent3Ctrl.dispose();
     _darkInkCtrl.dispose();
     _darkMutedCtrl.dispose();
+    _darkCardCtrl.dispose();
     _darkBgCtrl.dispose();
     super.dispose();
   }
@@ -133,6 +139,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
     _lightAccent3Ctrl.text = preset.lightAccent3.isNotEmpty ? preset.lightAccent3 : '#255a9c';
     _lightInkCtrl.text = preset.lightInk.isNotEmpty ? preset.lightInk : '#1d1a17';
     _lightMutedCtrl.text = preset.lightMuted.isNotEmpty ? preset.lightMuted : '#5f5b55';
+    _lightCardCtrl.text = preset.lightCard.isNotEmpty ? preset.lightCard : '#ffffff';
     _lightRadius = preset.lightRadius.isNotEmpty ? preset.lightRadius : (preset.btnRadius.isNotEmpty ? preset.btnRadius : '999px');
     _parseAndPopulateBg(isDark: false, bgValue: preset.lightBg);
 
@@ -141,6 +148,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
     _darkAccent3Ctrl.text = preset.darkAccent3.isNotEmpty ? preset.darkAccent3 : '#6aa2ff';
     _darkInkCtrl.text = preset.darkInk.isNotEmpty ? preset.darkInk : '#f4f2ed';
     _darkMutedCtrl.text = preset.darkMuted.isNotEmpty ? preset.darkMuted : '#c3bfb8';
+    _darkCardCtrl.text = preset.darkCard.isNotEmpty ? preset.darkCard : '#111116';
     _darkRadius = preset.darkRadius.isNotEmpty ? preset.darkRadius : (preset.btnRadius.isNotEmpty ? preset.btnRadius : '999px');
     _parseAndPopulateBg(isDark: true, bgValue: preset.darkBg);
   }
@@ -205,6 +213,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
       lightAccent3: _lightAccent3Ctrl.text.trim(),
       lightInk: _lightInkCtrl.text.trim(),
       lightMuted: _lightMutedCtrl.text.trim(),
+      lightCard: _lightCardCtrl.text.trim(),
       lightBg: _lightBgCtrl.text.trim(),
       lightRadius: _lightRadius,
       darkAccent: _darkAccentCtrl.text.trim(),
@@ -212,6 +221,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
       darkAccent3: _darkAccent3Ctrl.text.trim(),
       darkInk: _darkInkCtrl.text.trim(),
       darkMuted: _darkMutedCtrl.text.trim(),
+      darkCard: _darkCardCtrl.text.trim(),
       darkBg: _darkBgCtrl.text.trim(),
       darkRadius: _darkRadius,
       btnRadius: _darkRadius,
@@ -431,6 +441,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
       _lightAccent3Ctrl.text = '#255a9c';
       _lightInkCtrl.text = '#1d1a17';
       _lightMutedCtrl.text = '#5f5b55';
+      _lightCardCtrl.text = '#ffffff';
       _lightRadius = '999px';
       _lightBgMode = 'solid';
       _lightBgSolid = '#ffffff';
@@ -441,6 +452,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
       _darkAccent3Ctrl.text = '#6aa2ff';
       _darkInkCtrl.text = '#f4f2ed';
       _darkMutedCtrl.text = '#c3bfb8';
+      _darkCardCtrl.text = '#111116';
       _darkRadius = '999px';
       _darkBgMode = 'solid';
       _darkBgSolid = '#09090b';
@@ -883,6 +895,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
     final accent3Ctrl = isDarkModeConfig ? _darkAccent3Ctrl : _lightAccent3Ctrl;
     final inkCtrl = isDarkModeConfig ? _darkInkCtrl : _lightInkCtrl;
     final mutedCtrl = isDarkModeConfig ? _darkMutedCtrl : _lightMutedCtrl;
+    final cardCtrl = isDarkModeConfig ? _darkCardCtrl : _lightCardCtrl;
     final radiusVal = isDarkModeConfig ? _darkRadius : _lightRadius;
 
     return ObsidianGlassCard(
@@ -915,6 +928,8 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
           _buildColorPickerRow('Text Color (Ink)', inkCtrl, (val) {}),
           const SizedBox(height: 12),
           _buildColorPickerRow('Muted Text Color', mutedCtrl, (val) {}),
+          const SizedBox(height: 12),
+          _buildColorPickerRow('Card Background (Surface)', cardCtrl, (val) {}),
           const SizedBox(height: 16),
 
           // Background Creator section
@@ -1401,6 +1416,69 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
                 Text(
                   'Muted secondary labels and descriptive text display here.',
                   style: TextStyle(color: muted, fontSize: 12.5),
+                ),
+                const SizedBox(height: 16),
+
+                // Card surface preview
+                Builder(
+                  builder: (ctx) {
+                    final cardRadius = ObsidianUITheme.getCardBorderRadius(context);
+                    final cardBorderRadius = BorderRadius.circular(cardRadius);
+                    final cardBgColor = () {
+                      final customHex = _previewIsDark ? _darkCardCtrl.text.trim() : _lightCardCtrl.text.trim();
+                      final parsed = ObsidianUITheme.parseHex(customHex);
+                      if (parsed != null) return parsed;
+                      if (_previewIsDark) {
+                        return ObsidianUITheme.deriveDarkCardSurface(bgSolid, accent: accent);
+                      }
+                      return Colors.white;
+                    }();
+
+                    return Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: cardBgColor,
+                        borderRadius: cardBorderRadius,
+                        border: Border.all(
+                          color: _previewIsDark
+                              ? Color.alphaBlend(accent.withValues(alpha: 0.12), Colors.white.withValues(alpha: 0.09))
+                              : const Color(0x1F000000),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: _previewIsDark ? 0.3 : 0.06),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Card Surface Preview', style: TextStyle(color: ink, fontSize: 13.5, fontWeight: FontWeight.bold)),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: accent.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Text('Theme Styled', style: TextStyle(color: accent, fontSize: 11, fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Cards and overview widgets dynamically match your custom theme styles and card settings.',
+                            style: TextStyle(color: muted, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ],
             ),

@@ -36,6 +36,25 @@ class ObsidianUITheme {
   static ThemePresetModel? get activeCustomTheme => _customThemeEnabled ? _customTheme : null;
   static bool get isCustomThemeActive => _customThemeEnabled && _customTheme != null;
 
+  static bool get isCustomThemeActiveAndNonDefault {
+    if (!_customThemeEnabled || _customTheme == null) return false;
+    final t = _customTheme!;
+    if (t.name == 'Default') {
+      return t.darkCard.isNotEmpty || t.lightCard.isNotEmpty ||
+          (t.darkBg.isNotEmpty && t.darkBg != '#09090b' && t.darkBg != '#000000' && t.darkBg != '#0A0C10') ||
+          (t.lightBg.isNotEmpty && t.lightBg != '#ffffff' && t.lightBg != '#F4F6FB');
+    }
+    return true;
+  }
+
+  static Color deriveDarkCardSurface(Color bg, {Color? accent}) {
+    Color elevated = Color.alphaBlend(Colors.white.withValues(alpha: 0.08), bg);
+    if (accent != null) {
+      elevated = Color.alphaBlend(accent.withValues(alpha: 0.04), elevated);
+    }
+    return elevated;
+  }
+
   // Dynamic Accents (Context-free fallback)
   static Color get primaryAccent {
     if (_customThemeEnabled && _customTheme != null) {
@@ -173,6 +192,19 @@ class ObsidianUITheme {
             : parseRadius(radiusStr, fallback: 20.0).clamp(0.0, 24.0))
         : 20.0;
 
+    final surfaceColor = () {
+      if (custom != null) {
+        if (custom.darkCard.isNotEmpty) {
+          final parsed = parseHex(custom.darkCard);
+          if (parsed != null) return parsed;
+        }
+        if (isCustomThemeActiveAndNonDefault) {
+          return deriveDarkCardSurface(bgSolid, accent: accent);
+        }
+      }
+      return defaultSurface;
+    }();
+
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
@@ -183,7 +215,7 @@ class ObsidianUITheme {
         primary: accent,
         secondary: accent2,
         tertiary: accent3,
-        surface: defaultSurface,
+        surface: surfaceColor,
         error: errorRed,
         onSurface: ink,
         onPrimary: Colors.white,
@@ -234,7 +266,7 @@ class ObsidianUITheme {
         ),
       ),
       cardTheme: CardThemeData(
-        color: defaultSurface,
+        color: surfaceColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(cardRadius)),
         elevation: 0,
       ),
@@ -329,6 +361,14 @@ class ObsidianUITheme {
             : parseRadius(radiusStr, fallback: 20.0).clamp(0.0, 24.0))
         : 20.0;
 
+    final surfaceColor = () {
+      if (custom != null && custom.lightCard.isNotEmpty) {
+        final parsed = parseHex(custom.lightCard);
+        if (parsed != null) return parsed;
+      }
+      return defaultSurfaceLight;
+    }();
+
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
@@ -339,7 +379,7 @@ class ObsidianUITheme {
         primary: accent,
         secondary: accent2,
         tertiary: accent3,
-        surface: defaultSurfaceLight,
+        surface: surfaceColor,
         error: errorRed,
         onSurface: ink,
         onPrimary: Colors.white,
@@ -390,7 +430,7 @@ class ObsidianUITheme {
         ),
       ),
       cardTheme: CardThemeData(
-        color: defaultSurfaceLight,
+        color: surfaceColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(cardRadius)),
         elevation: 0,
       ),
@@ -538,7 +578,14 @@ class ObsidianUITheme {
   }
 
   static Color getBorderColor(BuildContext context) {
-    return isDark(context) ? Colors.white12 : const Color(0x1F000000);
+    if (isDark(context)) {
+      if (isCustomThemeActiveAndNonDefault) {
+        final accent = getPrimaryAccent(context);
+        return Color.alphaBlend(accent.withValues(alpha: 0.12), Colors.white.withValues(alpha: 0.08));
+      }
+      return Colors.white12;
+    }
+    return const Color(0x1F000000);
   }
 
   static Color getInputFillColor(BuildContext context) {
@@ -546,11 +593,36 @@ class ObsidianUITheme {
   }
 
   static Color getSurfaceColor(BuildContext context) {
-    return isDark(context) ? defaultSurface : defaultSurfaceLight;
+    if (isDark(context)) {
+      final custom = activeCustomTheme;
+      if (custom != null) {
+        if (custom.darkCard.isNotEmpty) {
+          final parsed = parseHex(custom.darkCard);
+          if (parsed != null) return parsed;
+        }
+        if (isCustomThemeActiveAndNonDefault) {
+          final bg = getBackgroundColor(context);
+          final accent = getPrimaryAccent(context);
+          return deriveDarkCardSurface(bg, accent: accent);
+        }
+      }
+      return defaultSurface;
+    } else {
+      final custom = activeCustomTheme;
+      if (custom != null && custom.lightCard.isNotEmpty) {
+        final parsed = parseHex(custom.lightCard);
+        if (parsed != null) return parsed;
+      }
+      return defaultSurfaceLight;
+    }
   }
 
   static Color getElevatedSurfaceColor(BuildContext context) {
-    return isDark(context) ? const Color(0xFF1E2638) : Colors.white;
+    if (isDark(context)) {
+      final surface = getSurfaceColor(context);
+      return Color.alphaBlend(Colors.white.withValues(alpha: 0.06), surface);
+    }
+    return Colors.white;
   }
 
   static BorderSide getTooltipBorder(BuildContext context) {

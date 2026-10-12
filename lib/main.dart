@@ -50,6 +50,7 @@ import 'screens/theme_editor_screen.dart';
 import 'screens/my_assignments_screen.dart';
 import 'screens/scout_assignments_screen.dart';
 import 'screens/match_planning_screen.dart';
+import 'screens/match_checklist_screen.dart';
 import 'screens/team_shared_links_screen.dart';
 import 'services/api_service.dart';
 import 'services/auth_storage_service.dart';
@@ -429,6 +430,8 @@ class _MainShellState extends State<MainShell> {
         return Icons.draw_rounded;
       case 32:
         return Icons.share_rounded;
+      case 33:
+        return Icons.checklist_rounded;
       default:
         return Icons.dashboard_rounded;
     }
@@ -502,6 +505,8 @@ class _MainShellState extends State<MainShell> {
         return context.tr('nav.match_planning', 'Match Planning');
       case 32:
         return context.tr('nav.shared_links', 'Shared Links');
+      case 33:
+        return context.tr('nav.match_checklist', 'Match Checklist');
       default:
         return 'Dashboard';
     }
@@ -767,6 +772,7 @@ class _MainShellState extends State<MainShell> {
     'nav.scout_assignments',
     'nav.match_planning',
     'nav.shared_links',
+    'nav.match_checklist',
   ];
   final List<String> _subtitleKeys = [
     'subtitle.dashboard',
@@ -802,7 +808,11 @@ class _MainShellState extends State<MainShell> {
     'subtitle.scout_assignments',
     'subtitle.match_planning',
     'subtitle.shared_links',
+    'subtitle.match_checklist',
   ];
+
+  /// Number of screens _buildScreenByIndex can build (indexes 0 to _screenCount - 1). Bump when adding a screen.
+  static const int _screenCount = 34;
 
   String _getPageIdForIndex(int index) {
     switch (index) {
@@ -872,6 +882,8 @@ class _MainShellState extends State<MainShell> {
         return 'match-planning';
       case 32:
         return 'shared-links';
+      case 33:
+        return 'match-checklist';
       default:
         return 'dashboard';
     }
@@ -1239,6 +1251,13 @@ class _MainShellState extends State<MainShell> {
           isVisible: isTabActive && _currentIndex == 32,
           isBarsVisible: _isBarsVisible,
         );
+      case 33:
+        return MatchChecklistScreen(
+          apiService: widget.apiService,
+          isVisible: isTabActive && _currentIndex == 33,
+          isBarsVisible: _isBarsVisible,
+          onOpenSettings: () => _navigateScreen(5),
+        );
       default:
         return DashboardScreen(
           apiService: widget.apiService,
@@ -1270,7 +1289,7 @@ class _MainShellState extends State<MainShell> {
                 builder: (context) => ObsidianAnimatedIndexedStack(
                   key: ValueKey('tab_stack_${tab.id}'),
                   index: tab.screenIndex,
-                  itemCount: 33,
+                  itemCount: _screenCount,
                   itemBuilder: (ctx, idx) => _buildScreenByIndex(
                     idx,
                     isTabActive: tab.id == _activeTabId,
@@ -1316,7 +1335,7 @@ class _MainShellState extends State<MainShell> {
     final mainIndexedStack = ObsidianAnimatedIndexedStack(
       key: const ValueKey('obsidian_main_indexed_stack'),
       index: _currentIndex,
-      itemCount: 33,
+      itemCount: _screenCount,
       itemBuilder: (ctx, idx) => _buildScreenByIndex(
         idx,
         isTabActive: true,
