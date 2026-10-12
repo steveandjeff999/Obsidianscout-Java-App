@@ -736,6 +736,58 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
 
       expect(apiService.mockSettings.eventCode, 'nytr');
+      // Never touched and never reported by the server: left out so the server keeps its value.
+      expect(apiService.mockSettings.recencyBias, isNull);
+    });
+
+    testWidgets('Recency Bias card toggles, shows tooltips and saves', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1200, 2000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final apiService = _MockConfigApiService();
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ObsidianUITheme.darkTheme,
+          home: Scaffold(body: ConfigEditorScreen(apiService: apiService, initialKind: 'api')),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.text('Recency Bias'), findsOneWidget);
+      expect(find.text('Off: every scouted match counts equally.'), findsOneWidget);
+      // Sliders are disabled until recency bias is turned on.
+      expect(tester.widgetList<Slider>(find.byType(Slider)).every((s) => s.onChanged == null), isTrue);
+
+      final enable = find.text('Weight recent matches more');
+      await tester.ensureVisible(enable);
+      await tester.tap(enable);
+      await tester.pump();
+      expect(find.textContaining('Weights from newest to oldest match: 1.00, 0.84'), findsOneWidget);
+      expect(tester.widgetList<Slider>(find.byType(Slider)).every((s) => s.onChanged != null), isTrue);
+
+      // Each setting has a tap-to-show explanation.
+      final tips = find.byIcon(Icons.info_outline_rounded);
+      expect(tips, findsNWidgets(5));
+      await tester.ensureVisible(tips.at(2));
+      await tester.tap(tips.at(2));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.textContaining("How many matches back a match's weight drops to half"), findsOneWidget);
+      await tester.pump(const Duration(seconds: 7));
+
+      await tester.ensureVisible(find.text('Save API settings'));
+      await tester.tap(find.text('Save API settings'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      final saved = apiService.mockSettings.recencyBias;
+      expect(saved, isNotNull);
+      expect(saved!.enabled, isTrue);
+      expect(apiService.mockSettings.toJson()['recencyBias']['halfLifeMatches'], 4.0);
     });
 
     testWidgets('ConfigEditorScreen renders Permissions tab with match-data and scout-history', (WidgetTester tester) async {

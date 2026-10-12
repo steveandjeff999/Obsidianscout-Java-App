@@ -123,6 +123,8 @@ class MatchTeamPrediction {
   final double? exp;
   final Match13TeamExpDetail? match13TeamExp;
   final bool hasDiscrepancy;
+  /// True when [averageScoutedScore] gives recent matches more weight (server Recency Bias setting).
+  final bool recencyWeighted;
 
   MatchTeamPrediction({
     required this.teamNumber,
@@ -135,6 +137,7 @@ class MatchTeamPrediction {
     this.exp,
     this.match13TeamExp,
     this.hasDiscrepancy = false,
+    this.recencyWeighted = false,
   });
 
   factory MatchTeamPrediction.fromJson(Map<String, dynamic> json) {
@@ -151,6 +154,7 @@ class MatchTeamPrediction {
           ? Match13TeamExpDetail.fromJson(json['match13TeamExp'] as Map<String, dynamic>)
           : null,
       hasDiscrepancy: json['hasDiscrepancy'] == true,
+      recencyWeighted: json['recencyWeighted'] == true,
     );
   }
 
@@ -166,6 +170,7 @@ class MatchTeamPrediction {
       if (exp != null) 'exp': exp,
       if (match13TeamExp != null) 'match13TeamExp': match13TeamExp!.toJson(),
       'hasDiscrepancy': hasDiscrepancy,
+      'recencyWeighted': recencyWeighted,
     };
   }
 }

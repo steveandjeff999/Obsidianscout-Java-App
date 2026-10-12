@@ -1101,6 +1101,13 @@ class _PredictorScreenState extends State<PredictorScreen> {
                       runSpacing: 4.0,
                       children: [
                         _buildPill('${t.scoutedMatchesCount} matches', isDark),
+                        if (t.recencyWeighted)
+                          Tooltip(
+                            message: context.tr('predictor.recency_weighted_tip',
+                                "Recent matches count more in this team's scouted average (Recency Bias setting)."),
+                            triggerMode: TooltipTriggerMode.tap,
+                            child: _buildPill(context.tr('predictor.recency_weighted', 'Recency-weighted'), isDark),
+                          ),
                         if (effectiveExp && t.exp != null)
                           _buildPill('EXP: ${t.exp!.toStringAsFixed(1)}', isDark),
                         if (effectiveEpa && t.epa != null)
