@@ -7,10 +7,13 @@ import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
+import '../services/battery_rotation.dart';
+import '../services/battery_tracker_sync.dart';
 import '../services/config_collab/config_collab_session.dart';
 import '../services/config_collab/config_sync_engine.dart';
 import '../services/match_checklist_sync.dart';
 import '../theme/obsidian_ui_theme.dart';
+import '../widgets/battery_match_banner.dart';
 import '../widgets/obsidian_glass_app_bar.dart';
 import '../widgets/obsidian_glass_card.dart';
 
@@ -183,6 +186,12 @@ class _MatchChecklistScreenState extends State<MatchChecklistScreen> {
   final Map<String, ChecklistRoom?> _fillRooms = {'match': null, 'day': null, 'event': null};
   int _fillSyncGeneration = 0;
 
+  // Battery Tracker documents: the battery each match needs is shown above the lists.
+  late final BatteryTrackerSync _batterySync = BatteryTrackerSync.of(widget.apiService);
+  BatteryRoom? _batteryInv;
+  BatteryRoom? _batteryPlan;
+  int _batteryGeneration = 0;
+
   // Text fields that must survive live updates
   final Map<String, TextEditingController> _itemControllers = {};
   final Map<String, FocusNode> _itemFocus = {};
@@ -203,6 +212,7 @@ class _MatchChecklistScreenState extends State<MatchChecklistScreen> {
     _api.permissionsNotifier.addListener(_onPermissionsChanged);
     _sync.addListener(_onSyncChanged);
     _sync.offlineChangesSaved.addListener(_onOfflineSaved);
+    _batterySync.addListener(_onBatteryChanged);
     if (_api.nonScoutingToolsEnabled) unawaited(_init());
   }
 
@@ -211,6 +221,7 @@ class _MatchChecklistScreenState extends State<MatchChecklistScreen> {
     _api.permissionsNotifier.removeListener(_onPermissionsChanged);
     _sync.removeListener(_onSyncChanged);
     _sync.offlineChangesSaved.removeListener(_onOfflineSaved);
+    _batterySync.removeListener(_onBatteryChanged);
     _releaseAll();
     for (final c in [
       ..._itemControllers.values,
@@ -235,6 +246,84 @@ class _MatchChecklistScreenState extends State<MatchChecklistScreen> {
       _sync.release(_fillRooms[scope]);
       _fillRooms[scope] = null;
     }
+    _batterySync.release(_batteryInv);
+    _batterySync.release(_batteryPlan);
+    _batteryInv = null;
+    _batteryPlan = null;
+  }
+
+  void _onBatteryChanged() {
+    if (mounted) setState(() {});
+  }
+
+  /// Opens this event's battery plan (and the inventory, once) for the battery banner.
+  Future<void> _syncBatteryRooms() async {
+    final generation = ++_batteryGeneration;
+    if (_batteryInv == null) {
+      final inv = await _batterySync.acquire('');
+      if (!mounted || _batteryInv != null) {
+        _batterySync.release(inv);
+      } else {
+        _batteryInv = inv;
+      }
+    }
+    if (!mounted) return;
+    if (_batteryPlan?.eventKey == _eventKey) return;
+    final previous = _batteryPlan;
+    _batteryPlan = null;
+    _batterySync.release(previous);
+    if (_eventKey.isEmpty) return;
+    final room = await _batterySync.acquire(_eventKey);
+    if (!mounted || generation != _batteryGeneration || room.eventKey != _eventKey || _batteryPlan != null) {
+      _batterySync.release(room);
+      return;
+    }
+    setState(() => _batteryPlan = room);
+  }
+
+  Map<String, dynamic> get _batteryInventory => _batteryInv?.doc ?? const <String, dynamic>{};
+
+  Map<String, dynamic> get _batteryPlanDoc =>
+      _batteryPlan != null && _batteryPlan!.eventKey == _eventKey ? _batteryPlan!.doc : const <String, dynamic>{};
+
+  /// The battery for each of our matches (same order and rules as the Battery Tracker).
+  Map<String, BatterySlot> get _batterySchedule {
+    if (_batteryPlan == null || _batteryPlan!.eventKey != _eventKey) return const {};
+    final ours = _ourMatches.toList()
+      ..sort((a, b) => BatteryRotation.compareMatchOrder(a.compLevel, a.matchNumber, a.matchKey, b.compLevel, b.matchNumber, b.matchKey));
+    final seen = <String>{};
+    final keys = ours.map((m) => m.matchKey).where(seen.add).toList();
+    return BatteryRotation.computeSchedule(_batteryInventory, _batteryPlanDoc, keys);
+  }
+
+  String _batteryName(String id) =>
+      BatteryRotation.batteriesOf(_batteryInventory).where((b) => b.id == id).map((b) => b.displayName).firstOrNull ?? id;
+
+  void _editBatteryPlan(void Function(Map<String, dynamic> doc) mutate) => _batterySync.edit(_batteryPlan, mutate);
+
+  /// Records the scheduled battery as used once a match's checklist is finished (a Battery Tracker setting).
+  void _maybeAutoMarkUsed(String matchKey) {
+    if (_batteryPlan == null || !BatteryRotation.autoMarkUsed(_batteryPlanDoc)) return;
+    if (BatteryRotation.usedOf(_batteryPlanDoc, matchKey).isNotEmpty) return;
+    if (!_isMatchComplete(matchKey, _completions[matchKey])) return;
+    final batteryId = _batterySchedule[matchKey]?.batteryId;
+    if (batteryId == null) return;
+    _editBatteryPlan((doc) => BatteryRotation.markUsed(doc, matchKey, batteryId));
+  }
+
+  Widget? _buildBatteryBanner() {
+    if (_matchKey.isEmpty || BatteryRotation.batteriesOf(_batteryInventory).isEmpty) return null;
+    final slot = _batterySchedule[_matchKey];
+    if (slot == null) return null;
+    final matchKey = _matchKey;
+    return BatteryMatchBanner(
+      slot: slot,
+      nameOf: _batteryName,
+      onSkip: () => _editBatteryPlan((doc) => BatteryRotation.skip(doc, matchKey, slot.batteryId!, _api.currentUser?.username ?? '')),
+      onUnskip: () => _editBatteryPlan((doc) => BatteryRotation.clearSkips(doc, matchKey)),
+      onMarkUsed: () => _editBatteryPlan((doc) => BatteryRotation.markUsed(doc, matchKey, slot.batteryId)),
+      onUnmarkUsed: () => _editBatteryPlan((doc) => BatteryRotation.markUsed(doc, matchKey, null)),
+    );
   }
 
   void _onPermissionsChanged() {
@@ -486,6 +575,7 @@ class _MatchChecklistScreenState extends State<MatchChecklistScreen> {
       _completions.clear();
       _customMatchNames.clear();
     });
+    unawaited(_syncBatteryRooms());
     if (eventKey.isEmpty) {
       await _syncFillRooms();
       return;
@@ -788,6 +878,10 @@ class _MatchChecklistScreenState extends State<MatchChecklistScreen> {
             Text(_matchTitle(), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primary)),
             const SizedBox(height: 4),
             Text(_statusText(lists), style: TextStyle(fontSize: 12, color: secondary)),
+            if (_buildBatteryBanner() case final banner?) ...[
+              const SizedBox(height: 12),
+              banner,
+            ],
           ],
         ),
       ),
@@ -881,6 +975,11 @@ class _MatchChecklistScreenState extends State<MatchChecklistScreen> {
     final unique = visible.where((m) => seen.add(m.matchKey)).toList();
     final customKeys = _customMatchNames.keys.where((k) => !seen.contains(k)).toList();
     String doneMark(String key) => _isMatchComplete(key, _completions[key]) ? '✓ ' : '';
+    final batteries = _batterySchedule;
+    String batteryMark(String key) {
+      final id = batteries[key]?.batteryId;
+      return id == null ? '' : ' · ${batteryText(context, 'battery.checklist.needs', 'Battery: {name}', {'name': _batteryName(id)})}';
+    }
     final hint = _eventKey.isEmpty
         ? context.tr('checklist.select_event_first', 'Select an event first')
         : unique.isEmpty && customKeys.isEmpty
@@ -890,7 +989,7 @@ class _MatchChecklistScreenState extends State<MatchChecklistScreen> {
             : context.tr('checklist.select_match', 'Select a match');
     final values = {...unique.map((m) => m.matchKey), ...customKeys};
     return DropdownButtonFormField<String>(
-      key: ValueKey('match-picker-$_eventKey-$_onlyOurs-${values.length}-$_matchKey'),
+      key: ValueKey('match-picker-$_eventKey-$_onlyOurs-${values.length}-$_matchKey-${batteries.values.map((s) => s.batteryId).join(',')}'),
       isExpanded: true,
       initialValue: values.contains(_matchKey) ? _matchKey : null,
       hint: Text(hint),
@@ -900,7 +999,7 @@ class _MatchChecklistScreenState extends State<MatchChecklistScreen> {
           DropdownMenuItem(
             value: m.matchKey,
             child: Text(
-              '${doneMark(m.matchKey)}${_matchLabel(m)}${_allianceOf(m) == null ? '' : ' (${context.tr('checklist.alliance_short_${_allianceOf(m)}', _allianceOf(m) == 'red' ? 'Red' : 'Blue')})'}',
+              '${doneMark(m.matchKey)}${_matchLabel(m)}${_allianceOf(m) == null ? '' : ' (${context.tr('checklist.alliance_short_${_allianceOf(m)}', _allianceOf(m) == 'red' ? 'Red' : 'Blue')})'}${batteryMark(m.matchKey)}',
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -1071,6 +1170,10 @@ class _MatchChecklistScreenState extends State<MatchChecklistScreen> {
       }
       doc['checked'] = c;
     });
+    if (room.eventKey == _eventKey && room.matchKey == _matchKey) {
+      _completions[_matchKey] = Map<String, dynamic>.from(room.session.lastView.doc);
+      _maybeAutoMarkUsed(_matchKey);
+    }
   }
 
   Future<void> _confirmResetList(_ChecklistList l, ChecklistRoom room) async {

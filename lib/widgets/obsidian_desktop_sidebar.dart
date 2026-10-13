@@ -250,6 +250,13 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
             'labelKey': 'nav.match_checklist',
             'subKey': 'subtitle.match_checklist',
           },
+          {
+            'pageId': 'battery-tracker',
+            'index': 34,
+            'icon': Icons.battery_charging_full_rounded,
+            'labelKey': 'nav.battery_tracker',
+            'subKey': 'subtitle.battery_tracker',
+          },
         ],
       },
       {

@@ -1245,7 +1245,7 @@ class ApiService {
   // Non-Scouting Tools
 
   /// Pages shown only when the user turns on Non-Scouting Tools.
-  static const List<String> nonScoutingToolPages = ['match-checklist'];
+  static const List<String> nonScoutingToolPages = ['match-checklist', 'battery-tracker'];
 
   bool get nonScoutingToolsEnabled => _currentUser?.nonScoutingToolsEnabled ?? false;
 
@@ -1361,6 +1361,50 @@ class ApiService {
       Uri.parse('$_currentServerUrl/api/match-checklist'),
       {'eventKey': eventKey, 'matchKey': matchKey, 'dataJson': dataJson},
       'cache_match_checklist_${eventKey}_$matchKey',
+      dataJson,
+    );
+  }
+
+  // Battery Tracker (drive-team battery inventory + per-event rotation plan, edited live)
+
+  /// WebSocket URL for a live battery document: the team's inventory, or one event's rotation plan.
+  Uri batteryTrackerCollabUri({String? eventKey}) {
+    final server = Uri.parse(_currentServerUrl);
+    return Uri(
+      scheme: server.scheme == 'https' ? 'wss' : 'ws',
+      host: server.host,
+      port: server.hasPort ? server.port : null,
+      path: '/api/battery-tracker/collab',
+      queryParameters: eventKey == null || eventKey.isEmpty ? {'inventory': '1'} : {'eventKey': eventKey},
+    );
+  }
+
+  Future<Map<String, dynamic>?> fetchBatteryInventory() => _fetchChecklistDoc(
+        Uri.parse('$_currentServerUrl/api/battery-tracker/inventory'),
+        'cache_battery_inventory',
+      );
+
+  Future<bool> saveBatteryInventory(Map<String, dynamic> doc) {
+    final dataJson = jsonEncode(doc);
+    return _putChecklistDoc(
+      Uri.parse('$_currentServerUrl/api/battery-tracker/inventory'),
+      {'dataJson': dataJson},
+      'cache_battery_inventory',
+      dataJson,
+    );
+  }
+
+  Future<Map<String, dynamic>?> fetchBatteryPlan(String eventKey) => _fetchChecklistDoc(
+        Uri.parse('$_currentServerUrl/api/battery-tracker/event').replace(queryParameters: {'eventKey': eventKey}),
+        'cache_battery_plan_$eventKey',
+      );
+
+  Future<bool> saveBatteryPlan(String eventKey, Map<String, dynamic> doc) {
+    final dataJson = jsonEncode(doc);
+    return _putChecklistDoc(
+      Uri.parse('$_currentServerUrl/api/battery-tracker/event'),
+      {'eventKey': eventKey, 'dataJson': dataJson},
+      'cache_battery_plan_$eventKey',
       dataJson,
     );
   }
