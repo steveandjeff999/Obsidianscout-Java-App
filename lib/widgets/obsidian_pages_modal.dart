@@ -248,6 +248,15 @@ class ObsidianPagesModal extends StatelessWidget {
         'color': Colors.lightGreenAccent,
       },
       {
+        'pageId': 'battery-tracker',
+        'index': 34,
+        'icon': Icons.battery_charging_full_rounded,
+        'name': context.tr('nav.battery_tracker', 'Battery Tracker'),
+        'desc': context.tr('pages.battery_tracker_desc', 'Battery rotation for each match; pit batteries stay out'),
+        'tag': context.tr('pages.tag_non_scouting', 'Drive Team'),
+        'color': Colors.lightGreenAccent,
+      },
+      {
         'pageId': 'chat',
         'index': 6,
         'icon': Icons.chat_bubble_outline_rounded,

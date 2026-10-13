@@ -51,7 +51,9 @@ import 'screens/my_assignments_screen.dart';
 import 'screens/scout_assignments_screen.dart';
 import 'screens/match_planning_screen.dart';
 import 'screens/match_checklist_screen.dart';
+import 'screens/battery_tracker_screen.dart';
 import 'services/match_checklist_sync.dart';
+import 'services/battery_tracker_sync.dart';
 import 'screens/team_shared_links_screen.dart';
 import 'services/api_service.dart';
 import 'services/auth_storage_service.dart';
@@ -433,6 +435,8 @@ class _MainShellState extends State<MainShell> {
         return Icons.share_rounded;
       case 33:
         return Icons.checklist_rounded;
+      case 34:
+        return Icons.battery_charging_full_rounded;
       default:
         return Icons.dashboard_rounded;
     }
@@ -508,6 +512,8 @@ class _MainShellState extends State<MainShell> {
         return context.tr('nav.shared_links', 'Shared Links');
       case 33:
         return context.tr('nav.match_checklist', 'Match Checklist');
+      case 34:
+        return context.tr('nav.battery_tracker', 'Battery Tracker');
       default:
         return 'Dashboard';
     }
@@ -660,7 +666,10 @@ class _MainShellState extends State<MainShell> {
   void _onPermissionsChanged() {
     if (!mounted) return;
     // Match Checklist edits made offline save in the background, even before the screen is opened.
-    if (widget.apiService.nonScoutingToolsEnabled) unawaited(MatchChecklistSync.of(widget.apiService).resumeDrafts());
+    if (widget.apiService.nonScoutingToolsEnabled) {
+      unawaited(MatchChecklistSync.of(widget.apiService).resumeDrafts());
+      unawaited(BatteryTrackerSync.of(widget.apiService).resumeDrafts());
+    }
     for (final tab in _desktopTabs) {
       final pageId = _getPageIdForIndex(tab.screenIndex);
       if (!widget.apiService.hasPageAccess(pageId)) {
@@ -776,6 +785,7 @@ class _MainShellState extends State<MainShell> {
     'nav.match_planning',
     'nav.shared_links',
     'nav.match_checklist',
+    'nav.battery_tracker',
   ];
   final List<String> _subtitleKeys = [
     'subtitle.dashboard',
@@ -812,10 +822,11 @@ class _MainShellState extends State<MainShell> {
     'subtitle.match_planning',
     'subtitle.shared_links',
     'subtitle.match_checklist',
+    'subtitle.battery_tracker',
   ];
 
   /// Number of screens _buildScreenByIndex can build (indexes 0 to _screenCount - 1). Bump when adding a screen.
-  static const int _screenCount = 34;
+  static const int _screenCount = 35;
 
   String _getPageIdForIndex(int index) {
     switch (index) {
@@ -887,6 +898,8 @@ class _MainShellState extends State<MainShell> {
         return 'shared-links';
       case 33:
         return 'match-checklist';
+      case 34:
+        return 'battery-tracker';
       default:
         return 'dashboard';
     }
@@ -1260,6 +1273,14 @@ class _MainShellState extends State<MainShell> {
           isVisible: isTabActive && _currentIndex == 33,
           isBarsVisible: _isBarsVisible,
           onOpenSettings: () => _navigateScreen(5),
+        );
+      case 34:
+        return BatteryTrackerScreen(
+          apiService: widget.apiService,
+          isVisible: isTabActive && _currentIndex == 34,
+          isBarsVisible: _isBarsVisible,
+          onOpenSettings: () => _navigateScreen(5),
+          onOpenChecklist: () => _navigateScreen(33),
         );
       default:
         return DashboardScreen(
