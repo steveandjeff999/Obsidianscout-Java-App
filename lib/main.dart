@@ -51,6 +51,7 @@ import 'screens/my_assignments_screen.dart';
 import 'screens/scout_assignments_screen.dart';
 import 'screens/match_planning_screen.dart';
 import 'screens/match_checklist_screen.dart';
+import 'services/match_checklist_sync.dart';
 import 'screens/team_shared_links_screen.dart';
 import 'services/api_service.dart';
 import 'services/auth_storage_service.dart';
@@ -658,6 +659,8 @@ class _MainShellState extends State<MainShell> {
 
   void _onPermissionsChanged() {
     if (!mounted) return;
+    // Match Checklist edits made offline save in the background, even before the screen is opened.
+    if (widget.apiService.nonScoutingToolsEnabled) unawaited(MatchChecklistSync.of(widget.apiService).resumeDrafts());
     for (final tab in _desktopTabs) {
       final pageId = _getPageIdForIndex(tab.screenIndex);
       if (!widget.apiService.hasPageAccess(pageId)) {

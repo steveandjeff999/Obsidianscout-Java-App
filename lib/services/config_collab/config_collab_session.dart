@@ -118,6 +118,10 @@ class ConfigCollabSession {
   bool get hasUnsavedChanges => _inflight.isNotEmpty || _unsent.isNotEmpty;
   Map<String, dynamic> get localDoc => _local.doc;
 
+  /// The document as last confirmed by the server. With [lastView] it is enough to rebuild unsaved edits
+  /// later: `load(confirmedDoc)` then `commit(lastView.doc)` (used to keep offline edits across restarts).
+  Map<String, dynamic> get confirmedDoc => _confirmed.doc;
+
   /// The config as this editor shows it, with the key of each shown field.
   KeyedDoc project(KeyedDoc state) {
     final fields = <dynamic>[];
