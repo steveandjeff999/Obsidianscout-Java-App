@@ -11,14 +11,14 @@ class InlineCameraCaptureDialog extends StatefulWidget {
 
   const InlineCameraCaptureDialog({
     super.key,
-    this.maxDimension = 540,
-    this.quality = 65,
+    this.maxDimension = 1280,
+    this.quality = 76,
   });
 
   static Future<ProcessedImageResult?> show(
     BuildContext context, {
-    int maxDimension = 540,
-    int quality = 65,
+    int maxDimension = 1280,
+    int quality = 76,
   }) async {
     return showDialog<ProcessedImageResult>(
       context: context,
@@ -146,7 +146,7 @@ class _InlineCameraCaptureDialogState extends State<InlineCameraCaptureDialog> {
       final XFile photo = await _controller!.takePicture();
       final Uint8List rawBytes = await photo.readAsBytes();
 
-      final result = ImageProcessingUtils.processImageBytes(
+      final result = await ImageProcessingUtils.processImageBytesAsync(
         rawBytes,
         maxDimension: widget.maxDimension,
         quality: widget.quality,

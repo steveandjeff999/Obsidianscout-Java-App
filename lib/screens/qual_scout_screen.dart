@@ -9,6 +9,10 @@ import '../services/api_service.dart';
 import '../services/scout_history_service.dart';
 import '../widgets/obsidian_barcode_modal.dart';
 import '../widgets/obsidian_feedback.dart';
+import '../widgets/sync_status_banner.dart';
+import '../models/assignment_models.dart';
+import '../services/assignment_advance_service.dart';
+import '../widgets/next_assignment_chip.dart';
 
 enum QualScoutScope { singleTeam, redAlliance, blueAlliance, bothAlliances }
 
@@ -53,6 +57,14 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
   bool _isLoading = true;
   bool _isSubmitting = false;
   final Map<String, dynamic> _formData = {};
+
+  // Assignment auto-advance: after a save, jump to the scout's next qualitative assignment.
+  List<ScoutingAssignment> _assignments = [];
+  NextAssignment? _nextAssignment;
+  bool _advanced = false;
+  bool _autoAdvance = true;
+  bool _initialAdvanceDone = false;
+  final Set<String> _doneIds = {};
 
   @override
   void initState() {
@@ -101,6 +113,7 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
         }
         _applyInitialSelections();
       });
+      _initAssignments();
     }
 
     // If offline, stop immediately
@@ -153,9 +166,146 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
         }
         _applyInitialSelections();
       });
+      _initAssignments();
     } catch (_) {
       if (mounted && _isLoading) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _initAssignments() async {
+    try {
+      final enabled = await AssignmentAdvanceService.isEnabled();
+      final list = await widget.apiService.getCachedMyAssignments(_eventKey);
+      if (!mounted) return;
+      final next = AssignmentAdvanceService.next(
+        list,
+        type: 'QUALITATIVE',
+        matches: _matches,
+        afterMatchKey: _selectedMatch?.matchKey,
+      );
+      setState(() {
+        _assignments = list;
+        _autoAdvance = enabled;
+        _nextAssignment = next;
+        _advanced = false;
+        final hasInitial = widget.initialMatchKey != null || widget.initialAllianceColor != null || widget.sourceAssignmentId != null;
+        if (!_initialAdvanceDone && enabled && !hasInitial && _selectedMatch == null && _selectedTeam == null && next?.assignment != null) {
+          _applyAssignment(next!.assignment!);
+          _advanced = true;
+        }
+        if (_matches.isNotEmpty) _initialAdvanceDone = true;
+      });
+    } catch (_) {}
+  }
+
+  /// Selects an assignment's match, and its team or alliance. Call inside setState.
+  void _applyAssignment(ScoutingAssignment a) {
+    final match = _matches.where((m) => a.isMatchFor(m)).firstOrNull;
+    if (match != null) _selectedMatch = match;
+    final teamNumber = a.targetTeamNumber;
+    if (teamNumber != null) {
+      _scope = QualScoutScope.singleTeam;
+      _selectedTeam = _teams.where((t) => t.teamNumber == teamNumber).firstOrNull ??
+          TeamModel(eventKey: _eventKey ?? '', teamKey: 'frc$teamNumber', teamNumber: teamNumber);
+    } else {
+      final color = (a.allianceColor ?? a.targetAlliance ?? '').toLowerCase();
+      _scope = color == 'red'
+          ? QualScoutScope.redAlliance
+          : (color == 'blue' ? QualScoutScope.blueAlliance : QualScoutScope.bothAlliances);
+      _selectedTeam = null;
+    }
+  }
+
+  String? _assignmentIdForSelection() {
+    final match = _selectedMatch;
+    if (match == null) return null;
+    final team = _selectedTeam;
+    final hit = _assignments.where((a) {
+      if (a.assignmentType.toUpperCase() != 'QUALITATIVE' || !a.isMatchFor(match)) return false;
+      if (_scope == QualScoutScope.singleTeam) return team != null && a.targetTeamNumber == team.teamNumber;
+      if (a.targetTeamNumber != null) return false;
+      final color = (a.allianceColor ?? a.targetAlliance ?? '').toLowerCase();
+      return _scope == QualScoutScope.bothAlliances ||
+          color.isEmpty ||
+          (color == 'red') == (_scope == QualScoutScope.redAlliance);
+    }).firstOrNull;
+    if (hit != null) return hit.id;
+    final sourceId = widget.sourceAssignmentId;
+    final sentHere = (widget.initialMatchKey ?? '').toLowerCase() == match.matchKey.toLowerCase();
+    return (sourceId != null && sourceId.isNotEmpty && sentHere) ? sourceId : null;
+  }
+
+  Future<void> _advanceAfterSave(String? matchKey, int? matchNumber, String? completedId) async {
+    if (completedId != null) _doneIds.add(completedId);
+    try {
+      final list = await widget.apiService.getCachedMyAssignments(_eventKey);
+      if (!mounted) return;
+      final source = list.isNotEmpty ? list : _assignments;
+      final next = AssignmentAdvanceService.next(
+        source,
+        type: 'QUALITATIVE',
+        matches: _matches,
+        afterMatchKey: matchKey,
+        afterMatchNumber: matchNumber,
+        justCompletedIds: {if (completedId != null) completedId},
+      );
+      setState(() {
+        _assignments = source;
+        _nextAssignment = next;
+        _advanced = false;
+        if (_autoAdvance && next?.assignment != null) {
+          _applyAssignment(next!.assignment!);
+          _advanced = true;
+        }
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _setAutoAdvance(bool enabled) async {
+    await AssignmentAdvanceService.setEnabled(enabled);
+    if (mounted) setState(() => _autoAdvance = enabled);
+  }
+
+  Widget _buildNextAssignmentChip({EdgeInsetsGeometry? margin}) {
+    final currentId = _assignmentIdForSelection();
+    final current = currentId == null || _doneIds.contains(currentId)
+        ? null
+        : _assignments.where((a) => a.id == currentId && AssignmentAdvanceService.isOpen(a)).firstOrNull;
+    final ahead = AssignmentAdvanceService.next(
+      _assignments,
+      type: 'QUALITATIVE',
+      matches: _matches,
+      afterMatchKey: _selectedMatch?.matchKey,
+      afterMatchNumber: _selectedMatch?.matchNumber,
+      justCompletedIds: {..._doneIds, if (current != null) current.id},
+      noWrap: true,
+    );
+    // Nothing after the selection: point at the earliest open one instead (or report none left).
+    final fallback = ahead?.assignment == null
+        ? AssignmentAdvanceService.next(_assignments, type: 'QUALITATIVE', matches: _matches, justCompletedIds: {..._doneIds, if (current != null) current.id})
+        : null;
+    final upNext = current != null ? ahead?.assignment : (ahead?.assignment ?? fallback?.assignment);
+    final earlierOpen = current != null && ahead?.assignment == null ? (ahead?.remaining ?? 0) : 0;
+    return NextAssignmentChip(
+      hasAssignments: _assignments.any((a) => a.assignmentType.toUpperCase() == 'QUALITATIVE'),
+      current: current,
+      upNext: upNext,
+      earlierOpen: earlierOpen,
+      skippedPast: _advanced ? (_nextAssignment?.skippedPast ?? 0) : 0,
+      autoAdvance: _autoAdvance,
+      onToggleAutoAdvance: _setAutoAdvance,
+      // Change: clear the pre-filled selection so the scout picks manually.
+      onChange: () => setState(() {
+        _selectedMatch = null;
+        _selectedTeam = null;
+        _advanced = false;
+      }),
+      onGoTo: (a) => setState(() {
+        _applyAssignment(a);
+        _advanced = false;
+      }),
+      margin: margin ?? const EdgeInsets.fromLTRB(16, 4, 16, 4),
+    );
   }
 
   void _applyInitialSelections({bool force = false}) {
@@ -627,10 +777,12 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
           message: 'Qualitative scouting data saved successfully (HTTP ${response.statusCode ?? 200})',
           statusCode: response.statusCode ?? 200,
         );
-        if (widget.sourceAssignmentId != null && widget.sourceAssignmentId!.isNotEmpty) {
-          widget.apiService.updateAssignmentStatus(widget.sourceAssignmentId!, 'COMPLETED');
+        final completedId = _assignmentIdForSelection();
+        if (completedId != null) {
+          widget.apiService.updateAssignmentStatus(completedId, 'COMPLETED');
         }
         _resetForm();
+        _advanceAfterSave(_selectedMatch?.matchKey, _selectedMatch?.matchNumber, completedId);
       } else if (response.isOffline) {
         ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
           type: 'qual',
@@ -642,13 +794,15 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
         ));
         ObsidianFeedback.showWarning(
           context,
-          title: 'Saved to Offline Cache',
-          message: 'Device offline. Saved to offline cache and will sync when online.',
+          title: 'Saved on This Device Only',
+          message: 'Not on the server yet. It will upload automatically when the connection returns.',
         );
-        if (widget.sourceAssignmentId != null && widget.sourceAssignmentId!.isNotEmpty) {
-          widget.apiService.updateAssignmentStatus(widget.sourceAssignmentId!, 'COMPLETED');
+        final completedId = _assignmentIdForSelection();
+        if (completedId != null) {
+          widget.apiService.updateAssignmentStatus(completedId, 'COMPLETED');
         }
         _resetForm();
+        _advanceAfterSave(_selectedMatch?.matchKey, _selectedMatch?.matchNumber, completedId);
       } else {
         ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
           type: 'qual',
@@ -710,10 +864,12 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
           message: 'Saved qualitative scouting data for $scopeLabel (${allianceTeams.length} teams).',
           statusCode: response.statusCode ?? 200,
         );
-        if (widget.sourceAssignmentId != null && widget.sourceAssignmentId!.isNotEmpty) {
-          widget.apiService.updateAssignmentStatus(widget.sourceAssignmentId!, 'COMPLETED');
+        final completedId = _assignmentIdForSelection();
+        if (completedId != null) {
+          widget.apiService.updateAssignmentStatus(completedId, 'COMPLETED');
         }
         _resetForm();
+        _advanceAfterSave(_selectedMatch?.matchKey, _selectedMatch?.matchNumber, completedId);
       } else if (response.isOffline) {
         for (final p in payloads) {
           ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
@@ -727,13 +883,15 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
         }
         ObsidianFeedback.showWarning(
           context,
-          title: 'Saved to Offline Cache',
-          message: 'Device offline. Saved ${allianceTeams.length} team entries to offline cache.',
+          title: 'Saved on This Device Only',
+          message: '${allianceTeams.length} team entries are not on the server yet. They will upload automatically when the connection returns.',
         );
-        if (widget.sourceAssignmentId != null && widget.sourceAssignmentId!.isNotEmpty) {
-          widget.apiService.updateAssignmentStatus(widget.sourceAssignmentId!, 'COMPLETED');
+        final completedId = _assignmentIdForSelection();
+        if (completedId != null) {
+          widget.apiService.updateAssignmentStatus(completedId, 'COMPLETED');
         }
         _resetForm();
+        _advanceAfterSave(_selectedMatch?.matchKey, _selectedMatch?.matchNumber, completedId);
       } else {
         for (final p in payloads) {
           ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
@@ -855,6 +1013,8 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
         key: _formKey,
         child: Column(
           children: [
+            SyncStatusBanner(apiService: widget.apiService),
+            _buildNextAssignmentChip(),
             // Scope Selector Card
             ObsidianGlassCard(
               child: Column(

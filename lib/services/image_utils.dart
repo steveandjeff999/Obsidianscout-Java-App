@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:isolate';
 import 'dart:typed_data';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
@@ -8,39 +10,42 @@ class ProcessedImageResult {
   final int width;
   final int height;
   final int sizeBytes;
+  final String format;
 
   ProcessedImageResult({
     required this.dataUrl,
     required this.width,
     required this.height,
     required this.sizeBytes,
+    this.format = 'WebP',
   });
 
-  String get formattedSize => '${(sizeBytes / 1024).toStringAsFixed(1)} KB';
+  String get formattedSize => '${(sizeBytes / 1024).toStringAsFixed(1)} KB ($format)';
 }
 
 class ImageProcessingUtils {
   static final ImagePicker _picker = ImagePicker();
 
   /// Captures an image using the device camera or picks from gallery,
-  /// then strips EXIF/GPS metadata, downscales if UHD (max 540px), and compresses to JPEG.
+  /// then strips EXIF/GPS metadata, downscales to at most 1280px (the server's limit),
+  /// and compresses to WebP (usually ~150–300 KB) in a background isolate.
   static Future<ProcessedImageResult?> pickAndProcessImage({
     required ImageSource source,
-    int maxDimension = 540,
-    int quality = 65,
+    int maxDimension = 1280,
+    int quality = 76,
   }) async {
     try {
       final XFile? pickedFile = await _picker.pickImage(
         source: source,
-        maxWidth: 1920,
-        maxHeight: 1920,
-        imageQuality: 85,
+        maxWidth: 2560,
+        maxHeight: 2560,
+        imageQuality: 95,
       );
 
       if (pickedFile == null) return null;
 
       final Uint8List rawBytes = await pickedFile.readAsBytes();
-      return processImageBytes(
+      return await processImageBytesAsync(
         rawBytes,
         maxDimension: maxDimension,
         quality: quality,
@@ -50,12 +55,36 @@ class ImageProcessingUtils {
     }
   }
 
-  /// Strips EXIF/GPS/device metadata and polyglots by decoding and re-encoding pixel buffer,
-  /// downscales if exceeding maxDimension (e.g., 540px), and encodes to optimized JPEG.
+  /// Offloads CPU-intensive image decoding, resizing, and WebP compression
+  /// to a background Dart isolate to keep the UI thread completely fluid.
+  static Future<ProcessedImageResult?> processImageBytesAsync(
+    Uint8List rawBytes, {
+    int maxDimension = 1280,
+    int quality = 76,
+  }) async {
+    try {
+      return await Isolate.run(() => processImageBytes(
+        rawBytes,
+        maxDimension: maxDimension,
+        quality: quality,
+      ));
+    } catch (_) {
+      // Fallback to synchronous processing if isolate spawn fails
+      return processImageBytes(
+        rawBytes,
+        maxDimension: maxDimension,
+        quality: quality,
+      );
+    }
+  }
+
+  /// Strips EXIF/GPS/device metadata by decoding and re-encoding pixel buffer,
+  /// downscales if exceeding maxDimension (e.g. 1280px), and encodes to lossy WebP
+  /// (usually ~150–300 KB).
   static ProcessedImageResult? processImageBytes(
     Uint8List rawBytes, {
-    int maxDimension = 540,
-    int quality = 65,
+    int maxDimension = 1280,
+    int quality = 76,
   }) {
     try {
       img.Image? decoded = img.decodeImage(rawBytes);
@@ -69,10 +98,10 @@ class ImageProcessingUtils {
 
       if (width > maxDimension || height > maxDimension) {
         if (width > height) {
-          height = ((height * maxDimension) / width).round();
+          height = ((height * maxDimension) / width).round().clamp(1, maxDimension);
           width = maxDimension;
         } else {
-          width = ((width * maxDimension) / height).round();
+          width = ((width * maxDimension) / height).round().clamp(1, maxDimension);
           height = maxDimension;
         }
 
@@ -84,19 +113,52 @@ class ImageProcessingUtils {
         );
       }
 
-      // Re-encoding via encodeJpg eliminates all raw EXIF/GPS/camera chunks
-      final Uint8List jpgBytes = Uint8List.fromList(
-        img.encodeJpg(decoded, quality: quality),
+      // Encode lossy WebP (lossless: false enables quality-based compression)
+      Uint8List webpBytes = Uint8List.fromList(
+        img.encodeWebP(decoded, lossless: false, quality: quality, method: 4),
       );
 
-      final String base64Str = base64Encode(jpgBytes);
-      final String dataUrl = 'data:image/jpeg;base64,$base64Str';
+      // Adaptive size pass: if high-frequency noise pushes the image over 300 KB,
+      // downscale slightly and lower quality to stay near the budget.
+      if (webpBytes.length > 300 * 1024) {
+        final int targetMaxDim = (maxDimension * 0.8).round().clamp(800, 1280);
+        final int targetQ = (quality - 8).clamp(55, 75);
+
+        int adaptiveW = decoded.width;
+        int adaptiveH = decoded.height;
+        if (adaptiveW > targetMaxDim || adaptiveH > targetMaxDim) {
+          if (adaptiveW > adaptiveH) {
+            adaptiveH = ((adaptiveH * targetMaxDim) / adaptiveW).round().clamp(1, targetMaxDim);
+            adaptiveW = targetMaxDim;
+          } else {
+            adaptiveW = ((adaptiveW * targetMaxDim) / adaptiveH).round().clamp(1, targetMaxDim);
+            adaptiveH = targetMaxDim;
+          }
+
+          decoded = img.copyResize(
+            decoded,
+            width: adaptiveW,
+            height: adaptiveH,
+            interpolation: img.Interpolation.linear,
+          );
+          width = adaptiveW;
+          height = adaptiveH;
+        }
+
+        webpBytes = Uint8List.fromList(
+          img.encodeWebP(decoded, lossless: false, quality: targetQ, method: 4),
+        );
+      }
+
+      final String base64Str = base64Encode(webpBytes);
+      final String dataUrl = 'data:image/webp;base64,$base64Str';
 
       return ProcessedImageResult(
         dataUrl: dataUrl,
         width: width,
         height: height,
-        sizeBytes: jpgBytes.length,
+        sizeBytes: webpBytes.length,
+        format: 'WebP',
       );
     } catch (e) {
       return null;

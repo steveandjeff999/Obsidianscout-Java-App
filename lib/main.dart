@@ -57,6 +57,7 @@ import 'services/battery_tracker_sync.dart';
 import 'screens/team_shared_links_screen.dart';
 import 'services/api_service.dart';
 import 'services/auth_storage_service.dart';
+import 'data/local_store.dart';
 import 'services/biometric_auth_service.dart';
 import 'services/fcm_helper.dart';
 import 'services/gamepad_service.dart';
@@ -87,6 +88,14 @@ void main() async {
     print('PLATFORM_ERROR: $error\nSTACK_TRACE:\n$stack');
     return true;
   };
+
+  // Open the on-device database (and move old SharedPreferences caches into it) before
+  // anything reads cached data.
+  try {
+    await LocalStore.instance.ensureReady();
+  } catch (e, st) {
+    debugPrint('[LocalStore] Init error: $e\n$st');
+  }
 
   final apiService = ApiService();
   try {

@@ -8,7 +8,6 @@ import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zxing_lib/common.dart' as zxing_common;
 import 'package:zxing_lib/qrcode.dart' as zxing_qr;
 import 'package:zxing_lib/zxing.dart' as zxing;
@@ -19,6 +18,7 @@ import '../widgets/obsidian_barcode_modal.dart';
 import '../widgets/obsidian_feedback.dart';
 import '../services/api_service.dart';
 import '../services/scout_history_service.dart';
+import '../data/local_store.dart';
 
 class ScannedQueueItem {
   final String id;
@@ -501,10 +501,10 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
 
   Future<void> _loadQueue() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_storageKey);
+      final raw = await LocalStore.instance.getString(_storageKey);
       if (raw != null && raw.isNotEmpty) {
-        final List list = jsonDecode(raw);
+        final List list = await LocalStore.decodeJson(raw);
+        if (!mounted) return;
         setState(() {
           _queue = list.map((item) => ScannedQueueItem.fromJson(item as Map<String, dynamic>)).toList();
         });
@@ -514,9 +514,8 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
 
   Future<void> _saveQueue() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
       final raw = jsonEncode(_queue.map((e) => e.toJson()).toList());
-      await prefs.setString(_storageKey, raw);
+      await LocalStore.instance.setString(_storageKey, raw);
     } catch (_) {}
   }
 

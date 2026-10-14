@@ -14,6 +14,34 @@ import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_feedback.dart';
 import '../widgets/obsidian_glass_card.dart';
 
+/// Dropdown options in a config with no value, as "Field: Option". Picking one would store an
+/// empty answer that reads the same as "never answered".
+@visibleForTesting
+List<String> blankOptionValues(String rawJson) {
+  String text(Object? label) {
+    if (label is Map) return (label['en'] ?? (label.values.isEmpty ? '' : label.values.first))?.toString() ?? '';
+    return label?.toString() ?? '';
+  }
+
+  final problems = <String>[];
+  try {
+    final decoded = jsonDecode(rawJson);
+    final fields = decoded is Map ? decoded['fields'] : null;
+    if (fields is! List) return problems;
+    for (final field in fields.whereType<Map>()) {
+      final options = field['options'];
+      if (options is! List) continue;
+      final fieldLabel = text(field['label']).isNotEmpty ? text(field['label']) : (field['id']?.toString() ?? '?');
+      for (final option in options) {
+        final value = option is Map ? (option['value']?.toString() ?? '') : (option?.toString() ?? '');
+        final label = option is Map ? text(option['label']) : value;
+        if (value.trim().isEmpty) problems.add('$fieldLabel: ${label.isEmpty ? '(no label)' : label}');
+      }
+    }
+  } catch (_) {}
+  return problems;
+}
+
 class ConfigEditorScreen extends StatefulWidget {
   final ApiService apiService;
   final String initialKind; // "game", "pit", "qual", "api", "permissions"
@@ -557,6 +585,18 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       }
     } else {
       _syncVisualToRaw();
+    }
+
+    // A dropdown option with no value saves answers as nothing, so that data would be lost.
+    final blankOptions = blankOptionValues(_rawJsonController.text);
+    if (blankOptions.isNotEmpty) {
+      ObsidianFeedback.showError(
+        context,
+        title: 'Option Value Missing',
+        message: 'Every dropdown option needs a value, otherwise picking it saves nothing. '
+            'Add a value for ${blankOptions.join('; ')}.',
+      );
+      return;
     }
 
     final collab = _collab;

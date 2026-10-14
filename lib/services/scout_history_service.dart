@@ -1,14 +1,12 @@
-import 'dart:convert';
 import 'dart:math';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../data/local_store.dart';
 import '../models/assignment_models.dart';
 import '../models/scout_history_models.dart';
 
-/// Persists scouting history entries on-device via SharedPreferences.
+/// Persists scouting history entries on-device (SQLite via [LocalStore]).
 /// All entries for match, pit, and qual scouting actions are stored here
 /// regardless of how they were submitted (direct upload, QR, or offline cache).
 class ScoutHistoryService {
-  static const String _storageKey = 'obsidianscout:scout_history';
   static const int maxEntries = 500;
   static const int maxRetentionDays = 30;
 
@@ -31,17 +29,13 @@ class ScoutHistoryService {
   // Core CRUD operations
   // ---------------------------------------------------------------------------
 
-  /// Load all history entries from SharedPreferences, newest first.
+  /// Load all history entries from on-device storage, newest first.
   /// Automatically purges records older than [maxRetentionDays] days (30 days).
   static Future<List<ScoutHistoryEntry>> loadAll({bool pruneExpired = true}) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_storageKey);
-      if (raw == null || raw.isEmpty) return [];
-      final List<dynamic> list = jsonDecode(raw);
-      final entries = list
-          .map((e) => ScoutHistoryEntry.fromJson(e as Map<String, dynamic>))
-          .toList();
+      final raw = await LocalStore.instance.loadHistory();
+      if (raw.isEmpty) return [];
+      final entries = raw.map(ScoutHistoryEntry.fromJson).toList();
 
       if (pruneExpired) {
         final now = DateTime.now();
@@ -49,7 +43,8 @@ class ScoutHistoryService {
         final validEntries = entries.where((e) => now.difference(e.timestamp) <= maxAge).toList();
 
         if (validEntries.length != entries.length) {
-          await _persist(prefs, validEntries);
+          final expiredIds = entries.where((e) => now.difference(e.timestamp) > maxAge).map((e) => e.id);
+          await LocalStore.instance.deleteHistory(expiredIds);
         }
         validEntries.sort((a, b) => b.timestamp.compareTo(a.timestamp));
         return validEntries;
@@ -84,22 +79,13 @@ class ScoutHistoryService {
     Duration maxAge = const Duration(days: maxRetentionDays),
   }) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_storageKey);
-      if (raw == null || raw.isEmpty) return 0;
-      final List<dynamic> list = jsonDecode(raw);
-      final entries = list
-          .map((e) => ScoutHistoryEntry.fromJson(e as Map<String, dynamic>))
-          .toList();
-
+      final entries = await loadAll(pruneExpired: false);
       final now = DateTime.now();
-      final validEntries = entries.where((e) => now.difference(e.timestamp) <= maxAge).toList();
-      final purgedCount = entries.length - validEntries.length;
-
-      if (purgedCount > 0) {
-        await _persist(prefs, validEntries);
+      final expiredIds = entries.where((e) => now.difference(e.timestamp) > maxAge).map((e) => e.id).toList();
+      if (expiredIds.isNotEmpty) {
+        await LocalStore.instance.deleteHistory(expiredIds);
       }
-      return purgedCount;
+      return expiredIds.length;
     } catch (_) {
       return 0;
     }
@@ -109,41 +95,62 @@ class ScoutHistoryService {
   /// Automatically purges records older than [maxRetentionDays] days.
   static Future<void> addEntry(ScoutHistoryEntry entry) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final current = await loadAll(pruneExpired: true);
-
       // Don't add if already expired
       if (entry.isExpired(maxAge: const Duration(days: maxRetentionDays))) {
         return;
       }
-
-      current.insert(0, entry);
-      final trimmed = current.length > maxEntries
-          ? current.sublist(0, maxEntries)
-          : current;
-      await _persist(prefs, trimmed);
+      // One row per entry: adding doesn't rewrite (or re-decode) the rest of the history.
+      await LocalStore.instance.putHistory(entry.toJson());
+      await LocalStore.instance.trimHistory(
+        keep: maxEntries,
+        notBefore: DateTime.now().subtract(const Duration(days: maxRetentionDays)),
+      );
     } catch (_) {}
   }
 
   /// Update the status of a single entry by id.
   static Future<void> updateStatus(String id, String status) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
       final entries = await loadAll();
       final idx = entries.indexWhere((e) => e.id == id);
       if (idx == -1) return;
-      entries[idx] = entries[idx].copyWith(status: status);
-      await _persist(prefs, entries);
+      await LocalStore.instance.putHistory(entries[idx].copyWith(status: status).toJson());
+    } catch (_) {}
+  }
+
+  /// True when two payloads are for the same event, team and match.
+  static bool samePayloadTarget(Map<String, dynamic> a, Map<String, dynamic> b) {
+    String norm(Object? v) => v?.toString().trim().toLowerCase() ?? '';
+    final teamA = _extractInt(a, ['targetTeamNumber', 'team_number', 'teamNumber']);
+    final teamB = _extractInt(b, ['targetTeamNumber', 'team_number', 'teamNumber']);
+    if (teamA != teamB) return false;
+    final eventA = norm(a['eventKey'] ?? a['event_key']);
+    final eventB = norm(b['eventKey'] ?? b['event_key']);
+    if (eventA.isNotEmpty && eventB.isNotEmpty && eventA != eventB) return false;
+    final matchA = norm(a['matchKey'] ?? a['match_key']);
+    final matchB = norm(b['matchKey'] ?? b['match_key']);
+    if (matchA.isNotEmpty && matchB.isNotEmpty) return matchA == matchB;
+    return _extractInt(a, ['matchNumber', 'match_number']) == _extractInt(b, ['matchNumber', 'match_number']);
+  }
+
+  /// Sets [status] on not-yet-synced history rows of [type] for the same target as [payload].
+  /// Called when the outbox uploads (or the server rejects) a saved submission.
+  static Future<void> markMatchingStatus(String type, Map<String, dynamic> payload, String status) async {
+    try {
+      final entries = await loadAll(pruneExpired: false);
+      for (final e in entries) {
+        if (e.type != type || e.status == 'synced') continue;
+        if (samePayloadTarget(e.payload, payload)) {
+          await LocalStore.instance.putHistory(e.copyWith(status: status).toJson());
+        }
+      }
     } catch (_) {}
   }
 
   /// Delete a single entry by id.
   static Future<void> deleteEntry(String id) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final entries = await loadAll();
-      entries.removeWhere((e) => e.id == id);
-      await _persist(prefs, entries);
+      await LocalStore.instance.deleteHistory([id]);
     } catch (_) {}
   }
 
@@ -151,17 +158,16 @@ class ScoutHistoryService {
   /// belonging to that account, preserving other accounts' local entries.
   static Future<void> clearSynced({String? account, String? accountId}) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
       final entries = await loadAll();
-      final filtered = entries.where((e) {
-        if (e.status != 'synced') return true;
+      final toRemove = entries.where((e) {
+        if (e.status != 'synced') return false;
         if (account != null && account.trim().isNotEmpty) {
           // If scoped to account, only remove if it matches account
-          return !e.matchesAccount(account, accountId);
+          return e.matchesAccount(account, accountId);
         }
-        return false;
-      }).toList();
-      await _persist(prefs, filtered);
+        return true;
+      }).map((e) => e.id);
+      await LocalStore.instance.deleteHistory(toRemove);
     } catch (_) {}
   }
 
@@ -169,25 +175,14 @@ class ScoutHistoryService {
   /// scouted by that account, preserving other users' local entries on shared devices.
   static Future<void> clearAll({String? account, String? accountId}) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
       if (account != null && account.trim().isNotEmpty) {
         final entries = await loadAll();
-        final kept = entries.where((e) => !e.matchesAccount(account, accountId)).toList();
-        await _persist(prefs, kept);
+        final ids = entries.where((e) => e.matchesAccount(account, accountId)).map((e) => e.id);
+        await LocalStore.instance.deleteHistory(ids);
       } else {
-        await prefs.remove(_storageKey);
+        await LocalStore.instance.clearHistory();
       }
     } catch (_) {}
-  }
-
-  // ---------------------------------------------------------------------------
-  // Helper
-  // ---------------------------------------------------------------------------
-
-  static Future<void> _persist(
-      SharedPreferences prefs, List<ScoutHistoryEntry> entries) async {
-    final json = jsonEncode(entries.map((e) => e.toJson()).toList());
-    await prefs.setString(_storageKey, json);
   }
 
   // ---------------------------------------------------------------------------
@@ -275,8 +270,10 @@ class ScoutHistoryService {
           final hMatchNum = h.matchNumber;
           final hTeam = h.teamNumber;
 
-          final matchMatches = (matchKey != null && hMatchKey != null && matchKey == hMatchKey) ||
-              (matchNum != null && hMatchNum != null && matchNum == hMatchNum);
+          // With both match keys, compare keys only: qm5, a practice 5 and a playoff 5 are different matches.
+          final matchMatches = (matchKey != null && matchKey.isNotEmpty && hMatchKey != null && hMatchKey.isNotEmpty)
+              ? matchKey == hMatchKey
+              : (matchNum != null && hMatchNum != null && matchNum == hMatchNum);
           final teamMatches = teamNum != null && hTeam == teamNum;
 
           if (matchMatches && teamMatches) {
@@ -290,8 +287,10 @@ class ScoutHistoryService {
         } else if (type == 'QUALITATIVE' && (h.type.toLowerCase() == 'qual' || h.type.toLowerCase() == 'qualitative')) {
           final hMatchKey = h.matchKey?.trim().toLowerCase();
           final hMatchNum = h.matchNumber;
-          final matchMatches = (matchKey != null && hMatchKey != null && matchKey == hMatchKey) ||
-              (matchNum != null && hMatchNum != null && matchNum == hMatchNum);
+          // With both match keys, compare keys only: qm5, a practice 5 and a playoff 5 are different matches.
+          final matchMatches = (matchKey != null && matchKey.isNotEmpty && hMatchKey != null && hMatchKey.isNotEmpty)
+              ? matchKey == hMatchKey
+              : (matchNum != null && hMatchNum != null && matchNum == hMatchNum);
 
           if (matchMatches) {
             if (teamNum != null && h.teamNumber == teamNum) {
@@ -323,8 +322,10 @@ class ScoutHistoryService {
         final mNum = _extractInt(map, ['matchNumber', 'match_number']);
         final tNum = _extractInt(map, ['targetTeamNumber', 'teamNumber', 'team_number']);
 
-        final matchMatches = (matchKey != null && mKey != null && matchKey == mKey) ||
-            (matchNum != null && mNum != 0 && matchNum == mNum);
+        // With both match keys, compare keys only: qm5, a practice 5 and a playoff 5 are different matches.
+        final matchMatches = (matchKey != null && matchKey.isNotEmpty && mKey != null && mKey.isNotEmpty)
+            ? matchKey == mKey
+            : (matchNum != null && mNum != 0 && matchNum == mNum);
         final teamMatches = teamNum != null && tNum == teamNum;
         if (matchMatches && teamMatches) return true;
       }
@@ -356,8 +357,10 @@ class ScoutHistoryService {
         final tNum = _extractInt(map, ['targetTeamNumber', 'teamNumber', 'team_number']);
         final aColor = (map['alliance'] ?? map['allianceColor'] ?? map['alliance_color'])?.toString().trim().toUpperCase();
 
-        final matchMatches = (matchKey != null && mKey != null && matchKey == mKey) ||
-            (matchNum != null && mNum != 0 && matchNum == mNum);
+        // With both match keys, compare keys only: qm5, a practice 5 and a playoff 5 are different matches.
+        final matchMatches = (matchKey != null && matchKey.isNotEmpty && mKey != null && mKey.isNotEmpty)
+            ? matchKey == mKey
+            : (matchNum != null && mNum != 0 && matchNum == mNum);
 
         if (matchMatches) {
           if (teamNum != null && tNum == teamNum) return true;
@@ -379,33 +382,33 @@ class ScoutHistoryService {
     if (assignments.isEmpty) return assignments;
     try {
       final history = await loadAll(pruneExpired: false);
-      final prefs = await SharedPreferences.getInstance();
+      final store = LocalStore.instance;
 
       List<dynamic>? cachedMatch;
-      final rawMatch = prefs.getString('cache_scouting') ?? prefs.getString('cache_prescout_scouting');
+      final rawMatch = await store.getString('cache_scouting') ?? await store.getString('cache_prescout_scouting');
       if (rawMatch != null && rawMatch.isNotEmpty) {
         try {
-          final decoded = jsonDecode(rawMatch);
+          final decoded = await LocalStore.decodeJson(rawMatch);
           if (decoded is List) cachedMatch = decoded;
           if (decoded is Map && decoded['entries'] is List) cachedMatch = decoded['entries'] as List;
         } catch (_) {}
       }
 
       List<dynamic>? cachedPit;
-      final rawPit = prefs.getString('cache_pit_scouting') ?? prefs.getString('cache_prescout_pit_scouting');
+      final rawPit = await store.getString('cache_pit_scouting') ?? await store.getString('cache_prescout_pit_scouting');
       if (rawPit != null && rawPit.isNotEmpty) {
         try {
-          final decoded = jsonDecode(rawPit);
+          final decoded = await LocalStore.decodeJson(rawPit);
           if (decoded is List) cachedPit = decoded;
           if (decoded is Map && decoded['entries'] is List) cachedPit = decoded['entries'] as List;
         } catch (_) {}
       }
 
       List<dynamic>? cachedQual;
-      final rawQual = prefs.getString('cache_qual_scouting') ?? prefs.getString('cache_prescout_qual_scouting');
+      final rawQual = await store.getString('cache_qual_scouting') ?? await store.getString('cache_prescout_qual_scouting');
       if (rawQual != null && rawQual.isNotEmpty) {
         try {
-          final decoded = jsonDecode(rawQual);
+          final decoded = await LocalStore.decodeJson(rawQual);
           if (decoded is List) cachedQual = decoded;
           if (decoded is Map && decoded['entries'] is List) cachedQual = decoded['entries'] as List;
         } catch (_) {}

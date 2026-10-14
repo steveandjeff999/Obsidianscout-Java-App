@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../l10n/app_localizations.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/obsidian_feedback.dart';
+import '../data/local_store.dart';
 
 class AllianceSelectionScreen extends StatefulWidget {
   final ApiService apiService;
@@ -149,8 +149,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
 
   Future<void> _loadLocalSlotMetadata(String eventKey) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final metaStr = prefs.getString('cache_alliance_meta_$eventKey');
+      final metaStr = await LocalStore.instance.getString('cache_alliance_meta_$eventKey');
       if (metaStr != null && metaStr.isNotEmpty) {
         final Map<String, dynamic> meta = jsonDecode(metaStr);
         if (meta['slotTimestamps'] is Map) {
@@ -167,12 +166,11 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
 
   Future<void> _saveLocalSlotMetadata(String eventKey) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
       final payload = {
         'slotTimestamps': _slotTimestamps,
         'pendingSync': _hasPendingOfflineChanges,
       };
-      await prefs.setString('cache_alliance_meta_$eventKey', jsonEncode(payload));
+      await LocalStore.instance.setString('cache_alliance_meta_$eventKey', jsonEncode(payload));
     } catch (_) {}
   }
 

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
+import 'sanitized_banner_text.dart';
 
 class ObsidianBannerWidget extends StatefulWidget {
   final ApiService apiService;
@@ -177,8 +178,9 @@ class _ObsidianBannerWidgetState extends State<ObsidianBannerWidget> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        banner['message']?.toString() ?? '',
+                      SanitizedBannerText(
+                        text: banner['message']?.toString() ?? '',
+                        linkColor: bannerColor,
                         style: TextStyle(
                           color: ObsidianUITheme.getPrimaryTextColor(context),
                           fontSize: 13.0,
@@ -236,8 +238,9 @@ class _ObsidianBannerWidgetState extends State<ObsidianBannerWidget> {
                                 width: 1.0,
                               ),
                             ),
-                            child: Text(
-                              expandableMsg,
+                            child: SanitizedBannerText(
+                              text: expandableMsg,
+                              linkColor: bannerColor,
                               style: TextStyle(
                                 color: ObsidianUITheme.getPrimaryTextColor(context),
                                 fontSize: 12.0,

@@ -2,11 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api_service.dart';
 import 'config_collab/config_collab_session.dart';
 import 'config_collab/config_sync_engine.dart';
+import '../data/local_store.dart';
 
 /// One live Match Checklist document: the team template, or the completion record of a match, a day
 /// (`day_YYYY-MM-DD`) or the whole event (`event`).
@@ -80,9 +80,8 @@ class MatchChecklistSync extends ChangeNotifier {
   Future<Map<String, dynamic>> _readDrafts() async {
     final key = _draftsKey;
     if (key == null) return {};
-    final prefs = await SharedPreferences.getInstance();
     try {
-      final decoded = jsonDecode(prefs.getString(key) ?? '{}');
+      final decoded = jsonDecode(await LocalStore.instance.getString(key) ?? '{}');
       return decoded is Map<String, dynamic> ? decoded : {};
     } catch (_) {
       return {};
@@ -92,11 +91,10 @@ class MatchChecklistSync extends ChangeNotifier {
   Future<void> _writeDrafts(Map<String, dynamic> drafts) async {
     final key = _draftsKey;
     if (key == null) return;
-    final prefs = await SharedPreferences.getInstance();
     if (drafts.isEmpty) {
-      await prefs.remove(key);
+      await LocalStore.instance.remove(key);
     } else {
-      await prefs.setString(key, jsonEncode(drafts));
+      await LocalStore.instance.setString(key, jsonEncode(drafts));
     }
   }
 

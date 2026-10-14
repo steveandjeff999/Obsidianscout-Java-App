@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../models/api_response.dart';
 import '../models/scout_history_models.dart';
 import '../services/api_service.dart';
 import '../services/scout_history_service.dart';
@@ -354,27 +356,42 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
     int successCount = 0;
     int failCount = 0;
 
-    for (final entry in pending) {
+    // Queued submissions upload first; that marks their history rows synced.
+    final api = widget.apiService;
+    successCount += await api.syncOutbox();
+    final stillPending = (await ScoutHistoryService.loadAll())
+        .where((e) => pending.any((p) => p.id == e.id) && e.status != 'synced')
+        .toList();
+
+    for (final entry in stillPending) {
       if (!mounted) break;
-      final api = widget.apiService;
       bool ok = false;
+      bool queued = false;
       try {
         final data = Map<String, dynamic>.from(entry.payload);
+        // This upload replaces any copy already waiting in the outbox.
+        await api.removeOutboxEntriesMatching(entry.type, data);
+        final ApiResponse<void>? res;
         if (entry.type == 'match') {
-          ok = (await api.submitMatchScouting(data)).success;
+          res = await api.submitMatchScouting(data);
         } else if (entry.type == 'pit') {
-          ok = (await api.submitPitScouting(data)).success;
+          res = await api.submitPitScouting(data);
         } else if (entry.type == 'qual') {
-          ok = (await api.submitQualScouting(data)).success;
+          res = await api.submitQualScouting(data);
         } else if (entry.type == 'prescout-match') {
-          ok = (await api.submitPrescoutMatchScouting(data)).success;
+          res = await api.submitPrescoutMatchScouting(data);
         } else if (entry.type == 'prescout-pit') {
-          ok = (await api.submitPrescoutPitScouting(data)).success;
+          res = await api.submitPrescoutPitScouting(data);
         } else if (entry.type == 'prescout-qual') {
-          ok = (await api.submitPrescoutQualScouting(data)).success;
+          res = await api.submitPrescoutQualScouting(data);
+        } else {
+          res = null;
         }
+        ok = res?.success ?? false;
+        queued = res?.isOffline ?? false;
       } catch (_) {}
-      await ScoutHistoryService.updateStatus(entry.id, ok ? 'synced' : 'failed');
+      // Still unreachable: it's back in the outbox and uploads automatically later.
+      await ScoutHistoryService.updateStatus(entry.id, ok ? 'synced' : (queued ? 'pending' : 'failed'));
       if (ok) {
         successCount++;
       } else {
@@ -642,23 +659,23 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
           _filterChip('Prescout', _typeFilter == 'prescout', () => setState(() => _typeFilter = 'prescout'),
               const Color(0xFF38BDF8)),
           const SizedBox(width: 16),
-          _filterChip('Synced ✓', _statusFilter == 'synced',
+          _filterChip('Synced', _statusFilter == 'synced',
               () => setState(() => _statusFilter = _statusFilter == 'synced' ? 'all' : 'synced'),
-              ObsidianUITheme.successGreen),
+              ObsidianUITheme.successGreen, icon: FontAwesomeIcons.circleCheck),
           const SizedBox(width: 6),
-          _filterChip('Pending ⏳', _statusFilter == 'pending',
+          _filterChip('Pending', _statusFilter == 'pending',
               () => setState(() => _statusFilter = _statusFilter == 'pending' ? 'all' : 'pending'),
-              ObsidianUITheme.warningOrange),
+              ObsidianUITheme.warningOrange, icon: FontAwesomeIcons.clock),
           const SizedBox(width: 6),
-          _filterChip('Failed ✗', _statusFilter == 'failed',
+          _filterChip('Failed', _statusFilter == 'failed',
               () => setState(() => _statusFilter = _statusFilter == 'failed' ? 'all' : 'failed'),
-              ObsidianUITheme.errorRed),
+              ObsidianUITheme.errorRed, icon: FontAwesomeIcons.circleXmark),
         ],
       ),
     );
   }
 
-  Widget _filterChip(String label, bool selected, VoidCallback onTap, Color accent) {
+  Widget _filterChip(String label, bool selected, VoidCallback onTap, Color accent, {FaIconData? icon}) {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -673,13 +690,22 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
           ),
         ),
         child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-              color: selected ? accent : ObsidianUITheme.getSecondaryTextColor(context),
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                  color: selected ? accent : ObsidianUITheme.getSecondaryTextColor(context),
+                ),
+              ),
+              if (icon != null) ...[
+                const SizedBox(width: 5),
+                FaIcon(icon, size: 11, color: selected ? accent : ObsidianUITheme.getSecondaryTextColor(context)),
+              ],
+            ],
           ),
         ),
       ),
