@@ -1,0 +1,1000 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../l10n/app_localizations.dart';
+import '../models/desktop_tab_model.dart';
+import '../screens/login_screen.dart';
+import '../screens/qr_scanner_screen.dart';
+import '../services/api_service.dart';
+import '../services/auth_storage_service.dart';
+import '../services/battery_tracker_sync.dart';
+import '../services/biometric_auth_service.dart';
+import '../services/fcm_helper.dart';
+import '../services/match_checklist_sync.dart';
+import '../services/notification_websocket_service.dart';
+import '../theme/obsidian_page_transitions.dart';
+import '../theme/obsidian_responsive.dart';
+import '../theme/obsidian_ui_theme.dart';
+import '../widgets/obsidian_banner_widget.dart';
+import '../widgets/obsidian_bottom_nav.dart';
+import '../widgets/obsidian_desktop_app_bar.dart';
+import '../widgets/obsidian_desktop_sidebar.dart';
+import '../widgets/obsidian_desktop_tab_bar.dart';
+import '../widgets/obsidian_drawer.dart';
+import '../widgets/obsidian_glass_app_bar.dart';
+import 'launch_lock_screen.dart';
+import 'shell_screen_registry.dart';
+
+class MainShell extends StatefulWidget {
+  final ApiService apiService;
+
+  const MainShell({super.key, required this.apiService});
+
+  @override
+  State<MainShell> createState() => _MainShellState();
+}
+
+class _MainShellState extends State<MainShell> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final List<int> _screenHistory = [];
+  DateTime? _lastBackPressTime;
+
+  late bool _isAuthenticated;
+  late bool _isOnline;
+  int _currentIndex = 0;
+
+  final List<DesktopTab> _desktopTabs = [
+    DesktopTab(id: 'tab_0', screenIndex: 0),
+  ];
+  final Map<String, GlobalKey<NavigatorState>> _tabNavigatorKeys = {};
+  String _activeTabId = 'tab_0';
+  int _tabCounter = 1;
+
+  MatchScoutParams? _pendingMatchParams;
+  PitScoutParams? _pendingPitParams;
+  QualScoutParams? _pendingQualParams;
+
+  void _navigateToMatchScout({
+    String? matchKey,
+    int? matchNumber,
+    int? targetTeamNumber,
+    String? sourceAssignmentId,
+  }) {
+    setState(() {
+      _pendingMatchParams = MatchScoutParams(
+        matchKey: matchKey,
+        matchNumber: matchNumber,
+        targetTeamNumber: targetTeamNumber,
+        sourceAssignmentId: sourceAssignmentId,
+      );
+    });
+    _navigateScreen(1);
+  }
+
+  void _navigateToPitScout({
+    int? targetTeamNumber,
+    String? sourceAssignmentId,
+  }) {
+    setState(() {
+      _pendingPitParams = PitScoutParams(
+        targetTeamNumber: targetTeamNumber,
+        sourceAssignmentId: sourceAssignmentId,
+      );
+    });
+    _navigateScreen(2);
+  }
+
+  void _navigateToQualScout({
+    String? matchKey,
+    int? matchNumber,
+    String? allianceColor,
+    int? targetTeamNumber,
+    String? sourceAssignmentId,
+  }) {
+    setState(() {
+      _pendingQualParams = QualScoutParams(
+        matchKey: matchKey,
+        matchNumber: matchNumber,
+        allianceColor: allianceColor,
+        targetTeamNumber: targetTeamNumber,
+        sourceAssignmentId: sourceAssignmentId,
+      );
+    });
+    _navigateScreen(3);
+  }
+
+  GlobalKey<NavigatorState> _getTabNavigatorKey(String tabId) {
+    return _tabNavigatorKeys.putIfAbsent(tabId, () => GlobalKey<NavigatorState>());
+  }
+
+  DesktopTab get _activeTab => _desktopTabs.firstWhere(
+        (t) => t.id == _activeTabId,
+        orElse: () => _desktopTabs.isNotEmpty ? _desktopTabs.first : DesktopTab(id: 'tab_0', screenIndex: 0),
+      );
+
+  int get _activeScreenIndex => _activeTab.screenIndex;
+
+  StreamSubscription<bool>? _onlineSub;
+  StreamSubscription<int>? _serverErrorSub;
+  StreamSubscription<String>? _sessionRevokedSub;
+
+  String? _pendingChatChannel;
+  NotificationWebSocketService? _wsNotificationService;
+  bool _isBarsVisible = true;
+
+  bool _isCheckingLaunchLock = true;
+  bool _isLaunchLocked = false;
+  bool _isUnlocking = false;
+
+  void _openNewTab([int initialIndex = 0]) {
+    final pageId = ShellScreenRegistry.getPageIdForIndex(initialIndex);
+    if (!widget.apiService.hasPageAccess(pageId)) {
+      initialIndex = 0;
+    }
+    final newId = 'tab_${_tabCounter++}';
+    final newTab = DesktopTab(id: newId, screenIndex: initialIndex);
+    setState(() {
+      _desktopTabs.add(newTab);
+      _activeTabId = newId;
+      _currentIndex = initialIndex;
+    });
+  }
+
+  void _switchTab(String id) {
+    if (_activeTabId == id) return;
+    final tab = _desktopTabs.firstWhere((t) => t.id == id, orElse: () => _desktopTabs.first);
+    setState(() {
+      _activeTabId = tab.id;
+      _currentIndex = tab.screenIndex;
+    });
+  }
+
+  void _closeTab(String id) {
+    if (_desktopTabs.length <= 1) return;
+    final index = _desktopTabs.indexWhere((t) => t.id == id);
+    if (index == -1) return;
+
+    setState(() {
+      if (_activeTabId == id) {
+        if (index > 0) {
+          _activeTabId = _desktopTabs[index - 1].id;
+          _currentIndex = _desktopTabs[index - 1].screenIndex;
+        } else {
+          _activeTabId = _desktopTabs[index + 1].id;
+          _currentIndex = _desktopTabs[index + 1].screenIndex;
+        }
+      }
+      _desktopTabs.removeAt(index);
+      _tabNavigatorKeys.remove(id);
+    });
+  }
+
+  void _duplicateTab(String id) {
+    final index = _desktopTabs.indexWhere((t) => t.id == id);
+    if (index == -1) return;
+    final original = _desktopTabs[index];
+    final newId = 'tab_${_tabCounter++}';
+    final duplicate = DesktopTab(
+      id: newId,
+      screenIndex: original.screenIndex,
+      customTitle: original.customTitle,
+      customIcon: original.customIcon,
+      pendingChatChannel: original.pendingChatChannel,
+    );
+    setState(() {
+      _desktopTabs.insert(index + 1, duplicate);
+      _activeTabId = newId;
+      _currentIndex = duplicate.screenIndex;
+    });
+  }
+
+  void _closeOtherTabs(String id) {
+    final target = _desktopTabs.firstWhere((t) => t.id == id, orElse: () => _desktopTabs.first);
+    setState(() {
+      _desktopTabs.removeWhere((t) => t.id != target.id);
+      _tabNavigatorKeys.removeWhere((key, _) => key != target.id);
+      _activeTabId = target.id;
+      _currentIndex = target.screenIndex;
+    });
+  }
+
+  void _cycleTab(bool forward) {
+    if (_desktopTabs.length <= 1) return;
+    final currentIndex = _desktopTabs.indexWhere((t) => t.id == _activeTabId);
+    if (currentIndex == -1) return;
+    final nextIndex = forward
+        ? (currentIndex + 1) % _desktopTabs.length
+        : (currentIndex - 1 + _desktopTabs.length) % _desktopTabs.length;
+    _switchTab(_desktopTabs[nextIndex].id);
+  }
+
+  void _switchToTabNumber(int tabNumber) {
+    if (tabNumber < 1 || tabNumber > _desktopTabs.length) return;
+    _switchTab(_desktopTabs[tabNumber - 1].id);
+  }
+
+  void _switchToLastTab() {
+    if (_desktopTabs.isEmpty) return;
+    _switchTab(_desktopTabs.last.id);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _isAuthenticated = widget.apiService.isLoggedIn;
+    _isOnline = widget.apiService.isOnline;
+    _onlineSub = widget.apiService.onOnlineStatusChanged.listen((online) {
+      if (mounted) {
+        setState(() => _isOnline = online);
+      }
+    });
+    _serverErrorSub = widget.apiService.onServerError.listen((statusCode) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 5),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: const Color(0xFFB91C1C),
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Server error ($statusCode). Something went wrong — please try again.',
+                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    });
+
+    _sessionRevokedSub = widget.apiService.onSessionRevoked.listen((reason) {
+      if (!mounted) return;
+      _wsNotificationService?.dispose();
+      _wsNotificationService = null;
+      setState(() {
+        _isAuthenticated = false;
+        _currentIndex = 0;
+      });
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 6),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: const Color(0xFFB91C1C),
+          content: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  reason.isNotEmpty ? reason : 'Your session was revoked. Please log in again.',
+                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    });
+
+    _checkLaunchLock();
+
+    widget.apiService.permissionsNotifier.addListener(_onPermissionsChanged);
+  }
+
+  Future<void> _checkLaunchLock() async {
+    final available = await BiometricAuthService.isAvailable();
+    final enrolled = await AuthStorageService.isEnrolled();
+    final requireOnLaunch = await AuthStorageService.isRequireOnLaunch();
+
+    if (available && enrolled && requireOnLaunch) {
+      if (mounted) {
+        setState(() {
+          _isLaunchLocked = true;
+          _isCheckingLaunchLock = false;
+        });
+        _triggerLaunchBiometricUnlock();
+      }
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _isLaunchLocked = false;
+        _isCheckingLaunchLock = false;
+      });
+      if (_isAuthenticated) {
+        _bootstrapFcm();
+        _bootstrapWsNotifications();
+      }
+    }
+  }
+
+  Future<void> _triggerLaunchBiometricUnlock() async {
+    if (_isUnlocking) return;
+    setState(() => _isUnlocking = true);
+
+    try {
+      final authenticated = await BiometricAuthService.authenticate(
+        reason: 'Unlock ObsidianScout with your passkey or biometrics',
+      );
+      if (authenticated) {
+        // User unlocked via biometrics.
+        // If session is already active (keep-me-logged-in), let them in without fetching new keys!
+        if (widget.apiService.isLoggedIn) {
+          if (mounted) {
+            setState(() {
+              _isLaunchLocked = false;
+              _isAuthenticated = true;
+            });
+            _bootstrapFcm();
+            _bootstrapWsNotifications();
+          }
+          return;
+        }
+
+        // If not currently logged in, re-authenticate using stored credentials
+        final success = await widget.apiService.silentLogin();
+        if (success && mounted) {
+          setState(() {
+            _isLaunchLocked = false;
+            _isAuthenticated = true;
+          });
+          _bootstrapFcm();
+          _bootstrapWsNotifications();
+          return;
+        } else if (mounted) {
+          setState(() {
+            _isLaunchLocked = false;
+            _isAuthenticated = false;
+          });
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUnlocking = false);
+      }
+    }
+  }
+
+  void _onPermissionsChanged() {
+    if (!mounted) return;
+    // Match Checklist edits made offline save in the background, even before the screen is opened.
+    if (widget.apiService.nonScoutingToolsEnabled) {
+      unawaited(MatchChecklistSync.of(widget.apiService).resumeDrafts());
+      unawaited(BatteryTrackerSync.of(widget.apiService).resumeDrafts());
+    }
+    for (final tab in _desktopTabs) {
+      final pageId = ShellScreenRegistry.getPageIdForIndex(tab.screenIndex);
+      if (!widget.apiService.hasPageAccess(pageId)) {
+        tab.screenIndex = 0;
+      }
+    }
+    final currentPageId = ShellScreenRegistry.getPageIdForIndex(_currentIndex);
+    if (!widget.apiService.hasPageAccess(currentPageId)) {
+      setState(() {
+        _currentIndex = 0;
+      });
+    } else {
+      setState(() {});
+    }
+  }
+
+  void _bootstrapFcm() {
+    FcmHelper.initializeDynamicFcm(widget.apiService, (groupName) {
+      if (mounted) {
+        setState(() {
+          _pendingChatChannel = groupName;
+          _navigateScreen(6);
+        });
+      }
+    });
+  }
+
+  void _bootstrapWsNotifications() {
+    _wsNotificationService = NotificationWebSocketService(
+      apiService: widget.apiService,
+      onNotificationReceived: (groupName, title, body, sender) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            duration: const Duration(seconds: 6),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: ObsidianUITheme.getSurfaceColor(context),
+            content: Row(
+              children: [
+                const Icon(Icons.chat_bubble_outline_rounded, color: Colors.cyanAccent, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: ObsidianUITheme.getPrimaryTextColor(context), fontSize: 13)),
+                      Text(body, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context), fontSize: 12)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            action: SnackBarAction(
+              label: 'OPEN',
+              textColor: Colors.cyanAccent,
+              onPressed: () {
+                setState(() {
+                  _pendingChatChannel = groupName;
+                  _navigateScreen(6);
+                });
+              },
+            ),
+          ),
+        );
+      },
+    )..connect();
+  }
+
+  @override
+  void dispose() {
+    widget.apiService.permissionsNotifier.removeListener(_onPermissionsChanged);
+    _onlineSub?.cancel();
+    _serverErrorSub?.cancel();
+    _sessionRevokedSub?.cancel();
+    _wsNotificationService?.dispose();
+    super.dispose();
+  }
+
+  void _navigateScreen(int index) {
+    final isDesktop = ObsidianResponsive.isDesktop(context, overrideMode: widget.apiService.uiMode);
+    final isDesktopTabs = isDesktop && widget.apiService.desktopTabsEnabled;
+
+    if (isDesktopTabs) {
+      if (_activeTab.screenIndex == index) return;
+    } else {
+      if (_currentIndex == index) return;
+    }
+
+    final pageId = ShellScreenRegistry.getPageIdForIndex(index);
+    if (!widget.apiService.hasPageAccess(pageId)) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          duration: Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Color(0xFFB91C1C),
+          content: Row(
+            children: [
+              Icon(Icons.lock_rounded, color: Colors.white, size: 20),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'You do not have access to this page',
+                  style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      if (isDesktopTabs) {
+        final tabNav = _tabNavigatorKeys[_activeTab.id]?.currentState;
+        if (tabNav != null && tabNav.canPop()) {
+          tabNav.popUntil((route) => route.isFirst);
+        }
+        if (_activeTab.history.isEmpty || _activeTab.history.last != _activeTab.screenIndex) {
+          _activeTab.history.add(_activeTab.screenIndex);
+        }
+        _activeTab.screenIndex = index;
+      } else {
+        if (_screenHistory.isEmpty || _screenHistory.last != _currentIndex) {
+          _screenHistory.add(_currentIndex);
+        }
+      }
+      _currentIndex = index;
+      _isBarsVisible = true;
+    });
+  }
+
+  void _handleBackPress() {
+    final isDesktop = ObsidianResponsive.isDesktop(context, overrideMode: widget.apiService.uiMode);
+    final isDesktopTabs = isDesktop && widget.apiService.desktopTabsEnabled;
+
+    // 1. If drawer is open, close it
+    if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
+      _scaffoldKey.currentState?.closeDrawer();
+      return;
+    }
+
+    if (isDesktopTabs) {
+      final tabNav = _tabNavigatorKeys[_activeTab.id]?.currentState;
+      if (tabNav != null && tabNav.canPop()) {
+        tabNav.pop();
+        return;
+      }
+      while (_activeTab.history.isNotEmpty) {
+        final prevIndex = _activeTab.history.removeLast();
+        final pageId = ShellScreenRegistry.getPageIdForIndex(prevIndex);
+        if (prevIndex != _activeTab.screenIndex && widget.apiService.hasPageAccess(pageId)) {
+          setState(() {
+            _activeTab.screenIndex = prevIndex;
+            _currentIndex = prevIndex;
+            _isBarsVisible = true;
+          });
+          return;
+        }
+      }
+      if (_activeTab.screenIndex != 0) {
+        setState(() {
+          _activeTab.screenIndex = 0;
+          _currentIndex = 0;
+          _isBarsVisible = true;
+        });
+        return;
+      }
+    } else {
+      // 2. If there is screen navigation history, pop to previous screen
+      while (_screenHistory.isNotEmpty) {
+        final prevIndex = _screenHistory.removeLast();
+        final pageId = ShellScreenRegistry.getPageIdForIndex(prevIndex);
+        if (prevIndex != _currentIndex && widget.apiService.hasPageAccess(pageId)) {
+          setState(() {
+            _currentIndex = prevIndex;
+            _isBarsVisible = true;
+          });
+          return;
+        }
+      }
+
+      // 3. If currently not on Dashboard and history was exhausted, go back to Dashboard
+      if (_currentIndex != 0) {
+        setState(() {
+          _currentIndex = 0;
+          _isBarsVisible = true;
+        });
+        return;
+      }
+    }
+
+    // 4. On Dashboard (root screen): require double back press within 2 seconds to exit
+    final now = DateTime.now();
+    if (_lastBackPressTime == null || now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
+      _lastBackPressTime = now;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 2),
+          backgroundColor: ObsidianUITheme.getSurfaceColor(context),
+          content: Row(
+            children: [
+              const Icon(Icons.arrow_back_rounded, color: Colors.cyanAccent, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  context.tr('app.press_back_again_to_exit'),
+                  style: TextStyle(
+                    color: ObsidianUITheme.getPrimaryTextColor(context),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      SystemNavigator.pop();
+    }
+  }
+
+  void _openQrScanner() {
+    if (!widget.apiService.hasPageAccess('qr-scanner')) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          duration: Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Color(0xFFB91C1C),
+          content: Row(
+            children: [
+              Icon(Icons.lock_rounded, color: Colors.white, size: 20),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'You do not have access to QR Scanner',
+                  style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+      return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (ctx) => QrScannerScreen(apiService: widget.apiService),
+      ),
+    );
+  }
+
+  Future<void> _handleLogout() async {
+    _wsNotificationService?.dispose();
+    _wsNotificationService = null;
+    await FcmHelper.unregisterOnLogout(widget.apiService);
+    await widget.apiService.logout();
+    if (mounted) {
+      setState(() {
+        _isAuthenticated = false;
+      });
+    }
+  }
+
+  Widget _buildScreenByIndex(int screenIndex, {required bool isTabActive, String? chatChannel}) {
+    return ShellScreenRegistry.buildScreenByIndex(
+      screenIndex: screenIndex,
+      apiService: widget.apiService,
+      isTabActive: isTabActive,
+      currentIndex: _currentIndex,
+      isBarsVisible: _isBarsVisible,
+      chatChannel: chatChannel,
+      pendingChatChannel: _pendingChatChannel,
+      pendingMatchParams: _pendingMatchParams,
+      pendingPitParams: _pendingPitParams,
+      pendingQualParams: _pendingQualParams,
+      onNavigateScreen: _navigateScreen,
+      onOpenQrScanner: _openQrScanner,
+      onLogout: _handleLogout,
+      onNavigateToMatchScout: _navigateToMatchScout,
+      onNavigateToPitScout: _navigateToPitScout,
+      onNavigateToQualScout: _navigateToQualScout,
+    );
+  }
+
+  Widget _buildDesktopTabbedContent() {
+    final activeIndex = _desktopTabs.indexWhere((t) => t.id == _activeTabId);
+    final safeActiveIndex = activeIndex >= 0 ? activeIndex : 0;
+
+    return IndexedStack(
+      index: safeActiveIndex,
+      children: [
+        for (final tab in _desktopTabs)
+          Navigator(
+            key: _getTabNavigatorKey(tab.id),
+            onGenerateRoute: (settings) {
+              return MaterialPageRoute(
+                builder: (context) => ObsidianAnimatedIndexedStack(
+                  key: ValueKey('tab_stack_${tab.id}'),
+                  index: tab.screenIndex,
+                  itemCount: ShellScreenRegistry.screenCount,
+                  itemBuilder: (ctx, idx) => _buildScreenByIndex(
+                    idx,
+                    isTabActive: tab.id == _activeTabId,
+                    chatChannel: tab.pendingChatChannel,
+                  ),
+                ),
+              );
+            },
+          ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isCheckingLaunchLock) {
+      return Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: const SizedBox.shrink(),
+      );
+    }
+
+    if (_isLaunchLocked) {
+      return LaunchLockScreen(
+        isUnlocking: _isUnlocking,
+        onUnlock: _triggerLaunchBiometricUnlock,
+        onUsePassword: () {
+          setState(() {
+            _isLaunchLocked = false;
+            _isAuthenticated = false;
+          });
+        },
+        onBackPress: _handleBackPress,
+      );
+    }
+
+    if (!_isAuthenticated) {
+      return LoginScreen(
+        apiService: widget.apiService,
+        onLoginSuccess: () {
+          setState(() {
+            _isAuthenticated = true;
+          });
+          _bootstrapFcm();
+          _bootstrapWsNotifications();
+        },
+      );
+    }
+
+    final isDesktop = ObsidianResponsive.isDesktop(context, overrideMode: widget.apiService.uiMode);
+    final isDesktopTabs = isDesktop && widget.apiService.desktopTabsEnabled;
+
+    final mainIndexedStack = ObsidianAnimatedIndexedStack(
+      key: const ValueKey('obsidian_main_indexed_stack'),
+      index: _currentIndex,
+      itemCount: ShellScreenRegistry.screenCount,
+      itemBuilder: (ctx, idx) => _buildScreenByIndex(
+        idx,
+        isTabActive: true,
+      ),
+    );
+
+    final Map<ShortcutActivator, VoidCallback> shortcutBindings = isDesktopTabs
+        ? <ShortcutActivator, VoidCallback>{
+            const SingleActivator(LogicalKeyboardKey.keyT, control: true): () => _openNewTab(0),
+            const SingleActivator(LogicalKeyboardKey.keyW, control: true): () => _closeTab(_activeTabId),
+            const SingleActivator(LogicalKeyboardKey.tab, control: true): () => _cycleTab(true),
+            const SingleActivator(LogicalKeyboardKey.tab, control: true, shift: true): () => _cycleTab(false),
+            const SingleActivator(LogicalKeyboardKey.digit1, control: true): () => _switchToTabNumber(1),
+            const SingleActivator(LogicalKeyboardKey.digit2, control: true): () => _switchToTabNumber(2),
+            const SingleActivator(LogicalKeyboardKey.digit3, control: true): () => _switchToTabNumber(3),
+            const SingleActivator(LogicalKeyboardKey.digit4, control: true): () => _switchToTabNumber(4),
+            const SingleActivator(LogicalKeyboardKey.digit5, control: true): () => _switchToTabNumber(5),
+            const SingleActivator(LogicalKeyboardKey.digit6, control: true): () => _switchToTabNumber(6),
+            const SingleActivator(LogicalKeyboardKey.digit7, control: true): () => _switchToTabNumber(7),
+            const SingleActivator(LogicalKeyboardKey.digit8, control: true): () => _switchToTabNumber(8),
+            const SingleActivator(LogicalKeyboardKey.digit9, control: true): _switchToLastTab,
+            const SingleActivator(LogicalKeyboardKey.keyT, control: true, shift: true): () {
+              final next = widget.apiService.themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+              widget.apiService.setThemeMode(next);
+            },
+            const SingleActivator(LogicalKeyboardKey.keyQ, control: true): _openQrScanner,
+          }
+        : <ShortcutActivator, VoidCallback>{
+            const SingleActivator(LogicalKeyboardKey.digit1, control: true): () => _navigateScreen(0),
+            const SingleActivator(LogicalKeyboardKey.digit2, control: true): () => _navigateScreen(1),
+            const SingleActivator(LogicalKeyboardKey.digit3, control: true): () => _navigateScreen(2),
+            const SingleActivator(LogicalKeyboardKey.digit4, control: true): () => _navigateScreen(4),
+            const SingleActivator(LogicalKeyboardKey.digit5, control: true): () => _navigateScreen(18),
+            const SingleActivator(LogicalKeyboardKey.digit6, control: true): () => _navigateScreen(12),
+            const SingleActivator(LogicalKeyboardKey.digit7, control: true): () => _navigateScreen(8),
+            const SingleActivator(LogicalKeyboardKey.digit8, control: true): () => _navigateScreen(9),
+            const SingleActivator(LogicalKeyboardKey.digit9, control: true): () => _navigateScreen(5),
+            const SingleActivator(LogicalKeyboardKey.keyT, control: true): () {
+              final next = widget.apiService.themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+              widget.apiService.setThemeMode(next);
+            },
+            const SingleActivator(LogicalKeyboardKey.keyQ, control: true): _openQrScanner,
+          };
+
+    return CallbackShortcuts(
+      bindings: shortcutBindings,
+      child: Focus(
+        autofocus: true,
+        child: PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+            _handleBackPress();
+          },
+          child: Container(
+            decoration: ObsidianUITheme.getBackgroundDecoration(context),
+            child: Scaffold(
+              key: _scaffoldKey,
+              backgroundColor: Colors.transparent,
+              extendBodyBehindAppBar: !isDesktop,
+              extendBody: !isDesktop,
+              appBar: isDesktop
+                  ? null
+                  : PreferredSize(
+                      preferredSize: const Size.fromHeight(90.0),
+                      child: AnimatedOpacity(
+                        opacity: _isBarsVisible ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                        child: IgnorePointer(
+                          ignoring: !_isBarsVisible,
+                          child: AnimatedSlide(
+                            offset: _isBarsVisible ? Offset.zero : const Offset(0, -0.8),
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.fastOutSlowIn,
+                            child: ObsidianGlassAppBar(
+                              title: context.tr(ShellScreenRegistry.getTitleKey(_currentIndex)),
+                              subtitle: context.tr(ShellScreenRegistry.getSubtitleKey(_currentIndex)),
+                              isOnline: _isOnline,
+                              actions: [
+                                IconButton(
+                                  icon: Icon(
+                                    widget.apiService.themeMode == ThemeMode.light
+                                        ? Icons.dark_mode_rounded
+                                        : Icons.light_mode_rounded,
+                                    color: widget.apiService.themeMode == ThemeMode.light
+                                        ? const Color(0xFF4F46E5)
+                                        : const Color(0xFFFFB703),
+                                  ),
+                                  tooltip: widget.apiService.themeMode == ThemeMode.light
+                                      ? 'Switch to Dark Mode'
+                                      : 'Switch to Light Mode',
+                                  onPressed: () {
+                                    final nextMode = widget.apiService.themeMode == ThemeMode.light
+                                        ? ThemeMode.dark
+                                        : ThemeMode.light;
+                                    widget.apiService.setThemeMode(nextMode);
+                                  },
+                                ),
+                                Builder(
+                                  builder: (ctx) => IconButton(
+                                    icon: Icon(
+                                      Icons.menu_rounded,
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? Colors.white
+                                          : const Color(0xFF0F172A),
+                                    ),
+                                    tooltip: 'Navigation Menu',
+                                    onPressed: () => Scaffold.of(ctx).openDrawer(),
+                                  ),
+                                ),
+                                if (widget.apiService.hasPageAccess('qr-scanner'))
+                                  IconButton(
+                                    icon: Icon(
+                                      Icons.qr_code_scanner_rounded,
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? Colors.cyanAccent
+                                          : const Color(0xFF0284C7),
+                                    ),
+                                    tooltip: 'QR & Barcode Scanner',
+                                    onPressed: _openQrScanner,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+              drawer: isDesktop
+                  ? null
+                  : ObsidianNavigationDrawer(
+                      apiService: widget.apiService,
+                      currentIndex: _currentIndex,
+                      onSelectScreen: _navigateScreen,
+                      onOpenQrScanner: _openQrScanner,
+                      onLogout: _handleLogout,
+                    ),
+              body: isDesktop
+                  ? (isDesktopTabs
+                      ? Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            ObsidianDesktopSidebar(
+                              apiService: widget.apiService,
+                              currentIndex: _activeScreenIndex,
+                              onSelectScreen: _navigateScreen,
+                              onOpenQrScanner: _openQrScanner,
+                              onLogout: _handleLogout,
+                            ),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  ObsidianDesktopTabBar(
+                                    tabs: _desktopTabs,
+                                    activeTabId: _activeTabId,
+                                    onSelectTab: _switchTab,
+                                    onCloseTab: _closeTab,
+                                    onNewTab: () => _openNewTab(0),
+                                    onDuplicateTab: _duplicateTab,
+                                    onCloseOtherTabs: _closeOtherTabs,
+                                    apiService: widget.apiService,
+                                    isOnline: _isOnline,
+                                    onOpenQrScanner: _openQrScanner,
+                                    getScreenTitle: (idx) => ShellScreenRegistry.getScreenDisplayName(context, idx),
+                                    getScreenIcon: ShellScreenRegistry.getScreenIcon,
+                                  ),
+                                  ObsidianBannerWidget(
+                                    apiService: widget.apiService,
+                                    isBarsVisible: true,
+                                  ),
+                                  Expanded(
+                                    child: _buildDesktopTabbedContent(),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        )
+                      : Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            ObsidianDesktopSidebar(
+                              apiService: widget.apiService,
+                              currentIndex: _currentIndex,
+                              onSelectScreen: _navigateScreen,
+                              onOpenQrScanner: _openQrScanner,
+                              onLogout: _handleLogout,
+                            ),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  ObsidianDesktopAppBar(
+                                    title: context.tr(ShellScreenRegistry.getTitleKey(_currentIndex)),
+                                    subtitle: context.tr(ShellScreenRegistry.getSubtitleKey(_currentIndex)),
+                                    isOnline: _isOnline,
+                                    apiService: widget.apiService,
+                                    onOpenQrScanner: _openQrScanner,
+                                  ),
+                                  ObsidianBannerWidget(
+                                    apiService: widget.apiService,
+                                    isBarsVisible: true,
+                                  ),
+                                  Expanded(
+                                    child: mainIndexedStack,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ))
+                  : Center(
+                      child: Container(
+                        constraints: const BoxConstraints(maxWidth: 1600.0),
+                        child: Column(
+                          children: [
+                            const SizedBox(height: 95.0),
+                            ObsidianBannerWidget(
+                              apiService: widget.apiService,
+                              isBarsVisible: _isBarsVisible,
+                            ),
+                            Expanded(
+                              child: mainIndexedStack,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+              bottomNavigationBar: isDesktop
+                  ? null
+                  : AnimatedOpacity(
+                      opacity: _isBarsVisible ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                      child: IgnorePointer(
+                        ignoring: !_isBarsVisible,
+                        child: AnimatedSlide(
+                          offset: _isBarsVisible ? Offset.zero : const Offset(0, 0.8),
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.fastOutSlowIn,
+                          child: SafeArea(
+                            child: Align(
+                              alignment: Alignment.bottomCenter,
+                              child: Container(
+                                constraints: const BoxConstraints(maxWidth: 600.0),
+                                child: ObsidianBottomNav(
+                                  apiService: widget.apiService,
+                                  currentIndex: _currentIndex,
+                                  onTap: _navigateScreen,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
