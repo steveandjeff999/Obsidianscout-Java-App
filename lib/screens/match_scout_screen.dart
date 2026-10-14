@@ -548,9 +548,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
       }
       if (field.required) {
         final val = _formData[field.id];
-        // A select option configured with an empty value (e.g. "None") is still a real choice.
-        final choseEmptyOption = t == 'select' && val == '' && field.options.any((o) => o.value.isEmpty);
-        if (!choseEmptyOption && (val == null || val == '' || (val is List && val.isEmpty))) {
+        if (val == null || val == '' || (val is List && val.isEmpty)) {
           final phase = _getFieldPhase(field);
           setState(() => _activeTab = phase);
           ObsidianFeedback.showWarning(
