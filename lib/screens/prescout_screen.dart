@@ -10,6 +10,7 @@ import '../widgets/dynamic_field_widget.dart';
 import '../widgets/obsidian_barcode_modal.dart';
 import '../widgets/obsidian_feedback.dart';
 import '../widgets/obsidian_glass_card.dart';
+import '../widgets/sync_status_banner.dart';
 
 enum PrescoutMode {
   dashboard,
@@ -434,7 +435,7 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
         if (mounted) {
           ObsidianFeedback.showWarning(
             context,
-            title: 'Saved to Offline Cache',
+            title: 'Saved on This Device Only',
             message: 'Prescout entry for Team ${payload['targetTeamNumber']} saved locally and will sync when online.',
           );
         }
@@ -475,8 +476,8 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
             if (mounted) {
               ObsidianFeedback.showWarning(
                 context,
-                title: 'Saved to Offline Cache',
-                message: 'Device offline. Prescout entry saved to offline cache and will sync when online.',
+                title: 'Saved on This Device Only',
+                message: 'Prescout entry is not on the server yet. It will upload automatically when the connection returns.',
               );
             }
           } else {
@@ -530,8 +531,8 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
             if (mounted) {
               ObsidianFeedback.showWarning(
                 context,
-                title: 'Saved to Offline Cache',
-                message: 'Device offline. Pit prescout entry saved to offline cache and will sync when online.',
+                title: 'Saved on This Device Only',
+                message: 'Pit prescout entry is not on the server yet. It will upload automatically when the connection returns.',
               );
             }
           } else {
@@ -587,8 +588,8 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
             if (mounted) {
               ObsidianFeedback.showWarning(
                 context,
-                title: 'Saved to Offline Cache',
-                message: 'Device offline. Qualitative prescout entry saved to offline cache and will sync when online.',
+                title: 'Saved on This Device Only',
+                message: 'Qualitative prescout entry is not on the server yet. It will upload automatically when the connection returns.',
               );
             }
           } else {
@@ -757,6 +758,7 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          SyncStatusBanner(apiService: widget.apiService, margin: const EdgeInsets.only(bottom: 8)),
           if (_currentMode == PrescoutMode.dashboard) ...[
             _buildDashboardHub(context),
           ] else ...[

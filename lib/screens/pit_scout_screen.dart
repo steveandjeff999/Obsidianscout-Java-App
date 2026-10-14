@@ -10,6 +10,10 @@ import '../services/api_service.dart';
 import '../services/scout_history_service.dart';
 import '../widgets/obsidian_barcode_modal.dart';
 import '../widgets/obsidian_feedback.dart';
+import '../widgets/sync_status_banner.dart';
+import '../models/assignment_models.dart';
+import '../services/assignment_advance_service.dart';
+import '../widgets/next_assignment_chip.dart';
 
 class PitScoutScreen extends StatefulWidget {
   final ApiService apiService;
@@ -41,6 +45,14 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
   bool _isLoading = true;
   bool _isSubmitting = false;
   final Map<String, dynamic> _formData = {};
+
+  // Assignment auto-advance: after a save, jump to the scout's next pit assignment.
+  List<ScoutingAssignment> _assignments = [];
+  NextAssignment? _nextAssignment;
+  bool _advanced = false;
+  bool _autoAdvance = true;
+  bool _initialAdvanceDone = false;
+  final Set<String> _doneIds = {};
 
   @override
   void initState() {
@@ -80,6 +92,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
         }
         _applyInitialSelections();
       });
+      _initAssignments();
     }
 
     // If offline, stop immediately - don't wait for network timeouts
@@ -113,9 +126,116 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
         }
         _applyInitialSelections();
       });
+      _initAssignments();
     } catch (_) {
       if (mounted && _isLoading) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _initAssignments() async {
+    try {
+      final enabled = await AssignmentAdvanceService.isEnabled();
+      final list = await widget.apiService.getCachedMyAssignments(_eventKey);
+      if (!mounted) return;
+      final next = AssignmentAdvanceService.next(list, type: 'PIT', afterTeam: _selectedTeam?.teamNumber);
+      setState(() {
+        _assignments = list;
+        _autoAdvance = enabled;
+        _nextAssignment = next;
+        _advanced = false;
+        if (!_initialAdvanceDone && enabled && widget.initialTargetTeamNumber == null && _selectedTeam == null && next?.assignment != null) {
+          _applyAssignment(next!.assignment!);
+          _advanced = true;
+        }
+        if (_teams.isNotEmpty) _initialAdvanceDone = true;
+      });
+    } catch (_) {}
+  }
+
+  /// Selects an assignment's team. Call inside setState.
+  void _applyAssignment(ScoutingAssignment a) {
+    final teamNumber = a.targetTeamNumber;
+    if (teamNumber == null) return;
+    final team = _teams.where((t) => t.teamNumber == teamNumber).firstOrNull;
+    if (team != null) _selectedTeam = team;
+  }
+
+  String? _assignmentIdForSelection() {
+    final team = _selectedTeam;
+    if (team == null) return null;
+    final hit = _assignments
+        .where((a) => a.assignmentType.toUpperCase() == 'PIT' && a.targetTeamNumber == team.teamNumber)
+        .firstOrNull;
+    if (hit != null) return hit.id;
+    final sourceId = widget.sourceAssignmentId;
+    return (sourceId != null && sourceId.isNotEmpty && widget.initialTargetTeamNumber == team.teamNumber) ? sourceId : null;
+  }
+
+  Future<void> _advanceAfterSave(int teamNumber, String? completedId) async {
+    if (completedId != null) _doneIds.add(completedId);
+    try {
+      final list = await widget.apiService.getCachedMyAssignments(_eventKey);
+      if (!mounted) return;
+      final source = list.isNotEmpty ? list : _assignments;
+      final next = AssignmentAdvanceService.next(
+        source,
+        type: 'PIT',
+        afterTeam: teamNumber,
+        justCompletedIds: {if (completedId != null) completedId},
+      );
+      setState(() {
+        _assignments = source;
+        _nextAssignment = next;
+        _advanced = false;
+        if (_autoAdvance && next?.assignment != null) {
+          _applyAssignment(next!.assignment!);
+          _advanced = true;
+        }
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _setAutoAdvance(bool enabled) async {
+    await AssignmentAdvanceService.setEnabled(enabled);
+    if (mounted) setState(() => _autoAdvance = enabled);
+  }
+
+  Widget _buildNextAssignmentChip({EdgeInsetsGeometry? margin}) {
+    final currentId = _assignmentIdForSelection();
+    final current = currentId == null || _doneIds.contains(currentId)
+        ? null
+        : _assignments.where((a) => a.id == currentId && AssignmentAdvanceService.isOpen(a)).firstOrNull;
+    final ahead = AssignmentAdvanceService.next(
+      _assignments,
+      type: 'PIT',
+      afterTeam: _selectedTeam?.teamNumber,
+      justCompletedIds: {..._doneIds, if (current != null) current.id},
+      noWrap: true,
+    );
+    // Nothing after the selection: point at the earliest open one instead (or report none left).
+    final fallback = ahead?.assignment == null
+        ? AssignmentAdvanceService.next(_assignments, type: 'PIT', matches: const [], justCompletedIds: {..._doneIds, if (current != null) current.id})
+        : null;
+    final upNext = current != null ? ahead?.assignment : (ahead?.assignment ?? fallback?.assignment);
+    final earlierOpen = current != null && ahead?.assignment == null ? (ahead?.remaining ?? 0) : 0;
+    return NextAssignmentChip(
+      hasAssignments: _assignments.any((a) => a.assignmentType.toUpperCase() == 'PIT'),
+      current: current,
+      upNext: upNext,
+      earlierOpen: earlierOpen,
+      skippedPast: _advanced ? (_nextAssignment?.skippedPast ?? 0) : 0,
+      autoAdvance: _autoAdvance,
+      onToggleAutoAdvance: _setAutoAdvance,
+      onChange: () => setState(() {
+        _selectedTeam = null;
+        _advanced = false;
+      }),
+      onGoTo: (a) => setState(() {
+        _applyAssignment(a);
+        _advanced = false;
+      }),
+      margin: margin ?? const EdgeInsets.fromLTRB(16, 4, 16, 4),
+    );
   }
 
   void _applyInitialSelections({bool force = false}) {
@@ -314,10 +434,12 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
         message: 'Pit scouting data saved successfully (HTTP ${response.statusCode ?? 200})',
         statusCode: response.statusCode ?? 200,
       );
-      if (widget.sourceAssignmentId != null && widget.sourceAssignmentId!.isNotEmpty) {
-        widget.apiService.updateAssignmentStatus(widget.sourceAssignmentId!, 'COMPLETED');
+      final completedId = _assignmentIdForSelection();
+      if (completedId != null) {
+        widget.apiService.updateAssignmentStatus(completedId, 'COMPLETED');
       }
       _resetForm();
+      _advanceAfterSave(payload['targetTeamNumber'] as int, completedId);
     } else if (response.isOffline) {
       ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
         type: 'pit',
@@ -329,13 +451,15 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
       ));
       ObsidianFeedback.showWarning(
         context,
-        title: 'Saved to Offline Cache',
-        message: 'Device offline. Saved to offline cache and will sync when online.',
+        title: 'Saved on This Device Only',
+        message: 'Not on the server yet. It will upload automatically when the connection returns.',
       );
-      if (widget.sourceAssignmentId != null && widget.sourceAssignmentId!.isNotEmpty) {
-        widget.apiService.updateAssignmentStatus(widget.sourceAssignmentId!, 'COMPLETED');
+      final completedId = _assignmentIdForSelection();
+      if (completedId != null) {
+        widget.apiService.updateAssignmentStatus(completedId, 'COMPLETED');
       }
       _resetForm();
+      _advanceAfterSave(payload['targetTeamNumber'] as int, completedId);
     } else {
       ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
         type: 'pit',
@@ -410,6 +534,8 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              SyncStatusBanner(apiService: widget.apiService, margin: const EdgeInsets.only(bottom: 8)),
+              _buildNextAssignmentChip(margin: const EdgeInsets.only(bottom: 8)),
               ObsidianGlassCard(
                 child: DropdownButtonFormField<TeamModel>(
                   isExpanded: true,
@@ -592,6 +718,8 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
         key: _formKey,
         child: Column(
           children: [
+            SyncStatusBanner(apiService: widget.apiService),
+            _buildNextAssignmentChip(),
             ObsidianGlassCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
