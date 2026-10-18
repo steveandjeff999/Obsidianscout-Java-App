@@ -244,22 +244,24 @@ class HomeWidgetService {
 
   /// Widget access worked out on the device with the app's own page rules, so the widgets appear in the picker
   /// right after sign-in even before (or without) a snapshot from the server. The server's snapshot uses the
-  /// same rules and replaces this once it arrives.
+  /// same rules and is what turns widgets off.
   Map<String, bool> localAccess() {
     final api = _api;
     if (api == null || !api.isLoggedIn) return const {};
     return {for (final k in kinds) k.id: k.pages.any(api.hasPageAccess)};
   }
 
-  Future<void> _applyLocalAccess() => _applyAccess(localAccess());
+  /// Only turns widgets on: right after signing in the app's cached settings may still be the previous
+  /// account's, and turning a widget off removes it from the home screen. Removal waits for the server's answer.
+  Future<void> _applyLocalAccess() => _applyAccess(localAccess(), onlyEnable: true);
 
   /// Turns widgets on or off in the system widget picker to match what the user may have.
-  Future<void> _applyAccess(dynamic widgets) async {
+  Future<void> _applyAccess(dynamic widgets, {bool onlyEnable = false}) async {
     final allowed = <String, bool>{
       for (final k in kinds) k.id: widgets is Map && widgets[k.id] == true,
     };
     try {
-      await _channel.invokeMethod('applyAccess', {'widgets': allowed});
+      await _channel.invokeMethod('applyAccess', {'widgets': allowed, 'onlyEnable': onlyEnable});
     } catch (e) {
       debugPrint('[HomeWidget] applyAccess failed: $e');
     }
@@ -271,8 +273,8 @@ class HomeWidgetService {
     await HomeWidget.saveWidgetData<String>(keyToken, null);
     await HomeWidget.saveWidgetData<int>(keyTokenExpires, null);
     await _writeLocalState();
-    // Signed out: no account, so no widget is allowed.
-    await _applyAccess(const <String, bool>{});
+    // Placed widgets stay on the home screen (they show "sign in" and none of the old account's data). The next
+    // sign-in applies that account's access, which removes any widget it isn't allowed.
     await _redrawAll();
   }
 

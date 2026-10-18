@@ -24,7 +24,7 @@ class MainActivity : FlutterFragmentActivity(), GamepadsCompatibleActivity {
                 "applyAccess" -> {
                     @Suppress("UNCHECKED_CAST")
                     val widgets = (call.argument<Map<String, Any?>>("widgets") ?: emptyMap()).mapValues { it.value == true }
-                    WidgetAccessGate.apply(applicationContext, widgets)
+                    WidgetAccessGate.apply(applicationContext, widgets, onlyEnable = call.argument<Boolean>("onlyEnable") == true)
                     if (WidgetUpdater.anyPlaced(applicationContext)) {
                         WidgetScheduler.ensurePeriodic(applicationContext)
                         WidgetScheduler.armClock(applicationContext)
