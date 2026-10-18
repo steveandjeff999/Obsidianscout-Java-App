@@ -55,7 +55,8 @@ enum class WidgetKind(val id: String, val receiver: Class<*>, val widget: () -> 
  * widget is not offered in the widget picker, and one already on the home screen is removed by the launcher.
  */
 object WidgetAccessGate {
-    fun apply(context: Context, allowed: Map<String, Boolean>) {
+    /** With [onlyEnable], widgets are only turned on, never off (used before the server has confirmed access). */
+    fun apply(context: Context, allowed: Map<String, Boolean>, onlyEnable: Boolean = false) {
         val pm = context.packageManager
         for (kind in WidgetKind.entries) {
             val want = if (allowed[kind.id] == true) PackageManager.COMPONENT_ENABLED_STATE_ENABLED else PackageManager.COMPONENT_ENABLED_STATE_DISABLED
@@ -63,14 +64,14 @@ object WidgetAccessGate {
             val current = pm.getComponentEnabledSetting(component)
             val isOn = current == PackageManager.COMPONENT_ENABLED_STATE_ENABLED
             val wantOn = want == PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+            if (onlyEnable && !wantOn) continue
             if (isOn != wantOn) pm.setComponentEnabledSetting(component, want, PackageManager.DONT_KILL_APP)
         }
     }
 
+    /** Signing out leaves widgets where they are (showing "sign in"); the next account's access decides what stays. */
     fun applyFromSnapshot(context: Context, snapshot: Snapshot) {
-        if (snapshot.signedOut) {
-            apply(context, emptyMap())
-        } else if (snapshot.present) {
+        if (snapshot.present) {
             apply(context, WidgetKind.entries.associate { it.id to snapshot.allowed(it.id) })
         }
     }
