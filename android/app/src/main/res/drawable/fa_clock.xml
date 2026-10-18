@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Font Awesome Free "clock" (CC BY 4.0), exported from font_awesome_flutter's font. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24.00dp"
+    android:height="24dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+    <path android:fillColor="#FFFFFFFF" android:pathData="M464 256C464 371 371 464 256 464C141 464 48 371 48 256C48 141 141 48 256 48C371 48 464 141 464 256ZM0 256C0 397 115 512 256 512C397 512 512 397 512 256C512 115 397 0 256 0C115 0 0 115 0 256ZM232 120V256C232 264 236 272 243 276L339 340C350 347 365 344 372 333C379 322 376 307 365 300L280 243V120C280 107 269 96 256 96C243 96 232 107 232 120Z" />
+</vector>

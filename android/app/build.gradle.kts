@@ -1,5 +1,7 @@
 plugins {
     id("com.android.application")
+    // Jetpack Compose compiler, for the Glance home-screen widgets.
+    id("org.jetbrains.kotlin.plugin.compose")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
@@ -43,6 +45,10 @@ android {
         }
     }
 
+    buildFeatures {
+        compose = true
+    }
+
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("release")
@@ -58,4 +64,10 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Home-screen widgets (Glance) and their background refresh (WorkManager).
+    implementation("androidx.glance:glance-appwidget:1.2.0")
+    implementation("androidx.work:work-runtime-ktx:2.11.2")
 }

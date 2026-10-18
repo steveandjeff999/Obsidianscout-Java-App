@@ -86,6 +86,9 @@ class ApiService {
   UserModel? _currentUser;
   AppSettingsModel? _currentSettings;
   final ValueNotifier<int> permissionsNotifier = ValueNotifier<int>(0);
+  /// Bumped after each background sync and whenever the user saves something that changes what the
+  /// home-screen widgets show (a scouting entry, an assignment status), so they refresh right away.
+  final ValueNotifier<int> dataSyncedNotifier = ValueNotifier<int>(0);
   /// Fires whenever [_currentSettings] is updated from the server.
   /// Use this to reactively refresh UI that depends on [currentSettings].
   final ValueNotifier<AppSettingsModel?> settingsNotifier = ValueNotifier<AppSettingsModel?>(null);
@@ -409,6 +412,7 @@ class ApiService {
     } catch (_) {
     } finally {
       _isSyncing = false;
+      dataSyncedNotifier.value++;
     }
   }
 
@@ -3164,6 +3168,8 @@ class ApiService {
             ? const ApiResponse.error(isOffline: true, message: 'Some entries were saved on this device and will upload automatically.')
             : const ApiResponse.success(null, statusCode: 200);
       }
+      // The server just completed any matching assignment; the widgets should move on now.
+      if (response.statusCode >= 200 && response.statusCode < 300) dataSyncedNotifier.value++;
       return ApiResponse.fromHttpResponse(response, defaultErrorMessage: defaultErrorMessage);
     } catch (e) {
       return queue('Connection error: saved on this device and will upload automatically.');
@@ -3942,6 +3948,47 @@ class ApiService {
       _memoryCache.clear();
       _cacheTimestamps.clear();
     } catch (_) {}
+  }
+
+  // Home-screen widgets
+
+  /// Raw JSON of the widget snapshot (see /api/widgets/snapshot), or null when offline or signed out.
+  /// [placed] lists the widget kinds on the home screen so the server only pushes refreshes that matter.
+  Future<String?> fetchWidgetSnapshot({List<String>? placed}) async {
+    if (!_isOnline || !isLoggedIn) return null;
+    try {
+      final uri = Uri.parse('$_currentServerUrl/api/widgets/snapshot')
+          .replace(queryParameters: placed == null ? null : {'placed': placed.join(',')});
+      final response = await http.get(uri, headers: _headers).timeout(heavyRequestTimeout);
+      // Widgets refresh quietly: only a signed-out session is acted on, never a server-error banner.
+      if (response.statusCode == 401) _checkResponse(response);
+      if (response.statusCode == 200) return response.body;
+    } catch (_) {}
+    return null;
+  }
+
+  /// A read-only token the phone's widgets use to fetch their snapshot while the app is closed.
+  /// It is tied to this login and stops working when the user signs out or the device is revoked.
+  Future<({String token, int expiresAt})?> issueWidgetToken(String platform) async {
+    if (!_isOnline || !isLoggedIn) return null;
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$_currentServerUrl/api/widgets/token'),
+            headers: _headers,
+            body: jsonEncode({'platform': platform}),
+          )
+          .timeout(requestTimeout);
+      // Widgets refresh quietly: only a signed-out session is acted on, never a server-error banner.
+      if (response.statusCode == 401) _checkResponse(response);
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map && decoded['token'] is String) {
+          return (token: decoded['token'] as String, expiresAt: (decoded['expiresAt'] as num?)?.toInt() ?? 0);
+        }
+      }
+    } catch (_) {}
+    return null;
   }
 
   Future<Map<String, dynamic>?> fetchFcmPublicConfig() async {
@@ -5604,7 +5651,9 @@ class ApiService {
           )
           .timeout(heavyRequestTimeout);
       _checkResponse(response);
-      return response.statusCode >= 200 && response.statusCode < 300;
+      final ok = response.statusCode >= 200 && response.statusCode < 300;
+      if (ok) dataSyncedNotifier.value++;
+      return ok;
     } catch (e) {
       debugPrint('[ApiService] updateAssignmentStatus error: $e');
       if (e is TimeoutException || e.toString().contains('SocketException') || e.toString().contains('ClientException')) {

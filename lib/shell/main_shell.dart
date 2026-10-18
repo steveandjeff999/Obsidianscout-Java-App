@@ -10,6 +10,7 @@ import '../services/auth_storage_service.dart';
 import '../services/battery_tracker_sync.dart';
 import '../services/biometric_auth_service.dart';
 import '../services/fcm_helper.dart';
+import '../services/home_widget_service.dart';
 import '../services/match_checklist_sync.dart';
 import '../services/notification_websocket_service.dart';
 import '../theme/obsidian_page_transitions.dart';
@@ -34,7 +35,7 @@ class MainShell extends StatefulWidget {
   State<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends State<MainShell> {
+class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final List<int> _screenHistory = [];
   DateTime? _lastBackPressTime;
@@ -117,6 +118,10 @@ class _MainShellState extends State<MainShell> {
   StreamSubscription<bool>? _onlineSub;
   StreamSubscription<int>? _serverErrorSub;
   StreamSubscription<String>? _sessionRevokedSub;
+  StreamSubscription<WidgetLaunch>? _widgetLaunchSub;
+
+  /// A home-screen widget tap waiting for sign-in or unlock.
+  WidgetLaunch? _pendingWidgetLaunch;
 
   String? _pendingChatChannel;
   NotificationWebSocketService? _wsNotificationService;
@@ -285,6 +290,56 @@ class _MainShellState extends State<MainShell> {
     _checkLaunchLock();
 
     widget.apiService.permissionsNotifier.addListener(_onPermissionsChanged);
+
+    WidgetsBinding.instance.addObserver(this);
+    _pendingWidgetLaunch = HomeWidgetService.instance.takeInitialLaunch();
+    _widgetLaunchSub = HomeWidgetService.instance.launches.listen((launch) {
+      if (!mounted) return;
+      setState(() => _pendingWidgetLaunch = launch);
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Leave the home-screen widgets current when the user goes back to the home screen.
+    if (state == AppLifecycleState.paused) HomeWidgetService.instance.requestRefresh();
+  }
+
+  /// Opens what a tapped home-screen widget points at, once the user is signed in and unlocked.
+  /// Page access is checked by [_navigateScreen] / [_openQrScanner] like any other navigation.
+  void _openWidgetLaunch(WidgetLaunch launch) {
+    final p = launch.params;
+    int? indexOf(String pageId) {
+      for (var i = 0; i < ShellScreenRegistry.screenCount; i++) {
+        if (ShellScreenRegistry.getPageIdForIndex(i) == pageId) return i;
+      }
+      return null;
+    }
+
+    switch (launch.action) {
+      case 'page':
+        final index = indexOf(p['page'] ?? '');
+        if (index != null) _navigateScreen(index);
+      case 'scout':
+        final number = int.tryParse(p['number'] ?? '');
+        final team = int.tryParse(p['team'] ?? '');
+        switch ((p['type'] ?? 'MATCH').toUpperCase()) {
+          case 'PIT':
+            _navigateToPitScout(targetTeamNumber: team, sourceAssignmentId: p['id']);
+          case 'QUALITATIVE':
+            _navigateToQualScout(
+              matchKey: p['matchKey'],
+              matchNumber: number,
+              allianceColor: p['alliance'],
+              targetTeamNumber: team,
+              sourceAssignmentId: p['id'],
+            );
+          default:
+            _navigateToMatchScout(matchKey: p['matchKey'], matchNumber: number, targetTeamNumber: team, sourceAssignmentId: p['id']);
+        }
+      case 'scan':
+        _openQrScanner();
+    }
   }
 
   Future<void> _checkLaunchLock() async {
@@ -442,6 +497,8 @@ class _MainShellState extends State<MainShell> {
   @override
   void dispose() {
     widget.apiService.permissionsNotifier.removeListener(_onPermissionsChanged);
+    WidgetsBinding.instance.removeObserver(this);
+    _widgetLaunchSub?.cancel();
     _onlineSub?.cancel();
     _serverErrorSub?.cancel();
     _sessionRevokedSub?.cancel();
@@ -723,8 +780,17 @@ class _MainShellState extends State<MainShell> {
           });
           _bootstrapFcm();
           _bootstrapWsNotifications();
+          HomeWidgetService.instance.requestRefresh();
         },
       );
+    }
+
+    final widgetLaunch = _pendingWidgetLaunch;
+    if (widgetLaunch != null) {
+      _pendingWidgetLaunch = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _openWidgetLaunch(widgetLaunch);
+      });
     }
 
     final isDesktop = ObsidianResponsive.isDesktop(context, overrideMode: widget.apiService.uiMode);

@@ -43,7 +43,7 @@ class AssignmentAdvanceService {
   /// Event order: practice, then qualifications, then playoffs (same ranking as the server's
   /// MatchCanonical.compLevelRank). Unknown levels sort after playoffs.
   static const Map<String, int> _levelRank = {
-    'practice': 0, 'prac': 0, 'pr': 0, 'prc': 0, 'p': 0,
+    'practice': 0, 'prac': 0, 'pr': 0, 'prc': 0, 'pm': 0, 'p': 0,
     'qm': 1, 'q': 1, 'qual': 1, 'quals': 1, 'qualification': 1,
     'qf': 2, 'quarterfinal': 2, 'quarterfinals': 2,
     'sf': 3, 'semifinal': 3, 'semifinals': 3,

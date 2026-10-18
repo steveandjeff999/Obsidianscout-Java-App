@@ -94,32 +94,20 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
     _matchesByKey = {for (final m in _matches) m.matchKey.toLowerCase(): m};
     _teamsByNumber = {for (final t in _teams) t.teamNumber: t};
 
+    int compareOrder(ScoutingAssignment a, ScoutingAssignment b) =>
+        ScoutingAssignment.compareMatchOrder(a, b, matchesByKey: _matchesByKey);
+
     _cachedActive = _assignments
         .where((a) => a.status == 'PENDING' || a.status == 'IN_PROGRESS')
         .toList()
-      ..sort((a, b) {
-        final timeA = a.effectiveScheduledTime;
-        final timeB = b.effectiveScheduledTime;
-        if (timeA == null && timeB == null) return 0;
-        if (timeA == null) return 1;
-        if (timeB == null) return -1;
-        return timeA.compareTo(timeB);
-      });
+      ..sort(compareOrder);
 
     _cachedCompleted = _assignments
         .where((a) => a.status == 'COMPLETED' || a.status == 'SKIPPED')
         .toList()
-      ..sort((a, b) => (b.effectiveScheduledTime ?? 0).compareTo(a.effectiveScheduledTime ?? 0));
+      ..sort(compareOrder);
 
-    _cachedAll = List.from(_assignments)
-      ..sort((a, b) {
-        final timeA = a.effectiveScheduledTime;
-        final timeB = b.effectiveScheduledTime;
-        if (timeA == null && timeB == null) return 0;
-        if (timeA == null) return 1;
-        if (timeB == null) return -1;
-        return timeA.compareTo(timeB);
-      });
+    _cachedAll = List.from(_assignments)..sort(compareOrder);
 
     if (_cachedActive.isEmpty) {
       _cachedNextUp = null;

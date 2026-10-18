@@ -2,6 +2,15 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'api_service.dart';
+import 'home_widget_service.dart';
+
+/// Silent pushes that arrive while the app is in the background or closed. Runs in its own isolate.
+@pragma('vm:entry-point')
+Future<void> obsidianFcmBackgroundHandler(RemoteMessage message) async {
+  if (message.data['type'] == 'widget_refresh') {
+    await HomeWidgetService.handleRefreshPush();
+  }
+}
 
 class FcmHelper {
   static String? currentFcmToken;
@@ -48,6 +57,12 @@ class FcmHelper {
       }
 
       if (!_isFirebaseInitialized) return;
+
+      // Silent "widgets are out of date" pushes: fetch now in the foreground, hand to the widgets otherwise.
+      FirebaseMessaging.onBackgroundMessage(obsidianFcmBackgroundHandler);
+      FirebaseMessaging.onMessage.listen((message) {
+        if (message.data['type'] == 'widget_refresh') HomeWidgetService.instance.requestRefresh();
+      });
 
       // Configure foreground notifications
       await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(

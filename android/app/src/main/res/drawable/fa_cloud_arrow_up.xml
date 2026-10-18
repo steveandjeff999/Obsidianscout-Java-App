@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Font Awesome Free "cloudArrowUp" (CC BY 4.0), exported from font_awesome_flutter's font. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="27.00dp"
+    android:height="24dp"
+    android:viewportWidth="576"
+    android:viewportHeight="512">
+    <path android:fillColor="#FFFFFFFF" android:pathData="M144 480C65 480 0 416 0 336C0 273 41 219 98 200C97 192 96 184 96 176C96 97 161 32 240 32C295 32 344 63 368 109C382 101 398 96 416 96C469 96 512 139 512 192C512 208 508 223 502 236C546 256 576 300 576 352C576 423 519 480 448 480H144ZM305 191C296 182 280 182 271 191L199 263C190 272 190 288 199 297C209 306 224 306 233 297L264 266V368C264 381 275 392 288 392C301 392 312 381 312 368V266L343 297C352 306 368 306 377 297C386 288 386 272 377 263L305 191Z" />
+</vector>

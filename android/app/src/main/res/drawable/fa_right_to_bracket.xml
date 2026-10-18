@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Font Awesome Free "rightToBracket" (CC BY 4.0), exported from font_awesome_flutter's font. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24.00dp"
+    android:height="24dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+    <path android:fillColor="#FFFFFFFF" android:pathData="M345 273C354 264 354 248 345 239L201 95C194 88 184 86 175 90C166 94 160 102 160 112V192H48C22 192 0 214 0 240V272C0 299 22 320 48 320H160V400C160 410 166 419 175 422C184 426 194 424 201 417L345 273ZM352 416C334 416 320 430 320 448C320 466 334 480 352 480H416C469 480 512 437 512 384V128C512 75 469 32 416 32H352C334 32 320 46 320 64C320 82 334 96 352 96H416C434 96 448 110 448 128V384C448 402 434 416 416 416H352Z" />
+</vector>

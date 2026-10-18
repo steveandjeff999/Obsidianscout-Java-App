@@ -152,6 +152,17 @@ class MatchModel {
   final List<String> redTeams;
   final List<String> blueTeams;
 
+  /// UTC epoch seconds from the server. [predictedTime] is [scheduledTime] shifted by how far ahead or behind
+  /// the event is running ([scheduleOffsetSeconds]: positive = behind), worked out on the server from the
+  /// matches already played. Show [predictedTime]; the website and home-screen widgets use the same value.
+  final int? scheduledTime;
+  final int? predictedTime;
+  final int? actualTime;
+  final int? scheduleOffsetSeconds;
+  final int? redScore;
+  final int? blueScore;
+  final String? eventTimezone;
+
   MatchModel({
     required this.matchKey,
     required this.eventKey,
@@ -160,7 +171,31 @@ class MatchModel {
     required this.label,
     this.redTeams = const [],
     this.blueTeams = const [],
+    this.scheduledTime,
+    this.predictedTime,
+    this.actualTime,
+    this.scheduleOffsetSeconds,
+    this.redScore,
+    this.blueScore,
+    this.eventTimezone,
   });
+
+  static int? _intOf(dynamic v) => v is num ? v.toInt() : int.tryParse(v?.toString() ?? '');
+
+  static DateTime? _epoch(int? seconds) =>
+      seconds == null || seconds <= 0 ? null : DateTime.fromMillisecondsSinceEpoch(seconds * 1000, isUtc: true);
+
+  /// When the match is expected to start, adjusted for the event running ahead or behind.
+  DateTime? get predictedStart => _epoch(predictedTime ?? scheduledTime);
+
+  DateTime? get scheduledStart => _epoch(scheduledTime);
+
+  /// Played = it has a score, or an actual start time that differs from the schedule (same rule as the server).
+  bool get isPlayed {
+    final hasScore = (redScore ?? -1) >= 0 || (blueScore ?? -1) >= 0;
+    final act = actualTime;
+    return hasScore || (act != null && act > 0 && scheduledTime != null && act != scheduledTime);
+  }
 
   factory MatchModel.fromJson(Map<String, dynamic> json) {
     String compLevel = json['compLevel']?.toString() ??
@@ -205,6 +240,13 @@ class MatchModel {
       blueTeams: (json['blueTeams'] as List?)?.map((e) => e.toString()).toList() ??
           (json['blue_teams'] as List?)?.map((e) => e.toString()).toList() ??
           [],
+      scheduledTime: _intOf(json['scheduledTime']),
+      predictedTime: _intOf(json['predictedTime']),
+      actualTime: _intOf(json['actualTime']),
+      scheduleOffsetSeconds: _intOf(json['scheduleOffsetSeconds']),
+      redScore: _intOf(json['redScore']),
+      blueScore: _intOf(json['blueScore']),
+      eventTimezone: json['eventTimezone']?.toString(),
     );
   }
 
