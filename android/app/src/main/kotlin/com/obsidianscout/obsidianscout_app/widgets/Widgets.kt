@@ -225,9 +225,10 @@ class ScheduleWidget : ObsidianWidget() {
                 val d = dims()
                 val snap = env.snapshot
                 val p = env.palette
-                // The last result or two first when there's room, then every upcoming match; the list scrolls.
-                val played = snap.recentlyPlayed(env.now).takeLast(if (d.tall) 2 else if (d.short) 0 else 1)
+                // The entire schedule: what's coming up first (a widget list can't open scrolled to the middle),
+                // then every earlier match, newest first, under "Earlier results".
                 val upcoming = snap.eventUpcoming(env.now)
+                val played = snap.recentlyPlayed(env.now).reversed()
                 Column(modifier = GlanceModifier.fillMaxSize()) {
                     Header(env, R.drawable.fa_calendar_days, snap.eventName ?: env.s(R.string.widget_schedule_label), env.offset(snap.scheduleOffset), env.offsetColor(snap.scheduleOffset))
                     Spacer(GlanceModifier.height(4.dp))
@@ -235,12 +236,20 @@ class ScheduleWidget : ObsidianWidget() {
                         Message(env, R.drawable.fa_circle_check, env.s(R.string.w_no_schedule))
                         return@Column
                     }
-                    FillList(played + upcoming, open) { m ->
-                        if (m.played || !upcoming.contains(m)) {
-                            ScheduleRow(env, d, m, "${m.redScore ?: "-"} - ${m.blueScore ?: "-"}", p.muted)
-                        } else {
-                            val time = m.start?.let { if (env.now >= it) env.s(R.string.w_on_field) else env.clock(it) } ?: ""
-                            ScheduleRow(env, d, m, time, if (m.alliance != null) p.text else p.muted)
+                    val rows: List<WMatch?> = upcoming + (if (played.isNotEmpty()) listOf(null) else emptyList()) + played
+                    FillList(rows, open) { m ->
+                        when {
+                            // null marks where the earlier matches start.
+                            m == null -> Label(env, env.s(R.string.w_earlier), 11.sp, p.muted, bold = true, modifier = GlanceModifier.padding(top = 6.dp, bottom = 2.dp))
+                            m in upcoming -> {
+                                val time = m.start?.let { if (env.now >= it) env.s(R.string.w_on_field) else env.clock(it) } ?: ""
+                                ScheduleRow(env, d, m, time, if (m.alliance != null) p.text else p.muted)
+                            }
+                            else -> {
+                                // A score when it's in, otherwise when it was played.
+                                val result = if (m.redScore != null || m.blueScore != null) "${m.redScore ?: "-"} - ${m.blueScore ?: "-"}" else m.start?.let { env.clock(it) } ?: ""
+                                ScheduleRow(env, d, m, result, p.muted)
+                            }
                         }
                     }
                 }
@@ -281,7 +290,8 @@ class PredictorWidget : ObsidianWidget() {
                 val d = dims()
                 val p = env.palette
                 // Only while that match is still ahead; once it starts the next fetch brings the next prediction.
-                val pred = env.snapshot.prediction?.takeIf { pr -> pr.match?.predicted?.let { it + Snapshot.ON_FIELD_SECONDS > env.now } ?: true }
+                // The match that's up now, by the same rule as Next Match.
+                val pred = env.snapshot.prediction(env.now)
                 Column(modifier = GlanceModifier.fillMaxSize()) {
                     val title = pred?.match?.let { env.matchLabel(it.compLevel, it.set, it.number, it.label) } ?: env.s(R.string.widget_predictor_label)
                     Header(env, R.drawable.fa_chart_line, title, pred?.match?.predicted?.let { env.clock(it) })
@@ -431,7 +441,7 @@ class BatteryWidget : ObsidianWidget() {
                 val snap = env.snapshot
                 val p = env.palette
                 val slots = snap.batterySlots
-                val current = snap.firstAhead(slots, env.now) { it.match }
+                val current = snap.pickCurrent(slots, env.now) { it.match }
                 Column(modifier = GlanceModifier.fillMaxSize()) {
                     Header(env, R.drawable.fa_battery_full, env.s(R.string.widget_battery_label))
                     when {
@@ -513,8 +523,9 @@ class ChecklistWidget : ObsidianWidget() {
                 val d = dims()
                 val snap = env.snapshot
                 val p = env.palette
-                val match = snap.checklistMatch
-                val lists = snap.checklistLists
+                // The match that's up now, by the same rule as Next Match: it moves on when the match is played
+                // or starts, whether or not its checklist was finished.
+                val (match, lists) = snap.checklistNow(env.now)
                 // Progress over everything that's due: this match's lists plus today's and the event's.
                 val due = lists.filter { it.due }
                 val done = due.sumOf { it.done }

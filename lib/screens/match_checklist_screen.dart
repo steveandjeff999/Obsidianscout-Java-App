@@ -644,18 +644,8 @@ class _MatchChecklistScreenState extends State<MatchChecklistScreen> {
     return (result == null || result.isEmpty) ? null : result;
   }
 
-  static int _levelRank(String level) {
-    final l = level.toLowerCase();
-    if (['p', 'pr', 'pm', 'practice'].contains(l)) return 0;
-    if (['q', 'qm', 'qual', 'qualification'].contains(l)) return 1;
-    return 2;
-  }
-
-  static int _compareMatches(MatchModel a, MatchModel b) {
-    final byLevel = _levelRank(a.compLevel) - _levelRank(b.compLevel);
-    if (byLevel != 0) return byLevel;
-    return (a.matchNumber ?? 0) - (b.matchNumber ?? 0);
-  }
+  static int _compareMatches(MatchModel a, MatchModel b) =>
+      BatteryRotation.compareMatchOrder(a.compLevel, a.matchNumber, a.matchKey, b.compLevel, b.matchNumber, b.matchKey);
 
   static int? _teamNumberOf(String teamKey) => int.tryParse(RegExp(r'\d+').firstMatch(teamKey)?.group(0) ?? '');
 
@@ -974,6 +964,17 @@ class _MatchChecklistScreenState extends State<MatchChecklistScreen> {
     final seen = <String>{};
     final unique = visible.where((m) => seen.add(m.matchKey)).toList();
     final customKeys = _customMatchNames.keys.where((k) => !seen.contains(k)).toList();
+    final allOptions = <({String key, MatchModel? match})>[
+      for (final m in unique) (key: m.matchKey, match: m),
+      for (final k in customKeys) (key: k, match: null),
+    ]..sort((a, b) => BatteryRotation.compareMatchOrder(
+          a.match?.compLevel ?? '',
+          a.match?.matchNumber,
+          a.key,
+          b.match?.compLevel ?? '',
+          b.match?.matchNumber,
+          b.key,
+        ));
     String doneMark(String key) => _isMatchComplete(key, _completions[key]) ? '✓ ' : '';
     final batteries = _batterySchedule;
     String batteryMark(String key) {
@@ -995,16 +996,20 @@ class _MatchChecklistScreenState extends State<MatchChecklistScreen> {
       hint: Text(hint),
       decoration: InputDecoration(labelText: context.tr('checklist.match', 'Match'), border: const OutlineInputBorder()),
       items: [
-        for (final m in unique)
-          DropdownMenuItem(
-            value: m.matchKey,
-            child: Text(
-              '${doneMark(m.matchKey)}${_matchLabel(m)}${_allianceOf(m) == null ? '' : ' (${context.tr('checklist.alliance_short_${_allianceOf(m)}', _allianceOf(m) == 'red' ? 'Red' : 'Blue')})'}${batteryMark(m.matchKey)}',
-              overflow: TextOverflow.ellipsis,
+        for (final opt in allOptions)
+          if (opt.match case final m?)
+            DropdownMenuItem(
+              value: m.matchKey,
+              child: Text(
+                '${doneMark(m.matchKey)}${_matchLabel(m)}${_allianceOf(m) == null ? '' : ' (${context.tr('checklist.alliance_short_${_allianceOf(m)}', _allianceOf(m) == 'red' ? 'Red' : 'Blue')})'}${batteryMark(m.matchKey)}',
+                overflow: TextOverflow.ellipsis,
+              ),
+            )
+          else
+            DropdownMenuItem(
+              value: opt.key,
+              child: Text('${doneMark(opt.key)}${_customMatchNames[opt.key]}', overflow: TextOverflow.ellipsis),
             ),
-          ),
-        for (final key in customKeys)
-          DropdownMenuItem(value: key, child: Text('${doneMark(key)}${_customMatchNames[key]}', overflow: TextOverflow.ellipsis)),
         if (_eventKey.isNotEmpty)
           DropdownMenuItem(value: _customMatchValue, child: Text(context.tr('checklist.custom_match', '+ Custom / practice match...'))),
       ],

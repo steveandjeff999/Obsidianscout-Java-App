@@ -76,30 +76,108 @@ class BatteryRotation {
     return ca.length - cb.length;
   }
 
-  static int _levelRank(String level) {
-    final l = level.trim().toLowerCase();
-    if (const ['p', 'pr', 'pm', 'practice'].contains(l)) return 0;
-    if (const ['q', 'qm', 'qual', 'qualification'].contains(l)) return 1;
-    return 2;
+  static String normalizeCompLevel(String level) {
+    final compact = level.trim().toLowerCase().replaceAll(RegExp(r'[\s_-]+'), '');
+    return switch (compact) {
+      'p' || 'pr' || 'pm' || 'prac' || 'prc' || 'practice' || 'practicematch' => 'practice',
+      'q' || 'qm' || 'qual' || 'quals' || 'qualification' || 'qualificationmatch' || 'm' || 'match' || 'matches' => 'qm',
+      'qf' || 'quarterfinal' || 'quarterfinals' => 'qf',
+      'sf' || 'semifinal' || 'semifinals' => 'sf',
+      'f' || 'final' || 'finals' => 'f',
+      'ef' || 'einstein' || 'eighthfinal' || 'eighthfinals' => 'ef',
+      'po' || 'playoff' || 'playoffs' || 'playoffmatch' => 'playoff',
+      _ => compact,
+    };
   }
 
-  static final _tbaSet = RegExp(r'_[a-z]+(\d+)m\d+$');
-  static final _legacySet = RegExp(r'_s(\d+)_m\d+$');
+  static final _legacyKeyRe = RegExp(r'_([a-z]+)_s(\d+)_m(\d+)$', caseSensitive: false);
+  static final _tbaSuffixRe = RegExp(r'^([a-z]+)(\d+)(?:m(\d+))?$', caseSensitive: false);
+  static final _customMatchRe = RegExp(
+    r'^(practice|prac|pr|pm|p|qualification|quals|qual|qm|q|quarterfinals|quarterfinal|qf|semifinals|semifinal|sf|finals|final|f|einstein|ef|playoffs|playoff|po)(?:\s+match)?(?:[\s#:-]+(\d+)(?:[\s/-]+(\d+))?)?$',
+    caseSensitive: false,
+  );
+
+  static ({String compLevel, int setNumber, int matchNumber}) _parseMatchKey(String matchKey) {
+    final key = matchKey.trim();
+    if (key.isEmpty) return (compLevel: '', setNumber: 1, matchNumber: 0);
+
+    final legacy = _legacyKeyRe.firstMatch(key);
+    if (legacy != null) {
+      return (
+        compLevel: normalizeCompLevel(legacy.group(1)!),
+        setNumber: int.tryParse(legacy.group(2)!) ?? 1,
+        matchNumber: int.tryParse(legacy.group(3)!) ?? 0,
+      );
+    }
+
+    if (key.toLowerCase().startsWith('custom_')) {
+      final customText = key.substring(7).replaceAll('_', ' ').trim();
+      final customMatch = _customMatchRe.firstMatch(customText);
+      if (customMatch != null) {
+        final compLevel = normalizeCompLevel(customMatch.group(1)!);
+        final hasSetAndMatch = customMatch.group(3) != null;
+        return (
+          compLevel: compLevel,
+          setNumber: hasSetAndMatch ? (int.tryParse(customMatch.group(2)!) ?? 1) : 1,
+          matchNumber: hasSetAndMatch
+              ? (int.tryParse(customMatch.group(3)!) ?? 0)
+              : (int.tryParse(customMatch.group(2) ?? '') ?? 0),
+        );
+      }
+      return (compLevel: '', setNumber: 1, matchNumber: 0);
+    }
+
+    final suffix = key.contains('_') ? key.substring(key.lastIndexOf('_') + 1) : key;
+    final tba = _tbaSuffixRe.firstMatch(suffix);
+    if (tba != null) {
+      final compLevel = normalizeCompLevel(tba.group(1)!);
+      final hasSetAndMatch = tba.group(3) != null;
+      return (
+        compLevel: compLevel,
+        setNumber: hasSetAndMatch ? (int.tryParse(tba.group(2)!) ?? 1) : 1,
+        matchNumber: hasSetAndMatch ? (int.tryParse(tba.group(3)!) ?? 0) : (int.tryParse(tba.group(2)!) ?? 0),
+      );
+    }
+
+    return (compLevel: '', setNumber: 1, matchNumber: 0);
+  }
+
+  static int _levelRank(String level, [String matchKey = '']) {
+    final parsed = _parseMatchKey(matchKey);
+    var norm = normalizeCompLevel(level);
+    if (norm.isEmpty ||
+        (norm == 'playoff' && parsed.compLevel.isNotEmpty && parsed.compLevel != 'playoff') ||
+        (norm == 'qm' && parsed.compLevel.isNotEmpty && parsed.compLevel != 'qm')) {
+      norm = parsed.compLevel.isNotEmpty ? parsed.compLevel : norm;
+    }
+    return switch (norm) {
+      'practice' => 0,
+      'qm' => 1,
+      'qf' => 2,
+      'sf' => 3,
+      'f' => 4,
+      'ef' => 5,
+      'playoff' => 6,
+      _ => 7,
+    };
+  }
 
   /// Playoff set number from a match key (`..._sf2m1`, `..._sf_s2_m1`); 1 otherwise.
-  static int setNumberOf(String matchKey) {
-    final m = _tbaSet.firstMatch(matchKey) ?? _legacySet.firstMatch(matchKey);
-    return m == null ? 1 : int.parse(m.group(1)!);
-  }
+  static int setNumberOf(String matchKey) => _parseMatchKey(matchKey).setNumber;
 
-  /// Practice, then qualifications, then playoffs; by set and match number within each, then key.
+  /// Match number from a match key (`..._sf2m1` -> 1, `..._qm10` -> 10); 0 otherwise.
+  static int matchNumberOf(String matchKey) => _parseMatchKey(matchKey).matchNumber;
+
+  /// Practice, then qualifications, then playoffs (QF, SF, F); by set and match number within each, then key.
   /// Same order as the website's ObsidianMatchUtils.compareMatches, so both pick the same battery per match.
   static int compareMatchOrder(String levelA, int? numberA, String keyA, String levelB, int? numberB, String keyB) {
-    final byLevel = _levelRank(levelA) - _levelRank(levelB);
+    final byLevel = _levelRank(levelA, keyA) - _levelRank(levelB, keyB);
     if (byLevel != 0) return byLevel;
     final bySet = setNumberOf(keyA) - setNumberOf(keyB);
     if (bySet != 0) return bySet;
-    final byNumber = (numberA ?? 0) - (numberB ?? 0);
+    final numA = (numberA != null && numberA > 0) ? numberA : matchNumberOf(keyA);
+    final numB = (numberB != null && numberB > 0) ? numberB : matchNumberOf(keyB);
+    final byNumber = numA - numB;
     if (byNumber != 0) return byNumber;
     return keyA.compareTo(keyB);
   }

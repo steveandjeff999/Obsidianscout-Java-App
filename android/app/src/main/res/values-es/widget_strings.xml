@@ -77,4 +77,5 @@
     <string name="w_this_event">Este evento</string>
     <string name="w_every_n">Cada %1$d partidos</string>
     <string name="w_no_items">Aún no hay elementos en la lista</string>
+    <string name="w_earlier">Resultados anteriores</string>
 </resources>
