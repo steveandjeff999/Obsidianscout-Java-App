@@ -77,4 +77,5 @@
     <string name="w_this_event">האירוע הזה</string>
     <string name="w_every_n">כל %1$d משחקים</string>
     <string name="w_no_items">אין עדיין פריטים ברשימה</string>
+    <string name="w_earlier">תוצאות קודמות</string>
 </resources>

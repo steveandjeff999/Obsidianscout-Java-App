@@ -77,4 +77,5 @@
     <string name="w_this_event">This event</string>
     <string name="w_every_n">Every %1$d matches</string>
     <string name="w_no_items">No checklist items yet</string>
+    <string name="w_earlier">Earlier results</string>
 </resources>

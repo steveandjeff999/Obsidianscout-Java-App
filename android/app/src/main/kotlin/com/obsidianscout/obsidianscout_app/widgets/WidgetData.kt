@@ -148,19 +148,25 @@ class Snapshot private constructor(private val o: JSONObject?) {
     fun eventUpcoming(now: Long): List<WMatch> = matches.filter { stillAhead(it, now) }
     fun recentlyPlayed(now: Long): List<WMatch> = matches.filter { !stillAhead(it, now) }
 
-    val prediction: WPrediction? by lazy {
-        val p = o?.optJSONObject("prediction") ?: return@lazy null
-        WPrediction(
-            matchKey = p.optString("matchKey"),
-            label = p.optString("label"),
-            match = p.optJSONObject("match")?.let(::matchRef),
-            alliance = p.optString("alliance").takeIf { it.isNotEmpty() && it != "null" },
-            red = p.optDouble("red", 0.0),
-            blue = p.optDouble("blue", 0.0),
-            redWinProb = if (p.isNull("redWinProb")) null else p.optDouble("redWinProb"),
-            teams = p.optJSONArray("teams").objects().map { WPredictionTeam(it.optString("team"), it.optString("alliance"), if (it.isNull("points")) null else it.optDouble("points")) },
-        )
+    private fun predictionOf(p: JSONObject) = WPrediction(
+        matchKey = p.optString("matchKey"),
+        label = p.optString("label"),
+        match = p.optJSONObject("match")?.let(::matchRef),
+        alliance = p.optString("alliance").takeIf { it.isNotEmpty() && it != "null" },
+        red = p.optDouble("red", 0.0),
+        blue = p.optDouble("blue", 0.0),
+        redWinProb = if (p.isNull("redWinProb")) null else p.optDouble("redWinProb"),
+        teams = p.optJSONArray("teams").objects().map { WPredictionTeam(it.optString("team"), it.optString("alliance"), if (it.isNull("points")) null else it.optDouble("points")) },
+    )
+
+    /** Predictions for our next few matches (older servers send just one). */
+    private val predictions: List<WPrediction> by lazy {
+        o?.optJSONArray("predictions")?.objects()?.map(::predictionOf)?.takeIf { it.isNotEmpty() }
+            ?: listOfNotNull(o?.optJSONObject("prediction")?.let(::predictionOf))
     }
+
+    /** The prediction for the match that's up now. */
+    fun prediction(now: Long): WPrediction? = pickCurrent(predictions, now) { it.match }
 
     val hasAssignments get() = o?.optJSONObject("assignments") != null
     val assignmentsRemaining: Int get() = o?.optJSONObject("assignments")?.optInt("remaining", 0) ?: 0
@@ -199,25 +205,37 @@ class Snapshot private constructor(private val o: JSONObject?) {
     val hasChecklist get() = o?.optJSONObject("checklist") != null
     val checklistEventKey: String get() = o?.optJSONObject("checklist")?.optString("eventKey").orEmpty()
 
-    /** Our upcoming match; the Checklist widget always shows its lists. */
-    val checklistMatch: WMatchRef? by lazy { o?.optJSONObject("checklist")?.optJSONObject("match")?.let(::matchRef) }
-
-    /** Every checklist with its items for [checklistMatch], plus today's and the event's lists. */
-    val checklistLists: List<WChecklistList> by lazy {
-        o?.optJSONObject("checklist")?.optJSONArray("lists").objects().map { l ->
-            WChecklistList(
-                id = l.optString("id"),
-                title = l.optString("title"),
-                frequency = l.optString("frequency", "match"),
-                every = l.optInt("every", 2),
-                record = l.optString("record"),
-                due = l.optBoolean("due", true),
-                items = l.optJSONArray("items").objects().map {
-                    WChecklistItem(it.optString("id"), it.optString("text"), it.optString("priority", "normal"), it.optBoolean("checked", false), it.optString("by").takeIf { b -> b.isNotEmpty() && b != "null" })
-                },
-            )
-        }
+    private fun checklistListsOf(arr: org.json.JSONArray?): List<WChecklistList> = arr.objects().map { l ->
+        WChecklistList(
+            id = l.optString("id"),
+            title = l.optString("title"),
+            frequency = l.optString("frequency", "match"),
+            every = l.optInt("every", 2),
+            record = l.optString("record"),
+            due = l.optBoolean("due", true),
+            items = l.optJSONArray("items").objects().map {
+                WChecklistItem(it.optString("id"), it.optString("text"), it.optString("priority", "normal"), it.optBoolean("checked", false), it.optString("by").takeIf { b -> b.isNotEmpty() && b != "null" })
+            },
+        )
     }
+
+    /** Checklists for our next few matches (older servers send just the first). */
+    private val checklistUpcoming: List<Pair<WMatchRef?, List<WChecklistList>>> by lazy {
+        val c = o?.optJSONObject("checklist") ?: return@lazy emptyList()
+        c.optJSONArray("upcoming")?.objects()?.map { matchRef(it.optJSONObject("match") ?: JSONObject()) to checklistListsOf(it.optJSONArray("lists")) }
+            ?.takeIf { it.isNotEmpty() }
+            ?: listOf(c.optJSONObject("match")?.let(::matchRef) to checklistListsOf(c.optJSONArray("lists")))
+    }
+
+    /**
+     * The checklist for the match that's up now (it moves on when that match is played or starts, like Next Match),
+     * or today's / the event's lists when we have no match left.
+     */
+    fun checklistNow(now: Long): Pair<WMatchRef?, List<WChecklistList>> =
+        pickCurrent(checklistUpcoming, now) { it.first }
+            ?: checklistUpcoming.lastOrNull()?.let { null to it.second.filter { l -> l.frequency == "daily" || l.frequency == "event" } }
+            ?: (null to emptyList())
+
     val checklistMatches: List<WChecklistMatch> by lazy {
         o?.optJSONObject("checklist")?.optJSONArray("matches").objects().map { WChecklistMatch(it.optString("matchKey"), it.optInt("done"), it.optInt("total"), it.optJSONObject("match")?.let(::matchRef)) }
     }
@@ -238,16 +256,26 @@ class Snapshot private constructor(private val o: JSONObject?) {
         WChat(c.optInt("unread"), c.optInt("mentions"), c.optJSONArray("groups").objects().map { WChatGroup(it.optString("group"), it.optInt("unread"), it.optInt("mentions")) })
     }
 
-    /** First entry whose match is still ahead (or on the field), judged by its predicted start. */
-    fun <T> firstAhead(items: List<T>, now: Long, ref: (T) -> WMatchRef?): T? =
-        items.firstOrNull { item -> ref(item)?.predicted?.let { it + ON_FIELD_SECONDS > now } ?: true }
+    /**
+     * Whether a match is still the one that's up (or later): the single rule every widget uses, so Next Match,
+     * Predictor, Battery and Checklist always agree. A match is over once it's played, or [ON_FIELD_SECONDS] after
+     * its predicted start (results can take a while to sync).
+     */
+    fun isUpOrAhead(ref: WMatchRef?, now: Long): Boolean {
+        ref ?: return true
+        matches.firstOrNull { it.key == ref.key }?.let { return stillAhead(it, now) }
+        return ref.predicted?.let { it + ON_FIELD_SECONDS > now } ?: true
+    }
+
+    /** The entry for the match that's up now: the first one, in play order, that isn't over yet. */
+    fun <T> pickCurrent(items: List<T>, now: Long, ref: (T) -> WMatchRef?): T? = items.firstOrNull { isUpOrAhead(ref(it), now) }
 
     /** The next time (epoch seconds) a widget would show something different without new data. */
     fun nextTransition(now: Long): Long? {
         val times = buildList {
             matches.filter { !it.played }.forEach { m -> m.start?.let { add(it); add(it + ON_FIELD_SECONDS) } }
             assignmentList.forEach { a -> a.predicted?.let { add(it + ASSIGNMENT_GRACE_SECONDS) } }
-            (batterySlots.map { it.match } + checklistMatches.mapNotNull { it.match } + listOfNotNull(prediction?.match, checklistMatch))
+            (batterySlots.map { it.match } + checklistMatches.mapNotNull { it.match } + predictions.mapNotNull { it.match } + checklistUpcoming.mapNotNull { it.first })
                 .forEach { r -> r.predicted?.let { add(it); add(it + ON_FIELD_SECONDS) } }
         }
         return times.filter { it > now }.minOrNull()

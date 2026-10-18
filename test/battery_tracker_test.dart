@@ -73,12 +73,30 @@ void main() {
       expect(BatteryRotation.autoMarkUsed({'autoMarkUsed': false}), isFalse);
     });
 
-    test('match order matches the website: practice, quals, then playoffs by set', () {
-      final keys = ['e_sf2m1', 'e_qm10', 'e_sf1m1', 'e_qm2', 'e_pr1', 'e_f1m1'];
-      final level = {'e_sf2m1': 'sf', 'e_qm10': 'qm', 'e_sf1m1': 'sf', 'e_qm2': 'qm', 'e_pr1': 'pr', 'e_f1m1': 'f'};
-      final number = {'e_sf2m1': 1, 'e_qm10': 10, 'e_sf1m1': 1, 'e_qm2': 2, 'e_pr1': 1, 'e_f1m1': 1};
+    test('match order matches the website: practice, quals, then playoffs (qf, sf, f) by set', () {
+      final keys = ['e_sf2m1', 'e_f1m1', 'e_qm10', 'e_qf1m1', 'e_sf1m1', 'e_qm2', 'custom_Practice_2', 'e_pr1'];
+      final level = {
+        'e_sf2m1': 'sf',
+        'e_f1m1': 'f',
+        'e_qm10': 'qm',
+        'e_qf1m1': 'qf',
+        'e_sf1m1': 'sf',
+        'e_qm2': 'qm',
+        'custom_Practice_2': '',
+        'e_pr1': 'pr',
+      };
+      final number = {
+        'e_sf2m1': 1,
+        'e_f1m1': 1,
+        'e_qm10': 10,
+        'e_qf1m1': 1,
+        'e_sf1m1': 1,
+        'e_qm2': 2,
+        'custom_Practice_2': null,
+        'e_pr1': 1,
+      };
       keys.sort((a, b) => BatteryRotation.compareMatchOrder(level[a]!, number[a], a, level[b]!, number[b], b));
-      expect(keys, ['e_pr1', 'e_qm2', 'e_qm10', 'e_f1m1', 'e_sf1m1', 'e_sf2m1']);
+      expect(keys, ['e_pr1', 'custom_Practice_2', 'e_qm2', 'e_qm10', 'e_qf1m1', 'e_sf1m1', 'e_sf2m1', 'e_f1m1']);
     });
   });
 

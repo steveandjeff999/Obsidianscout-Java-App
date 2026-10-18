@@ -301,18 +301,31 @@ class MatchModel {
       'practice': 0,
       'pm': 0,
       'pr': 0,
+      'p': 0,
       'qm': 1,
       'qual': 1,
       'quals': 1,
-      'ef': 2,
-      'qf': 3,
-      'sf': 4,
-      'f': 5,
-      'final': 5,
+      'qualification': 1,
+      'q': 1,
+      'qf': 2,
+      'quarterfinal': 2,
+      'quarterfinals': 2,
+      'sf': 3,
+      'semifinal': 3,
+      'semifinals': 3,
+      'f': 4,
+      'final': 4,
+      'finals': 4,
+      'ef': 5,
+      'einstein': 5,
       'playoff': 6,
+      'playoffs': 6,
+      'po': 6,
     };
-    final la = levelOrder[a.compLevel.toLowerCase()] ?? 2;
-    final lb = levelOrder[b.compLevel.toLowerCase()] ?? 2;
+    final levelA = (MatchFormatUtils.extractCompLevel(a.matchKey, a.compLevel) ?? a.compLevel).toLowerCase();
+    final levelB = (MatchFormatUtils.extractCompLevel(b.matchKey, b.compLevel) ?? b.compLevel).toLowerCase();
+    final la = levelOrder[levelA] ?? 7;
+    final lb = levelOrder[levelB] ?? 7;
     if (la != lb) return la.compareTo(lb);
 
     final numA = _extractMatchSortNumbers(a);
