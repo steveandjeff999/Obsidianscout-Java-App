@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Font Awesome Free "circleExclamation" (CC BY 4.0), exported from font_awesome_flutter's font. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24.00dp"
+    android:height="24dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+    <path android:fillColor="#FFFFFFFF" android:pathData="M256 512C115 512 0 397 0 256C0 115 115 0 256 0C397 0 512 115 512 256C512 397 397 512 256 512ZM256 320C238 320 224 334 224 352C224 370 238 384 256 384C274 384 288 370 288 352C288 334 274 320 256 320ZM256 128C238 128 223 144 225 162L232 266C233 278 243 288 256 288C269 288 279 278 280 266L287 162C289 144 274 128 256 128Z" />
+</vector>

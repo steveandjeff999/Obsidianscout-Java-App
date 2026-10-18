@@ -114,4 +114,28 @@ void main() {
         type: 'MATCH', matches: matches, afterMatchKey: '2026test_qm20', justCompletedIds: {'a20'});
     expect(wrapped!.assignment!.id, 'a10');
   });
+
+  test('ScoutingAssignment.compareMatchOrder orders practice > qualification > playoff (qf, sf, f)', () {
+    final list = [
+      _match('f1', 1, 254, level: 'f', set: 1, scheduled: 100),
+      _match('sf2', 1, 254, level: 'sf', set: 2, scheduled: 200),
+      _match('sf1', 1, 254, level: 'sf', set: 1, scheduled: 300),
+      _match('qf1', 1, 254, level: 'qf', set: 1, scheduled: 400),
+      _match('qm10', 10, 254, level: 'qm', scheduled: 500),
+      _match('qm1', 1, 254, level: 'qm', scheduled: 600),
+      _match('pr2', 2, 254, level: 'practice'),
+      _match('pr1', 1, 254, level: 'pr'),
+    ]..sort(ScoutingAssignment.compareMatchOrder);
+
+    expect(list.map((a) => a.id).toList(), [
+      'pr1',
+      'pr2',
+      'qm1',
+      'qm10',
+      'qf1',
+      'sf1',
+      'sf2',
+      'f1',
+    ]);
+  });
 }

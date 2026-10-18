@@ -36,6 +36,124 @@
                 <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
         </activity>
+        <!-- Home-screen widgets. All start turned off: the app turns on only the ones the signed-in user may
+             have (role page permissions, team chat switch, Non-Scouting Tools); see WidgetAccessGate. -->
+        <receiver
+            android:name=".widgets.NextMatchWidgetReceiver"
+            android:label="@string/widget_next_match_label"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_next_match_info" />
+        </receiver>
+        <receiver
+            android:name=".widgets.ScheduleWidgetReceiver"
+            android:label="@string/widget_schedule_label"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_schedule_info" />
+        </receiver>
+        <receiver
+            android:name=".widgets.PredictorWidgetReceiver"
+            android:label="@string/widget_predictor_label"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_predictor_info" />
+        </receiver>
+        <receiver
+            android:name=".widgets.AssignmentsWidgetReceiver"
+            android:label="@string/widget_assignments_label"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_assignments_info" />
+        </receiver>
+        <receiver
+            android:name=".widgets.BatteryWidgetReceiver"
+            android:label="@string/widget_battery_label"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_battery_info" />
+        </receiver>
+        <receiver
+            android:name=".widgets.ChecklistWidgetReceiver"
+            android:label="@string/widget_checklist_label"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_checklist_info" />
+        </receiver>
+        <receiver
+            android:name=".widgets.RankingsWidgetReceiver"
+            android:label="@string/widget_rankings_label"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_rankings_info" />
+        </receiver>
+        <receiver
+            android:name=".widgets.ChatWidgetReceiver"
+            android:label="@string/widget_chat_label"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_chat_info" />
+        </receiver>
+        <receiver
+            android:name=".widgets.QuickActionsWidgetReceiver"
+            android:label="@string/widget_quick_actions_label"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_quick_actions_info" />
+        </receiver>
+        <!-- Redraws the widgets when a match is due to start, so "next match" moves on without a fetch. -->
+        <receiver
+            android:name=".widgets.WidgetClockReceiver"
+            android:exported="false" />
+        <!-- Polls for fresh widget data every ~45 seconds while widgets are placed (works without push). -->
+        <receiver
+            android:name=".widgets.WidgetPollReceiver"
+            android:exported="false" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

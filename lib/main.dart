@@ -6,6 +6,7 @@ import 'app.dart';
 import 'data/local_store.dart';
 import 'services/api_service.dart';
 import 'services/gamepad_service.dart';
+import 'services/home_widget_service.dart';
 
 export 'app.dart';
 export 'shell/main_shell.dart';
@@ -47,6 +48,12 @@ void main() async {
     await apiService.init();
   } catch (e, st) {
     debugPrint('[ApiService] Init error: $e\n$st');
+  }
+
+  try {
+    await HomeWidgetService.instance.init(apiService);
+  } catch (e, st) {
+    debugPrint('[HomeWidget] Init error: $e\n$st');
   }
 
   try {

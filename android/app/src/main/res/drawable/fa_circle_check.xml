@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Font Awesome Free "circleCheck" (CC BY 4.0), exported from font_awesome_flutter's font. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24.00dp"
+    android:height="24dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+    <path android:fillColor="#FFFFFFFF" android:pathData="M256 512C115 512 0 397 0 256C0 115 115 0 256 0C397 0 512 115 512 256C512 397 397 512 256 512ZM256 48C141 48 48 141 48 256C48 371 141 464 256 464C371 464 464 371 464 256C464 141 371 48 256 48ZM327 170C335 159 350 157 360 165C371 172 373 187 366 198L243 366C239 372 233 375 226 376C219 376 212 374 207 369L151 313C142 304 142 289 151 279C161 270 176 270 185 279L221 315L327 170Z" />
+</vector>

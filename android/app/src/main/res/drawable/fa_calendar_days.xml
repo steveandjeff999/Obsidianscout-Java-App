@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Font Awesome Free "calendarDays" (CC BY 4.0), exported from font_awesome_flutter's font. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="21.00dp"
+    android:height="24dp"
+    android:viewportWidth="448"
+    android:viewportHeight="512">
+    <path android:fillColor="#FFFFFFFF" android:pathData="M120 0C133 0 144 11 144 24V64H304V24C304 11 315 0 328 0C341 0 352 11 352 24V64H384C419 64 448 93 448 128V416C448 451 419 480 384 480H64C29 480 0 451 0 416V128C0 93 29 64 64 64H96V24C96 11 107 0 120 0ZM384 432C393 432 400 425 400 416V352H312V432H384ZM400 304V224H312V304H400ZM264 304V224H184V304H264ZM136 304V224H48V304H136ZM48 352V416C48 425 55 432 64 432H136V352H48ZM184 352V432H264V352H184ZM120 112H64C55 112 48 119 48 128V176H400V128C400 119 393 112 384 112H120Z" />
+</vector>

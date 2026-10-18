@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Font Awesome Free "batteryEmpty" (CC BY 4.0), exported from font_awesome_flutter's font. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="30.00dp"
+    android:height="24dp"
+    android:viewportWidth="640"
+    android:viewportHeight="512">
+    <path android:fillColor="#FFFFFFFF" android:pathData="M112 160C103 160 96 167 96 176V400C96 409 103 416 112 416H528C537 416 544 409 544 400V176C544 167 537 160 528 160H112ZM32 176C32 132 68 96 112 96H528C572 96 608 132 608 176V224C626 224 640 238 640 256V320C640 338 626 352 608 352V400C608 444 572 480 528 480H112C68 480 32 444 32 400V176Z" />
+</vector>

@@ -61,6 +61,163 @@ class ScoutingAssignment {
     return aAlliance == target && targetTeamNumber == null;
   }
 
+  static const Map<String, int> _compLevelRank = {
+    'practice': 0,
+    'prac': 0,
+    'pr': 0,
+    'prc': 0,
+    'pm': 0,
+    'p': 0,
+    'qm': 1,
+    'q': 1,
+    'qual': 1,
+    'quals': 1,
+    'qualification': 1,
+    'qf': 2,
+    'quarterfinal': 2,
+    'quarterfinals': 2,
+    'sf': 3,
+    'semifinal': 3,
+    'semifinals': 3,
+    'f': 4,
+    'final': 4,
+    'finals': 4,
+    'ef': 5,
+    'einstein': 5,
+    'playoff': 6,
+    'playoffs': 6,
+  };
+
+  static final RegExp _legacyKeyRegex =
+      RegExp(r'^.+_([a-z]+)_s(\d+)_m(\d+)$', caseSensitive: false);
+  static final RegExp _tbaSuffixRegex =
+      RegExp(r'^([a-z]+?)(\d+)(?:m(\d+))?$', caseSensitive: false);
+
+  static ({int stageRank, int setNum, int matchNum}) matchOrderTuple(
+    ScoutingAssignment a, {
+    Map<String, MatchModel>? matchesByKey,
+  }) {
+    if (a.assignmentType.toUpperCase() == 'PIT') {
+      return (stageRank: 10, setNum: 0, matchNum: a.targetTeamNumber ?? 999999);
+    }
+
+    final matched = (a.matchKey != null && matchesByKey != null)
+        ? matchesByKey[a.matchKey!.trim().toLowerCase()]
+        : null;
+    final rawKey = (a.matchKey != null && a.matchKey!.trim().isNotEmpty)
+        ? a.matchKey!.trim().toLowerCase()
+        : (matched?.matchKey.trim().toLowerCase() ?? '');
+
+    String? keyLevel;
+    int? keySet;
+    int? keyMatch;
+
+    if (rawKey.isNotEmpty) {
+      final legacy = _legacyKeyRegex.firstMatch(rawKey);
+      if (legacy != null) {
+        keyLevel = legacy.group(1)?.toLowerCase();
+        keySet = int.tryParse(legacy.group(2) ?? '');
+        keyMatch = int.tryParse(legacy.group(3) ?? '');
+      } else {
+        final suffix = rawKey.contains('_') ? rawKey.split('_').last : rawKey;
+        final tba = _tbaSuffixRegex.firstMatch(suffix);
+        if (tba != null) {
+          keyLevel = tba.group(1)?.toLowerCase();
+          if (tba.group(3) != null) {
+            keySet = int.tryParse(tba.group(2) ?? '');
+            keyMatch = int.tryParse(tba.group(3) ?? '');
+          } else {
+            keySet = 1;
+            keyMatch = int.tryParse(tba.group(2) ?? '');
+          }
+        }
+      }
+    }
+
+    String normLevel(String? raw) {
+      if (raw == null) return '';
+      final s = raw.trim().toLowerCase().replaceAll(' ', '').replaceAll('_', '');
+      if (s.isEmpty) return '';
+      if (_compLevelRank.containsKey(s)) {
+        final r = _compLevelRank[s]!;
+        if (r == 0) return 'pr';
+        if (r == 1) return 'qm';
+        if (r == 2) return 'qf';
+        if (r == 3) return 'sf';
+        if (r == 4) return 'f';
+        if (r == 5) return 'ef';
+        if (r == 6) return 'playoff';
+      }
+      return s;
+    }
+
+    final explicitRaw = (a.compLevel != null && a.compLevel!.trim().isNotEmpty)
+        ? a.compLevel
+        : matched?.compLevel;
+    var resolvedLevel = normLevel(explicitRaw);
+    final parsedKeyLevel = (keyLevel != null && keyLevel != 'm') ? normLevel(keyLevel) : '';
+
+    if (parsedKeyLevel.isNotEmpty &&
+        (resolvedLevel.isEmpty ||
+            ((resolvedLevel == 'qm' || resolvedLevel == 'playoff') &&
+                parsedKeyLevel != 'qm'))) {
+      resolvedLevel = parsedKeyLevel;
+    }
+
+    final setNum = keySet ?? 1;
+    if (resolvedLevel == 'playoff') {
+      if (setNum == 1) {
+        resolvedLevel = 'qf';
+      } else if (setNum == 2) {
+        resolvedLevel = 'sf';
+      } else if (setNum == 3) {
+        resolvedLevel = 'f';
+      }
+    }
+
+    final stageRank =
+        _compLevelRank[resolvedLevel.isEmpty ? 'qm' : resolvedLevel] ?? 7;
+    final matchNum = (a.matchNumber != null && a.matchNumber! > 0)
+        ? a.matchNumber!
+        : (keyMatch ?? matched?.matchNumber ?? 0);
+
+    return (stageRank: stageRank, setNum: setNum, matchNum: matchNum);
+  }
+
+  /// Compares two assignments following Practice > Qualification > Playoff (QF > SF > F) order,
+  /// with Pit assignments ordered after match assignments by team number.
+  static int compareMatchOrder(
+    ScoutingAssignment a,
+    ScoutingAssignment b, {
+    Map<String, MatchModel>? matchesByKey,
+  }) {
+    final ka = matchOrderTuple(a, matchesByKey: matchesByKey);
+    final kb = matchOrderTuple(b, matchesByKey: matchesByKey);
+
+    if (ka.stageRank != kb.stageRank) {
+      return ka.stageRank.compareTo(kb.stageRank);
+    }
+    if (ka.setNum != kb.setNum) {
+      return ka.setNum.compareTo(kb.setNum);
+    }
+    if (ka.matchNum != kb.matchNum) {
+      return ka.matchNum.compareTo(kb.matchNum);
+    }
+
+    final typeCmp = a.assignmentType.compareTo(b.assignmentType);
+    if (typeCmp != 0) return typeCmp;
+
+    final teamA = a.targetTeamNumber ?? 999999;
+    final teamB = b.targetTeamNumber ?? 999999;
+    if (teamA != teamB) return teamA.compareTo(teamB);
+
+    final allianceA = (a.allianceColor ?? a.targetAlliance ?? '').toUpperCase();
+    final allianceB = (b.allianceColor ?? b.targetAlliance ?? '').toUpperCase();
+    if (allianceA != allianceB) return allianceA.compareTo(allianceB);
+
+    return a.id.compareTo(b.id);
+  }
+
   ScoutingAssignment({
     required this.id,
     this.ownerTeamNumber = 0,

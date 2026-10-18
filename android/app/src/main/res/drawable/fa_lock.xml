@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Font Awesome Free "lock" (CC BY 4.0), exported from font_awesome_flutter's font. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="18.00dp"
+    android:height="24dp"
+    android:viewportWidth="384"
+    android:viewportHeight="512">
+    <path android:fillColor="#FFFFFFFF" android:pathData="M128 96V160H256V96C256 61 227 32 192 32C157 32 128 61 128 96ZM64 160V96C64 25 121 -32 192 -32C263 -32 320 25 320 96V160C355 160 384 189 384 224V448C384 483 355 512 320 512H64C29 512 0 483 0 448V224C0 189 29 160 64 160Z" />
+</vector>
