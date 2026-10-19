@@ -318,7 +318,25 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
 
     switch (launch.action) {
       case 'page':
-        final index = indexOf(p['page'] ?? '');
+        final pageId = p['page'] ?? '';
+        final group = p['group']?.trim();
+        if (pageId == 'chat' && group != null && group.isNotEmpty) {
+          setState(() {
+            _pendingChatChannel = group;
+            _activeTab.pendingChatChannel = group;
+          });
+        }
+        final index = indexOf(pageId);
+        if (index != null) _navigateScreen(index);
+      case 'chat':
+        final group = p['group']?.trim();
+        if (group != null && group.isNotEmpty) {
+          setState(() {
+            _pendingChatChannel = group;
+            _activeTab.pendingChatChannel = group;
+          });
+        }
+        final index = indexOf('chat');
         if (index != null) _navigateScreen(index);
       case 'scout':
         final number = int.tryParse(p['number'] ?? '');

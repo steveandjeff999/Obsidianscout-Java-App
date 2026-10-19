@@ -290,6 +290,55 @@ class Snapshot private constructor(private val o: JSONObject?) {
             val o = raw?.let { runCatching { JSONObject(it) }.getOrNull() }
             return Snapshot(o?.takeIf { it.optInt("v", 0) == VERSION })
         }
+
+        /**
+         * Optimistically flips [itemId] in [record] within the cached [raw] snapshot JSON so the home-screen
+         * checklist widget updates immediately on tap before the background network request completes.
+         */
+        fun toggleChecklistItem(raw: String?, record: String, itemId: String, checked: Boolean): String? {
+            if (raw.isNullOrBlank() || record.isBlank() || itemId.isBlank()) return null
+            val root = runCatching { JSONObject(raw) }.getOrNull() ?: return null
+            val checklist = root.optJSONObject("checklist") ?: return null
+            var changed = false
+
+            fun mutateLists(lists: JSONArray?) {
+                lists ?: return
+                for (i in 0 until lists.length()) {
+                    val list = lists.optJSONObject(i) ?: continue
+                    if (list.optString("record") != record) continue
+                    val items = list.optJSONArray("items") ?: continue
+                    for (j in 0 until items.length()) {
+                        val item = items.optJSONObject(j) ?: continue
+                        if (item.optString("id") == itemId && item.optBoolean("checked") != checked) {
+                            item.put("checked", checked)
+                            changed = true
+                        }
+                    }
+                }
+            }
+
+            mutateLists(checklist.optJSONArray("lists"))
+            val upcoming = checklist.optJSONArray("upcoming")
+            if (upcoming != null) {
+                for (i in 0 until upcoming.length()) {
+                    mutateLists(upcoming.optJSONObject(i)?.optJSONArray("lists"))
+                }
+            }
+            if (changed) {
+                val matches = checklist.optJSONArray("matches")
+                if (matches != null) {
+                    for (i in 0 until matches.length()) {
+                        val m = matches.optJSONObject(i) ?: continue
+                        if (m.optString("matchKey") == record) {
+                            val total = m.optInt("total", 0)
+                            val done = (m.optInt("done", 0) + if (checked) 1 else -1).coerceIn(0, total)
+                            m.put("done", done)
+                        }
+                    }
+                }
+            }
+            return if (changed) root.toString() else null
+        }
     }
 }
 

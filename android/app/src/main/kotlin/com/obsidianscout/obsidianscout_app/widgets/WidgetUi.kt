@@ -185,9 +185,10 @@ fun Header(env: WidgetEnv, icon: Int, title: String, trailing: String? = null, t
 
 /** A centered message for states with nothing to show (signed out, no access, no event...). */
 @Composable
-fun Message(env: WidgetEnv, icon: Int, text: String) {
+fun Message(env: WidgetEnv, icon: Int, text: String, onClick: Action? = null) {
+    val modifier = if (onClick != null) GlanceModifier.fillMaxSize().clickable(onClick) else GlanceModifier.fillMaxSize()
     Column(
-        modifier = GlanceModifier.fillMaxSize(),
+        modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -206,9 +207,9 @@ fun Message(env: WidgetEnv, icon: Int, text: String) {
 fun Gated(env: WidgetEnv, kind: WidgetKind, needsEvent: Boolean = true, worksWithoutServer: Boolean = false, content: @Composable () -> Unit) {
     val snap = env.snapshot
     when {
-        env.authExpired || snap.signedOut || (!snap.present && !env.local.signedIn) -> Message(env, R.drawable.fa_right_to_bracket, env.s(R.string.w_sign_in))
+        snap.signedOut || (!snap.present && (env.authExpired || !env.local.signedIn)) -> Message(env, R.drawable.fa_right_to_bracket, env.s(R.string.w_sign_in))
         !snap.present && worksWithoutServer && env.local.widgets[kind.id] == true -> content()
-        !snap.present -> Message(env, R.drawable.fa_clock, env.s(R.string.w_loading))
+        !snap.present -> Message(env, R.drawable.fa_clock, env.s(R.string.w_loading), androidx.glance.appwidget.action.actionRunCallback<RefreshWidgetAction>())
         !snap.allowed(kind.id) -> Message(env, R.drawable.fa_lock, env.s(R.string.w_no_access))
         needsEvent && !snap.hasEvent -> Message(env, R.drawable.fa_calendar_days, env.s(R.string.w_no_event))
         else -> content()
