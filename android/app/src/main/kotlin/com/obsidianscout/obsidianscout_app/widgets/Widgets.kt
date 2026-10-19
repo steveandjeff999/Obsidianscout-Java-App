@@ -81,12 +81,7 @@ abstract class ObsidianWidgetReceiver<T : GlanceAppWidget> : HomeWidgetGlanceWid
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         super.onUpdate(context, appWidgetManager, appWidgetIds)
-        // Glance's own onUpdate may already hold the receiver's goAsync handle; if so the fetch just runs in the
-        // still-awake process (a push has just woken it), with WorkManager as the fallback on failure.
-        WidgetScheduler.onWidgetsUpdated(context) {
-            val pending: PendingResult? = runCatching { goAsync() }.getOrNull()
-            ({ runCatching { pending?.finish() } })
-        }
+        WidgetScheduler.onWidgetsUpdated(context)
     }
 
     override fun onDisabled(context: Context) {
@@ -107,22 +102,34 @@ private fun StartTime(env: WidgetEnv, start: Long?, sizeSp: Float) {
     }
 }
 
-/** "Updated 40 min ago" when the data is old; skipped on small widgets. */
+/** "Updated 40 min ago" when the data is old; tapping it forces a fresh fetch; skipped on small widgets. */
 @Composable
 private fun Footer(env: WidgetEnv, d: Dims) {
     if (d.height < 120) return
     env.updatedAgo()?.let {
         Spacer(GlanceModifier.height(2.dp))
-        Label(env, it, 10.sp, env.palette.muted)
+        Label(
+            env = env,
+            text = "$it ↻",
+            size = 10.sp,
+            color = env.palette.muted,
+            modifier = GlanceModifier.clickable(androidx.glance.appwidget.action.actionRunCallback<RefreshWidgetAction>()),
+        )
     }
 }
 
 /** A list that fills the rest of the widget and scrolls when there are more rows than fit. */
 @Composable
 private fun <T> ColumnScope.FillList(rows: List<T>, onClick: Action?, row: @Composable (T) -> Unit) {
+    FillList(rows, onClick = { onClick }, row = row)
+}
+
+@Composable
+private fun <T> ColumnScope.FillList(rows: List<T>, onClick: (T) -> Action?, row: @Composable (T) -> Unit) {
     LazyColumn(modifier = GlanceModifier.fillMaxWidth().defaultWeight()) {
         items(rows) { item ->
-            val modifier = if (onClick != null) GlanceModifier.fillMaxWidth().clickable(onClick) else GlanceModifier.fillMaxWidth()
+            val itemAction = onClick(item)
+            val modifier = if (itemAction != null) GlanceModifier.fillMaxWidth().clickable(itemAction) else GlanceModifier.fillMaxWidth()
             Box(modifier = modifier) { row(item) }
         }
     }
@@ -237,7 +244,9 @@ class ScheduleWidget : ObsidianWidget() {
                         return@Column
                     }
                     val rows: List<WMatch?> = upcoming + (if (played.isNotEmpty()) listOf(null) else emptyList()) + played
-                    FillList(rows, open) { m ->
+                    FillList(rows, onClick = { m ->
+                        if (m != null) env.open("obsidianscout://widget/page/matches?matchKey=${android.net.Uri.encode(m.key)}") else open
+                    }) { m ->
                         when {
                             // null marks where the earlier matches start.
                             m == null -> Label(env, env.s(R.string.w_earlier), 11.sp, p.muted, bold = true, modifier = GlanceModifier.padding(top = 6.dp, bottom = 2.dp))
@@ -397,9 +406,9 @@ class AssignmentsWidget : ObsidianWidget() {
                         if (rest.isNotEmpty()) {
                             Spacer(GlanceModifier.height(4.dp))
                             if (d.tall) {
-                                // Taller: the rest of the queue with times, scrolling.
+                                // Taller: the rest of the queue with times, scrolling; each row opens that assignment.
                                 Label(env, env.s(R.string.w_up_next, ""), 11.sp, p.muted, bold = true)
-                                FillList(rest, env.openPage("my-assignments")) { a ->
+                                FillList(rest, onClick = { a -> env.open(link(a)) }) { a ->
                                     Row(modifier = GlanceModifier.fillMaxWidth().height(20.dp), verticalAlignment = Alignment.CenterVertically) {
                                         Label(env, describe(env, a), 12.sp, p.text, modifier = GlanceModifier.defaultWeight())
                                         a.predicted?.let { Label(env, env.clock(it), 12.sp, p.muted) }
@@ -534,7 +543,7 @@ class ChecklistWidget : ObsidianWidget() {
                 val label = match?.let { env.matchLabel(it.compLevel, it.set, it.number, it.label) } ?: env.s(R.string.widget_checklist_label)
 
                 Column(modifier = GlanceModifier.fillMaxSize()) {
-                    // View only: tapping anywhere opens the app's checklist, where items are checked off and edited.
+                    // Tapping the header/frame opens the app's checklist; tapping an item row checks it off directly.
                     Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         FaIcon(env, R.drawable.fa_list_check, p.accent, 13.dp)
                         Spacer(GlanceModifier.width(6.dp))
@@ -587,7 +596,7 @@ class ChecklistWidget : ObsidianWidget() {
                         items(rows) { row ->
                             when (row) {
                                 is ChecklistRow.Title -> ListTitle(env, row.list)
-                                is ChecklistRow.Item -> ItemRow(env, row.item)
+                                is ChecklistRow.Item -> ItemRow(env, snap.checklistEventKey, row.list.record, row.item)
                             }
                         }
                     }
@@ -610,16 +619,31 @@ class ChecklistWidget : ObsidianWidget() {
         }
     }
 
-    /** Read-only: the widget only shows what's checked. Items are checked off in the app. */
+    /** Tapping an item row checks or unchecks it directly on the home screen and syncs in the background. */
     @Composable
-    private fun ItemRow(env: WidgetEnv, item: WChecklistItem) {
+    private fun ItemRow(env: WidgetEnv, eventKey: String, record: String, item: WChecklistItem) {
         val p = env.palette
         val priorityColor = when (item.priority) {
             "critical" -> p.red
             "high" -> p.orange
             else -> Color.Transparent
         }
-        Row(modifier = GlanceModifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+        val base = GlanceModifier.fillMaxWidth().padding(vertical = 2.dp)
+        val rowModifier = if (eventKey.isNotEmpty() && record.isNotEmpty() && item.id.isNotEmpty()) {
+            base.clickable(
+                androidx.glance.appwidget.action.actionRunCallback<ToggleChecklistItemAction>(
+                    androidx.glance.action.actionParametersOf(
+                        ToggleChecklistItemAction.KEY_EVENT_KEY to eventKey,
+                        ToggleChecklistItemAction.KEY_RECORD to record,
+                        ToggleChecklistItemAction.KEY_ITEM_ID to item.id,
+                        ToggleChecklistItemAction.KEY_CHECKED to !item.checked,
+                    )
+                )
+            )
+        } else {
+            base
+        }
+        Row(modifier = rowModifier, verticalAlignment = Alignment.CenterVertically) {
             // Critical and high-priority items get a colored edge, like on the checklist page.
             Box(modifier = GlanceModifier.width(3.dp).height(16.dp).background(env.c(priorityColor))) {}
             Spacer(GlanceModifier.width(6.dp))
@@ -639,11 +663,12 @@ class ChecklistWidgetReceiver : ObsidianWidgetReceiver<ChecklistWidget>() {
 class RankingsWidget : ObsidianWidget() {
     @Composable
     override fun Content(env: WidgetEnv) {
-        val target = when {
-            env.snapshot.page("rankings") -> env.openPage("rankings")
-            env.snapshot.page("event-predictor") -> env.openPage("event-predictor")
-            else -> env.openPage("dashboard")
+        val targetPage = when {
+            env.snapshot.page("rankings") -> "rankings"
+            env.snapshot.page("event-predictor") -> "event-predictor"
+            else -> "dashboard"
         }
+        val target = env.openPage(targetPage)
         WidgetFrame(env, target) {
             Gated(env, WidgetKind.RANKINGS) {
                 val d = dims()
@@ -682,7 +707,9 @@ class RankingsWidget : ObsidianWidget() {
                         // and scrolls for the rest.
                         Spacer(GlanceModifier.height(4.dp))
                         if (d.wide) RankHeader(env)
-                        FillList(r.top, target) { row -> RankRow(env, d, row, row.team == env.snapshot.teamNumber) }
+                        FillList(r.top, onClick = { row -> env.open("obsidianscout://widget/page/$targetPage?team=${row.team}") }) { row ->
+                            RankRow(env, d, row, row.team == env.snapshot.teamNumber)
+                        }
                     }
                 }
             }
@@ -736,7 +763,9 @@ class ChatWidget : ObsidianWidget() {
                     }
                     Label(env, env.s(R.string.w_unread, chat.unread), if (d.short) 15.sp else d.hero(18f), p.text, bold = true)
                     if (!d.short) {
-                        FillList(chat.groups, open) { g ->
+                        FillList(chat.groups, onClick = { g ->
+                            env.open("obsidianscout://widget/page/chat?group=${android.net.Uri.encode(g.group)}")
+                        }) { g ->
                             Row(modifier = GlanceModifier.fillMaxWidth().height(18.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Label(env, "# ${g.group}", 12.sp, p.muted, modifier = GlanceModifier.defaultWeight())
                                 Label(env, g.unread.toString(), 12.sp, if (g.mentions > 0) p.orange else p.text, bold = true)

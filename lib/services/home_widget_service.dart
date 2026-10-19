@@ -77,6 +77,9 @@ class HomeWidgetService {
   static const String keyTokenExpires = 'widget_token_expires';
   static const String keyServerUrl = 'widget_server_url';
   static const String keyRefreshRequested = 'widget_refresh_requested';
+  static const String keyEtag = 'widget_snapshot_etag';
+  static const String keyFetchedAt = 'widget_snapshot_fetched_at';
+  static const String keyAuthExpired = 'widget_auth_expired';
 
   /// Get a new widget token once the current one is this close to expiring.
   static const Duration _tokenRenewBefore = Duration(days: 23);
@@ -174,6 +177,9 @@ class HomeWidgetService {
       final decoded = jsonDecode(body);
       if (decoded is! Map<String, dynamic>) return;
       await HomeWidget.saveWidgetData<String>(keySnapshot, body);
+      await HomeWidget.saveWidgetData<int>(keyFetchedAt, DateTime.now().millisecondsSinceEpoch ~/ 1000);
+      await HomeWidget.saveWidgetData<bool>(keyAuthExpired, false);
+      await HomeWidget.saveWidgetData<String>(keyEtag, null);
       await _writeLocalState();
       await _applyAccess(decoded['widgets']);
       await _redrawAll();
@@ -196,6 +202,8 @@ class HomeWidgetService {
     await HomeWidget.saveWidgetData<String>(keyToken, issued.token);
     await HomeWidget.saveWidgetData<int>(keyTokenExpires, issued.expiresAt);
     await HomeWidget.saveWidgetData<String>(keyServerUrl, api.serverUrl);
+    await HomeWidget.saveWidgetData<bool>(keyAuthExpired, false);
+    await HomeWidget.saveWidgetData<String>(keyEtag, null);
   }
 
   /// Widget kinds currently on the home screen.
@@ -272,6 +280,9 @@ class HomeWidgetService {
     await HomeWidget.saveWidgetData<String>(keySnapshot, jsonEncode({'v': 1, 'signedOut': true}));
     await HomeWidget.saveWidgetData<String>(keyToken, null);
     await HomeWidget.saveWidgetData<int>(keyTokenExpires, null);
+    await HomeWidget.saveWidgetData<String>(keyEtag, null);
+    await HomeWidget.saveWidgetData<int>(keyFetchedAt, null);
+    await HomeWidget.saveWidgetData<bool>(keyAuthExpired, false);
     await _writeLocalState();
     // Placed widgets stay on the home screen (they show "sign in" and none of the old account's data). The next
     // sign-in applies that account's access, which removes any widget it isn't allowed.

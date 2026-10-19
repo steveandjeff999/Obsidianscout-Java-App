@@ -2,6 +2,7 @@
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:description="@string/widget_checklist_desc"
     android:initialLayout="@layout/widget_loading"
+    android:previewLayout="@layout/widget_preview_checklist"
     android:minWidth="110dp"
     android:minHeight="110dp"
     android:minResizeWidth="110dp"

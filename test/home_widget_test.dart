@@ -45,6 +45,29 @@ void main() {
       expect(launch?.params['page'], 'battery-tracker');
     });
 
+    test('parses row-specific page links for chat, schedule, and rankings', () {
+      final chatLaunch = WidgetLaunch.fromUri(
+        Uri.parse('obsidianscout://widget/page/chat?group=Drive%20Team'),
+      );
+      expect(chatLaunch?.action, 'page');
+      expect(chatLaunch?.params['page'], 'chat');
+      expect(chatLaunch?.params['group'], 'Drive Team');
+
+      final matchLaunch = WidgetLaunch.fromUri(
+        Uri.parse('obsidianscout://widget/page/matches?matchKey=2026test_qm24'),
+      );
+      expect(matchLaunch?.action, 'page');
+      expect(matchLaunch?.params['page'], 'matches');
+      expect(matchLaunch?.params['matchKey'], '2026test_qm24');
+
+      final rankLaunch = WidgetLaunch.fromUri(
+        Uri.parse('obsidianscout://widget/page/rankings?team=254'),
+      );
+      expect(rankLaunch?.action, 'page');
+      expect(rankLaunch?.params['page'], 'rankings');
+      expect(rankLaunch?.params['team'], '254');
+    });
+
     test('parses scouting links', () {
       final launch = WidgetLaunch.fromUri(
         Uri.parse('obsidianscout://widget/scout?type=MATCH&id=a1&matchKey=2026test_qm4&number=4&team=254'),
@@ -68,5 +91,12 @@ void main() {
         expect(k.qualifiedAndroidName, startsWith('com.obsidianscout.obsidianscout_app.widgets.'));
       }
     });
+
+    test('exposes native SharedPreferences sync keys', () {
+      expect(HomeWidgetService.keyEtag, 'widget_snapshot_etag');
+      expect(HomeWidgetService.keyFetchedAt, 'widget_snapshot_fetched_at');
+      expect(HomeWidgetService.keyAuthExpired, 'widget_auth_expired');
+    });
   });
 }
+
