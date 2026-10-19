@@ -43,7 +43,7 @@ class _DraggableTeamMarkerWidgetState extends State<DraggableTeamMarkerWidget> {
   @override
   void didUpdateWidget(covariant DraggableTeamMarkerWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!_isDragging && widget.position != oldWidget.position) {
+    if (!_isDragging && widget.position != _currentPosition) {
       _currentPosition = widget.position;
     }
   }

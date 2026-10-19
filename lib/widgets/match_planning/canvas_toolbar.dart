@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../theme/obsidian_ui_theme.dart';
 
 class CanvasToolbar extends StatelessWidget {
+  final String activePhase; // 'auto' | 'teleop' | 'endgame'
+  final ValueChanged<String>? onPhaseChanged;
   final String activeTool; // 'pen' | 'eraser'
   final String currentColor; // hex string e.g. '#ffffff'
   final double strokeWidth;
@@ -18,6 +20,12 @@ class CanvasToolbar extends StatelessWidget {
   final VoidCallback onToggleFullscreen;
   final VoidCallback onExport;
 
+  static const List<Map<String, String>> phaseOptions = [
+    {'id': 'auto', 'label': 'Auto'},
+    {'id': 'teleop', 'label': 'Teleop'},
+    {'id': 'endgame', 'label': 'Endgame'},
+  ];
+
   static const List<Map<String, String>> colorSwatches = [
     {'hex': '#ffffff', 'label': 'White'},
     {'hex': '#000000', 'label': 'Black'},
@@ -28,6 +36,8 @@ class CanvasToolbar extends StatelessWidget {
 
   const CanvasToolbar({
     super.key,
+    this.activePhase = 'auto',
+    this.onPhaseChanged,
     required this.activeTool,
     required this.currentColor,
     required this.strokeWidth,
@@ -78,6 +88,58 @@ class CanvasToolbar extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            // Phase Switcher: Auto / Teleop / Endgame
+            Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: phaseOptions.map((phase) {
+                  final id = phase['id']!;
+                  final label = phase['label']!;
+                  final isSelected = activePhase == id;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 1),
+                    child: InkWell(
+                      onTap: () => onPhaseChanged?.call(id),
+                      borderRadius: BorderRadius.circular(8),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isSelected ? primaryAccent : Colors.transparent,
+                          borderRadius: BorderRadius.circular(7),
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: primaryAccent.withValues(alpha: 0.45),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 1),
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: Text(
+                          label,
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w800,
+                            color: isSelected ? Colors.white : const Color(0xFFCBD5E1),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+
+            _buildDivider(),
+
             // Tool Toggles: Pen / Eraser
             _buildToolButton(
               icon: Icons.edit_rounded,
