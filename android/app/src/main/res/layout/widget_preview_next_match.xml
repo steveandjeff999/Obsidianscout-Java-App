@@ -30,7 +30,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="On time"
+            android:text="@string/wp_on_time"
             android:textColor="#FF4ADE80"
             android:textSize="11sp"
             android:textStyle="bold" />
@@ -45,7 +45,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Qual 24"
+            android:text="@string/wp_qual_24"
             android:textColor="#FFF1F5F9"
             android:textSize="16sp"
             android:textStyle="bold" />
@@ -53,7 +53,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
-            android:text="Red"
+            android:text="@string/wp_red"
             android:textColor="#FFF87171"
             android:textSize="12sp"
             android:textStyle="bold" />
@@ -70,7 +70,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="at 2:15 PM"
+        android:text="@string/wp_at_time"
         android:textColor="#FF94A3B8"
         android:textSize="11sp" />
 </LinearLayout>

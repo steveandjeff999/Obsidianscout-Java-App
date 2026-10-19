@@ -40,7 +40,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:text="3 unread"
+        android:text="@string/wp_unread"
         android:textColor="#FFF1F5F9"
         android:textSize="15sp"
         android:textStyle="bold" />

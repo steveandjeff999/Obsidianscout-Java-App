@@ -18,6 +18,9 @@ class MatchListScreen extends StatefulWidget {
     this.isBarsVisible = true,
   });
 
+  /// Set by a Match Schedule widget tap: show just that match (by match key) until the filter is cleared.
+  static final ValueNotifier<String?> focusRequest = ValueNotifier<String?>(null);
+
   @override
   State<MatchListScreen> createState() => _MatchListScreenState();
 }
@@ -27,11 +30,36 @@ class _MatchListScreenState extends State<MatchListScreen> {
   bool _isLoading = true;
   String _searchQuery = '';
   String _filterLevel = 'all'; // 'all', 'qm', 'qf', 'sf', 'f'
+  final TextEditingController _searchController = TextEditingController();
+
+  /// Exact match key from a widget tap; null shows the whole list.
+  String? _focusKey;
 
   @override
   void initState() {
     super.initState();
     _loadMatches();
+    MatchListScreen.focusRequest.addListener(_onFocusRequest);
+    _onFocusRequest();
+  }
+
+  @override
+  void dispose() {
+    MatchListScreen.focusRequest.removeListener(_onFocusRequest);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onFocusRequest() {
+    final key = MatchListScreen.focusRequest.value;
+    if (key == null || key.isEmpty) return;
+    MatchListScreen.focusRequest.value = null;
+    setState(() {
+      _focusKey = key;
+      _filterLevel = 'all';
+      _searchQuery = '';
+      _searchController.clear();
+    });
   }
 
   @override
@@ -88,6 +116,8 @@ class _MatchListScreenState extends State<MatchListScreen> {
 
   List<MatchModel> get _filteredMatches {
     final q = _searchQuery.toLowerCase();
+    final focus = _focusKey;
+    if (focus != null) return _matches.where((m) => m.matchKey == focus).toList();
     return _matches.where((m) {
       final levelOk = _filterLevel == 'all' || m.compLevel.toLowerCase() == _filterLevel;
       final searchOk = q.isEmpty ||
@@ -197,7 +227,21 @@ class _MatchListScreenState extends State<MatchListScreen> {
                   ],
                 ),
                 const SizedBox(height: 12),
+                if (_focusKey != null) ...[
+                  // Opened from a Match Schedule widget row: just that match.
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: InputChip(
+                      label: Text(
+                        _matches.where((m) => m.matchKey == _focusKey).map((m) => m.displayLabel).firstOrNull ?? _focusKey!,
+                      ),
+                      onDeleted: () => setState(() => _focusKey = null),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
                 TextField(
+                  controller: _searchController,
                   style: TextStyle(color: primaryTextColor, fontSize: 14),
                   decoration: InputDecoration(
                     hintText: 'Search by match label or team...',
@@ -219,7 +263,10 @@ class _MatchListScreenState extends State<MatchListScreen> {
                       borderSide: BorderSide(color: ObsidianUITheme.secondaryAccent),
                     ),
                   ),
-                  onChanged: (v) => setState(() => _searchQuery = v),
+                  onChanged: (v) => setState(() {
+                    _searchQuery = v;
+                    _focusKey = null;
+                  }),
                 ),
                 const SizedBox(height: 10),
                 // Level filter chips

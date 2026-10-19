@@ -23,7 +23,7 @@
             android:layout_marginStart="6dp"
             android:layout_weight="1"
             android:singleLine="true"
-            android:text="Qual 24"
+            android:text="@string/wp_qual_24"
             android:textColor="#FF94A3B8"
             android:textSize="12sp"
             android:textStyle="bold" />
@@ -50,7 +50,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Red *"
+                android:text="@string/wp_red_ours"
                 android:textColor="#FFF87171"
                 android:textSize="11sp" />
         </LinearLayout>
@@ -70,7 +70,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Blue"
+                android:text="@string/wp_blue"
                 android:textColor="#FF60A5FA"
                 android:textSize="11sp" />
         </LinearLayout>
@@ -81,7 +81,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
         android:gravity="center_horizontal"
-        android:text="74% win"
+        android:text="@string/wp_win"
         android:textColor="#FF4ADE80"
         android:textSize="13sp"
         android:textStyle="bold" />

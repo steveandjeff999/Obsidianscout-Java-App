@@ -168,18 +168,20 @@ class HomeWidgetService {
     try {
       await _ensureToken(api);
       final placed = await placedKinds();
-      final body = await api.fetchWidgetSnapshot(placed: placed);
-      if (body == null) {
+      final fetched = await api.fetchWidgetSnapshot(placed: placed);
+      if (fetched == null) {
         // Offline: keep the last snapshot; the widgets still count down from it.
         await _redrawAll();
         return;
       }
+      final (:body, :etag) = fetched;
       final decoded = jsonDecode(body);
       if (decoded is! Map<String, dynamic>) return;
       await HomeWidget.saveWidgetData<String>(keySnapshot, body);
       await HomeWidget.saveWidgetData<int>(keyFetchedAt, DateTime.now().millisecondsSinceEpoch ~/ 1000);
       await HomeWidget.saveWidgetData<bool>(keyAuthExpired, false);
-      await HomeWidget.saveWidgetData<String>(keyEtag, null);
+      // The response's ETag, so the widgets' own next poll gets a tiny "not modified" when nothing changed.
+      await HomeWidget.saveWidgetData<String>(keyEtag, etag);
       await _writeLocalState();
       await _applyAccess(decoded['widgets']);
       await _redrawAll();

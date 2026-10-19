@@ -543,7 +543,7 @@ class ChecklistWidget : ObsidianWidget() {
                 val label = match?.let { env.matchLabel(it.compLevel, it.set, it.number, it.label) } ?: env.s(R.string.widget_checklist_label)
 
                 Column(modifier = GlanceModifier.fillMaxSize()) {
-                    // Tapping the header/frame opens the app's checklist; tapping an item row checks it off directly.
+                    // View only: tapping anywhere opens the app's checklist, where items are checked off and edited.
                     Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         FaIcon(env, R.drawable.fa_list_check, p.accent, 13.dp)
                         Spacer(GlanceModifier.width(6.dp))
@@ -596,7 +596,7 @@ class ChecklistWidget : ObsidianWidget() {
                         items(rows) { row ->
                             when (row) {
                                 is ChecklistRow.Title -> ListTitle(env, row.list)
-                                is ChecklistRow.Item -> ItemRow(env, snap.checklistEventKey, row.list.record, row.item)
+                                is ChecklistRow.Item -> ItemRow(env, row.item)
                             }
                         }
                     }
@@ -619,31 +619,16 @@ class ChecklistWidget : ObsidianWidget() {
         }
     }
 
-    /** Tapping an item row checks or unchecks it directly on the home screen and syncs in the background. */
+    /** View only: the widget shows what's checked. Items are checked off in the app (tap the widget to open it). */
     @Composable
-    private fun ItemRow(env: WidgetEnv, eventKey: String, record: String, item: WChecklistItem) {
+    private fun ItemRow(env: WidgetEnv, item: WChecklistItem) {
         val p = env.palette
         val priorityColor = when (item.priority) {
             "critical" -> p.red
             "high" -> p.orange
             else -> Color.Transparent
         }
-        val base = GlanceModifier.fillMaxWidth().padding(vertical = 2.dp)
-        val rowModifier = if (eventKey.isNotEmpty() && record.isNotEmpty() && item.id.isNotEmpty()) {
-            base.clickable(
-                androidx.glance.appwidget.action.actionRunCallback<ToggleChecklistItemAction>(
-                    androidx.glance.action.actionParametersOf(
-                        ToggleChecklistItemAction.KEY_EVENT_KEY to eventKey,
-                        ToggleChecklistItemAction.KEY_RECORD to record,
-                        ToggleChecklistItemAction.KEY_ITEM_ID to item.id,
-                        ToggleChecklistItemAction.KEY_CHECKED to !item.checked,
-                    )
-                )
-            )
-        } else {
-            base
-        }
-        Row(modifier = rowModifier, verticalAlignment = Alignment.CenterVertically) {
+        Row(modifier = GlanceModifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
             // Critical and high-priority items get a colored edge, like on the checklist page.
             Box(modifier = GlanceModifier.width(3.dp).height(16.dp).background(env.c(priorityColor))) {}
             Spacer(GlanceModifier.width(6.dp))

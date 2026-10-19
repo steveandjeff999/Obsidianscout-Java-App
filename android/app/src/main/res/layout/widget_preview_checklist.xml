@@ -40,7 +40,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
-        android:text="Qual 24"
+        android:text="@string/wp_qual_24"
         android:textColor="#FFF1F5F9"
         android:textSize="15sp"
         android:textStyle="bold" />
@@ -58,7 +58,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
-        android:text="4 of 6 complete"
+        android:text="@string/wp_done_of"
         android:textColor="#FF94A3B8"
         android:textSize="12sp" />
 </LinearLayout>

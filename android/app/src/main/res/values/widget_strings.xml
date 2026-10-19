@@ -78,4 +78,22 @@
     <string name="w_every_n">Every %1$d matches</string>
     <string name="w_no_items">No checklist items yet</string>
     <string name="w_earlier">Earlier results</string>
+    <!-- Widget picker previews: sample values in the app's language. -->
+    <string name="wp_on_time" formatted="false">On time</string>
+    <string name="wp_red" formatted="false">Red</string>
+    <string name="wp_blue" formatted="false">Blue</string>
+    <string name="wp_red_ours" formatted="false">Red *</string>
+    <string name="wp_qual_24" formatted="false">Qual 24</string>
+    <string name="wp_qual_28" formatted="false">Qual 28</string>
+    <string name="wp_qual_33" formatted="false">Qual 33</string>
+    <string name="wp_at_time" formatted="false">at 2:15 PM</string>
+    <string name="wp_up_next" formatted="false">Up next: Qual 25 · Team 1678</string>
+    <string name="wp_then_battery" formatted="false">Then Bat #5</string>
+    <string name="wp_assignment" formatted="false">Qual 24 · Team 254 · Red</string>
+    <string name="wp_projected" formatted="false">Projected #2</string>
+    <string name="wp_battery_for" formatted="false">For Qual 24</string>
+    <string name="wp_win" formatted="false">74% win</string>
+    <string name="wp_done_of" formatted="false">4 of 6 done</string>
+    <string name="wp_left" formatted="false">4 left</string>
+    <string name="wp_unread" formatted="false">3 unread</string>
 </resources>
