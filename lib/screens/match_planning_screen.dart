@@ -53,8 +53,22 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
 
   MatchModel? _selectedMatch;
   MatchPlanModel _plan = MatchPlanModel();
-  final List<MatchPlanModel> _undoStack = [];
-  final List<MatchPlanModel> _redoStack = [];
+  String _activePhase = 'auto'; // 'auto' | 'teleop' | 'endgame'
+  final Map<String, List<List<StrokeAnnotation>>> _undoStacks = {
+    'auto': [],
+    'teleop': [],
+    'endgame': [],
+  };
+  final Map<String, List<List<StrokeAnnotation>>> _redoStacks = {
+    'auto': [],
+    'teleop': [],
+    'endgame': [],
+  };
+
+  List<List<StrokeAnnotation>> get _currentUndoStack =>
+      _undoStacks.putIfAbsent(_activePhase, () => []);
+  List<List<StrokeAnnotation>> get _currentRedoStack =>
+      _redoStacks.putIfAbsent(_activePhase, () => []);
 
   // Drawing tools state
   String _activeTool = 'pen'; // 'pen' | 'eraser'
@@ -570,8 +584,13 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
     _autoSaveTimer?.cancel();
     setState(() {
       _selectedMatch = match;
-      _undoStack.clear();
-      _redoStack.clear();
+      _activePhase = 'auto';
+      for (final stack in _undoStacks.values) {
+        stack.clear();
+      }
+      for (final stack in _redoStacks.values) {
+        stack.clear();
+      }
       _plan = MatchPlanModel();
       _saveStatus = 'saved';
     });
@@ -639,34 +658,45 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
   }
 
   void _pushUndoState() {
-    _undoStack.add(_plan.copyWith());
-    _redoStack.clear();
-    if (_undoStack.length > 50) _undoStack.removeAt(0);
+    final currentAnnotations = List<StrokeAnnotation>.from(
+      _plan.annotationsForPhase(_activePhase).map((a) => a.copyWith()),
+    );
+    _currentUndoStack.add(currentAnnotations);
+    _currentRedoStack.clear();
+    if (_currentUndoStack.length > 50) _currentUndoStack.removeAt(0);
   }
 
   void _handleUndo() {
-    if (_undoStack.isNotEmpty) {
-      _redoStack.add(_plan.copyWith());
-      final prev = _undoStack.removeLast();
-      setState(() => _plan = prev);
+    if (_currentUndoStack.isNotEmpty) {
+      _currentRedoStack.add(
+        List<StrokeAnnotation>.from(
+          _plan.annotationsForPhase(_activePhase).map((a) => a.copyWith()),
+        ),
+      );
+      final prev = _currentUndoStack.removeLast();
+      setState(() => _plan = _plan.withPhaseAnnotations(_activePhase, prev));
       _scheduleAutoSave();
     }
   }
 
   void _handleRedo() {
-    if (_redoStack.isNotEmpty) {
-      _undoStack.add(_plan.copyWith());
-      final next = _redoStack.removeLast();
-      setState(() => _plan = next);
+    if (_currentRedoStack.isNotEmpty) {
+      _currentUndoStack.add(
+        List<StrokeAnnotation>.from(
+          _plan.annotationsForPhase(_activePhase).map((a) => a.copyWith()),
+        ),
+      );
+      final next = _currentRedoStack.removeLast();
+      setState(() => _plan = _plan.withPhaseAnnotations(_activePhase, next));
       _scheduleAutoSave();
     }
   }
 
   void _handleClearCanvas() {
-    if (_plan.annotations.isEmpty) return;
+    if (_plan.annotationsForPhase(_activePhase).isEmpty) return;
     _pushUndoState();
     setState(() {
-      _plan = _plan.copyWith(annotations: []);
+      _plan = _plan.withPhaseAnnotations(_activePhase, []);
     });
     _scheduleAutoSave();
     ObsidianFeedback.showSuccess(context, message: 'Canvas cleared. Tap Undo to restore.');
@@ -675,13 +705,13 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
   void _handleStrokeCompleted(StrokeAnnotation stroke) {
     _pushUndoState();
     setState(() {
-      _plan.annotations.add(stroke);
+      _plan.annotationsForPhase(_activePhase).add(stroke);
     });
     _scheduleAutoSave();
   }
 
   void _handleMarkerPositionChanged(String stationId, TeamMarkerPosition pos) {
-    _plan.teamMarkerPositions[stationId] = pos;
+    _plan.updateMarkerPosition(_activePhase, stationId, pos);
   }
 
   void _handleMarkerDragEnd() {
@@ -700,7 +730,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
 
       final pngBytes = byteData.buffer.asUint8List();
       final matchLabel = _selectedMatch?.label ?? 'match-plan';
-      final filename = 'obsidianscout-plan-${matchLabel.replaceAll(' ', '_').toLowerCase()}.png';
+      final filename = 'obsidianscout-plan-${matchLabel.replaceAll(' ', '_').toLowerCase()}-$_activePhase.png';
 
       final result = await downloadOrSaveBytes(
         filename: filename,
@@ -967,11 +997,13 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                     // Canvas Toolbar
                     Center(
                       child: CanvasToolbar(
+                        activePhase: _activePhase,
+                        onPhaseChanged: (phase) => setState(() => _activePhase = phase),
                         activeTool: _activeTool,
                         currentColor: _currentColor,
                         strokeWidth: _currentStrokeWidth,
-                        canUndo: _undoStack.isNotEmpty,
-                        canRedo: _redoStack.isNotEmpty,
+                        canUndo: _currentUndoStack.isNotEmpty,
+                        canRedo: _currentRedoStack.isNotEmpty,
                         isFullscreen: _isFullscreen,
                         saveStatus: _saveStatus,
                         onToolChanged: (tool) => setState(() => _activeTool = tool),
@@ -1010,6 +1042,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                                 child: StrategyFieldCanvas(
                                   repaintBoundaryKey: _repaintBoundaryKey,
                                   plan: _plan,
+                                  activePhase: _activePhase,
                                   activeTool: _activeTool,
                                   currentColor: _currentColor,
                                   strokeWidth: _currentStrokeWidth,
@@ -1042,6 +1075,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                               StrategyFieldCanvas(
                                 repaintBoundaryKey: _repaintBoundaryKey,
                                 plan: _plan,
+                                activePhase: _activePhase,
                                 activeTool: _activeTool,
                                 currentColor: _currentColor,
                                 strokeWidth: _currentStrokeWidth,
@@ -1464,11 +1498,13 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                               Expanded(
                                 child: Center(
                                   child: CanvasToolbar(
+                                    activePhase: _activePhase,
+                                    onPhaseChanged: (phase) => setState(() => _activePhase = phase),
                                     activeTool: _activeTool,
                                     currentColor: _currentColor,
                                     strokeWidth: _currentStrokeWidth,
-                                    canUndo: _undoStack.isNotEmpty,
-                                    canRedo: _redoStack.isNotEmpty,
+                                    canUndo: _currentUndoStack.isNotEmpty,
+                                    canRedo: _currentRedoStack.isNotEmpty,
                                     isFullscreen: _isFullscreen,
                                     saveStatus: _saveStatus,
                                     onToolChanged: (tool) => setState(() => _activeTool = tool),
@@ -1570,11 +1606,13 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                               const SizedBox(height: 4),
                               Center(
                                 child: CanvasToolbar(
+                                  activePhase: _activePhase,
+                                  onPhaseChanged: (phase) => setState(() => _activePhase = phase),
                                   activeTool: _activeTool,
                                   currentColor: _currentColor,
                                   strokeWidth: _currentStrokeWidth,
-                                  canUndo: _undoStack.isNotEmpty,
-                                  canRedo: _redoStack.isNotEmpty,
+                                  canUndo: _currentUndoStack.isNotEmpty,
+                                  canRedo: _currentRedoStack.isNotEmpty,
                                   isFullscreen: _isFullscreen,
                                   saveStatus: _saveStatus,
                                   onToolChanged: (tool) => setState(() => _activeTool = tool),
@@ -1627,6 +1665,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                                             child: StrategyFieldCanvas(
                                               repaintBoundaryKey: _fullscreenRepaintBoundaryKey,
                                               plan: _plan,
+                                              activePhase: _activePhase,
                                               activeTool: _activeTool,
                                               currentColor: _currentColor,
                                               strokeWidth: _currentStrokeWidth,
@@ -1658,6 +1697,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                                         StrategyFieldCanvas(
                                           repaintBoundaryKey: _fullscreenRepaintBoundaryKey,
                                           plan: _plan,
+                                          activePhase: _activePhase,
                                           activeTool: _activeTool,
                                           currentColor: _currentColor,
                                           strokeWidth: _currentStrokeWidth,

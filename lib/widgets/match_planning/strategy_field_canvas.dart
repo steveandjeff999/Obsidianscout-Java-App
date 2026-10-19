@@ -9,6 +9,7 @@ import 'canvas_toolbar.dart';
 class StrategyFieldCanvas extends StatefulWidget {
   final GlobalKey repaintBoundaryKey;
   final MatchPlanModel plan;
+  final String activePhase; // 'auto' | 'teleop' | 'endgame'
   final String activeTool; // 'pen' | 'eraser'
   final String currentColor;
   final double strokeWidth;
@@ -29,6 +30,7 @@ class StrategyFieldCanvas extends StatefulWidget {
     super.key,
     required this.repaintBoundaryKey,
     required this.plan,
+    this.activePhase = 'auto',
     required this.activeTool,
     required this.currentColor,
     required this.strokeWidth,
@@ -328,6 +330,7 @@ class _StrategyFieldCanvasState extends State<StrategyFieldCanvas> {
                           size: canvasSize,
                           painter: _FieldStrategyPainter(
                             plan: widget.plan,
+                            activePhase: widget.activePhase,
                             currentStroke: _currentStroke,
                             fieldImage: widget.fieldImage,
                           ),
@@ -383,6 +386,7 @@ class _StrategyFieldCanvasState extends State<StrategyFieldCanvas> {
     final redTeams = match.redTeams;
 
     final markers = <Widget>[];
+    final phasePositions = widget.plan.markerPositionsForPhase(widget.activePhase);
 
     final stationConfigs = [
       {'id': 'b1', 'label': 'B1', 'alliance': 'blue', 'teams': blueTeams, 'idx': 0},
@@ -403,12 +407,13 @@ class _StrategyFieldCanvasState extends State<StrategyFieldCanvas> {
       if (idx < teamsList.length) {
         final teamNum = _parseTeamNumber(teamsList[idx]);
         if (teamNum > 0) {
-          final pos = widget.plan.teamMarkerPositions[stId] ??
+          final pos = phasePositions[stId] ??
               MatchPlanModel.defaultMarkerPositions()[stId] ??
               const TeamMarkerPosition(xRatio: 0.5, yRatio: 0.5);
 
           markers.add(
             DraggableTeamMarkerWidget(
+              key: ValueKey('marker_$stId'),
               stationId: stId,
               stationLabel: stLabel,
               alliance: alliance,
@@ -432,11 +437,13 @@ class _StrategyFieldCanvasState extends State<StrategyFieldCanvas> {
 
 class _FieldStrategyPainter extends CustomPainter {
   final MatchPlanModel plan;
+  final String activePhase;
   final StrokeAnnotation? currentStroke;
   final ui.Image? fieldImage;
 
   _FieldStrategyPainter({
     required this.plan,
+    required this.activePhase,
     required this.currentStroke,
     required this.fieldImage,
   });
@@ -480,7 +487,7 @@ class _FieldStrategyPainter extends CustomPainter {
     canvas.saveLayer(rect, Paint());
 
     final allStrokes = <StrokeAnnotation>[
-      ...plan.annotations,
+      ...plan.annotationsForPhase(activePhase),
       if (currentStroke != null) currentStroke!,
     ];
 
