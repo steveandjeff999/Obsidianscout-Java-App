@@ -14,8 +14,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Fetches the snapshot right away when the server says something changed, so widgets update within seconds of a
- * push instead of waiting for WorkManager. Several widgets redraw together, so only one fetch runs at a time and
- * every caller's [finish] handle is released together once the fetch completes.
+ * push instead of waiting for WorkManager. Several widgets redraw together, so only one fetch runs at a time.
+ * Each caller's [finish] handle is released only by a fetch that started after the caller asked; callers that
+ * arrive while a fetch is running get one more fetch when it ends.
  */
 object WidgetFetchNow {
     private val running = AtomicBoolean(false)
@@ -26,24 +27,32 @@ object WidgetFetchNow {
         waiters.add(finish)
         if (!running.compareAndSet(false, true)) return
         val app = context.applicationContext
-        CoroutineScope(Dispatchers.IO).launch {
+        CoroutineScope(Dispatchers.IO).launch { runRounds(app) }
+    }
+
+    private suspend fun runRounds(app: Context) {
+        while (true) {
+            // The callers this round answers: everyone who asked before it started.
+            val batch = generateSequence { waiters.poll() }.toList()
             try {
-                val outcome = withTimeoutOrNull(9_000) { WidgetFetcher.fetch(app) }
-                when (outcome) {
-                    WidgetFetcher.Outcome.UPDATED, WidgetFetcher.Outcome.UNCHANGED, WidgetFetcher.Outcome.SIGNED_OUT -> {
-                        WidgetAccessGate.applyFromSnapshot(app, WidgetPrefs.snapshot(app))
-                        WidgetUpdater.updateAll(app)
-                    }
-                    WidgetFetcher.Outcome.NO_CREDENTIALS -> Unit
-                    else -> WidgetScheduler.refreshSoon(app) // Retry through WorkManager when the network is back.
-                }
+                fetchAndRedraw(app)
             } finally {
-                running.set(false)
-                while (true) {
-                    val cb = waiters.poll() ?: break
-                    runCatching { cb() }
-                }
+                batch.forEach { runCatching { it() } }
             }
+            running.set(false)
+            // Someone asked while this round ran: run again for them (unless another caller already took over).
+            if (waiters.isEmpty() || !running.compareAndSet(false, true)) return
+        }
+    }
+
+    suspend fun fetchAndRedraw(app: Context) {
+        when (withTimeoutOrNull(9_000) { WidgetFetcher.fetch(app) }) {
+            WidgetFetcher.Outcome.UPDATED, WidgetFetcher.Outcome.UNCHANGED, WidgetFetcher.Outcome.SIGNED_OUT -> {
+                WidgetAccessGate.applyFromSnapshot(app, WidgetPrefs.snapshot(app))
+                WidgetUpdater.updateAll(app)
+            }
+            WidgetFetcher.Outcome.NO_CREDENTIALS -> Unit
+            else -> WidgetScheduler.refreshSoon(app) // Retry through WorkManager when the network is back.
         }
     }
 }
@@ -51,69 +60,8 @@ object WidgetFetchNow {
 /** Manual refresh triggered by tapping the stale-data footer or loading state on a widget. */
 class RefreshWidgetAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
-        val app = context.applicationContext
-        WidgetPrefs.of(app).edit()
-            .putLong(WidgetPrefs.REFRESH_REQUESTED, System.currentTimeMillis() / 1000)
-            .apply()
-        val outcome = withContext(Dispatchers.IO) {
-            withTimeoutOrNull(9_000) { WidgetFetcher.fetch(app) }
-        }
-        when (outcome) {
-            WidgetFetcher.Outcome.UPDATED, WidgetFetcher.Outcome.UNCHANGED, WidgetFetcher.Outcome.SIGNED_OUT -> {
-                WidgetAccessGate.applyFromSnapshot(app, WidgetPrefs.snapshot(app))
-                WidgetUpdater.updateAll(app)
-            }
-            WidgetFetcher.Outcome.NO_CREDENTIALS -> Unit
-            else -> WidgetScheduler.refreshSoon(app)
-        }
-    }
-}
-
-/**
- * Optimistically checks/unchecks a checklist item right on the home screen and syncs it to the server
- * (`POST /api/widgets/checklist/toggle`) without needing to cold-start the Flutter app.
- */
-class ToggleChecklistItemAction : ActionCallback {
-    companion object {
-        val KEY_EVENT_KEY = ActionParameters.Key<String>("eventKey")
-        val KEY_RECORD = ActionParameters.Key<String>("record")
-        val KEY_ITEM_ID = ActionParameters.Key<String>("itemId")
-        val KEY_CHECKED = ActionParameters.Key<Boolean>("checked")
-    }
-
-    override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
-        val app = context.applicationContext
-        val eventKey = parameters[KEY_EVENT_KEY]?.takeIf { it.isNotBlank() } ?: return
-        val record = parameters[KEY_RECORD]?.takeIf { it.isNotBlank() } ?: return
-        val itemId = parameters[KEY_ITEM_ID]?.takeIf { it.isNotBlank() } ?: return
-        val checked = parameters[KEY_CHECKED] ?: return
-
-        val prefs = WidgetPrefs.of(app)
-        val currentRaw = prefs.getString(WidgetPrefs.SNAPSHOT, null)
-        val optimistic = Snapshot.toggleChecklistItem(currentRaw, record, itemId, checked)
-        if (optimistic != null) {
-            prefs.edit()
-                .putString(WidgetPrefs.SNAPSHOT, optimistic)
-                .remove(WidgetPrefs.ETAG)
-                .apply()
-            WidgetUpdater.update(app, WidgetKind.CHECKLIST)
-        }
-
-        val ok = withContext(Dispatchers.IO) {
-            withTimeoutOrNull(9_000) {
-                WidgetFetcher.toggleChecklistItem(app, eventKey, record, itemId, checked)
-            } == true
-        }
-        if (ok) {
-            val outcome = withContext(Dispatchers.IO) {
-                withTimeoutOrNull(9_000) { WidgetFetcher.fetch(app) }
-            }
-            if (outcome == WidgetFetcher.Outcome.UPDATED || outcome == WidgetFetcher.Outcome.SIGNED_OUT) {
-                WidgetAccessGate.applyFromSnapshot(app, WidgetPrefs.snapshot(app))
-                WidgetUpdater.updateAll(app)
-            }
-        } else {
-            WidgetScheduler.refreshSoon(app)
-        }
+        // Fetches directly; it doesn't set the push "refresh requested" flag, which would make the next redraw
+        // fetch the same snapshot again.
+        withContext(Dispatchers.IO) { WidgetFetchNow.fetchAndRedraw(context.applicationContext) }
     }
 }

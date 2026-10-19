@@ -3954,7 +3954,8 @@ class ApiService {
 
   /// Raw JSON of the widget snapshot (see /api/widgets/snapshot), or null when offline or signed out.
   /// [placed] lists the widget kinds on the home screen so the server only pushes refreshes that matter.
-  Future<String?> fetchWidgetSnapshot({List<String>? placed}) async {
+  /// Also returns the response's ETag, which the native widgets reuse for their own "not modified" checks.
+  Future<({String body, String? etag})?> fetchWidgetSnapshot({List<String>? placed}) async {
     if (!_isOnline || !isLoggedIn) return null;
     try {
       final uri = Uri.parse('$_currentServerUrl/api/widgets/snapshot')
@@ -3962,7 +3963,7 @@ class ApiService {
       final response = await http.get(uri, headers: _headers).timeout(heavyRequestTimeout);
       // Widgets refresh quietly: only a signed-out session is acted on, never a server-error banner.
       if (response.statusCode == 401) _checkResponse(response);
-      if (response.statusCode == 200) return response.body;
+      if (response.statusCode == 200) return (body: response.body, etag: response.headers['etag']);
     } catch (_) {}
     return null;
   }

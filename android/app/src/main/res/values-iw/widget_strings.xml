@@ -78,4 +78,22 @@
     <string name="w_every_n">כל %1$d משחקים</string>
     <string name="w_no_items">אין עדיין פריטים ברשימה</string>
     <string name="w_earlier">תוצאות קודמות</string>
+    <!-- Widget picker previews: sample values in the app's language. -->
+    <string name="wp_on_time" formatted="false">בזמן</string>
+    <string name="wp_red" formatted="false">אדום</string>
+    <string name="wp_blue" formatted="false">כחול</string>
+    <string name="wp_red_ours" formatted="false">אדום *</string>
+    <string name="wp_qual_24" formatted="false">מוקדמות 24</string>
+    <string name="wp_qual_28" formatted="false">מוקדמות 28</string>
+    <string name="wp_qual_33" formatted="false">מוקדמות 33</string>
+    <string name="wp_at_time" formatted="false">ב-2:15 PM</string>
+    <string name="wp_up_next" formatted="false">הבא בתור: מוקדמות 25 · קבוצה 1678</string>
+    <string name="wp_then_battery" formatted="false">אחר כך Bat #5</string>
+    <string name="wp_assignment" formatted="false">מוקדמות 24 · קבוצה 254 · אדום</string>
+    <string name="wp_projected" formatted="false">חזוי #2</string>
+    <string name="wp_battery_for" formatted="false">עבור מוקדמות 24</string>
+    <string name="wp_win" formatted="false">74% ניצחון</string>
+    <string name="wp_done_of" formatted="false">4 מתוך 6 בוצעו</string>
+    <string name="wp_left" formatted="false">נותרו 4</string>
+    <string name="wp_unread" formatted="false">3 לא נקראו</string>
 </resources>

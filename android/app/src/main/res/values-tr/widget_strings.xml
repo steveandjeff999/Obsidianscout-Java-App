@@ -78,4 +78,22 @@
     <string name="w_every_n">Her %1$d maçta bir</string>
     <string name="w_no_items">Henüz liste öğesi yok</string>
     <string name="w_earlier">Önceki sonuçlar</string>
+    <!-- Widget picker previews: sample values in the app's language. -->
+    <string name="wp_on_time" formatted="false">Zamanında</string>
+    <string name="wp_red" formatted="false">Kırmızı</string>
+    <string name="wp_blue" formatted="false">Mavi</string>
+    <string name="wp_red_ours" formatted="false">Kırmızı *</string>
+    <string name="wp_qual_24" formatted="false">Eleme 24</string>
+    <string name="wp_qual_28" formatted="false">Eleme 28</string>
+    <string name="wp_qual_33" formatted="false">Eleme 33</string>
+    <string name="wp_at_time" formatted="false">2:15 PM\'de</string>
+    <string name="wp_up_next" formatted="false">Sıradaki: Eleme 25 · Takım 1678</string>
+    <string name="wp_then_battery" formatted="false">Sonra Bat #5</string>
+    <string name="wp_assignment" formatted="false">Eleme 24 · Takım 254 · Kırmızı</string>
+    <string name="wp_projected" formatted="false">Tahmini #2</string>
+    <string name="wp_battery_for" formatted="false">Eleme 24 için</string>
+    <string name="wp_win" formatted="false">74% galibiyet</string>
+    <string name="wp_done_of" formatted="false">6 içinden 4 tamam</string>
+    <string name="wp_left" formatted="false">4 kaldı</string>
+    <string name="wp_unread" formatted="false">3 okunmamış</string>
 </resources>

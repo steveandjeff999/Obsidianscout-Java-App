@@ -78,4 +78,22 @@
     <string name="w_every_n">Cada %1$d partidos</string>
     <string name="w_no_items">Aún no hay elementos en la lista</string>
     <string name="w_earlier">Resultados anteriores</string>
+    <!-- Widget picker previews: sample values in the app's language. -->
+    <string name="wp_on_time" formatted="false">A tiempo</string>
+    <string name="wp_red" formatted="false">Rojo</string>
+    <string name="wp_blue" formatted="false">Azul</string>
+    <string name="wp_red_ours" formatted="false">Rojo *</string>
+    <string name="wp_qual_24" formatted="false">Clasif. 24</string>
+    <string name="wp_qual_28" formatted="false">Clasif. 28</string>
+    <string name="wp_qual_33" formatted="false">Clasif. 33</string>
+    <string name="wp_at_time" formatted="false">a las 2:15 PM</string>
+    <string name="wp_up_next" formatted="false">Siguiente: Clasif. 25 · Equipo 1678</string>
+    <string name="wp_then_battery" formatted="false">Después Bat #5</string>
+    <string name="wp_assignment" formatted="false">Clasif. 24 · Equipo 254 · Rojo</string>
+    <string name="wp_projected" formatted="false">Previsto #2</string>
+    <string name="wp_battery_for" formatted="false">Para Clasif. 24</string>
+    <string name="wp_win" formatted="false">74% victoria</string>
+    <string name="wp_done_of" formatted="false">4 de 6 hechos</string>
+    <string name="wp_left" formatted="false">Quedan 4</string>
+    <string name="wp_unread" formatted="false">3 sin leer</string>
 </resources>

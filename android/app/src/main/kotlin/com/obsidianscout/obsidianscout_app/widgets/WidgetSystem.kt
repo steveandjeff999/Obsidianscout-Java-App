@@ -7,9 +7,11 @@ import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.PowerManager
+import androidx.core.content.ContextCompat
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
@@ -19,7 +21,6 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.OutOfQuotaPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
@@ -28,10 +29,10 @@ import es.antonborri.home_widget.HomeWidgetGlanceStateDefinition
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
 /** Every home-screen widget, keyed by the id the server's snapshot uses for it. */
 enum class WidgetKind(val id: String, val receiver: Class<*>, val widget: () -> GlanceAppWidget) {
@@ -125,10 +126,9 @@ object WidgetScheduler {
     }
 
     fun refreshSoon(context: Context) {
-        val request = OneTimeWorkRequestBuilder<WidgetRefreshWorker>()
-            .setConstraints(network)
-            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
-            .build()
+        // Not expedited: that needs a foreground notification (getForegroundInfo) below Android 12. Pushes and
+        // polls already fetch immediately through WidgetFetchNow; this is only the retry/fallback path.
+        val request = OneTimeWorkRequestBuilder<WidgetRefreshWorker>().setConstraints(network).build()
         WorkManager.getInstance(context).enqueueUniqueWork(ONE_OFF, ExistingWorkPolicy.REPLACE, request)
     }
 
@@ -165,9 +165,37 @@ object WidgetScheduler {
         armPoll(context)
     }
 
-    /** How often placed widgets poll the server while the screen is interactive, so they stay current even without push. */
+    /** How often placed widgets poll the server while the screen is on, so they stay current even without push. */
     private const val POLL_SECONDS = 45L
+    /** With the screen off the poll only checks back this often (no network), until the screen comes back on. */
+    private const val SCREEN_OFF_CHECK_SECONDS = 5 * 60L
     private const val NEXT_POLL = "widget_next_poll_at"
+    private val screenWatchRegistered = AtomicBoolean(false)
+
+    fun isScreenOn(context: Context) = isInteractive(context)
+
+    /**
+     * While this process is alive, polls right away when the screen turns on or the phone is unlocked (these
+     * broadcasts can't be declared in the manifest). The screen-off check in [armPoll] covers a killed process.
+     */
+    private fun watchScreen(context: Context) {
+        if (!screenWatchRegistered.compareAndSet(false, true)) return
+        val app = context.applicationContext
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_USER_PRESENT)
+        }
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(ctx: Context, intent: Intent) {
+                if (!WidgetUpdater.anyPlaced(ctx)) return
+                pollFired(ctx)
+                armPoll(ctx)
+                WidgetPollReceiver.triggerNow(ctx)
+            }
+        }
+        runCatching { ContextCompat.registerReceiver(app, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED) }
+            .onFailure { screenWatchRegistered.set(false) }
+    }
 
     private fun pollIntent(context: Context): PendingIntent = PendingIntent.getBroadcast(
         context, 1, Intent(context, WidgetPollReceiver::class.java),
@@ -175,24 +203,26 @@ object WidgetScheduler {
     )
 
     /**
-     * Schedules the next 45s poll while any widget is placed, the widgets are signed in, and the screen is on.
-     * While the screen is off in a pocket, 45s alarm polling is paused to save battery (WorkManager and push
-     * still update in the background, and unlocking/viewing the home screen resumes polling immediately).
+     * Schedules the next poll while any widget is placed and the widgets are signed in: every 45 s with the screen
+     * on. With the screen off it only checks back every few minutes without fetching (to save battery), and the
+     * screen-on / unlock watcher brings it straight back to 45 s polling.
      */
     fun armPoll(context: Context) {
         val alarm = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val signedIn = !WidgetPrefs.of(context).getString(WidgetPrefs.TOKEN, null).isNullOrBlank()
-        if (!signedIn || !WidgetUpdater.anyPlaced(context) || !isInteractive(context)) {
+        if (!signedIn || !WidgetUpdater.anyPlaced(context)) {
             alarm.cancel(pollIntent(context))
             pollFired(context)
             return
         }
+        watchScreen(context)
+        val interval = if (isInteractive(context)) POLL_SECONDS else SCREEN_OFF_CHECK_SECONDS
         // Widgets redraw often; keep an already scheduled poll instead of pushing it back every time.
         val prefs = WidgetPrefs.of(context)
         val now = System.currentTimeMillis()
         val scheduled = WidgetPrefs.long(prefs, NEXT_POLL)
-        if (scheduled in (now + 1)..(now + POLL_SECONDS * 1000)) return
-        val next = now + POLL_SECONDS * 1000
+        if (scheduled in (now + 1)..(now + interval * 1000)) return
+        val next = now + interval * 1000
         prefs.edit().putLong(NEXT_POLL, next).apply()
         alarm.setAndAllowWhileIdle(AlarmManager.RTC, next, pollIntent(context))
     }
@@ -219,9 +249,11 @@ object WidgetScheduler {
 /** Fetches the snapshot on the poll timer or explicit trigger, then schedules the next poll. */
 class WidgetPollReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        val pending = goAsync()
         WidgetScheduler.pollFired(context)
         WidgetScheduler.armPoll(context)
+        // Screen off: nothing to show anyone, so skip the network until the screen comes back on.
+        if (!WidgetScheduler.isScreenOn(context)) return
+        val pending = goAsync()
         WidgetFetchNow.start(context) { runCatching { pending.finish() } }
     }
 
@@ -345,54 +377,6 @@ object WidgetFetcher {
             }
         } catch (_: Exception) {
             Outcome.FAILED
-        } finally {
-            conn.disconnect()
-        }
-    }
-
-    /** Sends an item check/uncheck to `POST /api/widgets/checklist/toggle` using the widget token. */
-    fun toggleChecklistItem(context: Context, eventKey: String, record: String, itemId: String, checked: Boolean): Boolean {
-        val prefs = WidgetPrefs.of(context)
-        val token = prefs.getString(WidgetPrefs.TOKEN, null)?.takeIf { it.isNotBlank() } ?: return false
-        val server = prefs.getString(WidgetPrefs.SERVER_URL, null)?.trimEnd('/')?.takeIf { it.isNotBlank() } ?: return false
-        val payload = JSONObject().apply {
-            put("eventKey", eventKey)
-            put("record", record)
-            put("itemId", itemId)
-            put("checked", checked)
-        }.toString()
-        val conn = (URL("$server/api/widgets/checklist/toggle").openConnection() as HttpURLConnection).apply {
-            requestMethod = "POST"
-            doOutput = true
-            connectTimeout = 8_000
-            readTimeout = 10_000
-            setRequestProperty("Authorization", "Widget $token")
-            setRequestProperty("Content-Type", "application/json; charset=utf-8")
-            setRequestProperty("Accept", "application/json")
-            setRequestProperty("X-Mobile-App", "true")
-        }
-        return try {
-            conn.outputStream.use { it.write(payload.toByteArray(Charsets.UTF_8)) }
-            when (conn.responseCode) {
-                in 200..299 -> {
-                    prefs.edit().remove(WidgetPrefs.ETAG).apply()
-                    true
-                }
-                401 -> {
-                    val now = System.currentTimeMillis() / 1000
-                    prefs.edit()
-                        .remove(WidgetPrefs.TOKEN)
-                        .remove(WidgetPrefs.ETAG)
-                        .putBoolean(WidgetPrefs.AUTH_EXPIRED, true)
-                        .putString(WidgetPrefs.SNAPSHOT, """{"v":1,"signedOut":true}""")
-                        .putLong(WidgetPrefs.FETCHED_AT, now)
-                        .apply()
-                    false
-                }
-                else -> false
-            }
-        } catch (_: Exception) {
-            false
         } finally {
             conn.disconnect()
         }

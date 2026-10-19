@@ -30,7 +30,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="4 left"
+            android:text="@string/wp_left"
             android:textColor="#FF94A3B8"
             android:textSize="11sp"
             android:textStyle="bold" />
@@ -40,7 +40,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
-        android:text="Qual 24 · Team 254 · Red"
+        android:text="@string/wp_assignment"
         android:textColor="#FFF1F5F9"
         android:textSize="14sp"
         android:textStyle="bold" />
@@ -57,7 +57,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:text="Up next: Qual 25 · Team 1678"
+        android:text="@string/wp_up_next"
         android:textColor="#FF94A3B8"
         android:textSize="11sp" />
 </LinearLayout>

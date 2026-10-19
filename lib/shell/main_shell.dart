@@ -4,7 +4,9 @@ import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
 import '../models/desktop_tab_model.dart';
 import '../screens/login_screen.dart';
+import '../screens/match_list_screen.dart';
 import '../screens/qr_scanner_screen.dart';
+import '../screens/team_details_screen.dart';
 import '../services/api_service.dart';
 import '../services/auth_storage_service.dart';
 import '../services/battery_tracker_sync.dart';
@@ -305,6 +307,18 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
     if (state == AppLifecycleState.paused) HomeWidgetService.instance.requestRefresh();
   }
 
+  /// Team details for a Rankings widget row, from the event's cached team list.
+  Future<void> _openTeamDetails(int teamNumber) async {
+    final api = widget.apiService;
+    final eventKey = api.currentSettings?.eventKey ?? await api.getCachedEventKey();
+    final teams = await api.getCachedTeams(eventKey);
+    final team = teams.where((t) => t.teamNumber == teamNumber).firstOrNull;
+    if (team == null || !mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (ctx) => TeamDetailsScreen(team: team, apiService: api, eventKey: eventKey)),
+    );
+  }
+
   /// Opens what a tapped home-screen widget points at, once the user is signed in and unlocked.
   /// Page access is checked by [_navigateScreen] / [_openQrScanner] like any other navigation.
   void _openWidgetLaunch(WidgetLaunch launch) {
@@ -326,8 +340,15 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
             _activeTab.pendingChatChannel = group;
           });
         }
+        // Row taps: Match Schedule opens just that match, Rankings opens that team's details.
+        final matchKey = p['matchKey']?.trim();
+        if (pageId == 'matches' && matchKey != null && matchKey.isNotEmpty && widget.apiService.hasPageAccess('matches')) {
+          MatchListScreen.focusRequest.value = matchKey;
+        }
         final index = indexOf(pageId);
         if (index != null) _navigateScreen(index);
+        final team = int.tryParse(p['team'] ?? '');
+        if (team != null && widget.apiService.hasPageAccess(pageId)) unawaited(_openTeamDetails(team));
       case 'chat':
         final group = p['group']?.trim();
         if (group != null && group.isNotEmpty) {

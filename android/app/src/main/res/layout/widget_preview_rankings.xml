@@ -54,7 +54,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Projected #2"
+        android:text="@string/wp_projected"
         android:textColor="#FF38BDF8"
         android:textSize="11sp"
         android:textStyle="bold" />
