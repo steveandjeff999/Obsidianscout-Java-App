@@ -602,6 +602,10 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
               ),
             ),
           ],
+          if (a.isGroupPit) ...[
+            const SizedBox(height: 8),
+            _buildPitGroupLine(a, fontSize: 13),
+          ],
           if (a.notes != null && a.notes!.isNotEmpty) ...[
             const SizedBox(height: 8),
             Container(
@@ -888,7 +892,10 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
                           ),
                         ),
                       ],
-                      if (a.notes != null && a.notes!.isNotEmpty) ...[
+                      if (a.isGroupPit) ...[
+                        const SizedBox(height: 6),
+                        _buildPitGroupLine(a, fontSize: 11.5),
+                      ] else if (a.notes != null && a.notes!.isNotEmpty) ...[
                         const SizedBox(height: 6),
                         Text(
                           'Note: ${a.notes!}',
@@ -940,6 +947,27 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
           ),
         ),
       ),
+    );
+  }
+
+  /// "Pit Crew A · with alice, bob" so a scout knows who they walk the pits with.
+  Widget _buildPitGroupLine(ScoutingAssignment a, {double fontSize = 12}) {
+    final me = widget.apiService.currentUser?.username.toLowerCase();
+    final others = a.scoutGroupMembers.where((m) => m.toLowerCase() != me).toList();
+    final label = others.isEmpty ? a.scoutGroup!.trim() : '${a.scoutGroup!.trim()} · with ${others.join(', ')}';
+    return Row(
+      children: [
+        Icon(Icons.groups_rounded, size: fontSize + 3, color: const Color(0xFF8B5CF6)),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w600, color: const Color(0xFF8B5CF6)),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 
