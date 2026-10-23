@@ -7,6 +7,11 @@ on:
       - 'v*'
   workflow_dispatch:
 
+# Queue runs per branch so two pushes don't race on the version bump
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   auto-tag:
     name: Bump Version, Manifest & Tag
@@ -111,7 +116,21 @@ jobs:
             echo "No manifest changes detected."
           else
             git commit -m "chore: bump app manifest version to $NEW_TAG [skip ci]"
-            git push origin HEAD:${{ github.ref_name }}
+            # The branch may have moved since checkout; rebase onto the latest remote and retry
+            PUSHED=false
+            for i in 1 2 3 4 5; do
+              git pull --rebase origin ${{ github.ref_name }}
+              if git push origin HEAD:${{ github.ref_name }}; then
+                PUSHED=true
+                break
+              fi
+              echo "Push rejected (attempt $i), retrying..."
+              sleep $((i * 3))
+            done
+            if [ "$PUSHED" != "true" ]; then
+              echo "Failed to push manifest bump after 5 attempts"
+              exit 1
+            fi
           fi
 
           git tag -f "$NEW_TAG"
