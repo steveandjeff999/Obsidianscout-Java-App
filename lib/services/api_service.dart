@@ -5568,6 +5568,116 @@ class ApiService {
     }
   }
 
+  Future<List<PitScoutGroup>> fetchPitScoutGroups() async {
+    if (!_isOnline) return [];
+    try {
+      final uri = Uri.parse('$_currentServerUrl/api/assignments/pit-groups');
+      final response = await http.get(uri, headers: _headers).timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final j = jsonDecode(response.body);
+        if (j is List) {
+          return j.map((e) => PitScoutGroup.fromJson(e as Map<String, dynamic>)).toList();
+        }
+      }
+    } catch (e) {
+      debugPrint('[ApiService] fetchPitScoutGroups error: $e');
+    }
+    return [];
+  }
+
+  Future<List<PitScoutGroup>> savePitScoutGroups(List<PitScoutGroup> groups) async {
+    if (!_isOnline) throw Exception('Cannot save pit groups while offline.');
+    try {
+      final uri = Uri.parse('$_currentServerUrl/api/assignments/pit-groups');
+      final response = await http
+          .put(
+            uri,
+            headers: _headers,
+            body: jsonEncode({'groups': groups.map((g) => g.toJson()).toList()}),
+          )
+          .timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final j = jsonDecode(response.body);
+        if (j is List) {
+          return j.map((e) => PitScoutGroup.fromJson(e as Map<String, dynamic>)).toList();
+        }
+        return groups;
+      }
+      String msg = 'Failed to save pit groups (${response.statusCode})';
+      try {
+        final j = jsonDecode(response.body);
+        if (j is Map && j['error'] != null) msg = j['error'].toString();
+      } catch (_) {}
+      throw Exception(msg);
+    } catch (e) {
+      debugPrint('[ApiService] savePitScoutGroups error: $e');
+      rethrow;
+    }
+  }
+
+  Future<AssignmentShiftsResponse> fetchAssignmentShifts(String eventKey) async {
+    if (!_isOnline) return AssignmentShiftsResponse();
+    try {
+      final uri = Uri.parse('$_currentServerUrl/api/assignments/shifts')
+          .replace(queryParameters: {'eventKey': eventKey});
+      final response = await http.get(uri, headers: _headers).timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final j = jsonDecode(response.body);
+        if (j is Map<String, dynamic>) return AssignmentShiftsResponse.fromJson(j);
+      }
+    } catch (e) {
+      debugPrint('[ApiService] fetchAssignmentShifts error: $e');
+    }
+    return AssignmentShiftsResponse();
+  }
+
+  /// Creates or updates a shift. The server applies it right away to matches already synced.
+  Future<AssignmentShiftsResponse> saveAssignmentShift(AssignmentShift shift) async {
+    if (!_isOnline) throw Exception('Cannot save shifts while offline.');
+    try {
+      final uri = Uri.parse('$_currentServerUrl/api/assignments/shifts');
+      final response = await http
+          .post(uri, headers: _headers, body: jsonEncode(shift.toSaveJson()))
+          .timeout(const Duration(seconds: 45));
+      _checkResponse(response);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final j = jsonDecode(response.body);
+        if (j is Map<String, dynamic>) return AssignmentShiftsResponse.fromJson(j);
+        return AssignmentShiftsResponse();
+      }
+      throw Exception(_shiftError(response, 'Failed to save shift'));
+    } catch (e) {
+      debugPrint('[ApiService] saveAssignmentShift error: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteAssignmentShift(String id) async {
+    if (!_isOnline) throw Exception('Cannot delete shifts while offline.');
+    try {
+      final uri = Uri.parse('$_currentServerUrl/api/assignments/shifts/${Uri.encodeComponent(id)}');
+      final response = await http.delete(uri, headers: _headers).timeout(heavyRequestTimeout);
+      _checkResponse(response);
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw Exception(_shiftError(response, 'Failed to delete shift'));
+      }
+    } catch (e) {
+      debugPrint('[ApiService] deleteAssignmentShift error: $e');
+      rethrow;
+    }
+  }
+
+  String _shiftError(http.Response response, String fallback) {
+    try {
+      final j = jsonDecode(response.body);
+      if (j is Map && j['error'] != null) return j['error'].toString();
+    } catch (_) {}
+    return '$fallback (${response.statusCode})';
+  }
+
   Future<AutoResolveConflictsResponse> autoResolveConflicts(String eventKey) async {
     if (!_isOnline) throw Exception('Cannot resolve conflicts while offline.');
     try {

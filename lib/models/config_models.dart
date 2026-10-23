@@ -804,7 +804,6 @@ class AppSettingsModel {
   final String eventCode;
   final String eventKey;
   final String timezone;
-  final String preferredSource;
   final bool chatEnabled;
   final bool registrationLocked;
   /// Roles allowed on the create-account page (null = not reported by the server; keep its value).
@@ -831,7 +830,6 @@ class AppSettingsModel {
     this.eventCode = '',
     this.eventKey = '',
     this.timezone = 'America/New_York',
-    this.preferredSource = 'tba',
     this.chatEnabled = true,
     this.registrationLocked = false,
     this.selfRegisterRoles,
@@ -942,7 +940,6 @@ class AppSettingsModel {
       eventCode: settingsMap['eventCode']?.toString() ?? '',
       eventKey: settingsMap['eventKey']?.toString() ?? '',
       timezone: settingsMap['timezone']?.toString() ?? 'America/New_York',
-      preferredSource: settingsMap['preferredSource']?.toString() ?? 'tba',
       chatEnabled: settingsMap['chatEnabled'] != false,
       registrationLocked: parseBool(settingsMap['registrationLocked'] ?? json['registrationLocked']),
       selfRegisterRoles: (settingsMap['selfRegisterRoles'] is List)
@@ -974,7 +971,6 @@ class AppSettingsModel {
       'eventCode': eventCode,
       'eventKey': eventKey,
       'timezone': timezone,
-      'preferredSource': preferredSource,
       'chatEnabled': chatEnabled,
       'registrationLocked': registrationLocked,
       if (selfRegisterRoles != null) 'selfRegisterRoles': selfRegisterRoles,
@@ -1001,7 +997,6 @@ class AppSettingsModel {
     String? eventCode,
     String? eventKey,
     String? timezone,
-    String? preferredSource,
     bool? chatEnabled,
     bool? registrationLocked,
     List<String>? selfRegisterRoles,
@@ -1026,7 +1021,6 @@ class AppSettingsModel {
       eventCode: eventCode ?? this.eventCode,
       eventKey: eventKey ?? this.eventKey,
       timezone: timezone ?? this.timezone,
-      preferredSource: preferredSource ?? this.preferredSource,
       chatEnabled: chatEnabled ?? this.chatEnabled,
       registrationLocked: registrationLocked ?? this.registrationLocked,
       selfRegisterRoles: selfRegisterRoles ?? this.selfRegisterRoles,

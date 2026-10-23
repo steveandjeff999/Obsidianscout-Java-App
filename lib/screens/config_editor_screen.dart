@@ -97,7 +97,6 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
   final TextEditingController _match13UrlController = TextEditingController();
   final TextEditingController _match13KeyController = TextEditingController();
 
-  String _preferredSource = 'tba';
   bool _useStatboticsEpa = false;
   bool _useMatch13Exp = false;
   bool _useTbaOpr = false;
@@ -197,7 +196,6 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     _yearController.text = fresh.year.toString();
     _eventCodeController.text = fresh.eventCode;
     _timezoneController.text = fresh.timezone;
-    _preferredSource = fresh.preferredSource.isNotEmpty ? fresh.preferredSource : 'tba';
     _useStatboticsEpa = fresh.useStatboticsEpa;
     _useMatch13Exp = fresh.useMatch13Exp;
     _useTbaOpr = fresh.useTbaOpr;
@@ -273,7 +271,6 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       _yearController.text = _currentSettings.year.toString();
       _eventCodeController.text = _currentSettings.eventCode;
       _timezoneController.text = _currentSettings.timezone;
-      _preferredSource = _currentSettings.preferredSource.isNotEmpty ? _currentSettings.preferredSource : 'tba';
       _useStatboticsEpa = _currentSettings.useStatboticsEpa;
       _useMatch13Exp = _currentSettings.useMatch13Exp;
       _useTbaOpr = _currentSettings.useTbaOpr;
@@ -929,7 +926,6 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       year: int.tryParse(_yearController.text.trim()) ?? _currentSettings.year,
       eventCode: _eventCodeController.text.trim(),
       timezone: _timezoneController.text.trim().isNotEmpty ? _timezoneController.text.trim() : 'America/New_York',
-      preferredSource: _preferredSource,
       useStatboticsEpa: _useStatboticsEpa,
       useMatch13Exp: _useMatch13Exp,
       useTbaOpr: _useTbaOpr,
@@ -3764,39 +3760,6 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
               ),
               const SizedBox(height: 14),
 
-              // Preferred Source Dropdown
-              DropdownButtonFormField<String>(
-                initialValue: _preferredSource,
-                dropdownColor: ObsidianUITheme.getSurfaceColor(context),
-                style: TextStyle(color: primaryTextColor, fontSize: 14),
-                decoration: InputDecoration(
-                  labelText: 'Preferred Source',
-                  labelStyle: TextStyle(color: secondaryTextColor, fontSize: 12),
-                  isDense: true,
-                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
-                  focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
-                ),
-                items: [
-                  DropdownMenuItem(
-                    value: 'tba',
-                    child: Text(isFtc ? 'FTC Scout' : 'The Blue Alliance'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'first',
-                    child: Text(isFtc ? 'FIRST FTC API' : 'FIRST API'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'both',
-                    child: Text(isFtc ? 'Both (FTC Scout + FIRST)' : 'Both (TBA + FIRST)'),
-                  ),
-                ],
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() => _preferredSource = val);
-                  }
-                },
-              ),
-              const SizedBox(height: 14),
 
               // Optional Stats
               Text('Optional Stats', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: primaryTextColor)),

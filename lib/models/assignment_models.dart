@@ -27,6 +27,12 @@ class ScoutingAssignment {
   final int? predictedTime;
   final int? scheduleOffsetSeconds;
   final int? reminderMinutesBefore;
+  /// Pit scout group name; every member of the group gets their own row for the same team.
+  final String? scoutGroup;
+  /// Usernames of everyone in [scoutGroup] on this pit team, including the assignee.
+  final List<String> scoutGroupMembers;
+
+  bool get isGroupPit => assignmentType == 'PIT' && (scoutGroup?.trim().isNotEmpty ?? false);
 
   int? get effectiveScheduledTime => predictedTime ?? scheduledTime;
 
@@ -245,7 +251,15 @@ class ScoutingAssignment {
     this.predictedTime,
     this.scheduleOffsetSeconds,
     this.reminderMinutesBefore,
+    this.scoutGroup,
+    this.scoutGroupMembers = const [],
   });
+
+  /// Pit rows sharing a scout group are one unit on that team, not duplicates.
+  String get pitUnitKey {
+    final g = scoutGroup?.trim() ?? '';
+    return g.isNotEmpty ? 'group:${g.toLowerCase()}' : 'row:$id';
+  }
 
   factory ScoutingAssignment.fromJson(Map<String, dynamic> json) {
     int? parsedScheduledTime;
@@ -312,6 +326,8 @@ class ScoutingAssignment {
       predictedTime: parsedPredictedTime,
       scheduleOffsetSeconds: parsedOffset,
       reminderMinutesBefore: (json['reminderMinutesBefore'] as num?)?.toInt(),
+      scoutGroup: json['scoutGroup']?.toString(),
+      scoutGroupMembers: (json['scoutGroupMembers'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
     );
   }
 
@@ -343,6 +359,8 @@ class ScoutingAssignment {
       'predictedTime': predictedTime,
       'scheduleOffsetSeconds': scheduleOffsetSeconds,
       'reminderMinutesBefore': reminderMinutesBefore,
+      'scoutGroup': scoutGroup,
+      'scoutGroupMembers': scoutGroupMembers,
     };
   }
 
@@ -373,6 +391,8 @@ class ScoutingAssignment {
     int? predictedTime,
     int? scheduleOffsetSeconds,
     int? reminderMinutesBefore,
+    String? scoutGroup,
+    List<String>? scoutGroupMembers,
   }) {
     return ScoutingAssignment(
       id: id ?? this.id,
@@ -401,8 +421,29 @@ class ScoutingAssignment {
       predictedTime: predictedTime ?? this.predictedTime,
       scheduleOffsetSeconds: scheduleOffsetSeconds ?? this.scheduleOffsetSeconds,
       reminderMinutesBefore: reminderMinutesBefore ?? this.reminderMinutesBefore,
+      scoutGroup: scoutGroup ?? this.scoutGroup,
+      scoutGroupMembers: scoutGroupMembers ?? this.scoutGroupMembers,
     );
   }
+}
+
+/// A saved set of team accounts that walk the pits together.
+class PitScoutGroup {
+  final String id;
+  final String name;
+  final List<String> memberIds;
+
+  PitScoutGroup({required this.id, required this.name, required this.memberIds});
+
+  factory PitScoutGroup.fromJson(Map<String, dynamic> json) {
+    return PitScoutGroup(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      memberIds: (json['memberIds'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+    );
+  }
+
+  Map<String, dynamic> toJson() => {'id': id, 'name': name, 'memberIds': memberIds};
 }
 
 class CreateAssignmentRequest {
@@ -461,6 +502,7 @@ class BulkAssignmentItem {
   final String? targetAlliance;
   final String? notes;
   final int? scheduledTime;
+  final String? scoutGroup;
 
   BulkAssignmentItem({
     required this.assignedUserId,
@@ -473,6 +515,7 @@ class BulkAssignmentItem {
     this.targetAlliance,
     this.notes,
     this.scheduledTime,
+    this.scoutGroup,
   });
 
   Map<String, dynamic> toJson() {
@@ -480,6 +523,7 @@ class BulkAssignmentItem {
       'assignedUserId': assignedUserId,
       'assignmentType': assignmentType,
     };
+    if (scoutGroup != null && scoutGroup!.isNotEmpty) map['scoutGroup'] = scoutGroup;
     if (matchKey != null && matchKey!.isNotEmpty) map['matchKey'] = matchKey;
     if (matchNumber != null) map['matchNumber'] = matchNumber;
     if (compLevel != null && compLevel!.isNotEmpty) map['compLevel'] = compLevel;
@@ -642,9 +686,12 @@ class AutoGenerateAssignmentsRequest {
   final String stageFilter;
   final String? startMatchKey;
   final String? endMatchKey;
+  /// Explicit match set (a time block); overrides start/end on the server when non-empty.
+  final List<String> matchKeys;
   final int consecutiveMatches;
   final bool overwrite;
   final String pitScope;
+  final List<PitScoutGroup> pitGroups;
   final int? reminderMinutesBefore;
 
   AutoGenerateAssignmentsRequest({
@@ -654,9 +701,11 @@ class AutoGenerateAssignmentsRequest {
     this.stageFilter = 'all',
     this.startMatchKey,
     this.endMatchKey,
+    this.matchKeys = const [],
     this.consecutiveMatches = 5,
     this.overwrite = false,
     this.pitScope = 'unassigned',
+    this.pitGroups = const [],
     this.reminderMinutesBefore,
   });
 
@@ -668,9 +717,12 @@ class AutoGenerateAssignmentsRequest {
       'stageFilter': stageFilter,
       if (startMatchKey != null) 'startMatchKey': startMatchKey,
       if (endMatchKey != null) 'endMatchKey': endMatchKey,
+      if (matchKeys.isNotEmpty) 'matchKeys': matchKeys,
       'consecutiveMatches': consecutiveMatches,
       'overwrite': overwrite,
       'pitScope': pitScope,
+      if (pitGroups.isNotEmpty)
+        'pitGroups': pitGroups.map((g) => {'name': g.name, 'memberIds': g.memberIds}).toList(),
       if (reminderMinutesBefore != null) 'reminderMinutesBefore': reminderMinutesBefore,
     };
   }
@@ -725,3 +777,112 @@ class AutoResolveConflictsResponse {
   }
 }
 
+/// A scouting shift planned by time, which the server applies to matches as the schedule syncs.
+/// Each scout keeps one seat for every match in the window; there is no rotation.
+class AssignmentShift {
+  final String id;
+  final String eventKey;
+  final String name;
+  final String day; // yyyy-mm-dd, event local
+  final String startTime; // HH:MM, event local
+  final String endTime; // HH:MM, event local
+  final String stageFilter;
+
+  /// Match scouting seats in order red 1-3, then blue 1-3. An empty string leaves that station open.
+  final List<String> matchScouterIds;
+
+  /// TEAMS: one qualitative scout per robot station, ordered like [matchScouterIds]. ALLIANCE: red, then blue.
+  final String qualMode;
+  final List<String> qualScouterIds;
+  final String? lastAppliedAt;
+  final int appliedCount;
+
+  AssignmentShift({
+    this.id = '',
+    required this.eventKey,
+    this.name = '',
+    required this.day,
+    required this.startTime,
+    required this.endTime,
+    this.stageFilter = 'all',
+    this.matchScouterIds = const [],
+    this.qualMode = 'TEAMS',
+    this.qualScouterIds = const [],
+    this.lastAppliedAt,
+    this.appliedCount = 0,
+  });
+
+  static List<String> _ids(dynamic value) =>
+      (value as List<dynamic>?)?.map((e) => e?.toString() ?? '').toList() ?? [];
+
+  factory AssignmentShift.fromJson(Map<String, dynamic> json) {
+    return AssignmentShift(
+      id: json['id']?.toString() ?? '',
+      eventKey: json['eventKey']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      day: json['day']?.toString() ?? '',
+      startTime: json['startTime']?.toString() ?? '',
+      endTime: json['endTime']?.toString() ?? '',
+      stageFilter: json['stageFilter']?.toString() ?? 'all',
+      matchScouterIds: _ids(json['matchScouterIds']),
+      qualMode: json['qualMode']?.toString() == 'ALLIANCE' ? 'ALLIANCE' : 'TEAMS',
+      qualScouterIds: _ids(json['qualScouterIds']),
+      lastAppliedAt: json['lastAppliedAt']?.toString(),
+      appliedCount: (json['appliedCount'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  /// Body for POST /api/assignments/shifts; an empty [id] creates a new shift.
+  Map<String, dynamic> toSaveJson() => {
+        'id': id.isEmpty ? null : id,
+        'eventKey': eventKey,
+        'name': name,
+        'day': day,
+        'startTime': startTime,
+        'endTime': endTime,
+        'stageFilter': stageFilter,
+        'matchScouterIds': matchScouterIds,
+        'qualMode': qualMode,
+        'qualScouterIds': qualScouterIds,
+      };
+}
+
+class AssignmentShiftView {
+  final AssignmentShift shift;
+
+  /// Synced matches currently scheduled inside the shift's window.
+  final int matchCount;
+
+  /// Username for each scouter id on the shift.
+  final Map<String, String> scouterNames;
+
+  AssignmentShiftView({required this.shift, this.matchCount = 0, this.scouterNames = const {}});
+
+  factory AssignmentShiftView.fromJson(Map<String, dynamic> json) {
+    final names = json['scouterNames'];
+    return AssignmentShiftView(
+      shift: AssignmentShift.fromJson((json['shift'] as Map<String, dynamic>?) ?? const {}),
+      matchCount: (json['matchCount'] as num?)?.toInt() ?? 0,
+      scouterNames: names is Map ? names.map((k, v) => MapEntry(k.toString(), v.toString())) : const {},
+    );
+  }
+}
+
+class AssignmentShiftsResponse {
+  final List<AssignmentShiftView> shifts;
+
+  /// Assignments created by the request (saving a shift).
+  final int createdCount;
+
+  AssignmentShiftsResponse({this.shifts = const [], this.createdCount = 0});
+
+  factory AssignmentShiftsResponse.fromJson(Map<String, dynamic> json) {
+    return AssignmentShiftsResponse(
+      shifts: (json['shifts'] as List<dynamic>?)
+              ?.map((e) => AssignmentShiftView.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      createdCount: (json['createdCount'] as num?)?.toInt() ?? 0,
+    );
+  }
+}

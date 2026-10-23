@@ -238,6 +238,42 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
     );
   }
 
+  /// When the selected team is a group pit assignment, names the group and who else is in it.
+  Widget _buildPitGroupBanner({EdgeInsetsGeometry? margin}) {
+    final team = _selectedTeam;
+    final asgn = team == null
+        ? null
+        : _assignments.where((a) => a.isGroupPit && a.targetTeamNumber == team.teamNumber).firstOrNull;
+    if (asgn == null) return const SizedBox.shrink();
+
+    final me = widget.apiService.currentUser?.username.toLowerCase();
+    final others = asgn.scoutGroupMembers.where((m) => m.toLowerCase() != me).toList();
+    return Container(
+      width: double.infinity,
+      margin: margin ?? const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF8B5CF6).withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFF8B5CF6).withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.groups_rounded, size: 18, color: Color(0xFF8B5CF6)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              others.isEmpty
+                  ? 'Group: ${asgn.scoutGroup!.trim()}. Only one of you needs to submit.'
+                  : 'Group: ${asgn.scoutGroup!.trim()} with ${others.join(', ')}. Only one of you needs to submit.',
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF8B5CF6)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _applyInitialSelections({bool force = false}) {
     if ((force || _selectedTeam == null) && _teams.isNotEmpty && widget.initialTargetTeamNumber != null) {
       final team = _teams.where((t) => t.teamNumber == widget.initialTargetTeamNumber).firstOrNull;
@@ -536,6 +572,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
             children: [
               SyncStatusBanner(apiService: widget.apiService, margin: const EdgeInsets.only(bottom: 8)),
               _buildNextAssignmentChip(margin: const EdgeInsets.only(bottom: 8)),
+              _buildPitGroupBanner(margin: const EdgeInsets.only(bottom: 8)),
               ObsidianGlassCard(
                 child: DropdownButtonFormField<TeamModel>(
                   isExpanded: true,
@@ -720,6 +757,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
           children: [
             SyncStatusBanner(apiService: widget.apiService),
             _buildNextAssignmentChip(),
+            _buildPitGroupBanner(),
             ObsidianGlassCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

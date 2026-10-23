@@ -41,7 +41,6 @@ class _MockConfigApiService extends ApiService {
     year: 2026,
     eventCode: 'nytr',
     timezone: 'America/New_York',
-    preferredSource: 'tba',
     apiKeys: ApiKeysModel(tbaKey: 'sample_tba_key', firstUsername: 'user1', firstKey: 'key1'),
   );
 
@@ -649,7 +648,6 @@ void main() {
         eventCode: 'nytr',
         eventKey: '2026nytr',
         timezone: 'America/New_York',
-        preferredSource: 'tba',
         chatEnabled: true,
         useStatboticsEpa: true,
         useTbaOpr: true,
@@ -665,7 +663,7 @@ void main() {
       expect(json['year'], 2026);
       expect(json['eventCode'], 'nytr');
       expect(json['eventKey'], '2026nytr');
-      expect(json['preferredSource'], 'tba');
+      expect(json.containsKey('preferredSource'), isFalse);
       expect(json['useStatboticsEpa'], true);
       expect(json['useTbaOpr'], true);
       expect(json['statboticsBaseUrl'], 'https://api.statbotics.io');

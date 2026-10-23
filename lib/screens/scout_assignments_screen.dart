@@ -35,6 +35,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
   List<TeamModel> _teams = [];
   List<UserModel> _users = [];
   List<EventModel> _events = [];
+  List<PitScoutGroup> _pitGroups = [];
 
   _AssignmentIndex _index = _AssignmentIndex.empty();
 
@@ -106,6 +107,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
           a[i].targetTeamNumber != b[i].targetTeamNumber ||
           a[i].matchKey != b[i].matchKey ||
           a[i].allianceColor != b[i].allianceColor ||
+          a[i].scoutGroup != b[i].scoutGroup ||
           a[i].notes != b[i].notes) {
         return false;
       }
@@ -141,7 +143,13 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
     } catch (_) {}
 
     await _loadUsers();
+    await _loadPitGroups();
     await _loadEventData();
+  }
+
+  Future<void> _loadPitGroups() async {
+    final groups = await widget.apiService.fetchPitScoutGroups();
+    if (mounted) setState(() => _pitGroups = groups);
   }
 
   Future<void> _loadUsers() async {
@@ -489,6 +497,17 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
               ),
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.cyanAccent,
+                  side: const BorderSide(color: Colors.cyanAccent),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                icon: const Icon(Icons.schedule_rounded, size: 18),
+                label: Text(context.tr('assignments.shifts_btn', 'Planned Shifts'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                onPressed: () => _openPlannedShiftsModal(),
+              ),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFF8B5CF6),
                   side: const BorderSide(color: Color(0xFF8B5CF6)),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -497,6 +516,17 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
                 icon: const Icon(Icons.build_circle_rounded, size: 18),
                 label: const Text('Auto-Assign Pit', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                 onPressed: () => _openPitAutoModal(),
+              ),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF8B5CF6),
+                  side: const BorderSide(color: Color(0xFF8B5CF6)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                icon: const Icon(Icons.groups_rounded, size: 18),
+                label: const Text('Pit Groups', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                onPressed: () => _openPitGroupsModal(),
               ),
             ],
           ),
@@ -1224,20 +1254,12 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: DropdownButtonFormField<String>(
-                            initialValue: _filterScouter.isEmpty ? null : _filterScouter,
-                            decoration: const InputDecoration(isDense: true, labelText: 'Scouter'),
-                            items: [
-                              const DropdownMenuItem(value: '', child: Text('All Scouters')),
-                              ..._users.map((u) => DropdownMenuItem(
-                                value: u.id,
-                                child: Text(
-                                  u.displayName.isNotEmpty ? u.displayName : u.username,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              )),
-                            ],
-                            onChanged: (val) => setState(() => _filterScouter = val ?? ''),
+                          child: _SearchablePersonField(
+                            label: 'Scouter',
+                            users: _users,
+                            selectedId: _filterScouter.isEmpty ? null : _filterScouter,
+                            emptyOptionLabel: 'All Scouters',
+                            onSelected: (val) => setState(() => _filterScouter = val ?? ''),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -1414,7 +1436,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
 
     for (final team in _teams) {
       final matching = _index.getPitTeam(team.teamNumber);
-      if (matching.length > 1) {
+      if (groupPitUnits(matching).length > 1) {
         conflictCount++;
       } else if (matching.any((a) => a.status == 'COMPLETED')) {
         completedCount++;
@@ -1437,11 +1459,11 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
       if (_pitFilter == 'unassigned') {
         return matching.isEmpty;
       } else if (_pitFilter == 'assigned') {
-        return matching.isNotEmpty && !matching.any((a) => a.status == 'COMPLETED') && matching.length == 1;
+        return matching.isNotEmpty && !matching.any((a) => a.status == 'COMPLETED') && groupPitUnits(matching).length == 1;
       } else if (_pitFilter == 'completed') {
         return matching.any((a) => a.status == 'COMPLETED');
       } else if (_pitFilter == 'conflicts') {
-        return matching.length > 1;
+        return groupPitUnits(matching).length > 1;
       }
       return true;
     }).toList();
@@ -1581,11 +1603,15 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
 
   Widget _buildPitTeamCard(TeamModel team) {
     final matching = _index.getPitTeam(team.teamNumber);
+    final units = groupPitUnits(matching);
 
-    final isConflict = matching.length > 1;
-    final isAssigned = matching.length == 1;
-    final asgn = isAssigned ? matching.first : null;
-    final isDone = asgn?.status == 'COMPLETED';
+    final isConflict = units.length > 1;
+    final isAssigned = units.length == 1;
+    final unit = isAssigned ? units.first : const <ScoutingAssignment>[];
+    final asgn = isAssigned ? unit.first : null;
+    final isDone = unit.any((a) => a.status == 'COMPLETED');
+    final groupName = asgn?.scoutGroup?.trim() ?? '';
+    final isGroup = groupName.isNotEmpty;
 
     final statusLabel = isConflict
         ? 'Conflict'
@@ -1606,10 +1632,14 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
         : (isDone
             ? 'Team #${team.teamNumber}: Pit scouting completed\nClick to edit'
             : (isAssigned
-                ? 'Team #${team.teamNumber}: Pit assigned to @${asgn?.assignedUserDisplayName ?? asgn?.assignedUsername} (Status: ${asgn?.status ?? "PENDING"})\nClick to edit'
+                ? (isGroup
+                    ? 'Team #${team.teamNumber}: Pit group "$groupName" (${unit.map((a) => '@${a.assignedUserDisplayName ?? a.assignedUsername}').join(', ')})\nClick to edit'
+                    : 'Team #${team.teamNumber}: Pit assigned to @${asgn?.assignedUserDisplayName ?? asgn?.assignedUsername} (Status: ${asgn?.status ?? "PENDING"})\nClick to edit')
                 : 'Team #${team.teamNumber}: Unassigned in pit\nClick to assign'));
 
-    final scouterDisplayName = asgn?.assignedUserDisplayName ?? asgn?.assignedUsername ?? '';
+    final scouterDisplayName = isGroup
+        ? '$groupName (${unit.length})'
+        : '@${asgn?.assignedUserDisplayName ?? asgn?.assignedUsername ?? ''}';
 
     return Tooltip(
       message: pitTooltip,
@@ -1742,7 +1772,9 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
                             ? Icons.warning_amber_rounded
                             : (isDone
                                 ? Icons.task_alt_rounded
-                                : (isAssigned ? Icons.person_rounded : Icons.person_add_alt_1_rounded)),
+                                : (isAssigned
+                                    ? (isGroup ? Icons.groups_rounded : Icons.person_rounded)
+                                    : Icons.person_add_alt_1_rounded)),
                         size: 13,
                         color: color,
                       ),
@@ -1750,9 +1782,9 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
                       Expanded(
                         child: Text(
                           isConflict
-                              ? 'Resolve ${matching.length} scouts'
+                              ? 'Resolve ${units.length} assignees'
                               : (isAssigned
-                                  ? '@$scouterDisplayName'
+                                  ? scouterDisplayName
                                   : (isDone ? 'Completed' : 'Assign Scout')),
                           style: TextStyle(
                             fontSize: 11,
@@ -1813,6 +1845,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
         defaultTeamNumber: defaultTeamNumber,
         defaultAlliance: defaultAlliance,
         existingAssignments: _assignments,
+        pitGroups: _pitGroups,
         onSaved: () {
           _isModalOpen = false;
           _loadEventData();
@@ -1837,10 +1870,46 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
         teams: _teams,
         users: _users,
         existingAssignments: _assignments,
+        pitGroups: _pitGroups,
         onGenerated: () {
           _isModalOpen = false;
           _loadEventData();
         },
+      ),
+    ).then((_) => _isModalOpen = false);
+  }
+
+  void _openPlannedShiftsModal() {
+    final eventKey = _currentEventKey ?? '';
+    if (eventKey.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('assignments.shift_select_event', 'Select an event first.'))),
+      );
+      return;
+    }
+    EventModel? event;
+    for (final e in _events) {
+      if (e.eventKey == eventKey) event = e;
+    }
+    // FTC fields have two robots per alliance; synced matches show it, the event key covers before the schedule
+    final isFtc = eventKey.toLowerCase().startsWith('ftc') ||
+        _users.any((u) => u.program.toUpperCase() == 'FTC') ||
+        _matches.any((m) => m.redTeams.length == 2);
+    _isModalOpen = true;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: ObsidianUITheme.getSurfaceColor(context),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => _PlannedShiftsBottomSheet(
+        apiService: widget.apiService,
+        eventKey: eventKey,
+        event: event,
+        users: _users,
+        stationsPerAlliance: isFtc ? 2 : 3,
+        onAssignmentsCreated: _loadEventData,
       ),
     ).then((_) => _isModalOpen = false);
   }
@@ -1860,9 +1929,31 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
         teams: _teams,
         users: _users,
         existingAssignments: _assignments,
+        pitGroups: _pitGroups,
         onGenerated: () {
           _isModalOpen = false;
           _loadEventData();
+        },
+      ),
+    ).then((_) => _isModalOpen = false);
+  }
+
+  void _openPitGroupsModal() {
+    _isModalOpen = true;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: ObsidianUITheme.getSurfaceColor(context),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => _PitGroupsBottomSheet(
+        apiService: widget.apiService,
+        users: _users,
+        groups: _pitGroups,
+        onSaved: (saved) {
+          _isModalOpen = false;
+          if (mounted) setState(() => _pitGroups = saved);
         },
       ),
     ).then((_) => _isModalOpen = false);
@@ -2098,6 +2189,7 @@ class _CreateEditAssignmentBottomSheet extends StatefulWidget {
   final int? defaultTeamNumber;
   final String? defaultAlliance;
   final List<ScoutingAssignment> existingAssignments;
+  final List<PitScoutGroup> pitGroups;
   final VoidCallback onSaved;
 
   const _CreateEditAssignmentBottomSheet({
@@ -2113,6 +2205,7 @@ class _CreateEditAssignmentBottomSheet extends StatefulWidget {
     this.defaultTeamNumber,
     this.defaultAlliance,
     required this.existingAssignments,
+    this.pitGroups = const [],
     required this.onSaved,
   });
 
@@ -2132,11 +2225,19 @@ class _CreateEditAssignmentBottomSheetState
   String _status = 'PENDING';
   final TextEditingController _notesController = TextEditingController();
   bool _isSaving = false;
+  String? _selectedGroupId; // pit only: send a whole group instead of one scouter
+
+  PitScoutGroup? get _selectedGroup =>
+      widget.pitGroups.where((g) => g.id == _selectedGroupId).firstOrNull;
 
   @override
   void initState() {
     super.initState();
     final a = widget.assignment;
+    final existingGroup = a?.scoutGroup?.trim().toLowerCase() ?? '';
+    if (existingGroup.isNotEmpty) {
+      _selectedGroupId = widget.pitGroups.where((g) => g.name.toLowerCase() == existingGroup).firstOrNull?.id;
+    }
     _type = a?.assignmentType ?? widget.defaultType ?? 'MATCH';
     _selectedMatchKey = a?.matchKey ?? widget.defaultMatchKey;
     _selectedTeamNumber = a?.targetTeamNumber ?? widget.defaultTeamNumber;
@@ -2193,8 +2294,11 @@ class _CreateEditAssignmentBottomSheetState
         return 'Warning: Team $_selectedTeamNumber is already assigned to @${duplicate.assignedUserDisplayName ?? duplicate.assignedUsername}!';
       }
     } else if (_type == 'PIT' && _selectedTeamNumber != null) {
+      final editingUnit = widget.assignment?.pitUnitKey;
+      final chosenUnit = _selectedGroup != null ? 'group:${_selectedGroup!.name.toLowerCase()}' : null;
       final duplicate = widget.existingAssignments.where((a) {
         if (a.id == widget.assignment?.id) return false;
+        if (a.pitUnitKey == editingUnit || a.pitUnitKey == chosenUnit) return false;
         return a.assignmentType == 'PIT' && a.targetTeamNumber == _selectedTeamNumber;
       }).firstOrNull;
       if (duplicate != null) {
@@ -2261,7 +2365,80 @@ class _CreateEditAssignmentBottomSheetState
     return null;
   }
 
+  /// Assigning a group (or editing a grouped row) replaces that whole unit on the pit team.
+  Future<void> _savePitGroupAssignment() async {
+    final group = _selectedGroup;
+    final teamNum = _selectedTeamNumber;
+    if (teamNum == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a team to pit scout.')),
+      );
+      return;
+    }
+    if (group == null && (_selectedUserId == null || _selectedUserId!.isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a scouter or a pit group.')),
+      );
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      final editing = widget.assignment;
+      final replaceUnits = <String>{
+        if (editing != null) editing.pitUnitKey,
+        if (group != null) 'group:${group.name.toLowerCase()}',
+      };
+      final toReplace = widget.existingAssignments.where((a) =>
+          a.assignmentType == 'PIT' &&
+          (a.targetTeamNumber == teamNum || (editing != null && a.targetTeamNumber == editing.targetTeamNumber)) &&
+          replaceUnits.contains(a.pitUnitKey));
+      for (final a in toReplace) {
+        await widget.apiService.deleteAssignment(a.id);
+      }
+
+      final team = widget.teams.where((t) => t.teamNumber == teamNum).firstOrNull;
+      final nickname = team?.nickname ?? team?.name ?? '';
+      final typedNotes = _notesController.text.trim();
+      final baseNote = typedNotes.isNotEmpty
+          ? typedNotes
+          : (nickname.isNotEmpty ? 'Pit Scouting - $nickname' : 'Pit Scouting');
+      final memberIds = group != null ? group.memberIds : [_selectedUserId!];
+      await widget.apiService.bulkCreateAssignments(
+        BulkCreateAssignmentsRequest(
+          eventKey: widget.eventKey,
+          assignments: memberIds
+              .map((uid) => BulkAssignmentItem(
+                    assignedUserId: uid,
+                    assignmentType: 'PIT',
+                    targetTeamNumber: teamNum,
+                    scoutGroup: group?.name,
+                    notes: group != null ? '$baseNote (Group: ${group.name})' : baseNote,
+                  ))
+              .toList(),
+        ),
+      );
+      if (mounted) {
+        Navigator.pop(context);
+        widget.onSaved();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSaving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save pit group assignment: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _handleSave() async {
+    final editingGrouped = (widget.assignment?.scoutGroup?.trim().isNotEmpty ?? false);
+    if (_type == 'PIT' && (_selectedGroup != null || editingGrouped)) {
+      await _savePitGroupAssignment();
+      return;
+    }
+
     if (_selectedUserId == null || _selectedUserId!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select a scouter.')),
@@ -2462,6 +2639,25 @@ class _CreateEditAssignmentBottomSheetState
                 onChanged: (val) => setState(() => _selectedTeamNumber = val),
               ),
               const SizedBox(height: 10),
+              if (widget.pitGroups.isNotEmpty) ...[
+                DropdownButtonFormField<String>(
+                  initialValue: _selectedGroupId ?? '',
+                  decoration: const InputDecoration(
+                    labelText: 'Assign To',
+                    helperText: 'Pick a pit group to send all of its members together.',
+                    isDense: true,
+                  ),
+                  items: [
+                    const DropdownMenuItem(value: '', child: Text('Individual scouter')),
+                    ...widget.pitGroups.map((g) => DropdownMenuItem(
+                          value: g.id,
+                          child: Text('Group: ${g.name} (${g.memberIds.length})'),
+                        )),
+                  ],
+                  onChanged: (val) => setState(() => _selectedGroupId = (val == null || val.isEmpty) ? null : val),
+                ),
+                const SizedBox(height: 10),
+              ],
             ],
 
             // QUALITATIVE SCOUTING FIELDS
@@ -2507,20 +2703,18 @@ class _CreateEditAssignmentBottomSheetState
               ],
             ],
 
-            // Scouter dropdown
-            DropdownButtonFormField<String>(
-              initialValue: _selectedUserId,
-              decoration: const InputDecoration(labelText: 'Assign to Scouter', isDense: true),
-              items: widget.users.map((u) {
-                return DropdownMenuItem(
-                  value: u.id,
-                  child: Text('${u.displayName.isNotEmpty ? u.displayName : u.username} (${u.roleDisplayLabel})'),
-                );
-              }).toList(),
-              onChanged: (val) => setState(() => _selectedUserId = val),
-            ),
-            const SizedBox(height: 10),
-            if (widget.assignment != null) ...[
+            // Scouter dropdown (hidden when a whole pit group is chosen)
+            if (!(_type == 'PIT' && _selectedGroup != null)) ...[
+              _SearchablePersonField(
+                label: 'Assign to Scouter',
+                users: widget.users,
+                selectedId: _selectedUserId,
+                showRole: true,
+                onSelected: (val) => setState(() => _selectedUserId = val),
+              ),
+              const SizedBox(height: 10),
+            ],
+            if (widget.assignment != null && !(_type == 'PIT' && (_selectedGroup != null || (widget.assignment!.scoutGroup?.isNotEmpty ?? false)))) ...[
               DropdownButtonFormField<String>(
                 initialValue: _status,
                 decoration: const InputDecoration(labelText: 'Status', isDense: true),
@@ -2594,6 +2788,7 @@ class _BulkWizardBottomSheet extends StatefulWidget {
   final List<TeamModel> teams;
   final List<UserModel> users;
   final List<ScoutingAssignment> existingAssignments;
+  final List<PitScoutGroup> pitGroups;
   final VoidCallback onGenerated;
 
   const _BulkWizardBottomSheet({
@@ -2603,6 +2798,7 @@ class _BulkWizardBottomSheet extends StatefulWidget {
     required this.teams,
     required this.users,
     required this.existingAssignments,
+    this.pitGroups = const [],
     required this.onGenerated,
   });
 
@@ -2619,7 +2815,65 @@ class _BulkWizardBottomSheetState extends State<_BulkWizardBottomSheet> {
   bool _overwrite = false;
   String _pitScope = 'unassigned';
   final Set<String> _selectedScouterIds = {};
+  final Set<String> _selectedGroupIds = {};
   bool _isGenerating = false;
+
+  // Time block (shift) mode: assign only the matches starting inside [_shiftStart, _shiftEnd) on [_timeDay]
+  String _rangeMode = 'matches'; // matches | time
+  String? _timeDay; // yyyy-mm-dd in device-local time, like the rest of the app's match times
+  TimeOfDay _shiftStart = const TimeOfDay(hour: 6, minute: 0);
+  TimeOfDay _shiftEnd = const TimeOfDay(hour: 12, minute: 0);
+
+  static const _weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  static const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  static String _dayKey(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  /// Days that have scheduled matches in the current stage, with how many each.
+  Map<String, int> get _matchDays {
+    final counts = <String, int>{};
+    for (final m in _stageMatches) {
+      final start = m.predictedStart?.toLocal();
+      if (start != null) counts[_dayKey(start)] = (counts[_dayKey(start)] ?? 0) + 1;
+    }
+    return Map.fromEntries(counts.entries.toList()..sort((a, b) => a.key.compareTo(b.key)));
+  }
+
+  String _dayLabel(String key) {
+    final parts = key.split('-').map(int.parse).toList();
+    final d = DateTime(parts[0], parts[1], parts[2]);
+    return '${_weekdays[d.weekday - 1]}, ${_months[d.month - 1]} ${d.day}';
+  }
+
+  int _minutesOf(TimeOfDay t) => t.hour * 60 + t.minute;
+
+  List<MatchModel> get _matchesInBlock {
+    final day = _timeDay;
+    final startMin = _minutesOf(_shiftStart);
+    final endMin = _minutesOf(_shiftEnd);
+    if (day == null || endMin <= startMin) return const [];
+    return _stageMatches.where((m) {
+      final start = m.predictedStart?.toLocal();
+      if (start == null || _dayKey(start) != day) return false;
+      final minutes = start.hour * 60 + start.minute;
+      return minutes >= startMin && minutes < endMin;
+    }).toList();
+  }
+
+  void _ensureTimeDay() {
+    final days = _matchDays.keys.toList();
+    if (_timeDay == null || !days.contains(_timeDay)) {
+      _timeDay = days.isNotEmpty ? days.first : null;
+    }
+  }
+
+  Future<void> _pickShiftTime(bool isStart) async {
+    final picked = await showTimePicker(context: context, initialTime: isStart ? _shiftStart : _shiftEnd);
+    if (picked != null && mounted) {
+      setState(() => isStart ? _shiftStart = picked : _shiftEnd = picked);
+    }
+  }
 
   @override
   void initState() {
@@ -2660,9 +2914,22 @@ class _BulkWizardBottomSheetState extends State<_BulkWizardBottomSheet> {
   }
 
   Future<void> _handleGenerate() async {
-    if (_selectedScouterIds.isEmpty) {
+    final groups = _bulkType == 'PIT_AUTO'
+        ? widget.pitGroups.where((g) => _selectedGroupIds.contains(g.id)).toList()
+        : <PitScoutGroup>[];
+    final pool = {..._selectedScouterIds, ...groups.expand((g) => g.memberIds)};
+    if (pool.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select at least 1 scouter.')),
+      );
+      return;
+    }
+
+    final useTimeBlock = _bulkType != 'PIT_AUTO' && _rangeMode == 'time';
+    final blockKeys = useTimeBlock ? _matchesInBlock.map((m) => m.matchKey).toList() : <String>[];
+    if (useTimeBlock && blockKeys.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No matches are scheduled in the selected time block.')),
       );
       return;
     }
@@ -2673,10 +2940,12 @@ class _BulkWizardBottomSheetState extends State<_BulkWizardBottomSheet> {
       final req = AutoGenerateAssignmentsRequest(
         eventKey: widget.eventKey,
         assignmentType: _bulkType,
-        scouterUserIds: _selectedScouterIds.toList(),
+        scouterUserIds: pool.toList(),
+        pitGroups: groups,
         stageFilter: _stage,
         startMatchKey: _startMatchKey,
         endMatchKey: _endMatchKey,
+        matchKeys: blockKeys,
         consecutiveMatches: _consecutiveBlocks,
         overwrite: _overwrite,
         pitScope: _pitScope,
@@ -2766,6 +3035,81 @@ class _BulkWizardBottomSheetState extends State<_BulkWizardBottomSheet> {
                 },
               ),
               const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                initialValue: _rangeMode,
+                decoration: const InputDecoration(labelText: 'Assign By', isDense: true),
+                items: const [
+                  DropdownMenuItem(value: 'matches', child: Text('Match Range')),
+                  DropdownMenuItem(value: 'time', child: Text('Time Block (Shift)')),
+                ],
+                onChanged: (val) => setState(() {
+                  _rangeMode = val ?? 'matches';
+                  if (_rangeMode == 'time') _ensureTimeDay();
+                }),
+              ),
+              const SizedBox(height: 10),
+              if (_rangeMode == 'time')
+                Builder(
+                  builder: (context) {
+                    _ensureTimeDay();
+                    final days = _matchDays;
+                    final inBlock = _matchesInBlock;
+                    final badRange = _minutesOf(_shiftEnd) <= _minutesOf(_shiftStart);
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        DropdownButtonFormField<String>(
+                          key: ValueKey('day-$_stage'),
+                          initialValue: _timeDay,
+                          decoration: const InputDecoration(labelText: 'Day', isDense: true),
+                          items: days.entries
+                              .map((e) => DropdownMenuItem(
+                                    value: e.key,
+                                    child: Text('${_dayLabel(e.key)} (${e.value} matches)'),
+                                  ))
+                              .toList(),
+                          onChanged: (val) => setState(() => _timeDay = val),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                icon: const Icon(Icons.schedule_rounded, size: 16),
+                                label: Text('Start ${_shiftStart.format(context)}'),
+                                onPressed: () => _pickShiftTime(true),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                icon: const Icon(Icons.schedule_rounded, size: 16),
+                                label: Text('End ${_shiftEnd.format(context)}'),
+                                onPressed: () => _pickShiftTime(false),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          days.isEmpty
+                              ? 'No scheduled match times for this stage.'
+                              : badRange
+                                  ? 'Shift end must be after shift start.'
+                                  : inBlock.isEmpty
+                                      ? 'No matches scheduled in this time block.'
+                                      : '${inBlock.length} match(es): ${inBlock.first.shortLabel} – ${inBlock.last.shortLabel}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: inBlock.isEmpty ? const Color(0xFFF59E0B) : ObsidianUITheme.primaryAccent,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                )
+              else
               Builder(
                 builder: (context) {
                   final available = _stageMatches;
@@ -2840,53 +3184,19 @@ class _BulkWizardBottomSheetState extends State<_BulkWizardBottomSheet> {
                   const Text('Overwrite existing pit assignments', style: TextStyle(fontSize: 12)),
                 ],
               ),
+              _PitGroupChecklist(
+                groups: widget.pitGroups,
+                users: widget.users,
+                selectedIds: _selectedGroupIds,
+                onChanged: () => setState(() {}),
+              ),
             ],
             const SizedBox(height: 14),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Select Scouters for Pool:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                Row(
-                  children: [
-                    TextButton(
-                      onPressed: () => setState(() => _selectedScouterIds.addAll(widget.users.map((u) => u.id))),
-                      child: const Text('All', style: TextStyle(fontSize: 11)),
-                    ),
-                    TextButton(
-                      onPressed: () => setState(() => _selectedScouterIds.clear()),
-                      child: const Text('Clear', style: TextStyle(fontSize: 11)),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            Container(
-              height: 140,
-              decoration: BoxDecoration(
-                color: Colors.black12,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: ListView.builder(
-                itemCount: widget.users.length,
-                itemBuilder: (c, idx) {
-                  final u = widget.users[idx];
-                  final isChecked = _selectedScouterIds.contains(u.id);
-                  return CheckboxListTile(
-                    title: Text(u.displayName.isNotEmpty ? u.displayName : u.username, style: const TextStyle(fontSize: 12)),
-                    value: isChecked,
-                    dense: true,
-                    onChanged: (v) {
-                      setState(() {
-                        if (v == true) {
-                          _selectedScouterIds.add(u.id);
-                        } else {
-                          _selectedScouterIds.remove(u.id);
-                        }
-                      });
-                    },
-                  );
-                },
-              ),
+            _ScouterChecklist(
+              title: 'Scouters for Pool',
+              users: widget.users,
+              selectedIds: _selectedScouterIds,
+              onChanged: () => setState(() {}),
             ),
             const SizedBox(height: 16),
             SizedBox(
@@ -2912,6 +3222,560 @@ class _BulkWizardBottomSheetState extends State<_BulkWizardBottomSheet> {
 }
 
 // ==========================================
+// BOTTOM SHEET: PLANNED SHIFTS
+// ==========================================
+/// Shifts planned by time before the match schedule is out. Each scout gets a seat (a robot station, or an
+/// alliance for qualitative) and keeps it for every match in the window. The server fills the open slots
+/// every time the schedule syncs; this sheet only creates, edits and deletes shifts.
+class _PlannedShiftsBottomSheet extends StatefulWidget {
+  final ApiService apiService;
+  final String eventKey;
+  final EventModel? event;
+  final List<UserModel> users;
+
+  /// Robot stations per alliance: 3 for FRC, 2 for FTC.
+  final int stationsPerAlliance;
+  final VoidCallback onAssignmentsCreated;
+
+  const _PlannedShiftsBottomSheet({
+    required this.apiService,
+    required this.eventKey,
+    required this.event,
+    required this.users,
+    required this.stationsPerAlliance,
+    required this.onAssignmentsCreated,
+  });
+
+  @override
+  State<_PlannedShiftsBottomSheet> createState() => _PlannedShiftsBottomSheetState();
+}
+
+class _PlannedShiftsBottomSheetState extends State<_PlannedShiftsBottomSheet> {
+  static const _stageFallbacks = {'all': 'All stages', 'qm': 'Quals', 'pr': 'Practice', 'playoffs': 'Playoffs'};
+  static const _red = Color(0xFFEF4444);
+  static const _blue = Color(0xFF3B82F6);
+
+  List<AssignmentShiftView> _shifts = [];
+  bool _loading = true;
+  bool _busy = false;
+
+  // Form state; [_formVersion] rebuilds the dropdowns when the form is reset or loaded for editing
+  int _formVersion = 0;
+  String _editingId = '';
+  final TextEditingController _nameController = TextEditingController();
+  DateTime? _day;
+  TimeOfDay _start = const TimeOfDay(hour: 8, minute: 0);
+  TimeOfDay _end = const TimeOfDay(hour: 12, minute: 0);
+  String _stage = 'all';
+  List<String> _matchSeats = [];
+  String _qualMode = 'TEAMS';
+  List<String> _qualSeats = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _resetForm();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  /// Robot station labels in the order the server fills them: red 1..n, then blue 1..n.
+  List<(String, Color)> get _stationLabels => [
+        for (var i = 1; i <= widget.stationsPerAlliance; i++)
+          (context.tr('assignments.shift_seat_red', {'n': '$i'}), _red),
+        for (var i = 1; i <= widget.stationsPerAlliance; i++)
+          (context.tr('assignments.shift_seat_blue', {'n': '$i'}), _blue),
+      ];
+
+  String _stageLabel(String stage) => _stageFallbacks.containsKey(stage)
+      ? context.tr('assignments.shift_stage_short_$stage', _stageFallbacks[stage])
+      : stage;
+
+  List<(String, Color)> _qualLabels(String mode) =>
+      mode == 'ALLIANCE'
+          ? [
+              (context.tr('assignments.shift_seat_red_alliance', 'Red Alliance'), _red),
+              (context.tr('assignments.shift_seat_blue_alliance', 'Blue Alliance'), _blue),
+            ]
+          : _stationLabels;
+
+  int get _stationCount => widget.stationsPerAlliance * 2;
+
+  int _qualCount(String mode) => mode == 'ALLIANCE' ? 2 : _stationCount;
+
+  static List<String> _sized(List<String> ids, int length) =>
+      List.generate(length, (i) => i < ids.length ? ids[i] : '');
+
+  DateTime? _eventDay(String? value) {
+    if (value == null || value.length < 10) return null;
+    return DateTime.tryParse(value.substring(0, 10));
+  }
+
+  static String _dayKey(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  static String _timeKey(TimeOfDay t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  static TimeOfDay? _parseTime(String value) {
+    final parts = value.split(':');
+    if (parts.length != 2) return null;
+    final h = int.tryParse(parts[0]);
+    final m = int.tryParse(parts[1]);
+    if (h == null || m == null) return null;
+    return TimeOfDay(hour: h, minute: m);
+  }
+
+  String _dayLabel(String key) {
+    final d = DateTime.tryParse(key);
+    if (d == null) return key;
+    return MaterialLocalizations.of(context).formatMediumDate(d);
+  }
+
+  String _timeLabel(String key) => _parseTime(key)?.format(context) ?? key;
+
+  void _resetForm() {
+    _formVersion++;
+    _editingId = '';
+    _nameController.text = '';
+    _day = _eventDay(widget.event?.startDate);
+    _start = const TimeOfDay(hour: 8, minute: 0);
+    _end = const TimeOfDay(hour: 12, minute: 0);
+    _stage = 'all';
+    _qualMode = 'TEAMS';
+    _matchSeats = _sized(const [], _stationCount);
+    _qualSeats = _sized(const [], _qualCount(_qualMode));
+  }
+
+  void _edit(AssignmentShift s) {
+    setState(() {
+      _formVersion++;
+      _editingId = s.id;
+      _nameController.text = s.name;
+      _day = DateTime.tryParse(s.day);
+      _start = _parseTime(s.startTime) ?? _start;
+      _end = _parseTime(s.endTime) ?? _end;
+      _stage = _stageFallbacks.containsKey(s.stageFilter) ? s.stageFilter : 'all';
+      _qualMode = s.qualMode;
+      _matchSeats = _sized(s.matchScouterIds, _stationCount);
+      _qualSeats = _sized(s.qualScouterIds, _qualCount(_qualMode));
+    });
+  }
+
+  void _showMessage(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  Future<void> _load() async {
+    final res = await widget.apiService.fetchAssignmentShifts(widget.eventKey);
+    if (mounted) {
+      setState(() {
+        _shifts = res.shifts;
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _pickDay() async {
+    final now = DateTime.now();
+    final initial = _day ?? _eventDay(widget.event?.startDate) ?? now;
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(initial.year - 1),
+      lastDate: DateTime(initial.year + 2),
+    );
+    if (picked != null && mounted) setState(() => _day = picked);
+  }
+
+  Future<void> _pickTime(bool isStart) async {
+    final picked = await showTimePicker(context: context, initialTime: isStart ? _start : _end);
+    if (picked != null && mounted) {
+      setState(() => isStart ? _start = picked : _end = picked);
+    }
+  }
+
+  Future<void> _save() async {
+    final day = _day;
+    if (day == null) {
+      _showMessage(context.tr('assignments.shift_need_day', 'Pick the day of the shift.'));
+      return;
+    }
+    if (_end.hour * 60 + _end.minute <= _start.hour * 60 + _start.minute) {
+      _showMessage(context.tr('assignments.shift_bad_range', 'Shift end must be after shift start.'));
+      return;
+    }
+    final picked = [..._matchSeats, ..._qualSeats].where((id) => id.isNotEmpty).toList();
+    if (picked.isEmpty) {
+      _showMessage(context.tr('assignments.shift_need_seat', 'Pick a scout for at least one seat.'));
+      return;
+    }
+    if (picked.toSet().length != picked.length) {
+      _showMessage(context.tr('assignments.shift_duplicate', 'Each scout can only have one seat in a shift.'));
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      final res = await widget.apiService.saveAssignmentShift(AssignmentShift(
+        id: _editingId,
+        eventKey: widget.eventKey,
+        name: _nameController.text.trim(),
+        day: _dayKey(day),
+        startTime: _timeKey(_start),
+        endTime: _timeKey(_end),
+        stageFilter: _stage,
+        matchScouterIds: _matchSeats,
+        qualMode: _qualMode,
+        qualScouterIds: _qualSeats,
+      ));
+      if (!mounted) return;
+      setState(() {
+        _shifts = res.shifts;
+        _busy = false;
+        _resetForm();
+      });
+      if (res.createdCount > 0) {
+        _showMessage(context.tr('assignments.shift_saved_created', {'count': '${res.createdCount}'}));
+        widget.onAssignmentsCreated();
+      } else {
+        _showMessage(context.tr('assignments.shift_saved_waiting', 'Shift saved. Scouts will be assigned to its matches when the schedule syncs.'));
+      }
+    } catch (e) {
+      if (mounted) setState(() => _busy = false);
+      _showMessage('${context.tr('assignments.shift_save_failed', 'Failed to save shift')}: $e');
+    }
+  }
+
+  Future<void> _delete(AssignmentShift s) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(context.tr('assignments.shift_delete_title', 'Delete Shift')),
+        content: Text(context.tr('assignments.shift_delete_confirm', 'Delete this shift? Assignments it already created will stay.')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(context.tr('assignments.cancel', 'Cancel'))),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(context.tr('assignments.shift_delete', 'Delete'), style: const TextStyle(color: _red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await widget.apiService.deleteAssignmentShift(s.id);
+      if (!mounted) return;
+      if (_editingId == s.id) setState(_resetForm);
+      _showMessage(context.tr('assignments.shift_deleted', 'Shift deleted'));
+      await _load();
+    } catch (e) {
+      if (!mounted) return;
+      _showMessage('${context.tr('assignments.shift_delete_failed', 'Failed to delete shift')}: $e');
+    }
+  }
+
+  String _describeSeats(List<(String, Color)> labels, List<String> ids, Map<String, String> names) {
+    final parts = <String>[];
+    for (var i = 0; i < labels.length && i < ids.length; i++) {
+      if (ids[i].isNotEmpty) parts.add('${labels[i].$1}: ${names[ids[i]] ?? '?'}');
+    }
+    return parts.join(', ');
+  }
+
+  Widget _buildShiftCard(AssignmentShiftView view) {
+    final s = view.shift;
+    final secondary = ObsidianUITheme.getSecondaryTextColor(context);
+    final when = '${_dayLabel(s.day)} · ${_timeLabel(s.startTime)} – ${_timeLabel(s.endTime)}'
+        ' · ${_stageLabel(s.stageFilter)}';
+    final matchSeats = _describeSeats(_stationLabels, s.matchScouterIds, view.scouterNames);
+    final qualSeats = _describeSeats(_qualLabels(s.qualMode), s.qualScouterIds, view.scouterNames);
+    final applied = s.appliedCount > 0
+        ? ' · ${context.tr('assignments.shift_applied', {'count': '${s.appliedCount}'})}'
+        : '';
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: secondary.withValues(alpha: 0.3)),
+        color: _editingId == s.id ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.08) : null,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(s.name.isNotEmpty ? s.name : when, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                if (s.name.isNotEmpty) Text(when, style: const TextStyle(fontSize: 12)),
+                if (matchSeats.isNotEmpty)
+                  Text('${context.tr('assignments.shift_list_match', 'Match')} · $matchSeats', style: TextStyle(fontSize: 12, color: secondary)),
+                if (qualSeats.isNotEmpty)
+                  Text('${context.tr('assignments.shift_list_qual', 'Qualitative')} · $qualSeats', style: TextStyle(fontSize: 12, color: secondary)),
+                const SizedBox(height: 2),
+                Text(
+                  (view.matchCount > 0
+                          ? context.tr('assignments.shift_in_window', {'count': '${view.matchCount}'})
+                          : context.tr('assignments.shift_waiting', 'Waiting for the match schedule')) +
+                      applied,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: view.matchCount > 0 ? ObsidianUITheme.primaryAccent : const Color(0xFFF59E0B),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: context.tr('assignments.shift_edit', 'Edit'),
+            icon: const Icon(Icons.edit_rounded, size: 18),
+            onPressed: _busy ? null : () => _edit(s),
+          ),
+          IconButton(
+            tooltip: context.tr('assignments.shift_delete', 'Delete'),
+            icon: const Icon(Icons.delete_outline_rounded, size: 18, color: _red),
+            onPressed: _busy ? null : () => _delete(s),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// One searchable person picker per seat; picking "Nobody" leaves the seat open.
+  Widget _buildSeatGrid(String group, List<(String, Color)> labels, List<String> seats) {
+    final scouters = widget.users.where((u) => u.role != 'NONE').toList();
+    final nobody = context.tr('assignments.shift_nobody', 'Nobody');
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 480 ? 3 : 2;
+        final width = (constraints.maxWidth - (columns - 1) * 8) / columns;
+        return Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (var i = 0; i < labels.length; i++)
+              SizedBox(
+                width: width,
+                child: _SearchablePersonField(
+                  key: ValueKey('$group-$i'),
+                  label: labels[i].$1,
+                  labelColor: labels[i].$2,
+                  users: scouters,
+                  selectedId: seats[i].isEmpty ? null : seats[i],
+                  emptyOptionLabel: nobody,
+                  onSelected: (id) => setState(() => seats[i] = id ?? ''),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final secondary = ObsidianUITheme.getSecondaryTextColor(context);
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(context.tr('assignments.shifts_title', 'Planned Shifts'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.pop(context)),
+              ],
+            ),
+            Text(
+              context.tr(
+                'assignments.shifts_notice',
+                'Plan who scouts when, before the match schedule is out. Give each seat a scout; they keep '
+                    'that seat for every match that starts inside the shift. Every time the schedule syncs, open '
+                    'slots in those matches are filled. Slots that already have a scout are never changed.',
+              ),
+              style: TextStyle(fontSize: 12, color: secondary),
+            ),
+            const SizedBox(height: 12),
+            if (_loading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (_shifts.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(context.tr('assignments.shifts_empty', 'No shifts planned for this event yet.'), style: TextStyle(fontSize: 13, color: secondary)),
+              )
+            else
+              ..._shifts.map(_buildShiftCard),
+            const Divider(height: 24),
+            Text(
+              _editingId.isEmpty
+                  ? context.tr('assignments.shift_add_title', 'Add a Shift')
+                  : context.tr('assignments.shift_edit_title', 'Edit Shift'),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _nameController,
+              maxLength: 64,
+              decoration: InputDecoration(
+                labelText: context.tr('assignments.shift_name', 'Name (optional)'),
+                hintText: context.tr('assignments.shift_name_placeholder', 'Friday morning'),
+                isDense: true,
+                counterText: '',
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.calendar_today_rounded, size: 16),
+                label: Text(_day == null ? context.tr('assignments.shift_pick_day', 'Pick Day') : _dayLabel(_dayKey(_day!))),
+                onPressed: _pickDay,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.schedule_rounded, size: 16),
+                    label: Text('${context.tr('assignments.time_block_start', 'Shift Start')} ${_start.format(context)}'),
+                    onPressed: () => _pickTime(true),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.schedule_rounded, size: 16),
+                    label: Text('${context.tr('assignments.time_block_end', 'Shift End')} ${_end.format(context)}'),
+                    onPressed: () => _pickTime(false),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              context.tr(
+                    'assignments.shift_time_hint',
+                    "Times are in the event's local timezone. A match belongs to the shift if its scheduled "
+                        'start is at or after the start and before the end.',
+                  ) +
+                  ((widget.event?.timezone ?? '').isNotEmpty ? ' (${widget.event!.timezone})' : ''),
+              style: TextStyle(fontSize: 11, color: secondary),
+            ),
+            const SizedBox(height: 10),
+            DropdownButtonFormField<String>(
+              key: ValueKey('shift-stage-$_formVersion'),
+              initialValue: _stage,
+              decoration: InputDecoration(labelText: context.tr('assignments.tournament_level', 'Tournament Stage'), isDense: true),
+              items: [
+                DropdownMenuItem(value: 'all', child: Text(context.tr('assignments.shift_stage_all', 'All Match Stages'))),
+                DropdownMenuItem(value: 'qm', child: Text(context.tr('assignments.shift_stage_qm', 'Qualifications (qm)'))),
+                DropdownMenuItem(value: 'pr', child: Text(context.tr('assignments.shift_stage_pr', 'Practice (pr)'))),
+                DropdownMenuItem(value: 'playoffs', child: Text(context.tr('assignments.shift_stage_playoffs', 'Playoffs (Quarterfinals, Semis, Finals)'))),
+              ],
+              onChanged: (val) => setState(() => _stage = val ?? 'all'),
+            ),
+            const SizedBox(height: 16),
+            Text(context.tr('assignments.shift_match_seats', 'Match Scouting'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            _buildSeatGrid('match', _stationLabels, _matchSeats),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    context.tr('assignments.shift_qual_seats', 'Qualitative Scouting'),
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                DropdownButton<String>(
+                  value: _qualMode,
+                  underline: const SizedBox.shrink(),
+                  items: [
+                    DropdownMenuItem(
+                      value: 'TEAMS',
+                      child: Text(context.tr('assignments.shift_qual_per_robot', 'One scout per robot'), style: const TextStyle(fontSize: 12)),
+                    ),
+                    DropdownMenuItem(
+                      value: 'ALLIANCE',
+                      child: Text(context.tr('assignments.shift_qual_per_alliance', 'One scout per alliance'), style: const TextStyle(fontSize: 12)),
+                    ),
+                  ],
+                  // Switching keeps the picks that still have a seat
+                  onChanged: (val) => setState(() {
+                    _qualMode = val ?? 'TEAMS';
+                    _qualSeats = _sized(_qualSeats, _qualCount(_qualMode));
+                    _matchSeats = List.of(_matchSeats);
+                  }),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            _buildSeatGrid('qual', _qualLabels(_qualMode), _qualSeats),
+            const SizedBox(height: 4),
+            Text(
+              context.tr(
+                'assignments.shift_seat_hint',
+                'Tap a seat to search for a scout. Pick "Nobody" to leave it open. Each scout can have one seat per shift.',
+              ),
+              style: TextStyle(fontSize: 11, color: secondary),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                if (_editingId.isNotEmpty) ...[
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _busy ? null : () => setState(_resetForm),
+                      child: Text(context.tr('assignments.shift_cancel_edit', 'Cancel Edit')),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Expanded(
+                  child: SizedBox(
+                    height: 44,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: ObsidianUITheme.primaryAccent,
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      onPressed: _busy ? null : _save,
+                      child: _busy
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                          : Text(context.tr('assignments.shift_save', 'Save Shift'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ==========================================
 // BOTTOM SHEET: AUTO-ASSIGN PIT
 // ==========================================
 class _PitAutoBottomSheet extends StatefulWidget {
@@ -2920,6 +3784,7 @@ class _PitAutoBottomSheet extends StatefulWidget {
   final List<TeamModel> teams;
   final List<UserModel> users;
   final List<ScoutingAssignment> existingAssignments;
+  final List<PitScoutGroup> pitGroups;
   final VoidCallback onGenerated;
 
   const _PitAutoBottomSheet({
@@ -2928,6 +3793,7 @@ class _PitAutoBottomSheet extends StatefulWidget {
     required this.teams,
     required this.users,
     required this.existingAssignments,
+    this.pitGroups = const [],
     required this.onGenerated,
   });
 
@@ -2939,6 +3805,7 @@ class _PitAutoBottomSheetState extends State<_PitAutoBottomSheet> {
   String _scope = 'unassigned'; // unassigned, all
   bool _overwrite = false;
   final Set<String> _selectedScouterIds = {};
+  final Set<String> _selectedGroupIds = {};
   bool _isGenerating = false;
 
   @override
@@ -2947,10 +3814,35 @@ class _PitAutoBottomSheetState extends State<_PitAutoBottomSheet> {
     _selectedScouterIds.addAll(widget.users.map((u) => u.id));
   }
 
+  List<PitScoutGroup> get _checkedGroups =>
+      widget.pitGroups.where((g) => _selectedGroupIds.contains(g.id) && g.memberIds.isNotEmpty).toList();
+
+  String get _summary {
+    final pitTeams = widget.existingAssignments
+        .where((a) => a.assignmentType == 'PIT')
+        .map((a) => a.targetTeamNumber)
+        .toSet();
+    final teamCount = _scope == 'unassigned'
+        ? widget.teams.where((t) => !pitTeams.contains(t.teamNumber)).length
+        : widget.teams.length;
+    final groups = _checkedGroups;
+    final grouped = groups.expand((g) => g.memberIds).toSet();
+    final solo = _selectedScouterIds.where((id) => !grouped.contains(id)).length;
+    final units = groups.length + solo;
+    if (units == 0) return 'Select at least 1 scouter or group.';
+    final parts = [
+      if (groups.isNotEmpty) '${groups.length} group${groups.length == 1 ? '' : 's'}',
+      if (solo > 0) '$solo solo scout${solo == 1 ? '' : 's'}',
+    ];
+    return '$teamCount team${teamCount == 1 ? '' : 's'} across ${parts.join(' + ')} (~${(teamCount / units).toStringAsFixed(1)} each)';
+  }
+
   Future<void> _handleGenerate() async {
-    if (_selectedScouterIds.isEmpty) {
+    final groups = _checkedGroups;
+    final pool = {..._selectedScouterIds, ...groups.expand((g) => g.memberIds)};
+    if (pool.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select at least 1 pit scouter.')),
+        const SnackBar(content: Text('Please select at least 1 pit scouter or group.')),
       );
       return;
     }
@@ -2960,7 +3852,8 @@ class _PitAutoBottomSheetState extends State<_PitAutoBottomSheet> {
       final req = AutoGenerateAssignmentsRequest(
         eventKey: widget.eventKey,
         assignmentType: 'PIT_AUTO',
-        scouterUserIds: _selectedScouterIds.toList(),
+        scouterUserIds: pool.toList(),
+        pitGroups: groups,
         pitScope: _scope,
         overwrite: _overwrite,
       );
@@ -2973,7 +3866,7 @@ class _PitAutoBottomSheetState extends State<_PitAutoBottomSheet> {
           SnackBar(
             content: Text(res.message.isNotEmpty
                 ? res.message
-                : 'Successfully assigned ${res.createdCount} teams across ${_selectedScouterIds.length} pit scouters!'),
+                : 'Created ${res.createdCount} pit assignments!'),
           ),
         );
         widget.onGenerated();
@@ -3028,51 +3921,25 @@ class _PitAutoBottomSheetState extends State<_PitAutoBottomSheet> {
                 const Text('Overwrite', style: TextStyle(fontSize: 12)),
               ],
             ),
+            _PitGroupChecklist(
+              groups: widget.pitGroups,
+              users: widget.users,
+              selectedIds: _selectedGroupIds,
+              onChanged: () => setState(() {}),
+            ),
             const SizedBox(height: 14),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Select Pit Scouters:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                Row(
-                  children: [
-                    TextButton(
-                      onPressed: () => setState(() => _selectedScouterIds.addAll(widget.users.map((u) => u.id))),
-                      child: const Text('All', style: TextStyle(fontSize: 11)),
-                    ),
-                    TextButton(
-                      onPressed: () => setState(() => _selectedScouterIds.clear()),
-                      child: const Text('Clear', style: TextStyle(fontSize: 11)),
-                    ),
-                  ],
-                ),
-              ],
+            _ScouterChecklist(
+              title: 'Pit Scouters',
+              users: widget.users,
+              selectedIds: _selectedScouterIds,
+              onChanged: () => setState(() {}),
             ),
-            Container(
-              height: 140,
-              decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(8)),
-              child: ListView.builder(
-                itemCount: widget.users.length,
-                itemBuilder: (c, idx) {
-                  final u = widget.users[idx];
-                  final isChecked = _selectedScouterIds.contains(u.id);
-                  return CheckboxListTile(
-                    title: Text(u.displayName.isNotEmpty ? u.displayName : u.username, style: const TextStyle(fontSize: 12)),
-                    value: isChecked,
-                    dense: true,
-                    onChanged: (v) {
-                      setState(() {
-                        if (v == true) {
-                          _selectedScouterIds.add(u.id);
-                        } else {
-                          _selectedScouterIds.remove(u.id);
-                        }
-                      });
-                    },
-                  );
-                },
-              ),
+            const SizedBox(height: 8),
+            Text(
+              _summary,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF8B5CF6)),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               height: 44,
@@ -3263,10 +4130,11 @@ class _AssignmentIndex {
     final matchConflicts = <String, List<String>>{};
     final slotConflictTooltips = <String, String>{};
 
-    // 1. Same-slot duplicate assignments
+    // 1. Same-slot duplicate assignments (a pit group on one team counts as a single assignee)
     for (final entry in rawSlotGroups.entries) {
       final list = entry.value;
-      if (list.length > 1) {
+      final isPit = entry.key.startsWith('PIT:');
+      if (isPit ? groupPitUnits(list).length > 1 : list.length > 1) {
         final sorted = List<ScoutingAssignment>.from(list)..sort((x, y) {
           int score(ScoutingAssignment a) =>
               a.status == 'COMPLETED' ? 3 : (a.status == 'IN_PROGRESS' ? 2 : 1);
@@ -3297,6 +4165,7 @@ class _AssignmentIndex {
         }
 
         for (int i = 1; i < sorted.length; i++) {
+          if (isPit && sorted[i].pitUnitKey == sorted.first.pitUnitKey) continue;
           toDelete.add(sorted[i].id);
         }
       }
@@ -3451,5 +4320,569 @@ class _AssignmentIndex {
 
   List<ScoutingAssignment> getPitTeam(int teamNumber) {
     return pitTeamMap[teamNumber] ?? const [];
+  }
+}
+
+
+/// Splits a team's pit assignments into units: one per scout group, one per ungrouped row.
+List<List<ScoutingAssignment>> groupPitUnits(List<ScoutingAssignment> list) {
+  final units = <String, List<ScoutingAssignment>>{};
+  for (final a in list) {
+    units.putIfAbsent(a.pitUnitKey, () => []).add(a);
+  }
+  return units.values.toList();
+}
+
+String _userLabel(List<UserModel> users, String id) {
+  final u = users.where((u) => u.id == id).firstOrNull;
+  if (u == null) return 'Unknown';
+  return u.displayName.isNotEmpty ? u.displayName : u.username;
+}
+
+/// Checkbox list of saved pit groups for the auto-assign sheets.
+class _PitGroupChecklist extends StatelessWidget {
+  final List<PitScoutGroup> groups;
+  final List<UserModel> users;
+  final Set<String> selectedIds;
+  final VoidCallback onChanged;
+
+  const _PitGroupChecklist({
+    required this.groups,
+    required this.users,
+    required this.selectedIds,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 12),
+        const Text('Pit Groups (scout together):', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+        const SizedBox(height: 4),
+        if (groups.isEmpty)
+          Text(
+            'No pit groups yet. Create them with the Pit Groups button.',
+            style: TextStyle(fontSize: 12, color: ObsidianUITheme.getSecondaryTextColor(context)),
+          )
+        else
+          Container(
+            constraints: const BoxConstraints(maxHeight: 150),
+            decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(8)),
+            child: ListView(
+              shrinkWrap: true,
+              children: groups.map((g) {
+                return CheckboxListTile(
+                  dense: true,
+                  value: selectedIds.contains(g.id),
+                  title: Text(g.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  subtitle: Text(
+                    g.memberIds.map((id) => _userLabel(users, id)).join(', '),
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                  onChanged: (v) {
+                    if (v == true) {
+                      selectedIds.add(g.id);
+                    } else {
+                      selectedIds.remove(g.id);
+                    }
+                    onChanged();
+                  },
+                );
+              }).toList(),
+            ),
+          ),
+        const SizedBox(height: 4),
+        Text(
+          'Each checked group takes a team as one unit. Selected scouters not in a checked group still get their own teams.',
+          style: TextStyle(fontSize: 11, color: ObsidianUITheme.getSecondaryTextColor(context)),
+        ),
+      ],
+    );
+  }
+}
+
+// ==========================================
+// BOTTOM SHEET: MANAGE PIT SCOUT GROUPS
+// ==========================================
+class _PitGroupsBottomSheet extends StatefulWidget {
+  final ApiService apiService;
+  final List<UserModel> users;
+  final List<PitScoutGroup> groups;
+  final ValueChanged<List<PitScoutGroup>> onSaved;
+
+  const _PitGroupsBottomSheet({
+    required this.apiService,
+    required this.users,
+    required this.groups,
+    required this.onSaved,
+  });
+
+  @override
+  State<_PitGroupsBottomSheet> createState() => _PitGroupsBottomSheetState();
+}
+
+class _EditableGroup {
+  final String id;
+  final TextEditingController name;
+  final Set<String> memberIds;
+
+  _EditableGroup(this.id, String initialName, Iterable<String> members)
+      : name = TextEditingController(text: initialName),
+        memberIds = members.toSet();
+}
+
+class _PitGroupsBottomSheetState extends State<_PitGroupsBottomSheet> {
+  late final List<_EditableGroup> _groups;
+  bool _isSaving = false;
+  String _memberQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _groups = widget.groups.map((g) => _EditableGroup(g.id, g.name, g.memberIds)).toList();
+    if (_groups.isEmpty) _addGroup();
+  }
+
+  @override
+  void dispose() {
+    for (final g in _groups) {
+      g.name.dispose();
+    }
+    super.dispose();
+  }
+
+  void _addGroup() {
+    _groups.add(_EditableGroup('grp-${DateTime.now().microsecondsSinceEpoch}', '', const []));
+  }
+
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  Future<void> _save() async {
+    final out = <PitScoutGroup>[];
+    final seen = <String>{};
+    for (final g in _groups) {
+      final name = g.name.text.trim();
+      if (name.isEmpty && g.memberIds.isEmpty) continue;
+      if (name.isEmpty) return _showError('Every group needs a name.');
+      if (!seen.add(name.toLowerCase())) return _showError('Group name "$name" is used twice.');
+      if (g.memberIds.isEmpty) return _showError('Group "$name" has no members.');
+      out.add(PitScoutGroup(id: g.id, name: name, memberIds: g.memberIds.toList()));
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      final saved = await widget.apiService.savePitScoutGroups(out);
+      if (mounted) {
+        final messenger = ScaffoldMessenger.of(context);
+        Navigator.pop(context);
+        widget.onSaved(saved);
+        messenger.showSnackBar(
+          SnackBar(content: Text('Saved ${saved.length} pit group${saved.length == 1 ? '' : 's'}')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSaving = false);
+        _showError('Failed to save pit groups: $e');
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Pit Scout Groups', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.pop(context)),
+              ],
+            ),
+            Text(
+              'Pit scouting is usually 2-3 people walking the pits together. Build groups here, then assign a whole group to a team manually or with Auto-Assign.',
+              style: TextStyle(fontSize: 12, color: ObsidianUITheme.getSecondaryTextColor(context)),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              decoration: InputDecoration(
+                hintText: 'Search team members...',
+                prefixIcon: const Icon(Icons.search_rounded, size: 18),
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onChanged: (v) => setState(() => _memberQuery = v),
+            ),
+            const SizedBox(height: 10),
+            ..._groups.map((g) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.black12,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: ObsidianUITheme.getBorderColor(context).withValues(alpha: 0.6)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: g.name,
+                            maxLength: 64,
+                            decoration: const InputDecoration(
+                              labelText: 'Group name',
+                              hintText: 'e.g. Pit Crew A',
+                              isDense: true,
+                              counterText: '',
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Remove group',
+                          icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444)),
+                          onPressed: () => setState(() {
+                            _groups.remove(g);
+                            g.name.dispose();
+                          }),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      // Members already in the group stay visible while searching
+                      children: widget.users
+                          .where((u) => g.memberIds.contains(u.id) || _userMatches(u, _memberQuery))
+                          .map((u) {
+                        final selected = g.memberIds.contains(u.id);
+                        return FilterChip(
+                          label: Text(u.displayName.isNotEmpty ? u.displayName : u.username,
+                              style: const TextStyle(fontSize: 11.5)),
+                          selected: selected,
+                          selectedColor: const Color(0xFF8B5CF6).withValues(alpha: 0.25),
+                          onSelected: (v) => setState(() {
+                            if (v) {
+                              g.memberIds.add(u.id);
+                            } else {
+                              g.memberIds.remove(u.id);
+                            }
+                          }),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              );
+            }),
+            TextButton.icon(
+              onPressed: () => setState(_addGroup),
+              icon: const Icon(Icons.add_rounded, size: 18),
+              label: const Text('Add Group'),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF8B5CF6),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: _isSaving ? null : _save,
+                child: _isSaving
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Text('Save Groups', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+bool _userMatches(UserModel u, String query) {
+  final q = query.trim().toLowerCase();
+  if (q.isEmpty) return true;
+  return u.displayName.toLowerCase().contains(q) || u.username.toLowerCase().contains(q);
+}
+
+/// Checkbox list of team members with a search box; All / Clear act on the people the search shows.
+class _ScouterChecklist extends StatefulWidget {
+  final String title;
+  final List<UserModel> users;
+  final Set<String> selectedIds;
+  final VoidCallback onChanged;
+
+  const _ScouterChecklist({
+    required this.title,
+    required this.users,
+    required this.selectedIds,
+    required this.onChanged,
+  });
+
+  @override
+  State<_ScouterChecklist> createState() => _ScouterChecklistState();
+}
+
+class _ScouterChecklistState extends State<_ScouterChecklist> {
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final visible = widget.users.where((u) => _userMatches(u, _query)).toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Flexible(
+              child: Text(
+                '${widget.title} (${widget.selectedIds.length} selected)',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Row(
+              children: [
+                TextButton(
+                  onPressed: () {
+                    widget.selectedIds.addAll(visible.map((u) => u.id));
+                    widget.onChanged();
+                  },
+                  child: Text(_query.isEmpty ? 'All' : 'All shown', style: const TextStyle(fontSize: 11)),
+                ),
+                TextButton(
+                  onPressed: () {
+                    widget.selectedIds.removeAll(visible.map((u) => u.id));
+                    widget.onChanged();
+                  },
+                  child: Text(_query.isEmpty ? 'Clear' : 'Clear shown', style: const TextStyle(fontSize: 11)),
+                ),
+              ],
+            ),
+          ],
+        ),
+        TextField(
+          decoration: InputDecoration(
+            hintText: 'Search people...',
+            prefixIcon: const Icon(Icons.search_rounded, size: 18),
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+          onChanged: (v) => setState(() => _query = v),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          height: 160,
+          decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(8)),
+          child: visible.isEmpty
+              ? const Center(child: Text('No one matches that search.', style: TextStyle(fontSize: 12)))
+              : ListView.builder(
+                  itemCount: visible.length,
+                  itemBuilder: (c, idx) {
+                    final u = visible[idx];
+                    return CheckboxListTile(
+                      title: Text(u.displayName.isNotEmpty ? u.displayName : u.username, style: const TextStyle(fontSize: 12)),
+                      value: widget.selectedIds.contains(u.id),
+                      dense: true,
+                      onChanged: (v) {
+                        if (v == true) {
+                          widget.selectedIds.add(u.id);
+                        } else {
+                          widget.selectedIds.remove(u.id);
+                        }
+                        widget.onChanged();
+                      },
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+/// A form field that opens a searchable list of team members instead of a long dropdown.
+class _SearchablePersonField extends StatelessWidget {
+  final String label;
+  final List<UserModel> users;
+  final String? selectedId;
+  final ValueChanged<String?> onSelected;
+  /// When set, adds a first entry that clears the pick (e.g. "All Scouters").
+  final String? emptyOptionLabel;
+  final bool showRole;
+  final Color? labelColor;
+
+  const _SearchablePersonField({
+    super.key,
+    required this.label,
+    required this.users,
+    required this.selectedId,
+    required this.onSelected,
+    this.emptyOptionLabel,
+    this.showRole = false,
+    this.labelColor,
+  });
+
+  String _name(UserModel u) => u.displayName.isNotEmpty ? u.displayName : u.username;
+
+  Future<void> _open(BuildContext context) async {
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: ObsidianUITheme.getSurfaceColor(context),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => _PersonSearchSheet(
+        title: label,
+        users: users,
+        selectedId: selectedId,
+        emptyOptionLabel: emptyOptionLabel,
+        showRole: showRole,
+      ),
+    );
+    // '' is the empty option; null means the sheet was dismissed
+    if (picked != null) onSelected(picked.isEmpty ? null : picked);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = users.where((u) => u.id == selectedId).firstOrNull;
+    final text = selected != null
+        ? (showRole ? '${_name(selected)} (${selected.roleDisplayLabel})' : _name(selected))
+        : (emptyOptionLabel ?? context.tr('assignments.select_member', 'Select team member...'));
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: () => _open(context),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: labelColor != null ? TextStyle(color: labelColor, fontWeight: FontWeight.bold) : null,
+          isDense: true,
+          suffixIcon: const Icon(Icons.search_rounded, size: 18),
+        ),
+        child: Text(
+          text,
+          overflow: TextOverflow.ellipsis,
+          style: selected == null ? TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context)) : null,
+        ),
+      ),
+    );
+  }
+}
+
+class _PersonSearchSheet extends StatefulWidget {
+  final String title;
+  final List<UserModel> users;
+  final String? selectedId;
+  final String? emptyOptionLabel;
+  final bool showRole;
+
+  const _PersonSearchSheet({
+    required this.title,
+    required this.users,
+    required this.selectedId,
+    required this.emptyOptionLabel,
+    required this.showRole,
+  });
+
+  @override
+  State<_PersonSearchSheet> createState() => _PersonSearchSheetState();
+}
+
+class _PersonSearchSheetState extends State<_PersonSearchSheet> {
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final visible = widget.users.where((u) => _userMatches(u, _query)).toList();
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 16,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+      ),
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.6,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(widget.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.pop(context)),
+              ],
+            ),
+            TextField(
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: context.tr('assignments.person_search_hint', 'Search by name or username...'),
+                prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                isDense: true,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onChanged: (v) => setState(() => _query = v),
+              // Enter picks the only match
+              onSubmitted: (_) {
+                if (visible.length == 1) Navigator.pop(context, visible.first.id);
+              },
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: ListView(
+                children: [
+                  if (widget.emptyOptionLabel != null && _query.trim().isEmpty)
+                    ListTile(
+                      dense: true,
+                      title: Text(widget.emptyOptionLabel!),
+                      trailing: widget.selectedId == null ? const Icon(Icons.check_rounded, size: 18) : null,
+                      onTap: () => Navigator.pop(context, ''),
+                    ),
+                  if (visible.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Center(child: Text(context.tr('assignments.person_search_none', 'No one matches that search.'))),
+                    ),
+                  ...visible.map((u) {
+                    final name = u.displayName.isNotEmpty ? u.displayName : u.username;
+                    return ListTile(
+                      dense: true,
+                      title: Text(name),
+                      subtitle: Text(widget.showRole ? '@${u.username} · ${u.roleDisplayLabel}' : '@${u.username}'),
+                      trailing: u.id == widget.selectedId ? const Icon(Icons.check_rounded, size: 18) : null,
+                      onTap: () => Navigator.pop(context, u.id),
+                    );
+                  }),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
