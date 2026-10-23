@@ -1911,6 +1911,13 @@ class ApiService {
       return false;
     }
 
+    // Admins always get these, matching the web (assignments is a bypass page for admins there, and the
+    // server always adds admin-settings to adminPages). The app's 'scout-assignments' is the web's 'assignments'.
+    if (role == 'ADMIN' &&
+        (pageId == 'admin-settings' || pageId == 'scout-assignments' || pageId == 'assignments')) {
+      return true;
+    }
+
     // Chat toggle check (if chat is disabled for the team, deny SCOUT, ANALYTICS, ADMIN)
     if (pageId == 'chat' && _currentSettings != null && !_currentSettings!.chatEnabled) {
       return false;
