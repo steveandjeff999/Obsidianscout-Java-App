@@ -37,6 +37,7 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   Timer? _countdownTimer;
+  Timer? _syncReloadDebounce;
 
   String? _eventKey;
   List<ScoutingAssignment> _assignments = [];
@@ -59,6 +60,16 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
     _tabController = TabController(length: 3, vsync: this);
     _loadData();
     _startCountdownTimer();
+    widget.apiService.dataSyncedNotifier.addListener(_onDataSynced);
+  }
+
+  // Outbox flushes, QR uploads and background syncs complete assignments on the server; refetch so they drop off.
+  void _onDataSynced() {
+    if (!widget.isVisible) return; // _loadData runs again when the screen becomes visible
+    _syncReloadDebounce?.cancel();
+    _syncReloadDebounce = Timer(const Duration(milliseconds: 800), () {
+      if (mounted) _loadData();
+    });
   }
 
   @override
@@ -76,6 +87,8 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
   @override
   void dispose() {
     _countdownTimer?.cancel();
+    _syncReloadDebounce?.cancel();
+    widget.apiService.dataSyncedNotifier.removeListener(_onDataSynced);
     _tabController.dispose();
     super.dispose();
   }
