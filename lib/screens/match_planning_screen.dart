@@ -1223,7 +1223,9 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
             ),
           ),
           const SizedBox(height: 6),
-          ...List.generate(3, (i) {
+          ...List.generate(3, (pos) {
+            // Red lists stations 3, 2, 1; blue lists 1, 2, 3.
+            final i = isBlue ? pos : 2 - pos;
             final stationLabel = '${alliance.toUpperCase()[0]}${i + 1}';
             final teamKey = i < teamKeys.length ? teamKeys[i] : null;
             final teamNum = _parseTeamNumber(teamKey);
@@ -1286,8 +1288,10 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
     final useMatch13 = !isFtc && (settings?.useMatch13Exp ?? false);
     final useOpr = settings?.useTbaOpr ?? false;
 
-    Widget buildSingleCard(int index) {
-      if (index >= teamKeys.length) return const SizedBox.shrink();
+    Widget buildSingleCard(int pos) {
+      if (pos >= teamKeys.length) return const SizedBox.shrink();
+      // Red lists stations 3, 2, 1; blue lists 1, 2, 3.
+      final index = isBlue ? pos : teamKeys.length - 1 - pos;
       final teamNum = _parseTeamNumber(teamKeys[index]);
       final teamObj = teamNum > 0 ? _teamMap[teamNum] : null;
 
