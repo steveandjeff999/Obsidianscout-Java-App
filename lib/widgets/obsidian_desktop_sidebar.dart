@@ -231,6 +231,13 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
             'subKey': 'subtitle.alliance_selection',
           },
           {
+            'pageId': 'pick-list',
+            'index': 35,
+            'icon': Icons.format_list_numbered_rounded,
+            'labelKey': 'nav.pick_list',
+            'subKey': 'subtitle.pick_list',
+          },
+          {
             'pageId': 'match-planning',
             'index': 31,
             'icon': Icons.draw_rounded,

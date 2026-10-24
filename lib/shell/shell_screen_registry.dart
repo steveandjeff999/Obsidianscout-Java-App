@@ -37,6 +37,7 @@ import '../screens/match_planning_screen.dart';
 import '../screens/match_checklist_screen.dart';
 import '../screens/battery_tracker_screen.dart';
 import '../screens/team_shared_links_screen.dart';
+import '../screens/pick_list_screen.dart';
 
 class MatchScoutParams {
   final String? matchKey;
@@ -83,7 +84,7 @@ class ShellScreenRegistry {
   ShellScreenRegistry._();
 
   /// Total number of shell screens (indices 0 to [screenCount] - 1).
-  static const int screenCount = 35;
+  static const int screenCount = 36;
 
   static const List<String> titleKeys = [
     'nav.dashboard',
@@ -121,6 +122,7 @@ class ShellScreenRegistry {
     'nav.shared_links',
     'nav.match_checklist',
     'nav.battery_tracker',
+    'nav.pick_list',
   ];
 
   static const List<String> subtitleKeys = [
@@ -159,6 +161,7 @@ class ShellScreenRegistry {
     'subtitle.shared_links',
     'subtitle.match_checklist',
     'subtitle.battery_tracker',
+    'subtitle.pick_list',
   ];
 
   static String getTitleKey(int index) {
@@ -247,6 +250,8 @@ class ShellScreenRegistry {
         return 'match-checklist';
       case 34:
         return 'battery-tracker';
+      case 35:
+        return 'pick-list';
       default:
         return 'dashboard';
     }
@@ -324,6 +329,8 @@ class ShellScreenRegistry {
         return Icons.checklist_rounded;
       case 34:
         return Icons.battery_charging_full_rounded;
+      case 35:
+        return Icons.format_list_numbered_rounded;
       default:
         return Icons.dashboard_rounded;
     }
@@ -401,6 +408,8 @@ class ShellScreenRegistry {
         return context.tr('nav.match_checklist', 'Match Checklist');
       case 34:
         return context.tr('nav.battery_tracker', 'Battery Tracker');
+      case 35:
+        return context.tr('nav.pick_list', 'Pick List');
       default:
         return 'Dashboard';
     }
@@ -687,6 +696,12 @@ class ShellScreenRegistry {
           isBarsVisible: isBarsVisible,
           onOpenSettings: () => onNavigateScreen(5),
           onOpenChecklist: () => onNavigateScreen(33),
+        );
+      case 35:
+        return PickListScreen(
+          apiService: apiService,
+          isVisible: isTabActive && currentIndex == 35,
+          isBarsVisible: isBarsVisible,
         );
       default:
         return DashboardScreen(
