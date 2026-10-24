@@ -372,17 +372,32 @@ class ApiService {
     checkServerHealth();
   }
 
+  /// Consecutive failed health checks. One lost probe on a congested event network doesn't mean the server is gone,
+  /// so an online device goes offline only after the quick re-check fails too.
+  int _healthFailures = 0;
+  Timer? _healthRecheckTimer;
+
   Future<bool> checkServerHealth() async {
+    var online = false;
     try {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/auth/status'), headers: _headers);
-      final online = response.statusCode == 200 || response.statusCode == 401;
-      _updateOnlineState(online);
-      return online;
-    } catch (_) {
-      _updateOnlineState(false);
+      online = response.statusCode == 200 || response.statusCode == 401;
+    } catch (_) {}
+    if (online) {
+      _healthFailures = 0;
+      _healthRecheckTimer?.cancel();
+      _updateOnlineState(true);
+      return true;
+    }
+    _healthFailures++;
+    if (_isOnline && _healthFailures < 2) {
+      _healthRecheckTimer?.cancel();
+      _healthRecheckTimer = Timer(const Duration(seconds: 5), checkServerHealth);
       return false;
     }
+    _updateOnlineState(false);
+    return false;
   }
 
   void _updateOnlineState(bool newState) {
@@ -390,6 +405,8 @@ class ApiService {
       _isOnline = newState;
       _onlineStreamController.add(_isOnline);
       if (_isOnline) {
+        // The outbox goes first, ahead of the full refresh's user/settings fetches.
+        if (outboxCount.value > 0) _scheduleOutboxRetry(soon: true);
         syncAllServerDataInBackground();
       }
     }
@@ -403,6 +420,7 @@ class ApiService {
         syncAllServerDataInBackground();
       }
     });
+    if (outboxCount.value > 0) _scheduleOutboxRetry();
     final interval = LinkQuality.instance.isLowBandwidth ? lowBandwidthSyncInterval : normalSyncInterval;
     _syncTimer = Timer.periodic(interval, (_) {
       syncAllServerDataInBackground();
@@ -1073,6 +1091,7 @@ class ApiService {
   Future<void> logout() async {
     _handlingRevocation = false;
     _syncTimer?.cancel();
+    _outboxRetryTimer?.cancel();
     try {
       await http.post(
         Uri.parse('$_currentServerUrl/api/auth/logout'),
@@ -3310,20 +3329,31 @@ class ApiService {
 
     final body = kind == 'qual_batch' ? <String, dynamic>{'entries': entries} : <String, dynamic>{'data': entries.first};
 
-    Future<ApiResponse<void>> queue(String reason) async {
-      await _enqueueOutbox(kind, body, entries.first['eventKey']?.toString(), reason);
+    // In the outbox before the upload starts, so closing the app mid-request on a bad link loses nothing.
+    final outboxId = await _enqueueOutbox(kind, body, entries.first['eventKey']?.toString(), 'Uploading');
+
+    ApiResponse<void> queued(String reason) {
+      _scheduleOutboxRetry();
       return ApiResponse.error(isOffline: true, message: reason);
     }
 
     if (!_isOnline) {
-      return queue('Saved on this device only. It will upload automatically when the connection returns.');
+      return queued('Saved on this device only. It will upload automatically when the connection returns.');
+    }
+    if (LinkQuality.instance.isLowBandwidth && outboxId != null) {
+      // Don't hold the scout on a spinner for a slow upload; the outbox sends it in the background.
+      _scheduleOutboxRetry(soon: true);
+      return const ApiResponse.error(isOffline: true, message: 'Slow connection: saved on this device and uploading in the background.');
     }
     try {
       final response = await http
           .post(Uri.parse('$_currentServerUrl${_outboxEndpoints[kind]}'), headers: _headers, body: jsonEncode(body));
-      if (response.statusCode >= 500) {
-        return await queue('Server error (${response.statusCode}): saved on this device and will retry automatically.');
+      if (response.statusCode >= 500 || response.statusCode == 408 || response.statusCode == 429) {
+        if (outboxId != null) await _store.recordOutboxFailure(outboxId, 'HTTP ${response.statusCode}');
+        return queued('Server error (${response.statusCode}): saved on this device and will retry automatically.');
       }
+      // Uploaded or refused for good: either way it no longer belongs in the outbox.
+      if (outboxId != null) await _store.removeFromOutbox(outboxId);
       if (kind == 'qual_batch' && (response.statusCode < 200 || response.statusCode >= 300)) {
         // Older servers without the batch endpoint: send each entry on its own.
         var anyQueued = false;
@@ -3339,23 +3369,56 @@ class ApiService {
       if (response.statusCode >= 200 && response.statusCode < 300) dataSyncedNotifier.value++;
       return ApiResponse.fromHttpResponse(response, defaultErrorMessage: defaultErrorMessage);
     } catch (e) {
-      return queue('Connection error: saved on this device and will upload automatically.');
+      if (outboxId == null) {
+        // Couldn't write the outbox before the upload; try once more now.
+        await _enqueueOutbox(kind, body, entries.first['eventKey']?.toString(), e.toString());
+      } else {
+        await _store.recordOutboxFailure(outboxId, e.toString()).catchError((_) {});
+      }
+      return queued('Connection error: saved on this device and will upload automatically.');
     }
   }
 
-  Future<void> _enqueueOutbox(String kind, Map<String, dynamic> body, String? eventKey, String reason) async {
+  /// Returns the new item's id, or null when it couldn't be stored.
+  Future<String?> _enqueueOutbox(String kind, Map<String, dynamic> body, String? eventKey, String reason) async {
     try {
+      final id = _generateUuidV4();
       await _store.enqueue(OutboxItem(
-        id: _generateUuidV4(),
+        id: id,
         kind: kind,
         eventKey: eventKey,
         payload: body,
         createdAt: DateTime.now(),
         lastError: reason,
       ));
+      return id;
     } catch (e) {
       debugPrint('[ApiService] Failed to queue offline submission: $e');
+      return null;
     }
+  }
+
+  /// Retries the outbox on its own timer, so saved entries don't wait for the next full sync (10 minutes on a slow
+  /// link). Backs off from 15 s to 5 minutes while uploads keep failing; stops once the outbox is empty.
+  Timer? _outboxRetryTimer;
+  int _outboxRetryStep = 0;
+  static const List<int> _outboxRetrySeconds = [15, 30, 60, 120, 300];
+
+  void _scheduleOutboxRetry({bool soon = false}) {
+    if (_outboxRetryTimer?.isActive == true && !soon) return;
+    _outboxRetryTimer?.cancel();
+    final delay = soon
+        ? const Duration(seconds: 2)
+        : Duration(seconds: _outboxRetrySeconds[min(_outboxRetryStep, _outboxRetrySeconds.length - 1)]);
+    _outboxRetryTimer = Timer(delay, () async {
+      if (_isOnline && isLoggedIn) await syncOutbox().catchError((_) => 0);
+      if (outboxCount.value == 0) {
+        _outboxRetryStep = 0;
+        return;
+      }
+      _outboxRetryStep++;
+      _scheduleOutboxRetry();
+    });
   }
 
   /// Uploads everything in the outbox, oldest first. Stops at the first connection problem
@@ -3413,6 +3476,7 @@ class ApiService {
       outboxSyncing.value = false;
     }
     if (uploaded > 0) {
+      _outboxRetryStep = 0;
       invalidateMemoryCache('cache_');
       debugPrint('[ApiService] Uploaded $uploaded saved submission(s) from the outbox');
     }
@@ -6001,6 +6065,7 @@ class ApiService {
   Future<bool> updateAssignmentStatus(String id, String status) async {
     if (!_isOnline) {
       await _enqueueOutbox('assignment_status', {'id': id, 'status': status}, null, 'Offline');
+      _scheduleOutboxRetry();
       return false;
     }
     try {
@@ -6019,6 +6084,7 @@ class ApiService {
       debugPrint('[ApiService] updateAssignmentStatus error: $e');
       if (e is TimeoutException || e.toString().contains('SocketException') || e.toString().contains('ClientException')) {
         await _enqueueOutbox('assignment_status', {'id': id, 'status': status}, null, e.toString());
+        _scheduleOutboxRetry();
       }
       return false;
     }

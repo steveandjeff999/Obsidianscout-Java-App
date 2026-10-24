@@ -21,6 +21,7 @@ class QualScoutingRecord {
   final String? createdAt;
   final Map<String, dynamic> data;
   final String? scoutUsername;
+  final int? ownerTeamNumber;
 
   QualScoutingRecord({
     required this.id,
@@ -32,7 +33,18 @@ class QualScoutingRecord {
     this.createdAt,
     required this.data,
     this.scoutUsername,
+    this.ownerTeamNumber,
   });
+
+  /// "username (Team 1234)", falling back to whichever half is known.
+  String? get scoutLabel {
+    final name = scoutUsername?.trim();
+    final hasName = name != null && name.isNotEmpty;
+    if (hasName && ownerTeamNumber != null) return '$name (Team $ownerTeamNumber)';
+    if (hasName) return name;
+    if (ownerTeamNumber != null) return 'Team $ownerTeamNumber';
+    return null;
+  }
 
   DateTime? get createdDateTime {
     if (createdAt == null || createdAt!.isEmpty) return null;
@@ -153,6 +165,7 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
             createdAt: e['createdAt']?.toString(),
             data: e['data'] is Map ? Map<String, dynamic>.from(e['data'] as Map) : {},
             scoutUsername: e['scoutUsername']?.toString() ?? e['username']?.toString(),
+            ownerTeamNumber: (e['ownerTeamNumber'] as num?)?.toInt(),
           ));
         }
       }
@@ -220,6 +233,7 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
             createdAt: e['createdAt']?.toString(),
             data: e['data'] is Map ? Map<String, dynamic>.from(e['data'] as Map) : {},
             scoutUsername: e['scoutUsername']?.toString() ?? e['username']?.toString(),
+            ownerTeamNumber: (e['ownerTeamNumber'] as num?)?.toInt(),
           ));
         }
       }
@@ -414,7 +428,7 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
 
     final rawEntries = conflicts.map((c) => {
       'id': c.id,
-      'scoutUsername': c.scoutUsername ?? 'Scouter',
+      'scoutUsername': c.scoutLabel ?? 'Scouter',
       'createdAt': c.createdAt,
       'data': c.data,
       'targetTeamNumber': c.targetTeamNumber,
@@ -1251,9 +1265,9 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                                     ),
                                   ],
                                 ),
-                                if (entry.scoutUsername != null) ...[
+                                if (entry.scoutLabel != null) ...[
                                   const SizedBox(height: 4),
-                                  Text('Scouted by: ${entry.scoutUsername}', style: TextStyle(color: secondaryTextColor, fontSize: 12)),
+                                  Text('Scouted by: ${entry.scoutLabel}', style: TextStyle(color: secondaryTextColor, fontSize: 12)),
                                 ],
                                 const SizedBox(height: 8),
                                 ...entry.data.entries.map((d) {
@@ -1412,8 +1426,8 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                               if (entry.matchNumber != null)
                                 _buildDetailRow('Match Number', 'Match ${entry.matchNumber}', primaryTextColor, secondaryTextColor),
                               _buildDetailRow('Event Key', entry.eventKey, primaryTextColor, secondaryTextColor),
-                              if (entry.scoutUsername != null)
-                                _buildDetailRow('Scouted By', entry.scoutUsername!, primaryTextColor, secondaryTextColor),
+                              if (entry.scoutLabel != null)
+                                _buildDetailRow('Scouted By', entry.scoutLabel!, primaryTextColor, secondaryTextColor),
                               if (entry.createdAt != null)
                                 _buildDetailRow('Timestamp', entry.createdAt!, primaryTextColor, secondaryTextColor),
                             ],
