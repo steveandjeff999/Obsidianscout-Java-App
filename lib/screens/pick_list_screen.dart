@@ -97,8 +97,9 @@ class _PickListScreenState extends State<PickListScreen> with SingleTickerProvid
       } else if (_events.isNotEmpty) {
         _selectedEventKey = _events.first.eventKey;
       }
-      if (_selectedEventKey != null && !_events.any((e) => e.eventKey == _selectedEventKey)) {
-        _events.insert(0, EventModel(eventKey: _selectedEventKey!, name: 'Configured Event (${_selectedEventKey!.toUpperCase()})'));
+      if (mounted && _selectedEventKey != null && !_events.any((e) => e.eventKey == _selectedEventKey)) {
+        final name = _t('pick_list.configured_event', 'Configured Event ({key})', {'key': _selectedEventKey!.toUpperCase()});
+        _events.insert(0, EventModel(eventKey: _selectedEventKey!, name: name));
       }
       if (_selectedEventKey != null) await _loadEvent(_selectedEventKey!);
     } catch (_) {}
@@ -139,7 +140,12 @@ class _PickListScreenState extends State<PickListScreen> with SingleTickerProvid
 
   Map<int, String> _parsePickedLabels(String rawJson) {
     final labels = <int, String>{};
-    const slots = {'captain': 'Captain', 'firstPick': 'First Pick', 'secondPick': 'Second Pick', 'backup': 'Backup'};
+    final slots = {
+      'captain': context.tr('alliance_selection.captain', 'Captain'),
+      'firstPick': context.tr('alliance_selection.first_pick', 'First Pick'),
+      'secondPick': context.tr('alliance_selection.second_pick', 'Second Pick'),
+      'backup': context.tr('alliance_selection.backup', 'Backup'),
+    };
     try {
       final parsed = jsonDecode(rawJson);
       if (parsed is! Map) return labels;
@@ -153,6 +159,13 @@ class _PickListScreenState extends State<PickListScreen> with SingleTickerProvid
       }
     } catch (_) {}
     return labels;
+  }
+
+  /// Translated text for [key], with `{name}` placeholders filled from [args].
+  String _t(String key, String fallback, [Map<String, Object>? args]) {
+    var text = context.tr(key, fallback);
+    args?.forEach((name, value) => text = text.replaceAll('{$name}', value.toString()));
+    return text;
   }
 
   // ── Saving ──────────────────────────────────────────────
@@ -169,8 +182,8 @@ class _PickListScreenState extends State<PickListScreen> with SingleTickerProvid
     } else {
       ObsidianFeedback.showError(
         context,
-        title: 'Pick List Not Saved',
-        message: response.message?.isNotEmpty == true ? response.message! : 'Failed to save pick list.',
+        title: _t('pick_list.not_saved_title', 'Pick List Not Saved'),
+        message: response.message?.isNotEmpty == true ? response.message! : _t('pick_list.save_failed_plain', 'Failed to save pick list.'),
         statusCode: response.statusCode,
         isOffline: response.isOffline,
       );
@@ -198,7 +211,9 @@ class _PickListScreenState extends State<PickListScreen> with SingleTickerProvid
     });
     _runSave(
       () => widget.apiService.setDoNotPick(eventKey, teamNumber, dnp),
-      successMessage: dnp ? '$teamNumber added to Do Not Pick' : '$teamNumber removed from Do Not Pick',
+      successMessage: dnp
+          ? _t('pick_list.dnp_added', '{team} added to Do Not Pick', {'team': teamNumber})
+          : _t('pick_list.dnp_removed', '{team} removed from Do Not Pick', {'team': teamNumber}),
     );
   }
 
@@ -229,12 +244,12 @@ class _PickListScreenState extends State<PickListScreen> with SingleTickerProvid
   void _addAllByScore() {
     final toAdd = _unrankedTeams.map((t) => t.teamNumber).toList();
     if (toAdd.isEmpty) {
-      ObsidianFeedback.showWarning(context, message: 'Every team is already ranked or on Do Not Pick.');
+      ObsidianFeedback.showWarning(context, message: _t('pick_list.all_ranked_already', 'Every team is already ranked or on Do Not Pick.'));
       return;
     }
     setState(() => _ranking.addAll(toAdd));
     _saveRanking();
-    ObsidianFeedback.showSuccess(context, message: 'Added ${toAdd.length} teams by score.');
+    ObsidianFeedback.showSuccess(context, message: _t('pick_list.added_by_score', 'Added {count} teams by score.', {'count': toAdd.length}));
   }
 
   Future<void> _confirmClear() async {
@@ -243,14 +258,17 @@ class _PickListScreenState extends State<PickListScreen> with SingleTickerProvid
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: ObsidianUITheme.surface,
-        title: const Text('Clear ranking?', style: TextStyle(color: Colors.white)),
-        content: const Text('This removes every team from the ranking. Your Do Not Pick list is not changed.', style: TextStyle(color: Colors.white70)),
+        title: Text(_t('pick_list.clear_title', 'Clear ranking?'), style: const TextStyle(color: Colors.white)),
+        content: Text(
+          _t('pick_list.clear_body', 'This removes every team from the ranking. Your Do Not Pick list is not changed.'),
+          style: const TextStyle(color: Colors.white70),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(_t('pick_list.cancel', 'Cancel'))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Clear', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: Text(_t('pick_list.clear_button', 'Clear'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -309,7 +327,7 @@ class _PickListScreenState extends State<PickListScreen> with SingleTickerProvid
 
   String _teamName(int teamNumber) {
     final team = _findTeam(teamNumber);
-    if (team == null) return 'Not at this event';
+    if (team == null) return _t('pick_list.not_at_event', 'Not at this event');
     return team.nickname ?? team.name ?? '';
   }
 
@@ -329,9 +347,9 @@ class _PickListScreenState extends State<PickListScreen> with SingleTickerProvid
           unselectedLabelColor: Colors.white54,
           labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
           tabs: [
-            Tab(text: 'Ranking (${_ranking.length})'),
-            Tab(text: 'Unranked (${_unrankedTeams.length})'),
-            Tab(text: 'Do Not Pick (${_dnp.length})'),
+            Tab(text: _t('pick_list.tab_ranking', 'Ranking ({count})', {'count': _ranking.length})),
+            Tab(text: _t('pick_list.tab_unranked', 'Unranked ({count})', {'count': _unrankedTeams.length})),
+            Tab(text: _t('pick_list.tab_dnp', 'Do Not Pick ({count})', {'count': _dnp.length})),
           ],
         ),
         Expanded(
@@ -352,11 +370,11 @@ class _PickListScreenState extends State<PickListScreen> with SingleTickerProvid
 
   Widget _buildHeader(BuildContext context) {
     final metricItems = <DropdownMenuItem<String>>[
-      const DropdownMenuItem(value: 'weighted', child: Text('Weighted')),
-      const DropdownMenuItem(value: 'scouted', child: Text('Scouted')),
-      if (_useEpa) const DropdownMenuItem(value: 'epa', child: Text('EPA')),
+      DropdownMenuItem(value: 'weighted', child: Text(context.tr('alliance-selection.weighted', 'Weighted'))),
+      DropdownMenuItem(value: 'scouted', child: Text(context.tr('scouted', 'Scouted'))),
+      if (_useEpa) DropdownMenuItem(value: 'epa', child: Text(context.tr('alliance-selection.epa', 'EPA'))),
       if (_useExp) const DropdownMenuItem(value: 'exp', child: Text('EXP')),
-      if (_useOpr) DropdownMenuItem(value: 'opr', child: Text(_isFtc ? 'FTC Scout OPR' : 'OPR')),
+      if (_useOpr) DropdownMenuItem(value: 'opr', child: Text(_isFtc ? 'FTC Scout OPR' : context.tr('alliance-selection.opr', 'OPR'))),
     ];
     final effectiveMetric = metricItems.any((i) => i.value == _selectedMetric) ? _selectedMetric : 'weighted';
 
@@ -403,7 +421,7 @@ class _PickListScreenState extends State<PickListScreen> with SingleTickerProvid
                 else
                   IconButton(
                     icon: const Icon(Icons.sync_rounded, color: Colors.cyanAccent, size: 20),
-                    tooltip: 'Sync',
+                    tooltip: _t('pick_list.sync', 'Sync'),
                     onPressed: () => _refresh(force: true),
                   ),
               ],
@@ -417,7 +435,7 @@ class _PickListScreenState extends State<PickListScreen> with SingleTickerProvid
                     DropdownButton<String>(
                       value: effectiveEvent,
                       isExpanded: true,
-                      hint: const Text('Select event', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                      hint: Text(_t('pick_list.select_event', 'Select event'), style: const TextStyle(color: Colors.white54, fontSize: 12)),
                       dropdownColor: ObsidianUITheme.surface,
                       style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                       items: eventList
@@ -496,14 +514,16 @@ class _PickListScreenState extends State<PickListScreen> with SingleTickerProvid
             children: [
               Expanded(
                 child: Text(
-                  _ranking.isEmpty ? 'Private to your team' : '${available.length} of ${_ranking.length} still available',
+                  _ranking.isEmpty
+                      ? _t('pick_list.private', 'Private to your team')
+                      : _t('pick_list.available_of', '{available} of {total} still available', {'available': available.length, 'total': _ranking.length}),
                   style: const TextStyle(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.bold),
                 ),
               ),
               TextButton.icon(
                 onPressed: _ranking.isEmpty ? null : _confirmClear,
                 icon: const Icon(Icons.clear_all_rounded, size: 16),
-                label: const Text('Clear', style: TextStyle(fontSize: 12)),
+                label: Text(_t('pick_list.clear_button', 'Clear'), style: const TextStyle(fontSize: 12)),
                 style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
               ),
             ],
@@ -511,7 +531,7 @@ class _PickListScreenState extends State<PickListScreen> with SingleTickerProvid
         ),
         Expanded(
           child: _ranking.isEmpty
-              ? _emptyState('No teams ranked yet. Add teams from the Unranked tab.')
+              ? _emptyState(_t('pick_list.empty_ranking_tab', 'No teams ranked yet. Add teams from the Unranked tab.'))
               : ReorderableListView.builder(
                   padding: EdgeInsets.fromLTRB(16, 0, 16, bottomPad),
                   buildDefaultDragHandles: false,
@@ -563,7 +583,7 @@ class _PickListScreenState extends State<PickListScreen> with SingleTickerProvid
           const SizedBox(width: 10),
           Expanded(child: _teamInfo(teamNumber, struck: pickedLabel != null)),
           if (pickedLabel != null) _statusChip(pickedLabel, Colors.white24, Colors.white70),
-          if (isNext) _statusChip('Next', ObsidianUITheme.successGreen, Colors.black),
+          if (isNext) _statusChip(_t('pick_list.next', 'Next'), ObsidianUITheme.successGreen, Colors.black),
           _scoreChip(teamNumber),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert_rounded, color: Colors.white54, size: 20),
@@ -588,11 +608,11 @@ class _PickListScreenState extends State<PickListScreen> with SingleTickerProvid
               }
             },
             itemBuilder: (context) => [
-              if (index > 0) _menuItem('top', Icons.vertical_align_top_rounded, 'Move to top'),
-              if (index > 0) _menuItem('up', Icons.keyboard_arrow_up_rounded, 'Move up'),
-              if (index < _ranking.length - 1) _menuItem('down', Icons.keyboard_arrow_down_rounded, 'Move down'),
-              _menuItem('remove', Icons.remove_circle_outline_rounded, 'Remove from ranking'),
-              _menuItem('dnp', Icons.block_rounded, 'Add to Do Not Pick', color: _dnpRed),
+              if (index > 0) _menuItem('top', Icons.vertical_align_top_rounded, _t('pick_list.move_top', 'Move to top')),
+              if (index > 0) _menuItem('up', Icons.keyboard_arrow_up_rounded, _t('pick_list.move_up', 'Move up')),
+              if (index < _ranking.length - 1) _menuItem('down', Icons.keyboard_arrow_down_rounded, _t('pick_list.move_down', 'Move down')),
+              _menuItem('remove', Icons.remove_circle_outline_rounded, _t('pick_list.remove', 'Remove from ranking')),
+              _menuItem('dnp', Icons.block_rounded, _t('pick_list.add_dnp', 'Add to Do Not Pick'), color: _dnpRed),
             ],
           ),
         ],
@@ -654,7 +674,7 @@ class _PickListScreenState extends State<PickListScreen> with SingleTickerProvid
               ElevatedButton.icon(
                 onPressed: unranked.isEmpty ? null : _addAllByScore,
                 icon: const Icon(Icons.playlist_add_rounded, size: 16),
-                label: const Text('Add all', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                label: Text(_t('pick_list.add_all_short', 'Add all'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.cyanAccent.withValues(alpha: 0.15),
                   foregroundColor: Colors.cyanAccent,
@@ -668,10 +688,10 @@ class _PickListScreenState extends State<PickListScreen> with SingleTickerProvid
         Expanded(
           child: shown.isEmpty
               ? _emptyState(_allTeams.isEmpty
-                  ? 'No teams found for this event.'
+                  ? _t('pick_list.no_teams', 'No teams found for this event.')
                   : query.isNotEmpty
-                      ? 'No matching teams.'
-                      : 'Every team is ranked or on Do Not Pick.')
+                      ? _t('pick_list.no_match', 'No matching teams.')
+                      : _t('pick_list.all_placed', 'Every team is ranked or on Do Not Pick.'))
               : ListView.builder(
                   padding: EdgeInsets.fromLTRB(16, 4, 16, bottomPad),
                   itemCount: shown.length,
@@ -686,12 +706,12 @@ class _PickListScreenState extends State<PickListScreen> with SingleTickerProvid
                         _scoreChip(teamNumber),
                         IconButton(
                           icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.cyanAccent, size: 22),
-                          tooltip: 'Add to end of ranking',
+                          tooltip: _t('pick_list.add_end', 'Add to end of ranking'),
                           onPressed: () => _addToRanking(teamNumber),
                         ),
                         IconButton(
                           icon: const Icon(Icons.block_rounded, color: _dnpRed, size: 20),
-                          tooltip: 'Add to Do Not Pick',
+                          tooltip: _t('pick_list.add_dnp', 'Add to Do Not Pick'),
                           onPressed: () => _setDoNotPick(teamNumber, true),
                         ),
                       ],
@@ -706,16 +726,16 @@ class _PickListScreenState extends State<PickListScreen> with SingleTickerProvid
   Widget _buildDnpTab(double bottomPad) {
     return Column(
       children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(16, 10, 16, 6),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
           child: Text(
-            'Shared with the Do Not Pick list on Alliance Selection. These teams are kept out of the ranking.',
-            style: TextStyle(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.bold),
+            _t('pick_list.dnp_shared_long', 'Shared with the Do Not Pick list on Alliance Selection. These teams are kept out of the ranking.'),
+            style: const TextStyle(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.bold),
           ),
         ),
         Expanded(
           child: _dnp.isEmpty
-              ? _emptyState('No teams on Do Not Pick.')
+              ? _emptyState(_t('pick_list.dnp_empty', 'No teams on Do Not Pick.'))
               : ListView.builder(
                   padding: EdgeInsets.fromLTRB(16, 4, 16, bottomPad),
                   itemCount: _dnp.length,
@@ -728,7 +748,7 @@ class _PickListScreenState extends State<PickListScreen> with SingleTickerProvid
                         _statusChip('DNP', _dnpRed, Colors.white),
                         IconButton(
                           icon: const Icon(Icons.undo_rounded, color: Colors.white70, size: 20),
-                          tooltip: 'Remove from Do Not Pick',
+                          tooltip: _t('pick_list.remove_dnp', 'Remove from Do Not Pick'),
                           onPressed: () => _setDoNotPick(teamNumber, false),
                         ),
                       ],
