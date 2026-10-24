@@ -229,6 +229,15 @@ class ObsidianPagesModal extends StatelessWidget {
         'color': Colors.pinkAccent,
       },
       {
+        'pageId': 'pick-list',
+        'index': 35,
+        'icon': Icons.format_list_numbered_rounded,
+        'name': context.tr('nav.pick_list', 'Pick List'),
+        'desc': 'Ranked pick order that skips your Do Not Pick teams',
+        'tag': 'Strategy',
+        'color': Colors.tealAccent,
+      },
+      {
         'pageId': 'match-planning',
         'index': 31,
         'icon': Icons.draw_rounded,

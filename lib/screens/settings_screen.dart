@@ -4,6 +4,7 @@ import '../services/api_service.dart';
 import '../services/auth_storage_service.dart';
 import '../services/biometric_auth_service.dart';
 import '../services/gamepad_service.dart';
+import '../services/net/link_quality.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/obsidian_user_avatar.dart';
@@ -1214,6 +1215,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       },
                     ),
                   ],
+                ),
+                Divider(color: borderColor, height: 24),
+                ValueListenableBuilder<int>(
+                  valueListenable: LinkQuality.instance.statsVersion,
+                  builder: (context, _, __) {
+                    final stats = LinkQuality.instance.stats;
+                    final speed = stats.kbps != null ? 'about ${stats.kbps} kbps' : 'not measured yet';
+                    final latency = stats.rttMs != null ? ', ${stats.rttMs} ms response time' : '';
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Slow Connection Mode', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: primaryTextColor)),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Uploads first, bulk data later, analytics computed on this device. '
+                                '${stats.low ? 'On' : 'Off'} right now. Connection: $speed$latency.',
+                                style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        DropdownButton<LowBandwidthMode>(
+                          value: stats.mode,
+                          dropdownColor: ObsidianUITheme.getSurfaceColor(context),
+                          style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.bold),
+                          underline: Container(height: 2, color: ObsidianUITheme.primaryAccent),
+                          items: const [
+                            DropdownMenuItem(value: LowBandwidthMode.auto, child: Text('Automatic')),
+                            DropdownMenuItem(value: LowBandwidthMode.on, child: Text('Always on')),
+                            DropdownMenuItem(value: LowBandwidthMode.off, child: Text('Off')),
+                          ],
+                          onChanged: (mode) {
+                            if (mode != null) LinkQuality.instance.setMode(mode);
+                          },
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ],
             ),
