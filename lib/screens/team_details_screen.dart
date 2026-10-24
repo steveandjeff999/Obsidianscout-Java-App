@@ -1423,11 +1423,15 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
         data['submittedBy'] ??
         data['scouter_name'];
 
+    final ownerTeam = entry['ownerTeamNumber'] ?? data['ownerTeamNumber'];
+    final hasOwnerTeam = ownerTeam != null && ownerTeam.toString().trim().isNotEmpty && ownerTeam.toString().trim() != 'null';
+
     if (u != null && u.toString().trim().isNotEmpty && u.toString().trim() != 'null') {
-      return u.toString().trim();
+      final name = u.toString().trim();
+      return hasOwnerTeam ? '$name (Team ${ownerTeam.toString().trim()})' : name;
     }
 
-    final teamNum = entry['ownerTeamNumber'] ?? entry['teamNumber'] ?? data['ownerTeamNumber'];
+    final teamNum = ownerTeam ?? entry['teamNumber'];
     if (teamNum != null && teamNum.toString().trim().isNotEmpty && teamNum.toString().trim() != 'null') {
       return 'Team ${teamNum.toString().trim()}';
     }
