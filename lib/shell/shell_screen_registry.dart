@@ -38,6 +38,7 @@ import '../screens/match_checklist_screen.dart';
 import '../screens/battery_tracker_screen.dart';
 import '../screens/team_shared_links_screen.dart';
 import '../screens/pick_list_screen.dart';
+import '../screens/match_predictions_screen.dart';
 
 class MatchScoutParams {
   final String? matchKey;
@@ -84,7 +85,7 @@ class ShellScreenRegistry {
   ShellScreenRegistry._();
 
   /// Total number of shell screens (indices 0 to [screenCount] - 1).
-  static const int screenCount = 36;
+  static const int screenCount = 37;
 
   static const List<String> titleKeys = [
     'nav.dashboard',
@@ -123,6 +124,7 @@ class ShellScreenRegistry {
     'nav.match_checklist',
     'nav.battery_tracker',
     'nav.pick_list',
+    'nav.match_predictions',
   ];
 
   static const List<String> subtitleKeys = [
@@ -162,6 +164,7 @@ class ShellScreenRegistry {
     'subtitle.match_checklist',
     'subtitle.battery_tracker',
     'subtitle.pick_list',
+    'subtitle.match_predictions',
   ];
 
   static String getTitleKey(int index) {
@@ -252,6 +255,8 @@ class ShellScreenRegistry {
         return 'battery-tracker';
       case 35:
         return 'pick-list';
+      case 36:
+        return 'match-predictions';
       default:
         return 'dashboard';
     }
@@ -331,6 +336,8 @@ class ShellScreenRegistry {
         return Icons.battery_charging_full_rounded;
       case 35:
         return Icons.format_list_numbered_rounded;
+      case 36:
+        return Icons.emoji_events_rounded;
       default:
         return Icons.dashboard_rounded;
     }
@@ -410,6 +417,8 @@ class ShellScreenRegistry {
         return context.tr('nav.battery_tracker', 'Battery Tracker');
       case 35:
         return context.tr('nav.pick_list', 'Pick List');
+      case 36:
+        return context.tr('nav.match_predictions', 'Match Predictions');
       default:
         return 'Dashboard';
     }
@@ -701,6 +710,12 @@ class ShellScreenRegistry {
         return PickListScreen(
           apiService: apiService,
           isVisible: isTabActive && currentIndex == 35,
+          isBarsVisible: isBarsVisible,
+        );
+      case 36:
+        return MatchPredictionsScreen(
+          apiService: apiService,
+          isVisible: isTabActive && currentIndex == 36,
           isBarsVisible: isBarsVisible,
         );
       default:

@@ -93,6 +93,16 @@ class ObsidianPagesModal extends StatelessWidget {
         'tag': 'Form',
         'color': const Color(0xFF38BDF8),
       },
+      // Listed only while the team has match predictions on (ApiService.hasPageAccess).
+      {
+        'pageId': 'match-predictions',
+        'index': 36,
+        'icon': Icons.emoji_events_rounded,
+        'name': context.tr('nav.match_predictions', 'Match Predictions'),
+        'desc': context.tr('pages.match_predictions_desc', 'Pick each match winner and climb the accuracy leaderboard'),
+        'tag': context.tr('pages.tag_game', 'Game'),
+        'color': const Color(0xFFF5C542),
+      },
       {
         'pageId': 'graphs',
         'index': 4,
