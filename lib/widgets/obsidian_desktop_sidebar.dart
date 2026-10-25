@@ -122,6 +122,14 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
             'labelKey': 'nav.scout_history',
             'subKey': 'subtitle.scout_history',
           },
+          {
+            // Shown only while the team has match predictions on (see ApiService.hasPageAccess).
+            'pageId': 'match-predictions',
+            'index': 36,
+            'icon': Icons.emoji_events_rounded,
+            'labelKey': 'nav.match_predictions',
+            'subKey': 'subtitle.match_predictions',
+          },
         ],
       },
       {

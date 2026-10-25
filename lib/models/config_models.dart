@@ -805,6 +805,9 @@ class AppSettingsModel {
   final String eventKey;
   final String timezone;
   final bool chatEnabled;
+  /// Match predictions game (scouts pick each match's winner). Null when the server didn't report it;
+  /// omitted on save so the server keeps its value.
+  final bool? matchPredictionsEnabled;
   final bool registrationLocked;
   /// Roles allowed on the create-account page (null = not reported by the server; keep its value).
   final List<String>? selfRegisterRoles;
@@ -831,6 +834,7 @@ class AppSettingsModel {
     this.eventKey = '',
     this.timezone = 'America/New_York',
     this.chatEnabled = true,
+    this.matchPredictionsEnabled,
     this.registrationLocked = false,
     this.selfRegisterRoles,
     this.useStatboticsEpa = false,
@@ -941,6 +945,12 @@ class AppSettingsModel {
       eventKey: settingsMap['eventKey']?.toString() ?? '',
       timezone: settingsMap['timezone']?.toString() ?? 'America/New_York',
       chatEnabled: settingsMap['chatEnabled'] != false,
+      matchPredictionsEnabled: () {
+        final raw = settingsMap['matchPredictionsEnabled'] ?? json['matchPredictionsEnabled'];
+        if (raw == null) return null;
+        if (raw is bool) return raw;
+        return parseBool(raw);
+      }(),
       registrationLocked: parseBool(settingsMap['registrationLocked'] ?? json['registrationLocked']),
       selfRegisterRoles: (settingsMap['selfRegisterRoles'] is List)
           ? (settingsMap['selfRegisterRoles'] as List).map((e) => e.toString().toUpperCase()).toList()
@@ -972,6 +982,7 @@ class AppSettingsModel {
       'eventKey': eventKey,
       'timezone': timezone,
       'chatEnabled': chatEnabled,
+      if (matchPredictionsEnabled != null) 'matchPredictionsEnabled': matchPredictionsEnabled,
       'registrationLocked': registrationLocked,
       if (selfRegisterRoles != null) 'selfRegisterRoles': selfRegisterRoles,
       'useStatboticsEpa': useStatboticsEpa,
@@ -998,6 +1009,7 @@ class AppSettingsModel {
     String? eventKey,
     String? timezone,
     bool? chatEnabled,
+    bool? matchPredictionsEnabled,
     bool? registrationLocked,
     List<String>? selfRegisterRoles,
     bool? useStatboticsEpa,
@@ -1022,6 +1034,7 @@ class AppSettingsModel {
       eventKey: eventKey ?? this.eventKey,
       timezone: timezone ?? this.timezone,
       chatEnabled: chatEnabled ?? this.chatEnabled,
+      matchPredictionsEnabled: matchPredictionsEnabled ?? this.matchPredictionsEnabled,
       registrationLocked: registrationLocked ?? this.registrationLocked,
       selfRegisterRoles: selfRegisterRoles ?? this.selfRegisterRoles,
       useStatboticsEpa: useStatboticsEpa ?? this.useStatboticsEpa,

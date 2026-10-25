@@ -103,6 +103,8 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
   /// Null until the server reports it or the user changes it; only sent on save when set.
   RecencyBiasSettingsModel? _recencyBias;
   bool _chatEnabled = true;
+  /// Null until the server reports it (older servers don't); saving null keeps the server's value.
+  bool? _matchPredictionsEnabled;
   bool _registrationLocked = false;
   /// Roles allowed on the create-account page; null until the server reports them (then treated as all roles).
   List<String>? _selfRegisterRoles;
@@ -202,6 +204,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     _useTbaOpr = fresh.useTbaOpr;
     _recencyBias = fresh.recencyBias;
     _chatEnabled = fresh.chatEnabled;
+    _matchPredictionsEnabled = fresh.matchPredictionsEnabled;
     _registrationLocked = fresh.registrationLocked;
     _selfRegisterRoles = fresh.selfRegisterRoles == null ? null : List<String>.from(fresh.selfRegisterRoles!);
     _scoutPages = List<String>.from(fresh.scoutPages);
@@ -277,6 +280,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       _useTbaOpr = _currentSettings.useTbaOpr;
       _recencyBias = _currentSettings.recencyBias;
       _chatEnabled = _currentSettings.chatEnabled;
+      _matchPredictionsEnabled = _currentSettings.matchPredictionsEnabled;
       _registrationLocked = _currentSettings.registrationLocked;
       _selfRegisterRoles = _currentSettings.selfRegisterRoles == null ? null : List<String>.from(_currentSettings.selfRegisterRoles!);
       _scoutPages = List<String>.from(_currentSettings.scoutPages);
@@ -932,6 +936,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       useTbaOpr: _useTbaOpr,
       recencyBias: _recencyBias,
       chatEnabled: _chatEnabled,
+      matchPredictionsEnabled: _matchPredictionsEnabled,
       registrationLocked: _registrationLocked,
       selfRegisterRoles: _selfRegisterRoles,
       apiKeys: _currentSettings.apiKeys.copyWith(
@@ -983,6 +988,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
 
     final updated = _currentSettings.copyWith(
       chatEnabled: _chatEnabled,
+      matchPredictionsEnabled: _matchPredictionsEnabled,
       registrationLocked: _registrationLocked,
       selfRegisterRoles: _selfRegisterRoles,
       scoutPages: _scoutPages,
@@ -4140,6 +4146,18 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                 contentPadding: EdgeInsets.zero,
                 controlAffinity: ListTileControlAffinity.leading,
                 onChanged: (val) => setState(() => _chatEnabled = val ?? true),
+              ),
+              CheckboxListTile(
+                title: Text(context.tr('config.enable_match_predictions', 'Enable Match Predictions'), style: TextStyle(color: primaryTextColor, fontSize: 13, fontWeight: FontWeight.w600)),
+                subtitle: Text(
+                  context.tr('config.enable_match_predictions_hint', 'Scouts pick red or blue to win each match on the scouting forms and the Match Predictions page, then compete on an accuracy leaderboard.'),
+                  style: TextStyle(color: secondaryTextColor, fontSize: 11),
+                ),
+                value: _matchPredictionsEnabled ?? false,
+                activeColor: ObsidianUITheme.primaryAccent,
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                onChanged: (val) => setState(() => _matchPredictionsEnabled = val ?? false),
               ),
               CheckboxListTile(
                 title: Text('Lock new user registration via create account page', style: TextStyle(color: primaryTextColor, fontSize: 13, fontWeight: FontWeight.w600)),

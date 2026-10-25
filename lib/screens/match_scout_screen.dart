@@ -18,6 +18,7 @@ import '../widgets/sync_status_banner.dart';
 import '../models/assignment_models.dart';
 import '../services/assignment_advance_service.dart';
 import '../widgets/next_assignment_chip.dart';
+import '../widgets/match_prediction_card.dart';
 
 class MatchScoutScreen extends StatefulWidget {
   final ApiService apiService;
@@ -254,6 +255,22 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
   Future<void> _setAutoAdvance(bool enabled) async {
     await AssignmentAdvanceService.setEnabled(enabled);
     if (mounted) setState(() => _autoAdvance = enabled);
+  }
+
+  /// Match predictions game: the scout's red / blue call for the selected match (nothing while it's off).
+  Widget _buildPredictionCard({EdgeInsetsGeometry? margin}) {
+    final match = _selectedMatch;
+    final eventKey = (_eventKey != null && _eventKey!.isNotEmpty) ? _eventKey! : (match?.eventKey ?? '');
+    if (match == null || eventKey.isEmpty || !widget.apiService.matchPredictionsEnabled) {
+      return const SizedBox.shrink();
+    }
+    return MatchPredictionCard(
+      key: ValueKey('prediction_${match.matchKey}'),
+      apiService: widget.apiService,
+      eventKey: eventKey,
+      match: match,
+      margin: margin,
+    );
   }
 
   Widget _buildNextAssignmentChip({EdgeInsetsGeometry? margin}) {
@@ -1469,6 +1486,8 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                 ),
               ),
 
+              _buildPredictionCard(margin: const EdgeInsets.only(top: 10.0)),
+
               const SizedBox(height: 10.0),
 
               if (_selectedTeam == null || _selectedMatch == null)
@@ -1725,6 +1744,8 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                 ],
               ),
             ),
+
+            _buildPredictionCard(),
 
             // Tab Row & Scouting Form (Only rendered when team and match are selected)
             if (_selectedTeam == null || _selectedMatch == null)

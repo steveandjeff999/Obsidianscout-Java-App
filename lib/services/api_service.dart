@@ -21,6 +21,7 @@ import '../models/match_planning_models.dart';
 import '../models/gamepad_models.dart';
 import '../models/share_models.dart';
 import '../models/pick_list_models.dart';
+import '../models/match_pick_models.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../data/local_store.dart';
 import 'auth_storage_service.dart';
@@ -407,6 +408,7 @@ class ApiService {
       if (_isOnline) {
         // The outbox goes first, ahead of the full refresh's user/settings fetches.
         if (outboxCount.value > 0) _scheduleOutboxRetry(soon: true);
+        flushPendingMatchPicks();
         syncAllServerDataInBackground();
       }
     }
@@ -1482,6 +1484,236 @@ class ApiService {
     );
   }
 
+  // Match predictions game (scouts pick each match's winner; Admin Settings turns it on)
+
+  static const String matchPredictionsPage = 'match-predictions';
+  static const String _pendingPicksKey = 'pending_match_predictions';
+
+  bool get matchPredictionsEnabled => _currentSettings?.matchPredictionsEnabled == true;
+
+  /// Picks made offline, keyed by match key: {eventKey, matchKey, predictedWinner}.
+  Future<Map<String, Map<String, dynamic>>> _readPendingPicks() async {
+    final raw = await _getCache(_pendingPicksKey);
+    if (raw == null || raw.isEmpty) return {};
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) return {};
+      return decoded.map((k, v) => MapEntry(k.toString(), Map<String, dynamic>.from(v as Map)));
+    } catch (_) {
+      return {};
+    }
+  }
+
+  Future<void> _writePendingPicks(Map<String, Map<String, dynamic>> picks) =>
+      _setCache(_pendingPicksKey, jsonEncode(picks));
+
+  /// The scout's picks for an event, with each match's lock state and result, keyed by match key.
+  /// Falls back to the last copy on this device when offline; picks waiting to upload are layered on top.
+  /// Null when the server says predictions are off.
+  Future<Map<String, MatchPickStatus>?> fetchMatchPicks(String eventKey) async {
+    final cacheKey = 'cache_match_picks_$eventKey';
+    Map<String, MatchPickStatus> parse(String body) {
+      final decoded = jsonDecode(body);
+      final list = decoded is Map && decoded['matches'] is List ? decoded['matches'] as List : const [];
+      return {
+        for (final m in list.whereType<Map>())
+          m['matchKey'].toString(): MatchPickStatus.fromJson(Map<String, dynamic>.from(m)),
+      };
+    }
+
+    Map<String, MatchPickStatus>? picks;
+    if (_isOnline) {
+      try {
+        final response = await http
+            .get(Uri.parse('$_currentServerUrl/api/match-predictions').replace(queryParameters: {'eventKey': eventKey}),
+                headers: _headers)
+            .timeout(const Duration(seconds: 12));
+        _checkResponse(response);
+        if (response.statusCode == 403) return null;
+        if (response.statusCode == 200) {
+          picks = parse(response.body);
+          await _setCache(cacheKey, response.body);
+        }
+      } catch (_) {}
+    }
+    if (picks == null) {
+      final cached = await _getCache(cacheKey);
+      if (cached != null && cached.isNotEmpty) {
+        try {
+          picks = parse(cached);
+        } catch (_) {}
+      }
+    }
+    picks ??= {};
+    final pending = await _readPendingPicks();
+    for (final p in pending.values) {
+      final key = p['matchKey']?.toString() ?? '';
+      if (key.isEmpty || (p['eventKey']?.toString() ?? '') != eventKey) continue;
+      final current = picks[key] ?? MatchPickStatus(matchKey: key);
+      if (current.locked) continue;
+      picks[key] = current.withPick(p['predictedWinner']?.toString(), pendingSync: true);
+    }
+    return picks;
+  }
+
+  Future<void> _updateCachedPick(String eventKey, String matchKey, String winner) async {
+    final cacheKey = 'cache_match_picks_$eventKey';
+    final cached = await _getCache(cacheKey);
+    Map<String, dynamic> doc;
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(cached);
+        doc = decoded is Map<String, dynamic> ? decoded : {'matches': <dynamic>[]};
+      } catch (_) {
+        doc = {'matches': <dynamic>[]};
+      }
+    } else {
+      doc = {'matches': <dynamic>[]};
+    }
+    final list = (doc['matches'] is List ? doc['matches'] as List : <dynamic>[]).toList();
+    final idx = list.indexWhere((m) => m is Map && m['matchKey']?.toString() == matchKey);
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+    final winnerVal = winner.isEmpty ? null : winner;
+    if (idx >= 0) {
+      final existing = Map<String, dynamic>.from(list[idx] as Map);
+      existing['predictedWinner'] = winnerVal;
+      existing['updatedAt'] = winnerVal == null ? null : nowIso;
+      list[idx] = existing;
+    } else {
+      list.add({
+        'matchKey': matchKey,
+        'predictedWinner': winnerVal,
+        'result': null,
+        'locked': false,
+        'updatedAt': winnerVal == null ? null : nowIso,
+      });
+    }
+    doc['matches'] = list;
+    await _setCache(cacheKey, jsonEncode(doc));
+  }
+
+  /// Saves a pick ("red", "blue", or "" to clear). Offline, it waits on this device and uploads later.
+  Future<MatchPickSaveResult> saveMatchPick(String eventKey, String matchKey, String winner) async {
+    Future<MatchPickSaveResult> queue() async {
+      final pending = await _readPendingPicks();
+      pending[matchKey] = {'eventKey': eventKey, 'matchKey': matchKey, 'predictedWinner': winner};
+      await _writePendingPicks(pending);
+      return MatchPickSaveResult.queued;
+    }
+
+    if (!_isOnline) return queue();
+    try {
+      final response = await http
+          .put(
+            Uri.parse('$_currentServerUrl/api/match-predictions'),
+            headers: _headers,
+            body: jsonEncode({'eventKey': eventKey, 'matchKey': matchKey, 'predictedWinner': winner}),
+          )
+          .timeout(const Duration(seconds: 12));
+      _checkResponse(response);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        await _updateCachedPick(eventKey, matchKey, winner);
+        final pending = await _readPendingPicks();
+        if (pending.remove(matchKey) != null) await _writePendingPicks(pending);
+        return MatchPickSaveResult.saved;
+      }
+      if (response.statusCode == 409) return MatchPickSaveResult.locked;
+      if (response.statusCode >= 500) return await queue();
+      return MatchPickSaveResult.failed;
+    } catch (_) {
+      return queue();
+    }
+  }
+
+  bool _flushingPicks = false;
+
+  /// Uploads picks saved offline. One the server refuses (result already in, predictions off) is dropped.
+  Future<void> flushPendingMatchPicks() async {
+    if (_flushingPicks || !_isOnline) return;
+    _flushingPicks = true;
+    try {
+      final pending = await _readPendingPicks();
+      if (pending.isEmpty) return;
+      for (final entry in pending.entries.toList()) {
+        try {
+          final response = await http
+              .put(Uri.parse('$_currentServerUrl/api/match-predictions'), headers: _headers, body: jsonEncode(entry.value))
+              .timeout(const Duration(seconds: 12));
+          if (response.statusCode == 401) {
+            _checkResponse(response);
+            break;
+          }
+          if (response.statusCode >= 500) break;
+          final eventKey = entry.value['eventKey']?.toString() ?? '';
+          final matchKey = entry.value['matchKey']?.toString() ?? '';
+          final winner = entry.value['predictedWinner']?.toString() ?? '';
+          if (response.statusCode >= 200 && response.statusCode < 300 && eventKey.isNotEmpty && matchKey.isNotEmpty) {
+            await _updateCachedPick(eventKey, matchKey, winner);
+          }
+          pending.remove(entry.key);
+        } catch (_) {
+          break;
+        }
+      }
+      await _writePendingPicks(pending);
+    } finally {
+      _flushingPicks = false;
+    }
+  }
+
+  /// Scouts ranked by pick accuracy for one event ([eventKey]) or a whole season ([year]).
+  Future<PickLeaderboard?> fetchPickLeaderboard({String? eventKey, int? year}) async {
+    final params = <String, String>{
+      if (eventKey != null && eventKey.isNotEmpty) 'eventKey': eventKey,
+      if ((eventKey == null || eventKey.isEmpty) && year != null) 'year': '$year',
+    };
+    final cacheKey = 'cache_pick_leaderboard_${params['eventKey'] ?? 'y${params['year'] ?? ''}'}';
+    if (_isOnline) {
+      try {
+        final response = await http
+            .get(Uri.parse('$_currentServerUrl/api/match-predictions/leaderboard').replace(queryParameters: params),
+                headers: _headers)
+            .timeout(const Duration(seconds: 15));
+        _checkResponse(response);
+        if (response.statusCode == 200) {
+          await _setCache(cacheKey, response.body);
+          return PickLeaderboard.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+        }
+        if (response.statusCode == 403) return null;
+      } catch (_) {}
+    }
+    final cached = await _getCache(cacheKey);
+    if (cached == null || cached.isEmpty) return null;
+    try {
+      return PickLeaderboard.fromJson(jsonDecode(cached) as Map<String, dynamic>);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<PickLeaderboardOptions> fetchPickLeaderboardOptions() async {
+    const cacheKey = 'cache_pick_leaderboard_options';
+    if (_isOnline) {
+      try {
+        final response = await http
+            .get(Uri.parse('$_currentServerUrl/api/match-predictions/leaderboard/options'), headers: _headers)
+            .timeout(const Duration(seconds: 12));
+        _checkResponse(response);
+        if (response.statusCode == 200) {
+          await _setCache(cacheKey, response.body);
+          return PickLeaderboardOptions.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+        }
+      } catch (_) {}
+    }
+    final cached = await _getCache(cacheKey);
+    if (cached == null || cached.isEmpty) return const PickLeaderboardOptions();
+    try {
+      return PickLeaderboardOptions.fromJson(jsonDecode(cached) as Map<String, dynamic>);
+    } catch (_) {
+      return const PickLeaderboardOptions();
+    }
+  }
+
   /// Every filled-out checklist for an event, keyed by match key (for per-match progress).
   Future<Map<String, Map<String, dynamic>>> fetchMatchChecklistsForEvent(String eventKey) async {
     final cacheKey = 'cache_match_checklists_$eventKey';
@@ -1952,6 +2184,10 @@ class ApiService {
     // Non-scouting tools are a personal opt-in (Settings > Non-Scouting Tools), not role pages.
     if (nonScoutingToolPages.contains(pageId)) {
       return _currentUser?.nonScoutingToolsEnabled ?? false;
+    }
+    // Match predictions are a team switch (Admin Settings), open to every role while it's on.
+    if (pageId == matchPredictionsPage) {
+      return matchPredictionsEnabled;
     }
 
     final role = (_currentUser?.role ?? 'SCOUT').toUpperCase();
