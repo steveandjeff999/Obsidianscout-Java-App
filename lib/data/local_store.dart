@@ -91,6 +91,7 @@ class LocalStore {
       key.startsWith('cache_') ||
       key.startsWith('checklist_drafts_') ||
       key.startsWith('battery_drafts_') ||
+      key.startsWith('scouting_draft_') ||
       key == 'obsidianscout:scanned_qr_entries';
 
   Future<void> ensureReady() => _ready ??= _open();

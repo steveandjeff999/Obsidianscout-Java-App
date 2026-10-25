@@ -19,6 +19,8 @@ import '../models/assignment_models.dart';
 import '../services/assignment_advance_service.dart';
 import '../widgets/next_assignment_chip.dart';
 import '../widgets/match_prediction_card.dart';
+import '../services/scouting_draft_service.dart';
+import '../widgets/draft_restore_banner.dart';
 
 class MatchScoutScreen extends StatefulWidget {
   final ApiService apiService;
@@ -44,7 +46,7 @@ class MatchScoutScreen extends StatefulWidget {
   State<MatchScoutScreen> createState() => _MatchScoutScreenState();
 }
 
-class _MatchScoutScreenState extends State<MatchScoutScreen> {
+class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBindingObserver {
   final _formKey = GlobalKey<FormState>();
   ScoutingConfigModel? _config;
   List<TeamModel> _teams = [];
@@ -69,17 +71,155 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
   bool _initialAdvanceDone = false;
   final Set<String> _doneIds = {};
 
+  // Form draft persistence & accidental back protection
+  Timer? _draftSaveTimer;
+  ScoutingDraft? _availableDraft;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadPageData();
     _gamepadSubscription = GamepadService.instance.actionStream.listen(_handleGamepadAction);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _draftSaveTimer?.cancel();
     _gamepadSubscription?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      if (_isFormDirty) {
+        _saveDraftImmediate();
+      }
+    }
+  }
+
+  bool get _isFormDirty {
+    if (_isSubmitting) return false;
+    return ScoutingDraftService.hasMeaningfulData(_formData, _config);
+  }
+
+  void _onFieldChanged(String fieldId, dynamic val) {
+    setState(() => _formData[fieldId] = val);
+    _scheduleDraftSave();
+  }
+
+  void _scheduleDraftSave() {
+    _draftSaveTimer?.cancel();
+    _draftSaveTimer = Timer(const Duration(milliseconds: 800), _saveDraftImmediate);
+  }
+
+  Future<void> _saveDraftImmediate() async {
+    _draftSaveTimer?.cancel();
+    if (!mounted) return;
+    await ScoutingDraftService.saveDraft(
+      formType: 'match',
+      data: _formData,
+      teamNumber: _selectedTeam?.teamNumber,
+      matchKey: _selectedMatch?.matchKey,
+      matchNumber: _selectedMatch?.matchNumber,
+      eventKey: _eventKey,
+      config: _config,
+    );
+  }
+
+  void _restoreDraft(ScoutingDraft draft) {
+    setState(() {
+      if (draft.teamNumber != null) {
+        final team = _teams.where((t) => t.teamNumber == draft.teamNumber).firstOrNull ??
+            TeamModel(eventKey: _eventKey ?? '', teamKey: 'frc${draft.teamNumber}', teamNumber: draft.teamNumber!);
+        _selectedTeam = team;
+      }
+      if (draft.matchKey != null && draft.matchKey!.isNotEmpty) {
+        final match = _matches.where((m) => m.matchKey.toLowerCase() == draft.matchKey!.toLowerCase()).firstOrNull;
+        if (match != null) _selectedMatch = match;
+      } else if (draft.matchNumber != null) {
+        final match = _matches.where((m) => m.matchNumber == draft.matchNumber).firstOrNull;
+        if (match != null) _selectedMatch = match;
+      }
+      for (final entry in draft.data.entries) {
+        _formData[entry.key] = entry.value;
+      }
+      _availableDraft = null;
+    });
+    ObsidianFeedback.showSuccess(
+      context,
+      title: 'Draft Restored',
+      message: 'Restored scouting draft for ${draft.contextDescription()}',
+    );
+  }
+
+  void _discardDraft() async {
+    await ScoutingDraftService.clearDraft('match');
+    if (mounted) {
+      setState(() {
+        _availableDraft = null;
+      });
+      ObsidianFeedback.showWarning(context, title: 'Draft Discarded', message: 'In-progress draft was discarded.');
+    }
+  }
+
+  Future<bool> _handlePopAttempt() async {
+    if (!_isFormDirty) return true;
+
+    final surfaceColor = ObsidianUITheme.getSurfaceColor(context);
+    final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: surfaceColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+        title: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: ObsidianUITheme.warningOrange, size: 28.0),
+            const SizedBox(width: 10.0),
+            Expanded(
+              child: Text(
+                'Discard Scouting Progress?',
+                style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold, color: primaryTextColor),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'You have unsaved scouting data for ${_selectedMatch?.displayLabel ?? 'this match'}${_selectedTeam != null ? ' (Team ${_selectedTeam!.teamNumber})' : ''}.\n\nWould you like to keep scouting, save your progress as a draft, or discard?',
+          style: TextStyle(fontSize: 14.0, color: secondaryTextColor),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop('stay'),
+            child: Text('Keep Scouting', style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(ctx))),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop('discard'),
+            child: const Text('Discard', style: TextStyle(color: ObsidianUITheme.errorRed)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.primaryAccent),
+            onPressed: () => Navigator.of(ctx).pop('save_draft'),
+            child: const Text('Save Draft & Exit', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (result == 'save_draft') {
+      await _saveDraftImmediate();
+      return true;
+    } else if (result == 'discard') {
+      await ScoutingDraftService.clearDraft('match');
+      _resetForm();
+      return true;
+    }
+    return false;
   }
 
   @override
@@ -119,6 +259,13 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
         _applyInitialSelections();
       });
       _initAssignments();
+    }
+
+    final savedDraft = await ScoutingDraftService.loadDraft('match');
+    if (mounted && savedDraft != null) {
+      setState(() {
+        _availableDraft = savedDraft;
+      });
     }
 
     // If offline, stop immediately - don't wait for any network timeouts
@@ -381,6 +528,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
         }
       }
     });
+    _scheduleDraftSave();
   }
 
   void _onMatchSelected(MatchModel? match) {
@@ -397,6 +545,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
         }
       }
     });
+    _scheduleDraftSave();
   }
 
   String _getFieldPhase(ScoutingFieldModel field) {
@@ -725,11 +874,13 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
   }
 
   void _resetForm() {
+    ScoutingDraftService.clearDraft('match');
     if (_config != null) {
       setState(() {
         _formData.clear();
         _resetFormData(_config!);
         _activeTab = 'auto';
+        _availableDraft = null;
       });
     }
   }
@@ -796,6 +947,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
             setState(() {
               _formData[fieldId] = newVal;
             });
+            _scheduleDraftSave();
           }
         }
         break;
@@ -813,6 +965,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
             setState(() {
               _formData[fieldId] = newVal;
             });
+            _scheduleDraftSave();
           }
         }
         break;
@@ -825,6 +978,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
           setState(() {
             _formData[fieldId] = !boolVal;
           });
+          _scheduleDraftSave();
         }
         break;
 
@@ -839,6 +993,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
             setState(() {
               _formData[fieldId] = field.options[nextIndex].value;
             });
+            _scheduleDraftSave();
           }
         }
         break;
@@ -1384,7 +1539,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                         field: field,
                         currentValue: _formData[field.id],
                         currentPhase: _activeTab,
-                        onChanged: (val) => setState(() => _formData[field.id] = val),
+                        onChanged: (val) => _onFieldChanged(field.id, val),
                       ),
                     );
                   }).toList(),
@@ -1398,7 +1553,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
                     field: field,
                     currentValue: _formData[field.id],
                     currentPhase: _activeTab,
-                    onChanged: (val) => setState(() => _formData[field.id] = val),
+                    onChanged: (val) => _onFieldChanged(field.id, val),
                   ),
                 )),
         ],
@@ -1418,17 +1573,24 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
     final fields = _config?.fields ?? [];
     final points = _calculatePoints();
 
-    if (isDesktop) {
-      return SingleChildScrollView(
-        physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
-        padding: const EdgeInsets.fromLTRB(20.0, 12.0, 20.0, 24.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SyncStatusBanner(apiService: widget.apiService, margin: const EdgeInsets.only(bottom: 8)),
-              _buildNextAssignmentChip(margin: const EdgeInsets.only(bottom: 8)),
+    final Widget content = isDesktop
+        ? SingleChildScrollView(
+            physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+            padding: const EdgeInsets.fromLTRB(20.0, 12.0, 20.0, 24.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SyncStatusBanner(apiService: widget.apiService, margin: const EdgeInsets.only(bottom: 8)),
+                  if (_availableDraft != null)
+                    DraftRestoreBanner(
+                      draft: _availableDraft!,
+                      onRestore: () => _restoreDraft(_availableDraft!),
+                      onDiscard: _discardDraft,
+                      margin: const EdgeInsets.only(bottom: 8),
+                    ),
+                  _buildNextAssignmentChip(margin: const EdgeInsets.only(bottom: 8)),
               // Team & Match Selector Card
               ObsidianGlassCard(
                 child: Row(
@@ -1673,19 +1835,24 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
             ],
           ),
         ),
-      );
-    }
-
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
-      padding: EdgeInsets.only(top: 4.0, bottom: widget.isBarsVisible ? 120.0 : 20.0),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SyncStatusBanner(apiService: widget.apiService),
-            _buildNextAssignmentChip(),
+      )
+    : SingleChildScrollView(
+        physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+        padding: EdgeInsets.only(top: 4.0, bottom: widget.isBarsVisible ? 120.0 : 20.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SyncStatusBanner(apiService: widget.apiService),
+              if (_availableDraft != null)
+                DraftRestoreBanner(
+                  draft: _availableDraft!,
+                  onRestore: () => _restoreDraft(_availableDraft!),
+                  onDiscard: _discardDraft,
+                  margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                ),
+              _buildNextAssignmentChip(),
             // Team & Match Dropdowns Card
             ObsidianGlassCard(
               child: Column(
@@ -1921,6 +2088,20 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> {
           ],
         ),
       ),
+    );
+
+    return PopScope(
+      canPop: !_isFormDirty,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldPop = await _handlePopAttempt();
+        if (shouldPop && context.mounted) {
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop(result);
+          }
+        }
+      },
+      child: content,
     );
   }
 }

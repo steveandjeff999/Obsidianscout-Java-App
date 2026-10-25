@@ -1,4 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import '../services/scouting_draft_service.dart';
+import '../widgets/draft_restore_banner.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/dynamic_field_widget.dart';
@@ -35,7 +38,10 @@ class PitScoutScreen extends StatefulWidget {
   State<PitScoutScreen> createState() => _PitScoutScreenState();
 }
 
-class _PitScoutScreenState extends State<PitScoutScreen> {
+class _PitScoutScreenState extends State<PitScoutScreen> with WidgetsBindingObserver {
+  // Form draft persistence & accidental back protection
+  Timer? _draftSaveTimer;
+  ScoutingDraft? _availableDraft;
   final _formKey = GlobalKey<FormState>();
   ScoutingConfigModel? _config;
   List<TeamModel> _teams = [];
@@ -57,7 +63,142 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadPitData();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _draftSaveTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      if (_isFormDirty) {
+        _saveDraftImmediate();
+      }
+    }
+  }
+
+  bool get _isFormDirty {
+    if (_isSubmitting) return false;
+    return ScoutingDraftService.hasMeaningfulData(_formData, _config);
+  }
+
+  void _onFieldChanged(String fieldId, dynamic val) {
+    setState(() => _formData[fieldId] = val);
+    _scheduleDraftSave();
+  }
+
+  void _onTeamSelected(TeamModel? team) {
+    setState(() => _selectedTeam = team);
+    _scheduleDraftSave();
+  }
+
+  void _scheduleDraftSave() {
+    _draftSaveTimer?.cancel();
+    _draftSaveTimer = Timer(const Duration(milliseconds: 800), _saveDraftImmediate);
+  }
+
+  Future<void> _saveDraftImmediate() async {
+    _draftSaveTimer?.cancel();
+    if (!mounted) return;
+    await ScoutingDraftService.saveDraft(
+      formType: 'pit',
+      data: _formData,
+      teamNumber: _selectedTeam?.teamNumber,
+      eventKey: _eventKey,
+      config: _config,
+    );
+  }
+
+  void _restoreDraft(ScoutingDraft draft) {
+    setState(() {
+      if (draft.teamNumber != null) {
+        final team = _teams.where((t) => t.teamNumber == draft.teamNumber).firstOrNull ??
+            TeamModel(eventKey: _eventKey ?? '', teamKey: 'frc${draft.teamNumber}', teamNumber: draft.teamNumber!);
+        _selectedTeam = team;
+      }
+      for (final entry in draft.data.entries) {
+        _formData[entry.key] = entry.value;
+      }
+      _availableDraft = null;
+    });
+    ObsidianFeedback.showSuccess(
+      context,
+      title: 'Draft Restored',
+      message: 'Restored pit scouting draft for ${draft.contextDescription()}',
+    );
+  }
+
+  void _discardDraft() async {
+    await ScoutingDraftService.clearDraft('pit');
+    if (mounted) {
+      setState(() {
+        _availableDraft = null;
+      });
+      ObsidianFeedback.showWarning(context, title: 'Draft Discarded', message: 'In-progress draft was discarded.');
+    }
+  }
+
+  Future<bool> _handlePopAttempt() async {
+    if (!_isFormDirty) return true;
+
+    final surfaceColor = ObsidianUITheme.getSurfaceColor(context);
+    final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
+    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: surfaceColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+        title: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: ObsidianUITheme.warningOrange, size: 28.0),
+            const SizedBox(width: 10.0),
+            Expanded(
+              child: Text(
+                'Discard Pit Scouting Progress?',
+                style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold, color: primaryTextColor),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'You have unsaved pit scouting data for ${_selectedTeam != null ? 'Team ${_selectedTeam!.teamNumber}' : 'this team'}.\n\nWould you like to keep scouting, save your progress as a draft, or discard?',
+          style: TextStyle(fontSize: 14.0, color: secondaryTextColor),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop('stay'),
+            child: Text('Keep Scouting', style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(ctx))),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop('discard'),
+            child: const Text('Discard', style: TextStyle(color: ObsidianUITheme.errorRed)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.primaryAccent),
+            onPressed: () => Navigator.of(ctx).pop('save_draft'),
+            child: const Text('Save Draft & Exit', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (result == 'save_draft') {
+      await _saveDraftImmediate();
+      return true;
+    } else if (result == 'discard') {
+      await ScoutingDraftService.clearDraft('pit');
+      _resetForm();
+      return true;
+    }
+    return false;
   }
 
   @override
@@ -93,6 +234,13 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
         _applyInitialSelections();
       });
       _initAssignments();
+    }
+
+    final savedDraft = await ScoutingDraftService.loadDraft('pit');
+    if (mounted && savedDraft != null) {
+      setState(() {
+        _availableDraft = savedDraft;
+      });
     }
 
     // If offline, stop immediately - don't wait for network timeouts
@@ -363,11 +511,13 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
   }
 
   void _resetForm() {
+    ScoutingDraftService.clearDraft('pit');
     if (_config != null) {
       setState(() {
         _formData.clear();
         _resetFormData(_config!);
         _selectedTeam = null;
+        _availableDraft = null;
       });
     }
   }
@@ -474,6 +624,8 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
       if (completedId != null) {
         widget.apiService.updateAssignmentStatus(completedId, 'COMPLETED');
       }
+      ScoutingDraftService.clearDraft('pit');
+      _availableDraft = null;
       _resetForm();
       _advanceAfterSave(payload['targetTeamNumber'] as int, completedId);
     } else if (response.isOffline) {
@@ -494,6 +646,8 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
       if (completedId != null) {
         widget.apiService.updateAssignmentStatus(completedId, 'COMPLETED');
       }
+      ScoutingDraftService.clearDraft('pit');
+      _availableDraft = null;
       _resetForm();
       _advanceAfterSave(payload['targetTeamNumber'] as int, completedId);
     } else {
@@ -561,8 +715,8 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
       return t != 'section' && t != 'header' && t != 'divider';
     }).toList();
 
-    if (isDesktop) {
-      return SingleChildScrollView(
+    final Widget content = isDesktop
+        ? SingleChildScrollView(
         physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
         padding: const EdgeInsets.fromLTRB(20.0, 12.0, 20.0, 24.0),
         child: Form(
@@ -571,6 +725,13 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SyncStatusBanner(apiService: widget.apiService, margin: const EdgeInsets.only(bottom: 8)),
+              if (_availableDraft != null)
+                DraftRestoreBanner(
+                  draft: _availableDraft!,
+                  onRestore: () => _restoreDraft(_availableDraft!),
+                  onDiscard: _discardDraft,
+                  margin: const EdgeInsets.only(bottom: 8),
+                ),
               _buildNextAssignmentChip(margin: const EdgeInsets.only(bottom: 8)),
               _buildPitGroupBanner(margin: const EdgeInsets.only(bottom: 8)),
               ObsidianGlassCard(
@@ -586,7 +747,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
                     enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
                   ),
                   items: _teams.map((t) => DropdownMenuItem(value: t, child: Text(t.displayName, overflow: TextOverflow.ellipsis))).toList(),
-                  onChanged: (team) => setState(() => _selectedTeam = team),
+                  onChanged: _onTeamSelected,
                 ),
               ),
 
@@ -729,7 +890,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
                                       child: DynamicFieldWidget(
                                         field: field,
                                         currentValue: _formData[field.id],
-                                        onChanged: (val) => setState(() => _formData[field.id] = val),
+                                        onChanged: (val) => _onFieldChanged(field.id, val),
                                       ),
                                     );
                                   }).toList(),
@@ -745,10 +906,8 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
             ],
           ),
         ),
-      );
-    }
-
-    return SingleChildScrollView(
+      )
+    : SingleChildScrollView(
       physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
       padding: EdgeInsets.only(top: 4.0, bottom: widget.isBarsVisible ? 120.0 : 20.0),
       child: Form(
@@ -756,6 +915,13 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
         child: Column(
           children: [
             SyncStatusBanner(apiService: widget.apiService),
+            if (_availableDraft != null)
+              DraftRestoreBanner(
+                draft: _availableDraft!,
+                onRestore: () => _restoreDraft(_availableDraft!),
+                onDiscard: _discardDraft,
+                margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+              ),
             _buildNextAssignmentChip(),
             _buildPitGroupBanner(),
             ObsidianGlassCard(
@@ -779,7 +945,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
                       enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
                     ),
                     items: _teams.map((t) => DropdownMenuItem(value: t, child: Text(t.displayName, overflow: TextOverflow.ellipsis))).toList(),
-                    onChanged: (team) => setState(() => _selectedTeam = team),
+                    onChanged: _onTeamSelected,
                   ),
                 ],
               ),
@@ -832,7 +998,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
                             child: DynamicFieldWidget(
                               field: field,
                               currentValue: _formData[field.id],
-                              onChanged: (val) => setState(() => _formData[field.id] = val),
+                              onChanged: (val) => _onFieldChanged(field.id, val),
                             ),
                           )),
                     ],
@@ -917,6 +1083,20 @@ class _PitScoutScreenState extends State<PitScoutScreen> {
           ],
         ),
       ),
+    );
+
+    return PopScope(
+      canPop: !_isFormDirty,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldPop = await _handlePopAttempt();
+        if (shouldPop && context.mounted) {
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop(result);
+          }
+        }
+      },
+      child: content,
     );
   }
 }
