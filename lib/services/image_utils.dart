@@ -5,6 +5,8 @@ import 'dart:typed_data';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 
+import 'net/link_quality.dart';
+
 class ProcessedImageResult {
   final String dataUrl;
   final int width;
@@ -25,6 +27,14 @@ class ProcessedImageResult {
 
 class ImageProcessingUtils {
   static final ImagePicker _picker = ImagePicker();
+
+  /// Size budget for an uploaded photo; the encoder steps down once to stay near it.
+  static const int defaultBudgetBytes = 300 * 1024;
+
+  /// On a slow link a photo is uploaded smaller: still readable for a robot photo, about a third of the bytes.
+  static const int slowLinkMaxDimension = 960;
+  static const int slowLinkQuality = 64;
+  static const int slowLinkBudgetBytes = 120 * 1024;
 
   /// Captures an image using the device camera or picks from gallery,
   /// then strips EXIF/GPS metadata, downscales to at most 1280px (the server's limit),
@@ -57,16 +67,25 @@ class ImageProcessingUtils {
 
   /// Offloads CPU-intensive image decoding, resizing, and WebP compression
   /// to a background Dart isolate to keep the UI thread completely fluid.
+  /// On a slow link ([slowLink], by default the measured link) the photo is made smaller.
   static Future<ProcessedImageResult?> processImageBytesAsync(
     Uint8List rawBytes, {
     int maxDimension = 1280,
     int quality = 76,
+    bool? slowLink,
   }) async {
+    var budgetBytes = defaultBudgetBytes;
+    if (slowLink ?? LinkQuality.instance.isLowBandwidth) {
+      if (maxDimension > slowLinkMaxDimension) maxDimension = slowLinkMaxDimension;
+      if (quality > slowLinkQuality) quality = slowLinkQuality;
+      budgetBytes = slowLinkBudgetBytes;
+    }
     try {
       return await Isolate.run(() => processImageBytes(
         rawBytes,
         maxDimension: maxDimension,
         quality: quality,
+        budgetBytes: budgetBytes,
       ));
     } catch (_) {
       // Fallback to synchronous processing if isolate spawn fails
@@ -74,6 +93,7 @@ class ImageProcessingUtils {
         rawBytes,
         maxDimension: maxDimension,
         quality: quality,
+        budgetBytes: budgetBytes,
       );
     }
   }
@@ -85,6 +105,7 @@ class ImageProcessingUtils {
     Uint8List rawBytes, {
     int maxDimension = 1280,
     int quality = 76,
+    int budgetBytes = defaultBudgetBytes,
   }) {
     try {
       img.Image? decoded = img.decodeImage(rawBytes);
@@ -118,10 +139,10 @@ class ImageProcessingUtils {
         img.encodeWebP(decoded, lossless: false, quality: quality, method: 4),
       );
 
-      // Adaptive size pass: if high-frequency noise pushes the image over 300 KB,
-      // downscale slightly and lower quality to stay near the budget.
-      if (webpBytes.length > 300 * 1024) {
-        final int targetMaxDim = (maxDimension * 0.8).round().clamp(800, 1280);
+      // Adaptive size pass: if high-frequency noise pushes the image over the budget,
+      // downscale slightly and lower quality to stay near it.
+      if (webpBytes.length > budgetBytes) {
+        final int targetMaxDim = (maxDimension * 0.8).round().clamp(640, 1280);
         final int targetQ = (quality - 8).clamp(55, 75);
 
         int adaptiveW = decoded.width;

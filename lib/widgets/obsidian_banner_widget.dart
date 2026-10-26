@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
 import 'sanitized_banner_text.dart';
+import '../services/net/adaptive_timer.dart';
 
 class ObsidianBannerWidget extends StatefulWidget {
   final ApiService apiService;
@@ -33,7 +34,7 @@ class _ObsidianBannerWidgetState extends State<ObsidianBannerWidget> {
   void initState() {
     super.initState();
     _loadBanners();
-    _timer = Timer.periodic(widget.refreshInterval, (_) {
+    _timer = AdaptiveTimer(widget.refreshInterval, (_) {
       if (mounted && widget.apiService.isOnline) {
         _loadBanners();
       }

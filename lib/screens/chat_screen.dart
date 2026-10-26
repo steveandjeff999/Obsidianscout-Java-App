@@ -8,6 +8,7 @@ import '../models/chat_models.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_user_avatar.dart';
+import '../services/net/adaptive_timer.dart';
 
 class ChatScreen extends StatefulWidget {
   final ApiService apiService;
@@ -143,7 +144,7 @@ class _ChatScreenState extends State<ChatScreen> {
   void _startPolling() {
     _pollTimer?.cancel();
     if (!widget.isVisible) return;
-    _pollTimer = Timer.periodic(const Duration(milliseconds: 2500), (_) {
+    _pollTimer = AdaptiveTimer(const Duration(milliseconds: 2500), (_) {
       if (mounted && _isChatEnabled && widget.apiService.isOnline && widget.isVisible) {
         _loadMessagesAndUnreads(scrollToBottom: false);
       }

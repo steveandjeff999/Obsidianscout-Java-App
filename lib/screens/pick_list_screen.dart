@@ -9,6 +9,7 @@ import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/obsidian_feedback.dart';
+import '../services/net/adaptive_timer.dart';
 
 /// Ranked pick list for one event. The Do Not Pick list is the one Alliance Selection
 /// uses: the server keeps those teams out of the ranking and returns them separately.
@@ -80,7 +81,7 @@ class _PickListScreenState extends State<PickListScreen> with SingleTickerProvid
   void _startSyncTimer() {
     _syncTimer?.cancel();
     if (!widget.isVisible) return;
-    _syncTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+    _syncTimer = AdaptiveTimer(const Duration(seconds: 4), (_) {
       if (mounted && widget.apiService.isOnline && !_isLoading && _pendingSaves == 0 && widget.isVisible) {
         _refresh();
       }
