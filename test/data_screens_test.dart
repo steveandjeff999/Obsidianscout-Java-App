@@ -146,11 +146,6 @@ class _MockDataApiService extends ApiService {
   Future<ApiResponse<void>> updateScoutingEntry(String id, Map<String, dynamic> data, {String type = 'match'}) async {
     return const ApiResponse.success(null);
   }
-
-  @override
-  Future<void> clearScoutingCaches() async {
-    // No-op in tests — no SharedPreferences needed
-  }
 }
 
 void main() {

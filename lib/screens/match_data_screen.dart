@@ -92,7 +92,8 @@ class _MatchDataScreenState extends State<MatchDataScreen> {
     }
   }
 
-  Future<void> _loadData() async {
+  /// [revalidate] false redraws from the stored data only, e.g. after a conflict was resolved on this device.
+  Future<void> _loadData({bool revalidate = true}) async {
     // 1. Instant Cache Hydration
     final cachedSettings = await widget.apiService.getCachedSettings();
     final cachedMatchCfg = await widget.apiService.getCachedMatchConfig();
@@ -140,7 +141,7 @@ class _MatchDataScreenState extends State<MatchDataScreen> {
       });
     }
 
-    if (!widget.apiService.isOnline) {
+    if (!revalidate || !widget.apiService.isOnline) {
       if (mounted && _isLoading) setState(() => _isLoading = false);
       return;
     }
@@ -246,7 +247,7 @@ class _MatchDataScreenState extends State<MatchDataScreen> {
       type: 'match',
       fields: _matchConfig?.fields ?? [],
       conflictingEntries: rawEntries,
-      onResolved: _loadData,
+      onResolved: () => _loadData(revalidate: false),
     );
   }
 

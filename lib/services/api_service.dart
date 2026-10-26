@@ -3920,28 +3920,16 @@ class ApiService {
             ? '/api/qual-scouting/$cleanId'
             : '/api/scouting/$cleanId';
 
-    // Remove from local cache optimistically AND clear hasDiscrepancy on surviving entries
-    try {
-      final cacheKey = (lower == 'pit' || id.toLowerCase().startsWith('pit-'))
-          ? "cache_pit_scouting"
-          : (lower == 'qual' || lower == 'qualitative' || id.toLowerCase().startsWith('qual-') || id.toLowerCase().startsWith('qualitative-'))
-              ? "cache_qual_scouting"
-              : "cache_scouting";
-      final cached = await _getCache(cacheKey);
-      if (cached != null) {
-        final decoded = await _decodeCached(cached);
-        if (decoded is List) {
-          final filtered = decoded.where((e) => e is Map && e['id']?.toString() != cleanId).toList();
-          // Clear hasDiscrepancy on all surviving entries (will be recalculated by server on next fetch)
-          for (final e in filtered) {
-            if (e is Map) {
-              e['hasDiscrepancy'] = false;
-            }
-          }
-          await _setCache(cacheKey, jsonEncode(filtered));
-        }
+    // Remove from the stored list optimistically, so the data pages update without downloading it again.
+    final isPit = lower == 'pit' || id.toLowerCase().startsWith('pit-');
+    await _patchCachedEntries(_entryCacheKeyFor(type, id), (list) {
+      final removed = list.whereType<Map>().where((e) => e['id']?.toString() == cleanId).toList();
+      final kept = list.where((e) => !(e is Map && e['id']?.toString() == cleanId)).toList();
+      for (final r in removed) {
+        _clearResolvedDiscrepancy(kept, r, isPit: isPit);
       }
-    } catch (_) {}
+      return kept;
+    });
 
     if (!_isOnline) {
       return const ApiResponse.success(null, message: 'Removed from local cache (offline).');
@@ -3958,12 +3946,49 @@ class ApiService {
     }
   }
 
-  /// Clears all 3 scouting caches so the next fetch goes to the network directly.
-  /// Call this after resolving conflicts to ensure fresh data is loaded.
-  Future<void> clearScoutingCaches() async {
-    await _setCache('cache_scouting', '[]');
-    await _setCache('cache_pit_scouting', '[]');
-    await _setCache('cache_qual_scouting', '[]');
+  /// Stored entry list for an entry of [type] (or an id carrying a `pit-`/`qual-` prefix).
+  static String _entryCacheKeyFor(String type, String id) {
+    final lower = type.toLowerCase();
+    final lowerId = id.toLowerCase();
+    if (lower == 'pit' || lowerId.startsWith('pit-')) return 'cache_pit_scouting';
+    if (lower == 'qual' || lower == 'qualitative' || lowerId.startsWith('qual-') || lowerId.startsWith('qualitative-')) {
+      return 'cache_qual_scouting';
+    }
+    return 'cache_scouting';
+  }
+
+  /// Applies a change made on this device to a stored entry list (memory and disk), so the data pages can show it
+  /// at once instead of downloading every entry again: on a bad connection that download takes minutes. The next
+  /// delta sync brings the server's own copy of the change.
+  Future<void> _patchCachedEntries(String cacheKey, List<dynamic> Function(List<dynamic> entries) change) async {
+    try {
+      final current = await _getCachedEntryList(cacheKey);
+      final updated = change(List<dynamic>.of(current));
+      await _setCache(cacheKey, jsonEncode(updated));
+      setMemoryCache(cacheKey, updated);
+    } catch (e) {
+      debugPrint('[ApiService] Could not update stored entries ($cacheKey): $e');
+    }
+  }
+
+  /// Entries the server counts as one submission slot: same team in the same match (same event for pit).
+  static String _discrepancyGroup(Map entry, {required bool isPit}) {
+    final team = entry['targetTeamNumber']?.toString() ?? '';
+    final prescout = entry['isPrescout'] == true ? 'p' : '';
+    if (isPit) return '$prescout|${entry['eventKey'] ?? ''}|$team';
+    return '$prescout|${entry['eventKey'] ?? ''}|${entry['matchKey'] ?? entry['matchNumber'] ?? ''}|$team';
+  }
+
+  /// After [removed] is gone, an entry left alone in its group no longer disagrees with anything. Other groups keep
+  /// their flags: the delta sync only re-sends entries that changed, so a flag cleared here would stay cleared.
+  static void _clearResolvedDiscrepancy(List<dynamic> entries, Map removed, {required bool isPit}) {
+    final group = _discrepancyGroup(removed, isPit: isPit);
+    final same = entries.whereType<Map>().where((e) => _discrepancyGroup(e, isPit: isPit) == group).toList();
+    if (same.length > 1) return;
+    for (final e in same) {
+      e['hasDiscrepancy'] = false;
+      e.remove('conflictingTeams');
+    }
   }
 
   Future<ApiResponse<void>> updateScoutingEntry(String id, Map<String, dynamic> data, {String type = 'match'}) async {
@@ -3991,6 +4016,21 @@ class ApiService {
         headers: _headers,
         body: jsonEncode({'data': data}),
       );
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        // Put the saved entry into the stored list: the server's copy when it sent one, else the data just sent.
+        Map<String, dynamic>? saved;
+        try {
+          final decoded = jsonDecode(response.body);
+          if (decoded is Map && decoded['id'] != null) saved = Map<String, dynamic>.from(decoded);
+        } catch (_) {}
+        await _patchCachedEntries(_entryCacheKeyFor(type, id), (list) => [
+              for (final e in list)
+                if (e is Map && e['id']?.toString() == cleanId)
+                  saved != null ? {...e, ...saved} : {...e, 'data': data}
+                else
+                  e,
+            ]);
+      }
       return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to update scouting entry');
     } catch (e) {
       return ApiResponse.error(message: e.toString());
