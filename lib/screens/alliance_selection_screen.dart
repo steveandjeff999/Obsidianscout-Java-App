@@ -8,6 +8,7 @@ import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/obsidian_feedback.dart';
 import '../data/local_store.dart';
+import '../services/net/adaptive_timer.dart';
 
 class AllianceSelectionScreen extends StatefulWidget {
   final ApiService apiService;
@@ -98,8 +99,8 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
   void _startRealtimeSyncTimer() {
     _realtimeSyncTimer?.cancel();
     if (!widget.isVisible) return;
-    // Poll server every 4 seconds for real-time synchronization with server & other scouts when screen is visible
-    _realtimeSyncTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+    // Poll server every 4 seconds (longer on a slow link) for real-time synchronization with server & other scouts when screen is visible
+    _realtimeSyncTimer = AdaptiveTimer(const Duration(seconds: 4), (_) {
       if (mounted && widget.apiService.isOnline && !_isLoading && !_isSaving && _selectedEventKey != null && widget.isVisible) {
         _catchUpAndSyncWithServer();
       }

@@ -25,6 +25,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "14.5.0"
+  android_file_picker:
+    dependency: transitive
+    description:
+      name: android_file_picker
+      sha256: "03d3dd3cb578ab26b1e528aeea27bf6b976942f5a24e3da82d270369b8e161a8"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.1.2"
   archive:
     dependency: "direct main"
     description:
@@ -249,6 +257,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.2"
+  cronet_http:
+    dependency: "direct main"
+    description:
+      name: cronet_http
+      sha256: d8aa6c72b4a3b6c9b299a53f0c4e10cfc87961b2c7496e6c9a7216157f9c529c
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.10.0"
   cross_file:
     dependency: transitive
     description:
@@ -265,6 +281,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.7"
+  cupertino_http:
+    dependency: "direct main"
+    description:
+      name: cupertino_http
+      sha256: "82cbec60c90bf785a047a9525688b6dacac444e177e1d5a5876963d3c50369e8"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.4.0"
   cupertino_icons:
     dependency: "direct main"
     description:
@@ -353,6 +377,46 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.0.1"
+  file_picker:
+    dependency: "direct main"
+    description:
+      name: file_picker
+      sha256: e67f1bcbef00f8b28f3b6ce09a1f0d2d9de37cf1e1e7e73b70df7a20d3eee8be
+      url: "https://pub.dev"
+    source: hosted
+    version: "13.3.0"
+  file_picker_darwin:
+    dependency: transitive
+    description:
+      name: file_picker_darwin
+      sha256: "13e731433fb3e59c1aff5a1197e41c5c5f930fad16342d101579086271a70d7b"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.4.0"
+  file_picker_linux:
+    dependency: transitive
+    description:
+      name: file_picker_linux
+      sha256: c6562fc7d426db2fb85ea66fe2627953d2709932df5584ceaacf0aa5e39cf4da
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.2"
+  file_picker_platform_interface:
+    dependency: transitive
+    description:
+      name: file_picker_platform_interface
+      sha256: "336e7168306834a2b68e6168ed768e00d3fabeac23154d5793e277ca9f97cf20"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.2.0"
+  file_picker_web:
+    dependency: transitive
+    description:
+      name: file_picker_web
+      sha256: a2288008280aabe371aff029466b3405e60838e0a1d714767488c59b926c8b8c
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.2.0"
   file_selector_linux:
     dependency: transitive
     description:
@@ -629,6 +693,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.1.2"
+  http_profile:
+    dependency: transitive
+    description:
+      name: http_profile
+      sha256: "7e679e355b09aaee2ab5010915c932cce3f2d1c11c3b2dc177891687014ffa78"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.0"
   image:
     dependency: "direct main"
     description:
@@ -1466,6 +1538,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.5.2"
+  windows_file_picker:
+    dependency: transitive
+    description:
+      name: windows_file_picker
+      sha256: "18452aa293de3b6961c6d05b0e71b4be7bb90c67635abdd3aa5c4e75dd875072"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.1"
   xdg_directories:
     dependency: transitive
     description:

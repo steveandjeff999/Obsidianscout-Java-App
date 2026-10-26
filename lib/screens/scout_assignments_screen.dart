@@ -7,6 +7,7 @@ import '../models/team_match_models.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
+import '../services/net/adaptive_timer.dart';
 
 class ScoutAssignmentsScreen extends StatefulWidget {
   final ApiService apiService;
@@ -87,7 +88,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
   void _startPolling() {
     _pollTimer?.cancel();
     if (!widget.isVisible) return;
-    _pollTimer = Timer.periodic(const Duration(seconds: 20), (_) {
+    _pollTimer = AdaptiveTimer(const Duration(seconds: 20), (_) {
       if (mounted && widget.isVisible && !_isModalOpen && widget.apiService.isOnline) {
         _pollAssignmentsSilently();
       }

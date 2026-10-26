@@ -4,7 +4,9 @@
 /// * a request fails only when it stops making progress (no headers within the connect window, or no new bytes
 ///   for the idle window), so a large download on a 10 kbps link finishes instead of restarting forever;
 /// * GETs send `If-None-Match` with the stored ETag and turn a `304 Not Modified` back into the stored body;
-/// * JSON bodies of 1 KB or more are gzipped (the server decodes `Content-Encoding: gzip`).
+/// * JSON bodies of 1 KB or more are gzipped (the server decodes `Content-Encoding: gzip`);
+/// * on Android and iOS the platform's HTTP stack carries the requests (HTTP/2, QUIC, Brotli; see
+///   [createPlatformClient]), and idle connections are kept for reuse instead of re-handshaking every few seconds.
 ///
 /// Import it `as http` in place of `package:http/http.dart`; everything else in that package is re-exported.
 library;
@@ -19,6 +21,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'link_quality.dart';
+import 'platform_client_stub.dart' if (dart.library.io) 'platform_client_io.dart';
 import 'request_scheduler.dart';
 
 export 'package:http/http.dart' hide get, post, put, patch, delete, head, read, readBytes;
@@ -38,11 +41,18 @@ class NetClient {
   static const int maxEtagBodyChars = 512 * 1024;
 
   static const Duration lowBandwidthMinWait = Duration(seconds: 30);
+
+  /// Headers wait at least this long when no connection to the server is likely still open: DNS, TCP, TLS and the
+  /// request itself are four round trips, too many for a 6 s window on a 2 s-latency link.
+  static const Duration coldConnectMinWait = Duration(seconds: 15);
   static const Duration minBodyIdle = Duration(seconds: 15);
   static const Duration maxRequest = Duration(minutes: 10);
 
-  http.Client _client = http.Client();
+  late http.Client _client = createPlatformClient();
   bool _gzipDisabled = false;
+
+  /// When each origin last answered, to tell a reusable connection from one that has to be set up again.
+  final Map<String, DateTime> _lastResponseAt = {};
 
   /// How long to wait for response headers on a normal link (the user's request timeout setting).
   Duration Function() connectTimeout = () => const Duration(seconds: 6);
@@ -58,6 +68,7 @@ class NetClient {
   void resetForTesting() {
     _client = http.Client();
     _gzipDisabled = false;
+    _lastResponseAt.clear();
     readEtag = null;
     writeEtag = null;
     connectTimeout = () => const Duration(seconds: 6);
@@ -165,12 +176,23 @@ class NetClient {
   }
 
   Future<http.Response> _transfer(String method, Uri url, Map<String, String> headers, List<int>? body) async {
-    final request = http.Request(method, url)..headers.addAll(headers);
+    // Only GET/HEAD follow redirects, as with dart:io; the native stacks would also follow a POST's, and sign-in
+    // needs to see its 302 (and the cookie on it).
+    final request = http.Request(method, url)
+      ..headers.addAll(headers)
+      ..followRedirects = method == 'GET' || method == 'HEAD';
     if (body != null) request.bodyBytes = body;
 
     final low = LinkQuality.instance.isLowBandwidth;
     final configured = connectTimeout();
-    final connect = low ? _max(configured, lowBandwidthMinWait) : configured;
+    final origin = url.origin;
+    final lastAnswer = _lastResponseAt[origin];
+    final cold = lastAnswer == null || DateTime.now().difference(lastAnswer) > connectionIdleTimeout;
+    final connect = low
+        ? _max(configured, lowBandwidthMinWait)
+        : cold
+            ? _max(configured, coldConnectMinWait)
+            : configured;
     final bodyIdle = _max(connect, low ? lowBandwidthMinWait : minBodyIdle);
 
     final watch = Stopwatch()..start();
@@ -182,6 +204,7 @@ class NetClient {
       rethrow;
     }
     final ttfb = watch.elapsedMilliseconds;
+    _lastResponseAt[origin] = DateTime.now();
     final data = await _readWithIdle(streamed.stream, bodyIdle, maxRequest - watch.elapsed, watch);
     final encoding = streamed.headers['content-encoding'] ?? '';
     LinkQuality.instance.recordTransfer(

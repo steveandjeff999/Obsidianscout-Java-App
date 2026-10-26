@@ -21,6 +21,7 @@ import '../widgets/match_planning/strategy_field_canvas.dart';
 import '../widgets/match_planning/team_strategy_card.dart';
 import '../widgets/obsidian_feedback.dart';
 import '../widgets/obsidian_glass_card.dart';
+import '../services/net/adaptive_timer.dart';
 
 class MatchPlanningScreen extends StatefulWidget {
   final ApiService apiService;
@@ -236,7 +237,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
 
   void _startPolling() {
     _stopPolling();
-    _pollTimer = Timer.periodic(const Duration(seconds: 6), (_) => _pollServer());
+    _pollTimer = AdaptiveTimer(const Duration(seconds: 6), (_) => _pollServer());
   }
 
   void _stopPolling() {

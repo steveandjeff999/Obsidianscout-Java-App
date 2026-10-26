@@ -128,6 +128,11 @@ class ApiService {
     _sessionPassword = password;
   }
 
+  @visibleForTesting
+  void setSessionCookieForTesting(String? cookie) {
+    _sessionCookie = cookie;
+  }
+
   /// Returns the account username if authenticated, else null
   String? get currentAccountUsername {
     if (!isLoggedIn) return null;
@@ -430,6 +435,15 @@ class ApiService {
   }
 
   static const Duration normalSyncInterval = Duration(seconds: 120);
+
+  /// Outer deadline for a request whose caller wants a bound on top of NetClient's own (which only fails a request
+  /// once it stops making progress): [normal] on a good link, and on a slow one long enough for a fresh connection
+  /// (several 1-3 s round trips) plus the transfer.
+  static Duration _deadline(Duration normal) {
+    if (!LinkQuality.instance.isLowBandwidth) return normal;
+    final slow = normal * 5;
+    return slow < const Duration(seconds: 60) ? const Duration(seconds: 60) : slow;
+  }
   static const Duration lowBandwidthSyncInterval = Duration(minutes: 10);
 
   /// On a slow link, configs, the team list, banners and the field image info are checked this often instead of
@@ -833,6 +847,7 @@ class ApiService {
       cleanUrl = 'https://$cleanUrl';
     }
     _currentServerUrl = cleanUrl.endsWith('/') ? cleanUrl.substring(0, cleanUrl.length - 1) : cleanUrl;
+    _outboxBatchSupported = true;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(keyServerUrl, _currentServerUrl);
   }
@@ -1209,7 +1224,7 @@ class ApiService {
           'password': password,
           'keepMeLoggedIn': _keepMeLoggedIn,
         }),
-      ).timeout(const Duration(seconds: 5));
+      ).timeout(_deadline(const Duration(seconds: 15)));
 
       if (response.statusCode == 200 || response.statusCode == 302) {
         _sessionPassword = password;
@@ -1527,7 +1542,7 @@ class ApiService {
         final response = await http
             .get(Uri.parse('$_currentServerUrl/api/match-predictions').replace(queryParameters: {'eventKey': eventKey}),
                 headers: _headers)
-            .timeout(const Duration(seconds: 12));
+            .timeout(_deadline(const Duration(seconds: 12)));
         _checkResponse(response);
         if (response.statusCode == 403) return null;
         if (response.statusCode == 200) {
@@ -1609,7 +1624,7 @@ class ApiService {
             headers: _headers,
             body: jsonEncode({'eventKey': eventKey, 'matchKey': matchKey, 'predictedWinner': winner}),
           )
-          .timeout(const Duration(seconds: 12));
+          .timeout(_deadline(const Duration(seconds: 12)));
       _checkResponse(response);
       if (response.statusCode >= 200 && response.statusCode < 300) {
         await _updateCachedPick(eventKey, matchKey, winner);
@@ -1638,7 +1653,7 @@ class ApiService {
         try {
           final response = await http
               .put(Uri.parse('$_currentServerUrl/api/match-predictions'), headers: _headers, body: jsonEncode(entry.value))
-              .timeout(const Duration(seconds: 12));
+              .timeout(_deadline(const Duration(seconds: 12)));
           if (response.statusCode == 401) {
             _checkResponse(response);
             break;
@@ -1673,7 +1688,7 @@ class ApiService {
         final response = await http
             .get(Uri.parse('$_currentServerUrl/api/match-predictions/leaderboard').replace(queryParameters: params),
                 headers: _headers)
-            .timeout(const Duration(seconds: 15));
+            .timeout(_deadline(const Duration(seconds: 15)));
         _checkResponse(response);
         if (response.statusCode == 200) {
           await _setCache(cacheKey, response.body);
@@ -1697,7 +1712,7 @@ class ApiService {
       try {
         final response = await http
             .get(Uri.parse('$_currentServerUrl/api/match-predictions/leaderboard/options'), headers: _headers)
-            .timeout(const Duration(seconds: 12));
+            .timeout(_deadline(const Duration(seconds: 12)));
         _checkResponse(response);
         if (response.statusCode == 200) {
           await _setCache(cacheKey, response.body);
@@ -2186,7 +2201,7 @@ class ApiService {
       return _currentUser?.nonScoutingToolsEnabled ?? false;
     }
     // Match predictions are a team switch (Admin Settings), open to every role while it's on.
-    if (pageId == matchPredictionsPage) {
+    if (pageId == matchPredictionsPage || pageId == 'prediction-leaderboard') {
       return matchPredictionsEnabled;
     }
 
@@ -3204,7 +3219,7 @@ class ApiService {
 
       for (final url in serverCandidates) {
         try {
-          final res = await http.get(Uri.parse(url), headers: _headers).timeout(const Duration(seconds: 4));
+          final res = await http.get(Uri.parse(url), headers: _headers).timeout(_deadline(const Duration(seconds: 15)));
           if (res.statusCode == 200 && res.bodyBytes.isNotEmpty) {
             await cacheFieldImageBytes(year, res.bodyBytes);
             return res.bodyBytes;
@@ -3563,10 +3578,14 @@ class ApiService {
       await _setCache(cacheKey, jsonEncode(list));
     } catch (_) {}
 
-    final body = kind == 'qual_batch' ? <String, dynamic>{'entries': entries} : <String, dynamic>{'data': entries.first};
+    // The outbox id doubles as the upload's clientId, so a retry after a lost response isn't stored twice.
+    final itemId = _generateUuidV4();
+    final body = kind == 'qual_batch'
+        ? <String, dynamic>{'entries': entries}
+        : <String, dynamic>{'data': entries.first, 'clientId': itemId};
 
     // In the outbox before the upload starts, so closing the app mid-request on a bad link loses nothing.
-    final outboxId = await _enqueueOutbox(kind, body, entries.first['eventKey']?.toString(), 'Uploading');
+    final outboxId = await _enqueueOutbox(kind, body, entries.first['eventKey']?.toString(), 'Uploading', id: itemId);
 
     ApiResponse<void> queued(String reason) {
       _scheduleOutboxRetry();
@@ -3607,7 +3626,7 @@ class ApiService {
     } catch (e) {
       if (outboxId == null) {
         // Couldn't write the outbox before the upload; try once more now.
-        await _enqueueOutbox(kind, body, entries.first['eventKey']?.toString(), e.toString());
+        await _enqueueOutbox(kind, body, entries.first['eventKey']?.toString(), e.toString(), id: itemId);
       } else {
         await _store.recordOutboxFailure(outboxId, e.toString()).catchError((_) {});
       }
@@ -3616,9 +3635,9 @@ class ApiService {
   }
 
   /// Returns the new item's id, or null when it couldn't be stored.
-  Future<String?> _enqueueOutbox(String kind, Map<String, dynamic> body, String? eventKey, String reason) async {
+  Future<String?> _enqueueOutbox(String kind, Map<String, dynamic> body, String? eventKey, String reason, {String? id}) async {
     try {
-      final id = _generateUuidV4();
+      id ??= _generateUuidV4();
       await _store.enqueue(OutboxItem(
         id: id,
         kind: kind,
@@ -3668,41 +3687,24 @@ class ApiService {
     var uploaded = 0;
     try {
       final items = await _store.outbox();
-      for (final item in items) {
-        if (!_isOnline) break;
-        try {
-          final http.Response response;
-          if (item.kind == 'assignment_status') {
-            final id = Uri.encodeComponent(item.payload['id'].toString());
-            response = await http
-                .post(Uri.parse('$_currentServerUrl/api/assignments/$id/status'),
-                    headers: _headers, body: jsonEncode({'status': item.payload['status']}));
-          } else {
-            final endpoint = _outboxEndpoints[item.kind];
-            if (endpoint == null) {
-              await _store.removeFromOutbox(item.id);
-              continue;
-            }
-            response = await http
-                .post(Uri.parse('$_currentServerUrl$endpoint'), headers: _headers, body: jsonEncode(item.payload));
+      var next = 0;
+      while (next < items.length && _isOnline) {
+        if (_outboxBatchSupported) {
+          final chunk = _nextOutboxChunk(items, next);
+          final sent = await _uploadOutboxBatch(chunk);
+          if (sent == null) {
+            // Server without the batch endpoint: upload one by one from here on.
+            _outboxBatchSupported = false;
+            continue;
           }
-
-          if (response.statusCode >= 200 && response.statusCode < 300) {
-            await _store.removeFromOutbox(item.id);
-            await _markOutboxHistory(item, 'synced');
-            uploaded++;
-          } else if (response.statusCode == 401 || response.statusCode == 403 || response.statusCode == 408 ||
-              response.statusCode == 429 || response.statusCode >= 500) {
-            await _store.recordOutboxFailure(item.id, 'HTTP ${response.statusCode}');
-            break;
-          } else {
-            // The server will never accept this as-is (e.g. 400/404/409/422).
-            await _store.removeFromOutbox(item.id);
-            await _markOutboxHistory(item, 'failed');
-          }
-        } catch (e) {
-          await _store.recordOutboxFailure(item.id, e.toString());
-          break;
+          uploaded += sent.uploaded;
+          if (sent.stop) break;
+          next += chunk.length;
+        } else {
+          final outcome = await _uploadOutboxItem(items[next]);
+          if (outcome == _OutboxOutcome.uploaded) uploaded++;
+          if (outcome == _OutboxOutcome.retryLater) break;
+          next++;
         }
       }
     } catch (e) {
@@ -3717,6 +3719,125 @@ class ApiService {
       debugPrint('[ApiService] Uploaded $uploaded saved submission(s) from the outbox');
     }
     return uploaded;
+  }
+
+  /// False once the server answered `/api/sync/outbox` with 404/405 (an older server); reset on server change.
+  bool _outboxBatchSupported = true;
+
+  /// One batch request carries at most this many items and roughly this much JSON, so a dropped connection on a slow
+  /// link costs one modest request rather than the whole outbox (pit entries with photos can be hundreds of KB each).
+  static const int _outboxBatchMaxItems = 25;
+  static const int _outboxBatchMaxChars = 256 * 1024;
+
+  /// Statuses that mean "try this again later" rather than "the server will never take it".
+  static bool _isRetryableStatus(int code) => code == 401 || code == 403 || code == 408 || code == 429 || code >= 500;
+
+  /// The item's payload with its outbox id as `clientId`, so the server recognises a retry of an upload whose
+  /// response was lost and doesn't store a second copy.
+  static Map<String, dynamic> _outboxPayload(OutboxItem item) {
+    if (item.kind == 'assignment_status' || item.kind == 'qual_batch' || item.payload['clientId'] != null) return item.payload;
+    return {...item.payload, 'clientId': item.id};
+  }
+
+  List<OutboxItem> _nextOutboxChunk(List<OutboxItem> items, int start) {
+    final chunk = <OutboxItem>[];
+    var chars = 0;
+    for (var i = start; i < items.length && chunk.length < _outboxBatchMaxItems; i++) {
+      final size = jsonEncode(items[i].payload).length;
+      if (chunk.isNotEmpty && chars + size > _outboxBatchMaxChars) break;
+      chunk.add(items[i]);
+      chars += size;
+    }
+    return chunk;
+  }
+
+  /// Uploads [chunk] in one request. Returns null when the server has no batch endpoint.
+  Future<({int uploaded, bool stop})?> _uploadOutboxBatch(List<OutboxItem> chunk) async {
+    final http.Response response;
+    try {
+      response = await http.post(
+        Uri.parse('$_currentServerUrl/api/sync/outbox'),
+        headers: _headers,
+        body: jsonEncode({
+          'items': [
+            for (final item in chunk) {'id': item.id, 'kind': item.kind, 'payload': _outboxPayload(item)},
+          ],
+        }),
+      );
+    } catch (e) {
+      await _store.recordOutboxFailure(chunk.first.id, e.toString());
+      return (uploaded: 0, stop: true);
+    }
+    if (response.statusCode == 404 || response.statusCode == 405) return null;
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      await _store.recordOutboxFailure(chunk.first.id, 'HTTP ${response.statusCode}');
+      return (uploaded: 0, stop: true);
+    }
+
+    final List results;
+    try {
+      results = (jsonDecode(response.body) as Map)['results'] as List;
+    } catch (_) {
+      return null;
+    }
+    final byId = {for (final item in chunk) item.id: item};
+    var uploaded = 0;
+    for (final raw in results.whereType<Map>()) {
+      final item = byId[raw['id']?.toString()];
+      if (item == null) continue;
+      final status = (raw['status'] as num?)?.toInt() ?? 500;
+      if (status >= 200 && status < 300) {
+        await _store.removeFromOutbox(item.id);
+        await _markOutboxHistory(item, 'synced');
+        uploaded++;
+      } else if (_isRetryableStatus(status)) {
+        // The server stops at the first retryable failure, so this and everything after it stay queued in order.
+        await _store.recordOutboxFailure(item.id, 'HTTP $status${raw['error'] != null ? ': ${raw['error']}' : ''}');
+        return (uploaded: uploaded, stop: true);
+      } else {
+        // The server will never accept this as-is (e.g. 400/404/409/422).
+        await _store.removeFromOutbox(item.id);
+        await _markOutboxHistory(item, 'failed');
+      }
+    }
+    return (uploaded: uploaded, stop: false);
+  }
+
+  /// One item on its own route, for servers without `/api/sync/outbox`.
+  Future<_OutboxOutcome> _uploadOutboxItem(OutboxItem item) async {
+    try {
+      final http.Response response;
+      if (item.kind == 'assignment_status') {
+        final id = Uri.encodeComponent(item.payload['id'].toString());
+        response = await http.post(Uri.parse('$_currentServerUrl/api/assignments/$id/status'),
+            headers: _headers, body: jsonEncode({'status': item.payload['status']}));
+      } else {
+        final endpoint = _outboxEndpoints[item.kind];
+        if (endpoint == null) {
+          await _store.removeFromOutbox(item.id);
+          return _OutboxOutcome.dropped;
+        }
+        response = await http.post(Uri.parse('$_currentServerUrl$endpoint'),
+            headers: _headers, body: jsonEncode(_outboxPayload(item)));
+      }
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        await _store.removeFromOutbox(item.id);
+        await _markOutboxHistory(item, 'synced');
+        return _OutboxOutcome.uploaded;
+      } else if (_isRetryableStatus(response.statusCode)) {
+        await _store.recordOutboxFailure(item.id, 'HTTP ${response.statusCode}');
+        return _OutboxOutcome.retryLater;
+      } else {
+        // The server will never accept this as-is (e.g. 400/404/409/422).
+        await _store.removeFromOutbox(item.id);
+        await _markOutboxHistory(item, 'failed');
+        return _OutboxOutcome.dropped;
+      }
+    } catch (e) {
+      await _store.recordOutboxFailure(item.id, e.toString());
+      return _OutboxOutcome.retryLater;
+    }
   }
 
   Future<void> _markOutboxHistory(OutboxItem item, String status) async {
@@ -3934,7 +4055,16 @@ class ApiService {
     );
   }
 
-  Future<List<AnalyticsWidgetModel>> fetchAnalyticsWidgets() async {
+  Future<List<AnalyticsWidgetModel>> fetchAnalyticsWidgets({bool usePrescout = false}) async {
+    // Prescout widgets come only from the server; they don't replace the cached event copy.
+    if (usePrescout) {
+      final res = await requestJson('GET', '/api/analytics', query: {'usePrescout': 'true'});
+      final data = res.data;
+      if (res.success && data is Map && data['widgets'] is List) {
+        return (data['widgets'] as List).map((w) => AnalyticsWidgetModel.fromJson(w as Map<String, dynamic>)).toList();
+      }
+      return [];
+    }
     final cached = await _getCache("cache_analytics");
     List<AnalyticsWidgetModel> cachedWidgets = [];
     if (cached != null && cached.isNotEmpty) {
@@ -6058,7 +6188,7 @@ class ApiService {
             headers: _headers,
             body: jsonEncode(req.toJson()),
           )
-          .timeout(const Duration(seconds: 45));
+          .timeout(_deadline(const Duration(seconds: 45)));
       _checkResponse(response);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -6094,7 +6224,7 @@ class ApiService {
             headers: _headers,
             body: jsonEncode(req.toJson()),
           )
-          .timeout(const Duration(seconds: 45));
+          .timeout(_deadline(const Duration(seconds: 45)));
       _checkResponse(response);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -6193,7 +6323,7 @@ class ApiService {
       final uri = Uri.parse('$_currentServerUrl/api/assignments/shifts');
       final response = await http
           .post(uri, headers: _headers, body: jsonEncode(shift.toSaveJson()))
-          .timeout(const Duration(seconds: 45));
+          .timeout(_deadline(const Duration(seconds: 45)));
       _checkResponse(response);
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final j = jsonDecode(response.body);
@@ -6240,7 +6370,7 @@ class ApiService {
             headers: _headers,
             body: jsonEncode({'eventKey': eventKey}),
           )
-          .timeout(const Duration(seconds: 30));
+          .timeout(_deadline(const Duration(seconds: 30)));
       _checkResponse(response);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -6627,6 +6757,115 @@ class ApiService {
       return false;
     }
   }
+
+  /// JSON call for the screens ported straight from website pages (analytics, alliances, storage, banners, ...).
+  /// They use the same endpoints and keep the server's JSON shape, so [ApiResponse.data] is the decoded body.
+  /// With [cacheKey], a GET saves the body and falls back to the saved copy when offline or on failure.
+  Future<ApiResponse<dynamic>> requestJson(
+    String method,
+    String path, {
+    Map<String, String>? query,
+    Object? body,
+    String? cacheKey,
+  }) async {
+    Future<ApiResponse<dynamic>> fromCache(ApiResponse<dynamic> fallback) async {
+      if (cacheKey == null) return fallback;
+      final cached = await _getCache(cacheKey);
+      if (cached == null || cached.isEmpty) return fallback;
+      try {
+        return ApiResponse.success(await _decodeCached(cached), message: 'cached');
+      } catch (_) {
+        return fallback;
+      }
+    }
+
+    if (!_isOnline) {
+      return fromCache(const ApiResponse.error(isOffline: true, message: 'You are offline.'));
+    }
+    try {
+      var uri = Uri.parse('$_currentServerUrl$path');
+      if (query != null && query.isNotEmpty) {
+        uri = uri.replace(queryParameters: {...uri.queryParameters, ...query});
+      }
+      final encoded = body == null ? null : jsonEncode(body);
+      final http.Response response;
+      switch (method.toUpperCase()) {
+        case 'POST':
+          response = await http.post(uri, headers: _headers, body: encoded);
+          break;
+        case 'PUT':
+          response = await http.put(uri, headers: _headers, body: encoded);
+          break;
+        case 'PATCH':
+          response = await http.patch(uri, headers: _headers, body: encoded);
+          break;
+        case 'DELETE':
+          response = await http.delete(uri, headers: _headers, body: encoded);
+          break;
+        default:
+          response = await http.get(uri, headers: _headers);
+      }
+      _checkResponse(response);
+      final result = ApiResponse<dynamic>.fromHttpResponse(response, parser: (json) => json);
+      if (result.success && cacheKey != null && response.body.isNotEmpty) {
+        await _setCache(cacheKey, response.body);
+      }
+      if (!result.success && method.toUpperCase() == 'GET') return await fromCache(result);
+      return result;
+    } catch (e) {
+      return fromCache(ApiResponse.error(message: e.toString()));
+    }
+  }
+
+  /// Downloads a file the website links to directly (CSV reports, backups). [ApiResponse.message] holds the
+  /// server's file name from Content-Disposition when it sends one.
+  Future<ApiResponse<Uint8List>> requestBytes(String path, {Map<String, String>? query}) async {
+    if (!_isOnline) return const ApiResponse.error(isOffline: true, message: 'You are offline.');
+    try {
+      var uri = Uri.parse('$_currentServerUrl$path');
+      if (query != null && query.isNotEmpty) uri = uri.replace(queryParameters: {...uri.queryParameters, ...query});
+      final response = await http.get(uri, headers: _headers);
+      _checkResponse(response);
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Download failed');
+      }
+      final disposition = response.headers['content-disposition'] ?? '';
+      final name = RegExp(r'filename="?([^";]+)"?').firstMatch(disposition)?.group(1);
+      return ApiResponse.success(response.bodyBytes, statusCode: response.statusCode, message: name);
+    } catch (e) {
+      return ApiResponse.error(message: e.toString());
+    }
+  }
+
+  /// Sends one file as multipart/form-data (the website's FormData uploads) and returns the decoded JSON reply.
+  Future<ApiResponse<dynamic>> uploadFile(
+    String path, {
+    required List<int> bytes,
+    required String filename,
+    String field = 'file',
+    Map<String, String>? query,
+  }) async {
+    if (!_isOnline) return const ApiResponse.error(isOffline: true, message: 'You are offline.');
+    try {
+      var uri = Uri.parse('$_currentServerUrl$path');
+      if (query != null && query.isNotEmpty) uri = uri.replace(queryParameters: {...uri.queryParameters, ...query});
+      final boundary = '----obsidianscout${DateTime.now().microsecondsSinceEpoch}';
+      final safeName = filename.replaceAll('"', '');
+      final body = <int>[
+        ...utf8.encode('--$boundary\r\n'
+            'Content-Disposition: form-data; name="$field"; filename="$safeName"\r\n'
+            'Content-Type: application/octet-stream\r\n\r\n'),
+        ...bytes,
+        ...utf8.encode('\r\n--$boundary--\r\n'),
+      ];
+      final headers = Map<String, String>.of(_headers)..['Content-Type'] = 'multipart/form-data; boundary=$boundary';
+      final response = await http.post(uri, headers: headers, body: body);
+      _checkResponse(response);
+      return ApiResponse<dynamic>.fromHttpResponse(response, parser: (json) => json, defaultErrorMessage: 'Upload failed');
+    } catch (e) {
+      return ApiResponse.error(message: e.toString());
+    }
+  }
 }
 
-
+enum _OutboxOutcome { uploaded, dropped, retryLater }

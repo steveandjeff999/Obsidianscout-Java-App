@@ -15,11 +15,15 @@ class MatchPredictionsScreen extends StatefulWidget {
   final bool isVisible;
   final bool isBarsVisible;
 
+  /// 1 opens on the Leaderboard tab (the website's prediction-leaderboard.html).
+  final int initialTab;
+
   const MatchPredictionsScreen({
     super.key,
     required this.apiService,
     this.isVisible = true,
     this.isBarsVisible = true,
+    this.initialTab = 0,
   });
 
   @override
@@ -29,7 +33,7 @@ class MatchPredictionsScreen extends StatefulWidget {
 enum _ShowFilter { open, needs, done, all }
 
 class _MatchPredictionsScreenState extends State<MatchPredictionsScreen> with SingleTickerProviderStateMixin {
-  late final TabController _tabs = TabController(length: 2, vsync: this);
+  late final TabController _tabs = TabController(length: 2, vsync: this, initialIndex: widget.initialTab.clamp(0, 1));
 
   // Predict tab
   bool _loading = true;
@@ -57,6 +61,7 @@ class _MatchPredictionsScreenState extends State<MatchPredictionsScreen> with Si
       if (_tabs.index == 1 && !_boardLoaded && !_boardLoading && !_tabs.indexIsChanging) _loadLeaderboard(initial: true);
     });
     _load();
+    if (_tabs.index == 1) _loadLeaderboard(initial: true);
   }
 
   @override

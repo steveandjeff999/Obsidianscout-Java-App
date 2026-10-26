@@ -4,6 +4,7 @@ import 'dart:io' show gzip;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:obsidianscout_app/services/net/adaptive_timer.dart';
 import 'package:obsidianscout_app/services/net/link_quality.dart';
 import 'package:obsidianscout_app/services/net/net_client.dart' as net;
 import 'package:obsidianscout_app/services/net/request_scheduler.dart';
@@ -153,5 +154,50 @@ void main() {
       sample(500);
     }
     expect(LinkQuality.instance.isLowBandwidth, isFalse);
+  });
+  test('only GET and HEAD follow redirects, so sign-in sees its 302', () async {
+    final client = _FakeClient((req, body) async => _json(200, '{}'));
+    net.NetClient.instance.client = client;
+    await net.get(Uri.parse('http://s/a'));
+    await net.post(Uri.parse('http://s/api/auth/login'), body: '{}');
+    expect(client.requests.map((r) => r.followRedirects), [true, false]);
+  });
+
+  test('the first request to a server waits longer for headers than one on a warm connection', () async {
+    net.NetClient.instance.connectTimeout = () => const Duration(milliseconds: 200);
+    await LinkQuality.instance.setMode(LowBandwidthMode.off);
+    net.NetClient.instance.client = _FakeClient((req, body) async {
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+      return _json(200, '{}');
+    });
+
+    // Cold: DNS + TCP + TLS still to do, so 600 ms is fine.
+    expect((await net.get(Uri.parse('http://cold/a'))).statusCode, 200);
+    // Warm: the connection is up, so the configured 200 ms applies.
+    await expectLater(net.get(Uri.parse('http://cold/b')), throwsA(isA<TimeoutException>()));
+  });
+
+  test('polls wait longer on a slow link and never overlap', () async {
+    await LinkQuality.instance.setMode(LowBandwidthMode.off);
+    var running = 0;
+    var maxRunning = 0;
+    final ticks = <DateTime>[];
+    final timer = AdaptiveTimer(const Duration(milliseconds: 20), (_) async {
+      running++;
+      maxRunning = running > maxRunning ? running : maxRunning;
+      ticks.add(DateTime.now());
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      running--;
+    });
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    timer.cancel();
+    expect(maxRunning, 1);
+    expect(ticks.length, inInclusiveRange(2, 5));
+
+    await LinkQuality.instance.setMode(LowBandwidthMode.on);
+    final slow = AdaptiveTimer(const Duration(milliseconds: 20), (_) {});
+    expect(slow.currentInterval, const Duration(milliseconds: 80));
+    slow.cancel();
+    expect(slow.isActive, isFalse);
   });
 }

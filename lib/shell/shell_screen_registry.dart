@@ -39,6 +39,18 @@ import '../screens/battery_tracker_screen.dart';
 import '../screens/team_shared_links_screen.dart';
 import '../screens/pick_list_screen.dart';
 import '../screens/match_predictions_screen.dart';
+import '../screens/analytics_screen.dart';
+import '../screens/compare_screen.dart';
+import '../screens/projected_rankings_screen.dart';
+import '../screens/scouter_report_screen.dart';
+import '../screens/alliances_screen.dart';
+import '../screens/default_configs_screen.dart';
+import '../screens/config_schema_screens.dart';
+import '../screens/migration_screen.dart';
+import '../screens/fcm_settings_screen.dart';
+import '../screens/banners_screen.dart';
+import '../screens/storage_manager_screen.dart';
+import '../screens/backup_screen.dart';
 
 class MatchScoutParams {
   final String? matchKey;
@@ -85,7 +97,7 @@ class ShellScreenRegistry {
   ShellScreenRegistry._();
 
   /// Total number of shell screens (indices 0 to [screenCount] - 1).
-  static const int screenCount = 37;
+  static const int screenCount = 51;
 
   static const List<String> titleKeys = [
     'nav.dashboard',
@@ -125,6 +137,20 @@ class ShellScreenRegistry {
     'nav.battery_tracker',
     'nav.pick_list',
     'nav.match_predictions',
+    'analytics.title',
+    'nav.compare',
+    'nav.projected_rankings',
+    'nav.scouter-report',
+    'nav.alliances',
+    'nav.default_configs',
+    'nav.schema_history',
+    'nav.config_migration',
+    'nav.migration',
+    'nav.fcm_settings',
+    'nav.banners',
+    'nav.storage_manager',
+    'nav.backup',
+    'nav.prediction_leaderboard',
   ];
 
   static const List<String> subtitleKeys = [
@@ -165,6 +191,20 @@ class ShellScreenRegistry {
     'subtitle.battery_tracker',
     'subtitle.pick_list',
     'subtitle.match_predictions',
+    'analytics.notice',
+    'compare.notice',
+    'projected.notice',
+    'scouter-report.notice',
+    'alliances.create_alliances_with_partner_',
+    'subtitle.default_configs',
+    'subtitle.schema_history',
+    'subtitle.config_migration',
+    'migration.notice',
+    'subtitle.fcm_settings',
+    'banners.subtitle',
+    'subtitle.storage_manager',
+    'subtitle.backup',
+    'leaderboard.notice',
   ];
 
   static String getTitleKey(int index) {
@@ -257,6 +297,34 @@ class ShellScreenRegistry {
         return 'pick-list';
       case 36:
         return 'match-predictions';
+      case 37:
+        return 'analytics';
+      case 38:
+        return 'compare';
+      case 39:
+        return 'projected-rankings';
+      case 40:
+        return 'scouter-report';
+      case 41:
+        return 'alliances';
+      case 42:
+        return 'default-configs';
+      case 43:
+        return 'schema-history';
+      case 44:
+        return 'config-migration';
+      case 45:
+        return 'migration';
+      case 46:
+        return 'fcm-settings';
+      case 47:
+        return 'banners';
+      case 48:
+        return 'storage-manager';
+      case 49:
+        return 'backup';
+      case 50:
+        return 'prediction-leaderboard';
       default:
         return 'dashboard';
     }
@@ -338,6 +406,34 @@ class ShellScreenRegistry {
         return Icons.format_list_numbered_rounded;
       case 36:
         return Icons.emoji_events_rounded;
+      case 37:
+        return Icons.insert_chart_rounded;
+      case 38:
+        return Icons.compare_arrows_rounded;
+      case 39:
+        return Icons.trending_up_rounded;
+      case 40:
+        return Icons.summarize_rounded;
+      case 41:
+        return Icons.handshake_rounded;
+      case 42:
+        return Icons.library_books_rounded;
+      case 43:
+        return Icons.history_edu_rounded;
+      case 44:
+        return Icons.sync_alt_rounded;
+      case 45:
+        return Icons.move_down_rounded;
+      case 46:
+        return Icons.notifications_active_rounded;
+      case 47:
+        return Icons.campaign_rounded;
+      case 48:
+        return Icons.storage_rounded;
+      case 49:
+        return Icons.import_export_rounded;
+      case 50:
+        return Icons.emoji_events_outlined;
       default:
         return Icons.dashboard_rounded;
     }
@@ -348,7 +444,7 @@ class ShellScreenRegistry {
       case 0:
         return context.tr('nav.dashboard', 'Dashboard');
       case 1:
-        return context.tr('nav.scout', context.tr('nav.match_scout', 'Match Scout'));
+        return context.tr('nav.scout', context.tr('nav.match_scout', 'Scout'));
       case 2:
         return context.tr('nav.pit-scout', context.tr('nav.pit_scout', 'Pit Scout'));
       case 3:
@@ -358,7 +454,7 @@ class ShellScreenRegistry {
       case 5:
         return context.tr('nav.settings', context.tr('nav.settings_cache', 'Settings'));
       case 6:
-        return context.tr('nav.team_chat', context.tr('nav.chat', 'Team Chat'));
+        return context.tr('nav.chat', 'Chat');
       case 7:
         return context.tr('nav.alliance-selection', context.tr('nav.alliance_selection', 'Alliance Selection'));
       case 8:
@@ -366,9 +462,9 @@ class ShellScreenRegistry {
       case 9:
         return context.tr('nav.matches', 'Matches');
       case 10:
-        return context.tr('nav.config_editor', 'Config Editor');
+        return context.tr('nav.admin-settings', 'Admin Settings');
       case 11:
-        return context.tr('nav.prescout', 'Prescout');
+        return context.tr('nav.prescout', 'Prescouting');
       case 12:
         return context.tr('nav.all-data', context.tr('nav.all_data', 'All Data'));
       case 13:
@@ -392,21 +488,21 @@ class ShellScreenRegistry {
       case 22:
         return context.tr('nav.users', 'Users');
       case 23:
-        return context.tr('nav.cluster-management', context.tr('nav.cluster_management', 'Cluster'));
+        return context.tr('nav.cluster-management', context.tr('nav.cluster_management', 'Server Management'));
       case 24:
         return context.tr('nav.error-reports', context.tr('nav.error_reports', 'Error Reports'));
       case 25:
         return context.tr('events.title', 'Events');
       case 26:
-        return context.tr('rankings.title', 'Team Rankings');
+        return context.tr('nav.rankings', 'Rankings');
       case 27:
-        return context.tr('qual_rankings.title', 'Qualitative Rankings');
+        return context.tr('nav.qual_rankings', 'Qual Rankings');
       case 28:
-        return 'Theme Customizer';
+        return context.tr('nav.theme_editor', 'Team Theme Customizer');
       case 29:
         return context.tr('nav.my_assignments', 'My Assignments');
       case 30:
-        return context.tr('nav.scout_assignments', 'Scout Assignments');
+        return context.tr('nav.assignments', 'Scout Assignments');
       case 31:
         return context.tr('nav.match_planning', 'Match Planning');
       case 32:
@@ -419,6 +515,34 @@ class ShellScreenRegistry {
         return context.tr('nav.pick_list', 'Pick List');
       case 36:
         return context.tr('nav.match_predictions', 'Match Predictions');
+      case 37:
+        return context.tr('nav.analytics', 'Analytics');
+      case 38:
+        return context.tr('nav.compare', 'Compare Teams');
+      case 39:
+        return context.tr('nav.projected_rankings', 'Projected Rankings');
+      case 40:
+        return context.tr('nav.scouter-report', 'Scouter Report');
+      case 41:
+        return context.tr('nav.alliances', 'Alliances');
+      case 42:
+        return context.tr('nav.default_configs', 'Default Configs');
+      case 43:
+        return context.tr('nav.schema_history', 'Schema History');
+      case 44:
+        return context.tr('nav.config_migration', 'Config Data Migration');
+      case 45:
+        return context.tr('nav.migration', 'Migration');
+      case 46:
+        return context.tr('nav.fcm_settings', 'FCM Push Settings');
+      case 47:
+        return context.tr('nav.banners', 'Banners');
+      case 48:
+        return context.tr('nav.storage_manager', 'Storage Manager');
+      case 49:
+        return context.tr('nav.backup', 'Data Sharing');
+      case 50:
+        return context.tr('nav.prediction_leaderboard', 'Prediction Leaderboard');
       default:
         return 'Dashboard';
     }
@@ -717,6 +841,94 @@ class ShellScreenRegistry {
           apiService: apiService,
           isVisible: isTabActive && currentIndex == 36,
           isBarsVisible: isBarsVisible,
+        );
+      case 37:
+        return AnalyticsScreen(
+          apiService: apiService,
+          isVisible: isTabActive && currentIndex == 37,
+          isBarsVisible: isBarsVisible,
+        );
+      case 38:
+        return CompareScreen(
+          apiService: apiService,
+          isVisible: isTabActive && currentIndex == 38,
+          isBarsVisible: isBarsVisible,
+        );
+      case 39:
+        return ProjectedRankingsScreen(
+          apiService: apiService,
+          isVisible: isTabActive && currentIndex == 39,
+          isBarsVisible: isBarsVisible,
+        );
+      case 40:
+        return ScouterReportScreen(
+          apiService: apiService,
+          isVisible: isTabActive && currentIndex == 40,
+          isBarsVisible: isBarsVisible,
+        );
+      case 41:
+        return AlliancesScreen(
+          apiService: apiService,
+          isVisible: isTabActive && currentIndex == 41,
+          isBarsVisible: isBarsVisible,
+        );
+      case 42:
+        return DefaultConfigsScreen(
+          apiService: apiService,
+          isVisible: isTabActive && currentIndex == 42,
+          isBarsVisible: isBarsVisible,
+        );
+      case 43:
+        return SchemaHistoryScreen(
+          apiService: apiService,
+          isVisible: isTabActive && currentIndex == 43,
+          isBarsVisible: isBarsVisible,
+          onOpenMigration: () => onNavigateScreen(44),
+          onOpenFormEditor: () => onNavigateScreen(10),
+        );
+      case 44:
+        return ConfigMigrationScreen(
+          apiService: apiService,
+          isVisible: isTabActive && currentIndex == 44,
+          isBarsVisible: isBarsVisible,
+          onOpenHistory: () => onNavigateScreen(43),
+        );
+      case 45:
+        return MigrationScreen(
+          apiService: apiService,
+          isVisible: isTabActive && currentIndex == 45,
+          isBarsVisible: isBarsVisible,
+        );
+      case 46:
+        return FcmSettingsScreen(
+          apiService: apiService,
+          isVisible: isTabActive && currentIndex == 46,
+          isBarsVisible: isBarsVisible,
+        );
+      case 47:
+        return BannersScreen(
+          apiService: apiService,
+          isVisible: isTabActive && currentIndex == 47,
+          isBarsVisible: isBarsVisible,
+        );
+      case 48:
+        return StorageManagerScreen(
+          apiService: apiService,
+          isVisible: isTabActive && currentIndex == 48,
+          isBarsVisible: isBarsVisible,
+        );
+      case 49:
+        return BackupScreen(
+          apiService: apiService,
+          isVisible: isTabActive && currentIndex == 49,
+          isBarsVisible: isBarsVisible,
+        );
+      case 50:
+        return MatchPredictionsScreen(
+          apiService: apiService,
+          isVisible: isTabActive && currentIndex == 50,
+          isBarsVisible: isBarsVisible,
+          initialTab: 1,
         );
       default:
         return DashboardScreen(
