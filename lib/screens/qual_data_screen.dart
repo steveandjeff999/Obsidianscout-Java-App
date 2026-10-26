@@ -137,7 +137,8 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
     super.dispose();
   }
 
-  Future<void> _loadData() async {
+  /// [revalidate] false redraws from the stored data only, e.g. after a conflict was resolved on this device.
+  Future<void> _loadData({bool revalidate = true}) async {
     // 1. Instant Cache Hydration
     final cachedSettings = await widget.apiService.getCachedSettings();
     final cachedQualCfg = await widget.apiService.getCachedQualConfig();
@@ -192,7 +193,7 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
       });
     }
 
-    if (!widget.apiService.isOnline) {
+    if (!revalidate || !widget.apiService.isOnline) {
       if (mounted && _isLoading) setState(() => _isLoading = false);
       return;
     }
@@ -445,7 +446,7 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
       type: 'qual',
       fields: _qualConfig?.fields ?? [],
       conflictingEntries: rawEntries,
-      onResolved: _loadData,
+      onResolved: () => _loadData(revalidate: false),
     );
   }
 

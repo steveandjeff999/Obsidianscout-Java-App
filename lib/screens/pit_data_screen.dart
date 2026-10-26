@@ -85,7 +85,8 @@ class _PitDataScreenState extends State<PitDataScreen> {
     }
   }
 
-  Future<void> _loadData() async {
+  /// [revalidate] false redraws from the stored data only, e.g. after a conflict was resolved on this device.
+  Future<void> _loadData({bool revalidate = true}) async {
     // 1. Instant Cache Hydration
     final cachedSettings = await widget.apiService.getCachedSettings();
     final cachedPitCfg = await widget.apiService.getCachedPitConfig();
@@ -166,7 +167,7 @@ class _PitDataScreenState extends State<PitDataScreen> {
       });
     }
 
-    if (!widget.apiService.isOnline) {
+    if (!revalidate || !widget.apiService.isOnline) {
       if (mounted && _isLoading) setState(() => _isLoading = false);
       return;
     }
@@ -305,7 +306,7 @@ class _PitDataScreenState extends State<PitDataScreen> {
       type: 'pit',
       fields: _pitConfig?.fields ?? [],
       conflictingEntries: rawEntries,
-      onResolved: _loadData,
+      onResolved: () => _loadData(revalidate: false),
     );
   }
 

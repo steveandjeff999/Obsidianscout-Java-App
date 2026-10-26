@@ -10,6 +10,9 @@ class ConflictResolutionModal extends StatefulWidget {
   final String type; // 'match', 'pit', 'qual'
   final List<ScoutingFieldModel> fields;
   final List<Map<String, dynamic>> conflictingEntries;
+
+  /// Called after a change. ApiService has already applied it to the stored entry lists, so the page only needs
+  /// to redraw from them, not download the entries again.
   final VoidCallback onResolved;
 
   const ConflictResolutionModal({
@@ -179,7 +182,6 @@ class _ConflictResolutionModalState extends State<ConflictResolutionModal> {
       if (mounted) {
         final messenger = ScaffoldMessenger.of(context);
         Navigator.of(context).pop();
-        await widget.apiService.clearScoutingCaches();
         widget.onResolved();
         messenger.showSnackBar(
           const SnackBar(
@@ -275,7 +277,6 @@ class _ConflictResolutionModalState extends State<ConflictResolutionModal> {
       if (mounted) {
         final messenger = ScaffoldMessenger.of(context);
         Navigator.of(context).pop();
-        await widget.apiService.clearScoutingCaches();
         widget.onResolved();
         messenger.showSnackBar(
           const SnackBar(
@@ -336,7 +337,6 @@ class _ConflictResolutionModalState extends State<ConflictResolutionModal> {
       if (mounted) {
         final messenger = ScaffoldMessenger.of(context);
         Navigator.of(context).pop();
-        await widget.apiService.clearScoutingCaches();
         widget.onResolved();
         messenger.showSnackBar(
           const SnackBar(
