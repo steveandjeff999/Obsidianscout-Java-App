@@ -46,6 +46,7 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
 
   List<ScoutingAssignment> _cachedActive = [];
   List<ScoutingAssignment> _cachedCompleted = [];
+  List<ScoutingAssignment> _cachedPassed = [];
   List<ScoutingAssignment> _cachedAll = [];
   ScoutingAssignment? _cachedNextUp;
   Map<String, MatchModel> _matchesByKey = {};
@@ -57,7 +58,7 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _loadData();
     _startCountdownTimer();
     widget.apiService.dataSyncedNotifier.addListener(_onDataSynced);
@@ -98,9 +99,18 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
     if (!widget.isVisible) return;
     _countdownTimer = Timer.periodic(const Duration(seconds: 20), (_) {
       if (mounted && widget.isVisible) {
-        setState(() {});
+        // Recompute so assignments slide into Passed once their grace period ends.
+        setState(_recomputeCachedLists);
       }
     });
+  }
+
+  /// Unfinished assignments move to the Passed tab this long after their start time.
+  static const _passedGraceMs = 3 * 60 * 1000;
+
+  bool _isPassed(ScoutingAssignment a, int now) {
+    final time = a.effectiveScheduledTime;
+    return time != null && now > time + _passedGraceMs;
   }
 
   void _recomputeCachedLists() {
@@ -110,10 +120,12 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
     int compareOrder(ScoutingAssignment a, ScoutingAssignment b) =>
         ScoutingAssignment.compareMatchOrder(a, b, matchesByKey: _matchesByKey);
 
-    _cachedActive = _assignments
-        .where((a) => a.status == 'PENDING' || a.status == 'IN_PROGRESS')
-        .toList()
-      ..sort(compareOrder);
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final open = _assignments.where((a) => a.status == 'PENDING' || a.status == 'IN_PROGRESS');
+
+    _cachedActive = open.where((a) => !_isPassed(a, now)).toList()..sort(compareOrder);
+
+    _cachedPassed = open.where((a) => _isPassed(a, now)).toList()..sort(compareOrder);
 
     _cachedCompleted = _assignments
         .where((a) => a.status == 'COMPLETED' || a.status == 'SKIPPED')
@@ -125,7 +137,6 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
     if (_cachedActive.isEmpty) {
       _cachedNextUp = null;
     } else {
-      final now = DateTime.now().millisecondsSinceEpoch;
       ScoutingAssignment? next;
       for (final a in _cachedActive) {
         final time = a.effectiveScheduledTime;
@@ -156,7 +167,8 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
     final cachedTeams = await widget.apiService.getCachedTeams(cachedEventKey);
     final cachedMatches = await widget.apiService.getCachedMatches(cachedEventKey);
 
-    if (mounted && hydratedAssignments.isNotEmpty) {
+    // A switched event replaces the list even when its cache is empty, so the old event's assignments never linger.
+    if (mounted && (hydratedAssignments.isNotEmpty || cachedEventKey != _eventKey)) {
       setState(() {
         _eventKey = cachedEventKey;
         _assignments = hydratedAssignments;
@@ -216,6 +228,7 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
   // Filter & sort assignments for tabs
   List<ScoutingAssignment> get _activeAssignments => _cachedActive;
   List<ScoutingAssignment> get _completedAssignments => _cachedCompleted;
+  List<ScoutingAssignment> get _passedAssignments => _cachedPassed;
   List<ScoutingAssignment> get _allAssignments => _cachedAll;
   ScoutingAssignment? get _nextUpAssignment => _cachedNextUp;
 
@@ -668,6 +681,8 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
       ),
       child: TabBar(
         controller: _tabController,
+        isScrollable: true,
+        tabAlignment: TabAlignment.start,
         indicator: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
           color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.2),
@@ -682,6 +697,9 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
           ),
           Tab(
             text: '${context.tr('my_assignments.tab_completed', 'Completed')} (${_completedAssignments.length})',
+          ),
+          Tab(
+            text: '${context.tr('my_assignments.tab_passed', 'Passed')} (${_passedAssignments.length})',
           ),
           Tab(
             text: '${context.tr('my_assignments.tab_all', 'All')} (${_allAssignments.length})',
@@ -714,6 +732,10 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
     } else if (currentTabIndex == 1) {
       displayList = _completedAssignments;
       emptyMessage = context.tr('my_assignments.empty_completed', 'No completed assignments yet.');
+    } else if (currentTabIndex == 2) {
+      displayList = _passedAssignments;
+      emptyMessage = context.tr('my_assignments.empty_passed',
+          'No passed assignments. Unfinished assignments move here 3 minutes after their start time.');
     } else {
       displayList = _allAssignments;
       emptyMessage = context.tr('my_assignments.empty_all', 'No assignments assigned to you for this event.');

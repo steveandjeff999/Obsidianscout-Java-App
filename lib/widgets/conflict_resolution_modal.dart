@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/config_models.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
+import 'obsidian_image_preview_card.dart';
 
 class ConflictResolutionModal extends StatefulWidget {
   final ApiService apiService;
@@ -651,14 +652,17 @@ class _ConflictResolutionModalState extends State<ConflictResolutionModal> {
                                       children: [
                                         Text('Sub #${idx + 1}', style: TextStyle(fontSize: 10, color: secondaryTextColor)),
                                         const SizedBox(height: 2),
-                                        Text(
-                                          _formatVal(val),
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.bold,
-                                            color: isConflict ? Colors.amberAccent : primaryTextColor,
+                                        if (val is String && val.startsWith('data:image/'))
+                                          ObsidianImageThumbnail(imageSource: val, size: 64, title: label)
+                                        else
+                                          Text(
+                                            _formatVal(val),
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.bold,
+                                              color: isConflict ? Colors.amberAccent : primaryTextColor,
+                                            ),
                                           ),
-                                        ),
                                       ],
                                     ),
                                   ),

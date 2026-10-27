@@ -6012,149 +6012,70 @@ class ApiService {
   // SCOUT ASSIGNMENTS API & CACHE
   // ==========================================
 
-  Future<List<ScoutingAssignment>> getCachedMyAssignments(String? eventKey) async {
-    final effectiveKey = (eventKey != null && eventKey.isNotEmpty)
-        ? eventKey
-        : (_currentSettings?.eventKey ?? '');
-    final candidateKeys = [
-      if (effectiveKey.isNotEmpty) "cache_my_assignments_$effectiveKey",
-      "cache_my_assignments_all",
-      "cache_my_assignments_",
-      "cache_my_assignments_current",
-    ];
+  // Assignments are scoped to one event: each event has its own cache entry, nothing falls back to another
+  // event's list, and any row from a different event is dropped.
 
-    for (final key in candidateKeys) {
-      final cached = await _getCache(key);
-      if (cached != null && cached.isNotEmpty) {
-        try {
-          final decoded = await _decodeCached(cached);
-          final List list = decoded is List
-              ? decoded
-              : (decoded is Map && decoded['assignments'] is List
-                  ? decoded['assignments'] as List
-                  : []);
-          if (list.isNotEmpty) {
-            final parsed = list
-                .map((e) => ScoutingAssignment.fromJson(e as Map<String, dynamic>))
-                .toList();
-            return await ScoutHistoryService.applyLocalScoutStatus(parsed, eventKey: effectiveKey);
-          }
-        } catch (_) {}
-      }
-    }
-    return [];
+  String _assignmentEventKey(String? eventKey) => ((eventKey != null && eventKey.isNotEmpty)
+          ? eventKey
+          : (_currentSettings?.eventKey ?? ''))
+      .trim()
+      .toLowerCase();
+
+  List<ScoutingAssignment> _parseEventAssignments(dynamic decoded, String eventKey) {
+    final List list = decoded is List
+        ? decoded
+        : (decoded is Map && decoded['assignments'] is List ? decoded['assignments'] as List : []);
+    return list
+        .map((e) => ScoutingAssignment.fromJson(e as Map<String, dynamic>))
+        .where((a) => a.eventKey.trim().toLowerCase() == eventKey)
+        .toList();
   }
 
-  Future<List<ScoutingAssignment>> fetchMyAssignments(String? eventKey) async {
-    final effectiveKey = (eventKey != null && eventKey.isNotEmpty)
-        ? eventKey
-        : (_currentSettings?.eventKey ?? '');
-    final cacheKey = "cache_my_assignments_${effectiveKey.isNotEmpty ? effectiveKey : 'all'}";
-    final cachedList = await getCachedMyAssignments(effectiveKey);
+  Future<List<ScoutingAssignment>> _getCachedEventAssignments(String cachePrefix, String eventKey) async {
+    if (eventKey.isEmpty) return [];
+    final cached = await _getCache('$cachePrefix$eventKey');
+    if (cached == null || cached.isEmpty) return [];
+    try {
+      final parsed = _parseEventAssignments(await _decodeCached(cached), eventKey);
+      return await ScoutHistoryService.applyLocalScoutStatus(parsed, eventKey: eventKey);
+    } catch (_) {
+      return [];
+    }
+  }
 
+  Future<List<ScoutingAssignment>> _fetchEventAssignments(
+      String path, String cachePrefix, String eventKey, String label) async {
+    if (eventKey.isEmpty) return [];
+    final cachedList = await _getCachedEventAssignments(cachePrefix, eventKey);
     if (!_isOnline) return cachedList;
 
     try {
-      final url = effectiveKey.isNotEmpty
-          ? '$_currentServerUrl/api/assignments/my?eventKey=$effectiveKey'
-          : '$_currentServerUrl/api/assignments/my';
+      final url = '$_currentServerUrl$path?eventKey=${Uri.encodeQueryComponent(eventKey)}';
       final response = await http.get(Uri.parse(url), headers: _headers);
       _checkResponse(response);
 
       if (response.statusCode == 200) {
-        await _setCache(cacheKey, response.body);
-        await _setCache("cache_my_assignments_all", response.body);
-        if (effectiveKey.isNotEmpty) {
-          await _setCache("cache_my_assignments_$effectiveKey", response.body);
-        }
-        final decoded = jsonDecode(response.body);
-        final List list = decoded is List
-            ? decoded
-            : (decoded is Map && decoded['assignments'] is List
-                ? decoded['assignments'] as List
-                : []);
-        final parsed = list
-            .map((e) => ScoutingAssignment.fromJson(e as Map<String, dynamic>))
-            .toList();
-        return await ScoutHistoryService.applyLocalScoutStatus(parsed, eventKey: effectiveKey);
+        await _setCache('$cachePrefix$eventKey', response.body);
+        final parsed = _parseEventAssignments(jsonDecode(response.body), eventKey);
+        return await ScoutHistoryService.applyLocalScoutStatus(parsed, eventKey: eventKey);
       }
     } catch (e) {
-      debugPrint('[ApiService] fetchMyAssignments error: $e');
+      debugPrint('[ApiService] $label error: $e');
     }
     return cachedList;
   }
 
-  Future<List<ScoutingAssignment>> getCachedAllAssignments(String? eventKey) async {
-    final effectiveKey = (eventKey != null && eventKey.isNotEmpty)
-        ? eventKey
-        : (_currentSettings?.eventKey ?? '');
-    final candidateKeys = [
-      if (effectiveKey.isNotEmpty) "cache_all_assignments_$effectiveKey",
-      "cache_all_assignments_all",
-      "cache_all_assignments_",
-      "cache_all_assignments_current",
-    ];
+  Future<List<ScoutingAssignment>> getCachedMyAssignments(String? eventKey) =>
+      _getCachedEventAssignments('cache_my_assignments_', _assignmentEventKey(eventKey));
 
-    for (final key in candidateKeys) {
-      final cached = await _getCache(key);
-      if (cached != null && cached.isNotEmpty) {
-        try {
-          final decoded = await _decodeCached(cached);
-          final List list = decoded is List
-              ? decoded
-              : (decoded is Map && decoded['assignments'] is List
-                  ? decoded['assignments'] as List
-                  : []);
-          if (list.isNotEmpty) {
-            final parsed = list
-                .map((e) => ScoutingAssignment.fromJson(e as Map<String, dynamic>))
-                .toList();
-            return await ScoutHistoryService.applyLocalScoutStatus(parsed, eventKey: effectiveKey);
-          }
-        } catch (_) {}
-      }
-    }
-    return [];
-  }
+  Future<List<ScoutingAssignment>> fetchMyAssignments(String? eventKey) => _fetchEventAssignments(
+      '/api/assignments/my', 'cache_my_assignments_', _assignmentEventKey(eventKey), 'fetchMyAssignments');
 
-  Future<List<ScoutingAssignment>> fetchAllAssignments(String? eventKey) async {
-    final effectiveKey = (eventKey != null && eventKey.isNotEmpty)
-        ? eventKey
-        : (_currentSettings?.eventKey ?? '');
-    final cacheKey = "cache_all_assignments_${effectiveKey.isNotEmpty ? effectiveKey : 'all'}";
-    final cachedList = await getCachedAllAssignments(effectiveKey);
+  Future<List<ScoutingAssignment>> getCachedAllAssignments(String? eventKey) =>
+      _getCachedEventAssignments('cache_all_assignments_', _assignmentEventKey(eventKey));
 
-    if (!_isOnline) return cachedList;
-
-    try {
-      final url = effectiveKey.isNotEmpty
-          ? '$_currentServerUrl/api/assignments?eventKey=$effectiveKey'
-          : '$_currentServerUrl/api/assignments';
-      final response = await http.get(Uri.parse(url), headers: _headers);
-      _checkResponse(response);
-
-      if (response.statusCode == 200) {
-        await _setCache(cacheKey, response.body);
-        await _setCache("cache_all_assignments_all", response.body);
-        if (effectiveKey.isNotEmpty) {
-          await _setCache("cache_all_assignments_$effectiveKey", response.body);
-        }
-        final decoded = jsonDecode(response.body);
-        final List list = decoded is List
-            ? decoded
-            : (decoded is Map && decoded['assignments'] is List
-                ? decoded['assignments'] as List
-                : []);
-        final parsed = list
-            .map((e) => ScoutingAssignment.fromJson(e as Map<String, dynamic>))
-            .toList();
-        return await ScoutHistoryService.applyLocalScoutStatus(parsed, eventKey: effectiveKey);
-      }
-    } catch (e) {
-      debugPrint('[ApiService] fetchAllAssignments error: $e');
-    }
-    return cachedList;
-  }
+  Future<List<ScoutingAssignment>> fetchAllAssignments(String? eventKey) => _fetchEventAssignments(
+      '/api/assignments', 'cache_all_assignments_', _assignmentEventKey(eventKey), 'fetchAllAssignments');
 
   Future<List<ConflictItemDto>> fetchAssignmentConflicts(String? eventKey) async {
     final effectiveKey = (eventKey != null && eventKey.isNotEmpty)

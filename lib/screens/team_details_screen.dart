@@ -6,6 +6,7 @@ import '../models/team_match_models.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
+import '../widgets/obsidian_image_preview_card.dart';
 import '../widgets/obsidian_chart_interactive_wrapper.dart';
 
 class TeamDetailsScreen extends StatefulWidget {
@@ -1244,6 +1245,7 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
                 const SizedBox(height: 16),
                 if (fields.isEmpty)
                   ...data.entries.where((e) => !['targetTeamNumber', 'eventKey', 'id'].contains(e.key)).map((e) {
+                    if (_isPhoto(e.value)) return ObsidianImagePreviewCard(label: e.key, imageSource: e.value as String);
                     return _pitFieldRow(e.key, e.value?.toString() ?? '--', primaryTextColor, secondaryTextColor);
                   })
                 else
@@ -1252,6 +1254,9 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
                     return t != 'section' && t != 'header' && t != 'divider';
                   }).map((f) {
                     final val = data[f.id];
+                    if (_isPhoto(val)) {
+                      return ObsidianImagePreviewCard(label: f.label.isNotEmpty ? f.label : f.id, imageSource: val as String);
+                    }
                     return _pitFieldRow(f.label, val != null ? val.toString() : '--', primaryTextColor, secondaryTextColor);
                   }),
               ],
@@ -1261,6 +1266,9 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
       ),
     );
   }
+
+  // Uploaded photos are stored as image data URLs; show them as images, not base64 text.
+  bool _isPhoto(dynamic val) => val is String && val.startsWith('data:image/');
 
   Widget _pitFieldRow(String label, String value, Color primary, Color secondary) {
     return Padding(
@@ -1393,7 +1401,10 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(e.key, style: TextStyle(fontSize: 12, color: secondaryTextColor)),
-                                  Text(e.value?.toString() ?? '--', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: primaryTextColor)),
+                                  if (_isPhoto(e.value))
+                                    ObsidianImageThumbnail(imageSource: e.value as String, size: 56, title: e.key)
+                                  else
+                                    Text(e.value?.toString() ?? '--', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: primaryTextColor)),
                                 ],
                               ),
                             );

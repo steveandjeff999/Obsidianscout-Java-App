@@ -1511,6 +1511,8 @@
   "my_assignments.edit_entry": "Edit Entry",
   "my_assignments.tab_active": "Active",
   "my_assignments.tab_completed": "Completed",
+  "my_assignments.tab_passed": "Passed",
+  "my_assignments.empty_passed": "No passed assignments. Unfinished assignments move here 3 minutes after their start time.",
   "my_assignments.tab_all": "All",
   "my_assignments.empty_active": "No active assignments pending for you.",
   "my_assignments.empty_completed": "No completed assignments yet.",

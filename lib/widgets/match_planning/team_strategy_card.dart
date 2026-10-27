@@ -4,6 +4,7 @@ import '../../models/config_models.dart';
 import '../../models/graph_models.dart';
 import '../../models/team_match_models.dart';
 import '../../theme/obsidian_ui_theme.dart';
+import '../obsidian_image_preview_card.dart';
 import 'fullscreen_graph_modal.dart';
 
 class TeamStrategyCard extends StatefulWidget {
@@ -442,6 +443,20 @@ class _TeamStrategyCardState extends State<TeamStrategyCard> with SingleTickerPr
     );
   }
 
+  // Mirrors the web's Obsidianscout.formatScouter: "name (Team N)", falling back to whichever is known.
+  String _formatScouter(dynamic e) {
+    if (e is! Map) return '';
+    final data = e['data'] is Map ? e['data'] as Map : const {};
+    final name = (e['username'] ?? data['username'] ?? data['scouter'] ?? data['scout_name'] ?? e['scoutName'])?.toString();
+    final team = e['ownerTeamNumber']?.toString();
+    final hasName = name != null && name.isNotEmpty;
+    final hasTeam = team != null && team.isNotEmpty;
+    if (hasName && hasTeam) return '$name (Team $team)';
+    if (hasName) return name;
+    if (hasTeam) return 'Team $team';
+    return '';
+  }
+
   Widget _buildOverviewTab(Color primaryTextColor, Color secondaryTextColor, bool isDark) {
     final pitEntries = widget.pitEntries;
     final pitConfig = widget.pitConfig;
@@ -462,6 +477,7 @@ class _TeamStrategyCardState extends State<TeamStrategyCard> with SingleTickerPr
                 'label': f.label,
                 'text': val.toString(),
                 'date': (e is Map ? e['createdAt'] : e.createdAt)?.toString() ?? '',
+                'scouter': _formatScouter(e),
               });
             } else {
               String displayVal = val.toString();
@@ -488,6 +504,7 @@ class _TeamStrategyCardState extends State<TeamStrategyCard> with SingleTickerPr
               'label': f.label,
               'text': val.toString(),
               'date': (e is Map ? e['createdAt'] : e.createdAt)?.toString() ?? '',
+              'scouter': _formatScouter(e),
             });
           }
         }
@@ -507,6 +524,7 @@ class _TeamStrategyCardState extends State<TeamStrategyCard> with SingleTickerPr
               'label': f.label,
               'text': val.toString(),
               'date': (e is Map ? e['createdAt'] : e.createdAt)?.toString() ?? '',
+              'scouter': _formatScouter(e),
             });
           }
         }
@@ -532,7 +550,13 @@ class _TeamStrategyCardState extends State<TeamStrategyCard> with SingleTickerPr
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(s['label']!.toUpperCase(), style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8))),
-                    Text(s['val']!, style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: primaryTextColor)),
+                    if (s['val']!.startsWith('data:image/'))
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: ObsidianImageThumbnail(imageSource: s['val'], size: 56, title: s['label']!),
+                      )
+                    else
+                      Text(s['val']!, style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: primaryTextColor)),
                   ],
                 ),
               );
@@ -572,6 +596,11 @@ class _TeamStrategyCardState extends State<TeamStrategyCard> with SingleTickerPr
                       Text(n['date']!.split('T').first, style: TextStyle(fontSize: 9.5, color: secondaryTextColor)),
                     ],
                   ),
+                  if (n['scouter']!.isNotEmpty)
+                    Text(
+                      'Submitted by ${n['scouter']}',
+                      style: TextStyle(fontSize: 9.5, color: secondaryTextColor),
+                    ),
                   const SizedBox(height: 2),
                   Text(
                     '${n['label']}: ${n['text']}',
