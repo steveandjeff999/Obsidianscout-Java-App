@@ -2238,5 +2238,14 @@
   "compare.exp_start": "Starting xP",
   "compare.exp_teleop": "Teleop xP",
   "compare.source_match13": "Match 13 xP",
-  "compare.source_scouted": "Scouted"
+  "compare.source_scouted": "Scouted",
+  "config.make_data_public": "Verileri herkese açık yap",
+  "config.make_data_public_hint": "Herkes, takımınızın maç, pit ve nitel scouting verilerini Herkese Açık Veriler sayfasında inceleyip analiz edebilir. Scout adları asla gösterilmez. Tekrar gizlemek için işareti kaldırın.",
+  "config.make_data_public_notes": "Notları ve yorumları dahil et",
+  "config.view_public_page": "Herkese açık sayfanızı görüntüleyin",
+  "config.make_data_public_confirm": "Takımınızın scouting verileri herkese açık olsun mu?\n\nGiriş yapmadan herkes, Herkese Açık Veriler sayfasında maç, pit ve nitel kayıtlarınızı inceleyip analiz edebilecek. Scout adları gizli kalır. Tekrar gizlemek için istediğiniz zaman işareti kaldırabilirsiniz.",
+  "config.make_data_public_confirm_title": "Takımınızın scouting verileri herkese açık olsun mu?",
+  "config.make_data_public_confirm_body": "Giriş yapmadan herkes, Herkese Açık Veriler sayfasında maç, pit ve nitel kayıtlarınızı inceleyip analiz edebilecek. Scout adları gizli kalır. Tekrar gizlemek için istediğiniz zaman işareti kaldırabilirsiniz.",
+  "config.make_data_public_confirm_ok": "Herkese aç",
+  "config.make_data_public_notes_hint": "Herkese açık sayfalarınıza Nitel Sıralamaları da ekler."
 }

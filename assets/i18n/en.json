@@ -2353,5 +2353,14 @@
   "compare.exp_start": "Starting xP",
   "compare.exp_teleop": "Teleop xP",
   "compare.source_match13": "Match 13 xP",
-  "compare.source_scouted": "Scouted"
+  "compare.source_scouted": "Scouted",
+  "config.make_data_public": "Make data publicly available",
+  "config.make_data_public_hint": "Anyone can browse and analyze your team's match, pit and qualitative scouting data on the Public Data page. Scout names are never shown. Uncheck to hide it again.",
+  "config.make_data_public_notes": "Include notes and comments",
+  "config.view_public_page": "View your public page",
+  "config.make_data_public_confirm": "Make your team's scouting data public?\n\nAnyone, without signing in, will be able to browse and analyze your match, pit and qualitative entries on the Public Data page. Scout names stay hidden. You can uncheck this at any time to hide it again.",
+  "config.make_data_public_confirm_title": "Make your team's scouting data public?",
+  "config.make_data_public_confirm_body": "Anyone, without signing in, will be able to browse and analyze your match, pit and qualitative entries on the Public Data page. Scout names stay hidden. You can uncheck this at any time to hide it again.",
+  "config.make_data_public_confirm_ok": "Make public",
+  "config.make_data_public_notes_hint": "Also adds Qual Rankings to your public pages."
 }

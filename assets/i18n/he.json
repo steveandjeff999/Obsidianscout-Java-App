@@ -2238,5 +2238,14 @@
   "compare.exp_start": "Starting xP",
   "compare.exp_teleop": "Teleop xP",
   "compare.source_match13": "Match 13 xP",
-  "compare.source_scouted": "Scouted"
+  "compare.source_scouted": "Scouted",
+  "config.make_data_public": "הפוך את הנתונים לציבוריים",
+  "config.make_data_public_hint": "כל אחד יוכל לעיין ולנתח את נתוני הסקאוטינג של הקבוצה (משחקים, פיטים ואיכותיים) בעמוד הנתונים הציבוריים. שמות הסקאוטרים לעולם אינם מוצגים. בטל את הסימון כדי להסתיר אותם שוב.",
+  "config.make_data_public_notes": "כלול הערות ותגובות",
+  "config.view_public_page": "צפה בעמוד הציבורי שלך",
+  "config.make_data_public_confirm": "להפוך את נתוני הסקאוטינג של הקבוצה לציבוריים?\n\nכל אחד, גם ללא התחברות, יוכל לעיין ולנתח את רשומות המשחקים, הפיטים והאיכותיות שלך בעמוד הנתונים הציבוריים. שמות הסקאוטרים יישארו מוסתרים. אפשר לבטל את הסימון בכל עת כדי להסתיר אותם שוב.",
+  "config.make_data_public_confirm_title": "להפוך את נתוני הסקאוטינג של הקבוצה לציבוריים?",
+  "config.make_data_public_confirm_body": "כל אחד, גם ללא התחברות, יוכל לעיין ולנתח את רשומות המשחקים, הפיטים והאיכותיות שלך בעמוד הנתונים הציבוריים. שמות הסקאוטרים יישארו מוסתרים. אפשר לבטל את הסימון בכל עת כדי להסתיר אותם שוב.",
+  "config.make_data_public_confirm_ok": "הפוך לציבורי",
+  "config.make_data_public_notes_hint": "מוסיף גם את הדירוג האיכותי לעמודים הציבוריים שלך."
 }

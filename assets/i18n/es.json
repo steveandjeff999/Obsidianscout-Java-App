@@ -2238,5 +2238,14 @@
   "compare.exp_start": "Starting xP",
   "compare.exp_teleop": "Teleop xP",
   "compare.source_match13": "Match 13 xP",
-  "compare.source_scouted": "Scouted"
+  "compare.source_scouted": "Scouted",
+  "config.make_data_public": "Hacer públicos los datos",
+  "config.make_data_public_hint": "Cualquiera podrá ver y analizar los datos de scouting de partidos, pits y cualitativos de tu equipo en la página de Datos Públicos. Nunca se muestran los nombres de los scouts. Desmárcalo para ocultarlos de nuevo.",
+  "config.make_data_public_notes": "Incluir notas y comentarios",
+  "config.view_public_page": "Ver tu página pública",
+  "config.make_data_public_confirm": "¿Hacer públicos los datos de scouting de tu equipo?\n\nCualquiera, sin iniciar sesión, podrá ver y analizar tus registros de partidos, pits y cualitativos en la página de Datos Públicos. Los nombres de los scouts siguen ocultos. Puedes desmarcarlo en cualquier momento para ocultarlos.",
+  "config.make_data_public_confirm_title": "¿Hacer públicos los datos de scouting de tu equipo?",
+  "config.make_data_public_confirm_body": "Cualquiera, sin iniciar sesión, podrá ver y analizar tus registros de partidos, pits y cualitativos en la página de Datos Públicos. Los nombres de los scouts siguen ocultos. Puedes desmarcarlo en cualquier momento para ocultarlos.",
+  "config.make_data_public_confirm_ok": "Hacer público",
+  "config.make_data_public_notes_hint": "También añade la Clasificación cualitativa a tus páginas públicas."
 }

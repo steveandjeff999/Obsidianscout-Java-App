@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../l10n/app_localizations.dart';
 import '../models/api_response.dart';
 import '../models/account_rules.dart';
@@ -105,6 +106,8 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
   bool _chatEnabled = true;
   /// Null until the server reports it (older servers don't); saving null keeps the server's value.
   bool? _matchPredictionsEnabled;
+  bool? _dataPublic;
+  bool? _dataPublicIncludeNotes;
   bool _registrationLocked = false;
   /// Roles allowed on the create-account page; null until the server reports them (then treated as all roles).
   List<String>? _selfRegisterRoles;
@@ -205,6 +208,8 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     _recencyBias = fresh.recencyBias;
     _chatEnabled = fresh.chatEnabled;
     _matchPredictionsEnabled = fresh.matchPredictionsEnabled;
+    _dataPublic = fresh.dataPublic;
+    _dataPublicIncludeNotes = fresh.dataPublicIncludeNotes;
     _registrationLocked = fresh.registrationLocked;
     _selfRegisterRoles = fresh.selfRegisterRoles == null ? null : List<String>.from(fresh.selfRegisterRoles!);
     _scoutPages = List<String>.from(fresh.scoutPages);
@@ -281,6 +286,8 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       _recencyBias = _currentSettings.recencyBias;
       _chatEnabled = _currentSettings.chatEnabled;
       _matchPredictionsEnabled = _currentSettings.matchPredictionsEnabled;
+      _dataPublic = _currentSettings.dataPublic;
+      _dataPublicIncludeNotes = _currentSettings.dataPublicIncludeNotes;
       _registrationLocked = _currentSettings.registrationLocked;
       _selfRegisterRoles = _currentSettings.selfRegisterRoles == null ? null : List<String>.from(_currentSettings.selfRegisterRoles!);
       _scoutPages = List<String>.from(_currentSettings.scoutPages);
@@ -351,6 +358,38 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       return ScoutingFieldModel.fromJson(field).toJson();
     } catch (_) {
       return field;
+    }
+  }
+
+  /// Turning public data on publishes the team's scouting data to anyone, so the admin confirms it first.
+  Future<bool> _confirmMakeDataPublic() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        backgroundColor: ObsidianUITheme.getSurfaceColor(c),
+        title: Text(c.tr('config.make_data_public_confirm_title', "Make your team's scouting data public?"), style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(c))),
+        content: Text(
+          c.tr('config.make_data_public_confirm_body', 'Anyone, without signing in, will be able to browse and analyze your match, pit and qualitative entries on the Public Data page. Scout names stay hidden. You can uncheck this at any time to hide it again.'),
+          style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(c)),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(c).pop(false), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.of(c).pop(true),
+            child: Text(c.tr('config.make_data_public_confirm_ok', 'Make public')),
+          ),
+        ],
+      ),
+    );
+    return confirm == true;
+  }
+
+  Future<void> _openPublicPage() async {
+    final server = Uri.parse(widget.apiService.serverUrl);
+    final team = widget.apiService.currentUser?.teamNumber;
+    final uri = server.replace(path: '/public-data', queryParameters: team != null && team > 0 ? {'team': '$team'} : null);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      await launchUrl(uri, mode: LaunchMode.platformDefault);
     }
   }
 
@@ -937,6 +976,8 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       recencyBias: _recencyBias,
       chatEnabled: _chatEnabled,
       matchPredictionsEnabled: _matchPredictionsEnabled,
+      dataPublic: _dataPublic,
+      dataPublicIncludeNotes: _dataPublicIncludeNotes,
       registrationLocked: _registrationLocked,
       selfRegisterRoles: _selfRegisterRoles,
       apiKeys: _currentSettings.apiKeys.copyWith(
@@ -989,6 +1030,8 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     final updated = _currentSettings.copyWith(
       chatEnabled: _chatEnabled,
       matchPredictionsEnabled: _matchPredictionsEnabled,
+      dataPublic: _dataPublic,
+      dataPublicIncludeNotes: _dataPublicIncludeNotes,
       registrationLocked: _registrationLocked,
       selfRegisterRoles: _selfRegisterRoles,
       scoutPages: _scoutPages,
@@ -4159,6 +4202,48 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                 controlAffinity: ListTileControlAffinity.leading,
                 onChanged: (val) => setState(() => _matchPredictionsEnabled = val ?? false),
               ),
+              CheckboxListTile(
+                title: Text(context.tr('config.make_data_public', 'Make data publicly available'), style: TextStyle(color: primaryTextColor, fontSize: 13, fontWeight: FontWeight.w600)),
+                subtitle: Text(
+                  context.tr('config.make_data_public_hint', "Anyone can browse and analyze your team's match, pit and qualitative scouting data on the Public Data page. Scout names are never shown. Uncheck to hide it again."),
+                  style: TextStyle(color: secondaryTextColor, fontSize: 11),
+                ),
+                value: _dataPublic ?? false,
+                activeColor: ObsidianUITheme.primaryAccent,
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                onChanged: (val) async {
+                  if (val == true && !await _confirmMakeDataPublic()) return;
+                  if (!mounted) return;
+                  setState(() => _dataPublic = val ?? false);
+                },
+              ),
+              Padding(
+                padding: const EdgeInsets.only(left: 24),
+                child: CheckboxListTile(
+                  title: Text(context.tr('config.make_data_public_notes', 'Include notes and comments'), style: TextStyle(color: primaryTextColor, fontSize: 13, fontWeight: FontWeight.w600)),
+                  subtitle: Text(
+                    context.tr('config.make_data_public_notes_hint', 'Also adds Qual Rankings to your public pages.'),
+                    style: TextStyle(color: secondaryTextColor, fontSize: 11),
+                  ),
+                  value: _dataPublicIncludeNotes ?? false,
+                  activeColor: ObsidianUITheme.primaryAccent,
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  onChanged: _dataPublic == true ? (val) => setState(() => _dataPublicIncludeNotes = val ?? false) : null,
+                ),
+              ),
+              if (_dataPublic == true && _currentSettings.dataPublic == true)
+                Padding(
+                  padding: const EdgeInsets.only(left: 24),
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    leading: Icon(Icons.open_in_new, size: 18, color: ObsidianUITheme.primaryAccent),
+                    title: Text(context.tr('config.view_public_page', 'View your public page'), style: TextStyle(color: primaryTextColor, fontSize: 13)),
+                    onTap: _openPublicPage,
+                  ),
+                ),
               CheckboxListTile(
                 title: Text('Lock new user registration via create account page', style: TextStyle(color: primaryTextColor, fontSize: 13, fontWeight: FontWeight.w600)),
                 subtitle: Text('Prevent uninvited users from self-registering', style: TextStyle(color: secondaryTextColor, fontSize: 11)),
