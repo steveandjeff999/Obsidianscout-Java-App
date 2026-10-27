@@ -808,6 +808,11 @@ class AppSettingsModel {
   /// Match predictions game (scouts pick each match's winner). Null when the server didn't report it;
   /// omitted on save so the server keeps its value.
   final bool? matchPredictionsEnabled;
+  /// Anyone can browse and analyze the team's data on the web Public Data page. Null when the server
+  /// didn't report it; omitted on save so the server keeps its value.
+  final bool? dataPublic;
+  /// With [dataPublic], notes and comments are shown instead of redacted. Same null handling.
+  final bool? dataPublicIncludeNotes;
   final bool registrationLocked;
   /// Roles allowed on the create-account page (null = not reported by the server; keep its value).
   final List<String>? selfRegisterRoles;
@@ -835,6 +840,8 @@ class AppSettingsModel {
     this.timezone = 'America/New_York',
     this.chatEnabled = true,
     this.matchPredictionsEnabled,
+    this.dataPublic,
+    this.dataPublicIncludeNotes,
     this.registrationLocked = false,
     this.selfRegisterRoles,
     this.useStatboticsEpa = false,
@@ -951,6 +958,18 @@ class AppSettingsModel {
         if (raw is bool) return raw;
         return parseBool(raw);
       }(),
+      dataPublic: () {
+        final raw = settingsMap['dataPublic'] ?? json['dataPublic'];
+        if (raw == null) return null;
+        if (raw is bool) return raw;
+        return parseBool(raw);
+      }(),
+      dataPublicIncludeNotes: () {
+        final raw = settingsMap['dataPublicIncludeNotes'] ?? json['dataPublicIncludeNotes'];
+        if (raw == null) return null;
+        if (raw is bool) return raw;
+        return parseBool(raw);
+      }(),
       registrationLocked: parseBool(settingsMap['registrationLocked'] ?? json['registrationLocked']),
       selfRegisterRoles: (settingsMap['selfRegisterRoles'] is List)
           ? (settingsMap['selfRegisterRoles'] as List).map((e) => e.toString().toUpperCase()).toList()
@@ -983,6 +1002,8 @@ class AppSettingsModel {
       'timezone': timezone,
       'chatEnabled': chatEnabled,
       if (matchPredictionsEnabled != null) 'matchPredictionsEnabled': matchPredictionsEnabled,
+      if (dataPublic != null) 'dataPublic': dataPublic,
+      if (dataPublicIncludeNotes != null) 'dataPublicIncludeNotes': dataPublicIncludeNotes,
       'registrationLocked': registrationLocked,
       if (selfRegisterRoles != null) 'selfRegisterRoles': selfRegisterRoles,
       'useStatboticsEpa': useStatboticsEpa,
@@ -1010,6 +1031,8 @@ class AppSettingsModel {
     String? timezone,
     bool? chatEnabled,
     bool? matchPredictionsEnabled,
+    bool? dataPublic,
+    bool? dataPublicIncludeNotes,
     bool? registrationLocked,
     List<String>? selfRegisterRoles,
     bool? useStatboticsEpa,
@@ -1035,6 +1058,8 @@ class AppSettingsModel {
       timezone: timezone ?? this.timezone,
       chatEnabled: chatEnabled ?? this.chatEnabled,
       matchPredictionsEnabled: matchPredictionsEnabled ?? this.matchPredictionsEnabled,
+      dataPublic: dataPublic ?? this.dataPublic,
+      dataPublicIncludeNotes: dataPublicIncludeNotes ?? this.dataPublicIncludeNotes,
       registrationLocked: registrationLocked ?? this.registrationLocked,
       selfRegisterRoles: selfRegisterRoles ?? this.selfRegisterRoles,
       useStatboticsEpa: useStatboticsEpa ?? this.useStatboticsEpa,
