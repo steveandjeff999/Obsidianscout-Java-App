@@ -81,6 +81,10 @@ class QrScannerScreen extends StatefulWidget {
       if (item is Map) {
         final itemMap = Map<String, dynamic>.from(item);
         final entryPayload = itemMap['data'] is Map ? Map<String, dynamic>.from(itemMap['data'] as Map) : itemMap;
+        // QR stacks wrap each entry as {type, data}; keep that form type.
+        if (entryPayload['type'] == null && itemMap['data'] is Map && itemMap['type'] != null) {
+          entryPayload['type'] = itemMap['type'].toString();
+        }
         final dynamic rawTeamNum = entryPayload['targetTeamNumber'] ?? entryPayload['teamNumber'];
         final int? teamNum = rawTeamNum is num ? rawTeamNum.toInt() : (rawTeamNum != null ? int.tryParse(rawTeamNum.toString()) : null);
 
@@ -633,10 +637,14 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
         int alreadyInQueue = 0;
         final teamNumbers = <int>[];
 
-        for (final entryPayload in allianceEntries) {
+        for (final bundled in allianceEntries) {
+          final String subType = bundled['type'].toString();
+          final bool isQual = _historyTypeFor(subType) == 'qual';
+          // Qual entries have always kept their type field; other forms upload without it.
+          final entryPayload = isQual ? bundled : (Map<String, dynamic>.from(bundled)..remove('type'));
           final int teamNum = entryPayload['targetTeamNumber'] as int;
           final isDup = _queue.any((q) =>
-              (q.type == 'qual-scout' || q.type == 'qualitative-scouting') &&
+              _historyTypeFor(q.type) == _historyTypeFor(subType) &&
               q.data['eventKey']?.toString() == entryPayload['eventKey']?.toString() &&
               q.data['targetTeamNumber']?.toString() == teamNum.toString() &&
               q.data['matchKey']?.toString() == entryPayload['matchKey']?.toString());
@@ -644,7 +652,7 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
           if (!isDup) {
             final newItem = ScannedQueueItem(
               id: '${DateTime.now().millisecondsSinceEpoch}_${teamNum}_$added',
-              type: 'qual-scout',
+              type: subType,
               data: entryPayload,
               status: 'pending',
             );
@@ -652,7 +660,7 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
             teamNumbers.add(teamNum);
             added++;
             ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
-              type: 'qual',
+              type: _historyTypeFor(subType),
               action: 'qr_scanned',
               status: 'pending',
               payload: entryPayload,
@@ -795,7 +803,7 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
           item.errorMsg = '';
         });
         ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
-          type: item.type.contains('pit') ? 'pit' : (item.type.contains('qual') ? 'qual' : (item.type.contains('prescout') ? 'prescout-match' : 'match')),
+          type: _historyTypeFor(item.type),
           action: 'qr_scanned',
           status: 'synced',
           payload: item.data,
@@ -872,6 +880,13 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
       _queue.removeWhere((item) => item.id == id);
     });
     _saveQueue();
+  }
+
+  /// Scout history form type ('match', 'pit', 'qual', 'prescout-*') for a scanned QR form type.
+  String _historyTypeFor(String type) {
+    final t = type.toLowerCase();
+    final kind = t.contains('pit') ? 'pit' : (t.contains('qual') ? 'qual' : 'match');
+    return t.contains('prescout') ? 'prescout-$kind' : kind;
   }
 
   String _getFormTypeLabel(String type) {

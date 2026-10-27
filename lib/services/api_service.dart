@@ -3313,10 +3313,11 @@ class ApiService {
     return const [];
   }
 
-  Future<List<dynamic>> fetchScoutingEntries() async {
+  /// [forceRefresh] skips the few-seconds-old copy and asks the server.
+  Future<List<dynamic>> fetchScoutingEntries({bool forceRefresh = false}) async {
     const cacheKey = "cache_scouting";
     final cachedEntries = await getCachedScoutingEntries();
-    if (cachedEntries.isNotEmpty && isCacheFresh(cacheKey)) {
+    if (!forceRefresh && cachedEntries.isNotEmpty && isCacheFresh(cacheKey)) {
       return cachedEntries;
     }
 
@@ -3342,10 +3343,11 @@ class ApiService {
     return cachedEntries;
   }
 
-  Future<List<dynamic>> fetchPitScoutingEntries() async {
+  /// [forceRefresh] skips the few-seconds-old copy and asks the server.
+  Future<List<dynamic>> fetchPitScoutingEntries({bool forceRefresh = false}) async {
     const cacheKey = "cache_pit_scouting";
     final cachedEntries = await getCachedPitScoutingEntries();
-    if (cachedEntries.isNotEmpty && isCacheFresh(cacheKey)) {
+    if (!forceRefresh && cachedEntries.isNotEmpty && isCacheFresh(cacheKey)) {
       return cachedEntries;
     }
 
@@ -3371,10 +3373,11 @@ class ApiService {
     return cachedEntries;
   }
 
-  Future<List<dynamic>> fetchQualScoutingEntries() async {
+  /// [forceRefresh] skips the few-seconds-old copy and asks the server.
+  Future<List<dynamic>> fetchQualScoutingEntries({bool forceRefresh = false}) async {
     const cacheKey = "cache_qual_scouting";
     final cachedEntries = await getCachedQualScoutingEntries();
-    if (cachedEntries.isNotEmpty && isCacheFresh(cacheKey)) {
+    if (!forceRefresh && cachedEntries.isNotEmpty && isCacheFresh(cacheKey)) {
       return cachedEntries;
     }
 

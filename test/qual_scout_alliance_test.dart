@@ -422,5 +422,44 @@ void main() {
       // Drain remaining cooldown timer
       await tester.pump(const Duration(seconds: 2));
     });
+
+    testWidgets('QrScannerScreen queues each QR stack entry under its own form type', (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final mockApi = _MockQualScoutApiService();
+      final scannerKey = GlobalKey<QrScannerScreenState>();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ObsidianUITheme.darkTheme,
+          home: Scaffold(
+            body: QrScannerScreen(key: scannerKey, apiService: mockApi),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final qrStack = {
+        'type': 'bundle',
+        'data': {
+          'type': 'bundle',
+          'scope': 'QR Stack',
+          'entries': [
+            {'type': 'scout', 'data': {'eventKey': '2026test', 'targetTeamNumber': 254, 'matchKey': '2026test_qm1'}},
+            {'type': 'pit-scout', 'data': {'eventKey': '2026test', 'targetTeamNumber': 1678}},
+            {'type': 'qual-scout', 'data': {'eventKey': '2026test', 'targetTeamNumber': 971, 'matchKey': '2026test_qm2'}},
+          ]
+        }
+      };
+
+      scannerKey.currentState!.handleRawScan(jsonEncode(qrStack));
+      await tester.pumpAndSettle();
+
+      final queue = scannerKey.currentState!.queue;
+      expect(queue.map((q) => q.type).toList(), equals(['scout', 'pit-scout', 'qual-scout']));
+      expect(queue[0].data.containsKey('type'), isFalse);
+      expect(queue[1].data['targetTeamNumber'], equals(1678));
+
+      await tester.pump(const Duration(seconds: 2));
+    });
   });
 }
