@@ -4,6 +4,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../models/api_response.dart';
 import '../models/scout_history_models.dart';
 import '../services/api_service.dart';
+import '../services/history_server_match.dart';
 import '../services/scout_history_service.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../theme/obsidian_responsive.dart';
@@ -32,6 +33,7 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
   bool _isLoading = true;
   bool _isBulkUploading = false;
   bool _isSyncingServer = false;
+  Timer? _serverCheckTimer;
 
   // Filter state
   String _typeFilter = 'all';   // 'all', 'match', 'pit', 'qual', 'prescout'
@@ -42,10 +44,17 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
     super.initState();
     widget.apiService.permissionsNotifier.addListener(_onAuthChanged);
     _loadHistory().then((_) => _syncWithServer());
+    // Records can reach the server from another device at any time, so keep checking while this screen shows.
+    _serverCheckTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+      if (mounted && widget.isVisible && _entries.any((e) => e.status != 'synced')) {
+        _syncWithServer(forceRefresh: true);
+      }
+    });
   }
 
   @override
   void dispose() {
+    _serverCheckTimer?.cancel();
     widget.apiService.permissionsNotifier.removeListener(_onAuthChanged);
     super.dispose();
   }
@@ -60,7 +69,7 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
   void didUpdateWidget(covariant ScoutHistoryScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isVisible && !oldWidget.isVisible) {
-      _loadHistory().then((_) => _syncWithServer());
+      _loadHistory().then((_) => _syncWithServer(forceRefresh: true));
     }
   }
 
@@ -83,115 +92,40 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
   // Auto-fetch server records to check what is already synced
   // ---------------------------------------------------------------------------
 
-  static int _extractInt(Map<String, dynamic> map, List<String> keys) {
-    for (final k in keys) {
-      if (map.containsKey(k) && map[k] != null) {
-        final val = map[k];
-        if (val is int) return val;
-        final parsed = int.tryParse(val.toString());
-        if (parsed != null) return parsed;
-      }
-    }
-    return 0;
-  }
-
-  static String _extractStr(Map<String, dynamic> map, List<String> keys) {
-    for (final k in keys) {
-      if (map.containsKey(k) && map[k] != null) {
-        final val = map[k].toString().trim();
-        if (val.isNotEmpty) return val;
-      }
-    }
-    return '';
-  }
-
-  static bool _matchesRecordMap(ScoutHistoryEntry local, Map<String, dynamic> record) {
-    final serverTeam = _extractInt(record, ['targetTeamNumber', 'teamNumber', 'team_number']);
-    if (serverTeam != 0 && serverTeam != local.teamNumber) return false;
-
-    final serverEvent = _extractStr(record, ['eventKey', 'event_key', 'eventCode', 'event_code']);
-    if (serverEvent.isNotEmpty && local.eventKey.isNotEmpty) {
-      if (serverEvent.toLowerCase() != local.eventKey.toLowerCase()) return false;
-    }
-
-    if (local.type.contains('match') || local.type.contains('qual')) {
-      final serverMatchKey = _extractStr(record, ['matchKey', 'match_key']);
-      final serverMatchNum = _extractInt(record, ['matchNumber', 'match_number']);
-
-      if (local.matchKey != null && local.matchKey!.isNotEmpty && serverMatchKey.isNotEmpty) {
-        if (local.matchKey!.toLowerCase() != serverMatchKey.toLowerCase()) return false;
-      } else if (local.matchNumber != null && serverMatchNum != 0) {
-        if (local.matchNumber != serverMatchNum) return false;
-      }
-    }
-
-    return true;
-  }
-
-  static bool _checkServerMatch(ScoutHistoryEntry entry, dynamic rawServerRecord) {
-    if (rawServerRecord is! Map) return false;
-    final map = Map<String, dynamic>.from(rawServerRecord);
-
-    if (_matchesRecordMap(entry, map)) return true;
-
-    if (map['data'] is Map) {
-      final inner = Map<String, dynamic>.from(map['data'] as Map);
-      if (_matchesRecordMap(entry, inner)) return true;
-    }
-
-    return false;
-  }
-
-  Future<void> _syncWithServer({bool showFeedback = false}) async {
+  /// Checks unsynced records against the server and marks the ones it already has, however they got there.
+  /// [forceRefresh] asks the server even if its list was fetched a few seconds ago.
+  Future<void> _syncWithServer({bool showFeedback = false, bool forceRefresh = false}) async {
     if (_isSyncingServer) return;
     setState(() => _isSyncingServer = true);
 
     int newlySyncedCount = 0;
+    final failedKinds = <String>[];
     try {
-      final results = await Future.wait([
-        widget.apiService.fetchScoutingEntries(),
-        widget.apiService.fetchPitScoutingEntries(),
-        widget.apiService.fetchQualScoutingEntries(),
-        widget.apiService.fetchPrescoutScoutingEntries(),
-        widget.apiService.fetchPrescoutPitScoutingEntries(),
-        widget.apiService.fetchPrescoutQualScoutingEntries(),
-      ]);
-
-      final matchEntries = results[0];
-      final pitEntries = results[1];
-      final qualEntries = results[2];
-      final prescoutMatch = results[3];
-      final prescoutPit = results[4];
-      final prescoutQual = results[5];
-
       final currentAccount = widget.apiService.currentAccountUsername;
       final currentAccountId = widget.apiService.currentAccountId;
-      final localEntries = await ScoutHistoryService.loadForAccount(
+      final unsynced = (await ScoutHistoryService.loadForAccount(
         currentAccount,
         accountId: currentAccountId,
-      );
-      for (final local in localEntries) {
-        if (local.status == 'synced') continue;
+      )).where((e) => e.status != 'synced').toList();
 
-        List<dynamic> targetServerList;
-        if (local.type == 'match') {
-          targetServerList = matchEntries;
-        } else if (local.type == 'pit') {
-          targetServerList = pitEntries;
-        } else if (local.type == 'qual') {
-          targetServerList = qualEntries;
-        } else if (local.type == 'prescout-match') {
-          targetServerList = prescoutMatch;
-        } else if (local.type == 'prescout-pit') {
-          targetServerList = prescoutPit;
-        } else if (local.type == 'prescout-qual') {
-          targetServerList = prescoutQual;
-        } else {
-          targetServerList = [...matchEntries, ...pitEntries, ...qualEntries, ...prescoutMatch, ...prescoutPit, ...prescoutQual];
+      // Each list carries prescout entries too (includePrescout=true), flagged isPrescout.
+      final kinds = unsynced.map((e) => serverKindFor(e.type)).toSet();
+      final serverLists = <String, List<dynamic>>{};
+      for (final kind in kinds) {
+        try {
+          serverLists[kind] = switch (kind) {
+            'pit' => await widget.apiService.fetchPitScoutingEntries(forceRefresh: forceRefresh),
+            'qual' => await widget.apiService.fetchQualScoutingEntries(forceRefresh: forceRefresh),
+            _ => await widget.apiService.fetchScoutingEntries(forceRefresh: forceRefresh),
+          };
+        } catch (_) {
+          failedKinds.add(kind);
         }
+      }
 
-        final foundOnServer = targetServerList.any((serverItem) => _checkServerMatch(local, serverItem));
-        if (foundOnServer) {
+      for (final local in unsynced) {
+        final list = serverLists[serverKindFor(local.type)];
+        if (list != null && isHistoryEntryOnServer(local, list)) {
           await ScoutHistoryService.updateStatus(local.id, 'synced');
           newlySyncedCount++;
         }
@@ -206,7 +140,13 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
     if (mounted) {
       setState(() => _isSyncingServer = false);
       if (showFeedback) {
-        if (newlySyncedCount > 0) {
+        if (failedKinds.isNotEmpty) {
+          ObsidianFeedback.showError(
+            context,
+            title: 'Server Check Incomplete',
+            message: 'Could not load ${failedKinds.join(', ')} records from the server. Try again.',
+          );
+        } else if (newlySyncedCount > 0) {
           ObsidianFeedback.showSuccess(
             context,
             title: 'Server Sync Complete',
@@ -308,6 +248,48 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
     if (entry.status == 'failed') {
       ScoutHistoryService.updateStatus(entry.id, 'pending').then((_) => _loadHistory());
     }
+  }
+
+  /// QR form type each history type uploads under on the scanner pages.
+  static const Map<String, String> _scannerTypes = {
+    'match': 'scout',
+    'pit': 'pit-scout',
+    'qual': 'qual-scout',
+    'prescout-match': 'prescout-scout',
+    'prescout-pit': 'prescout-pit',
+    'prescout-qual': 'prescout-qual',
+  };
+
+  /// Shows every record not yet on the server as one multi-part QR bundle; scanning it queues each entry
+  /// under its own form type, so they all upload together.
+  void _showQrStack() {
+    final unsynced = _entries.where((e) => e.status != 'synced').toList()
+      ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    final seen = <String>{};
+    final bundled = <Map<String, dynamic>>[];
+    final teams = <int>[];
+    for (final entry in unsynced) {
+      final raw = entry.payload['data'] is Map ? entry.payload['data'] as Map : entry.payload;
+      final data = Map<String, dynamic>.from(raw);
+      data['targetTeamNumber'] ??= data['teamNumber'] ?? entry.teamNumber;
+      data['eventKey'] ??= entry.eventKey;
+      if (entry.matchKey != null) data['matchKey'] ??= entry.matchKey;
+      final type = _scannerTypes[entry.type] ?? 'scout';
+      // Newest copy of the same record wins.
+      final key = '$type|${data['eventKey']}|${data['targetTeamNumber']}|${data['matchKey'] ?? data['matchNumber'] ?? ''}'.toLowerCase();
+      if (!seen.add(key)) continue;
+      bundled.add({'type': type, 'data': data});
+      if (!teams.contains(entry.teamNumber)) teams.add(entry.teamNumber);
+    }
+    if (bundled.isEmpty) return;
+
+    ObsidianBarcodeModal.show(
+      context,
+      payload: {'type': 'bundle', 'scope': 'QR Stack', 'entries': bundled},
+      typeLabel: 'QR Stack (${bundled.length} ${bundled.length == 1 ? 'entry' : 'entries'})',
+      targetTeamNumber: teams.first,
+      teamLabel: teams.join(', '),
+    );
   }
 
   Future<void> _deleteEntry(ScoutHistoryEntry entry) async {
@@ -594,7 +576,7 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
           child: filtered.isEmpty
               ? _buildEmptyState()
               : RefreshIndicator(
-                  onRefresh: () => _syncWithServer(showFeedback: true),
+                  onRefresh: () => _syncWithServer(showFeedback: true, forceRefresh: true),
                   color: ObsidianUITheme.primaryAccent,
                   child: Builder(
                     builder: (context) {
@@ -755,9 +737,21 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                     ),
                   ),
+                  // All unsynced records in one QR bundle
+                  OutlinedButton.icon(
+                    onPressed: pendingCount > 0 ? _showQrStack : null,
+                    icon: const Icon(Icons.qr_code_2_rounded, size: 15),
+                    label: Text('QR Stack ($pendingCount)', style: const TextStyle(fontSize: 12)),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: ObsidianUITheme.primaryAccent,
+                      side: BorderSide(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.5)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                    ),
+                  ),
                   // Check Server Sync Button
                   OutlinedButton.icon(
-                    onPressed: _isSyncingServer ? null : () => _syncWithServer(showFeedback: true),
+                    onPressed: _isSyncingServer ? null : () => _syncWithServer(showFeedback: true, forceRefresh: true),
                     icon: _isSyncingServer
                         ? const SizedBox(width: 13, height: 13, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF38BDF8)))
                         : const Icon(Icons.sync_rounded, size: 15),

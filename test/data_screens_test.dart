@@ -89,7 +89,7 @@ class _MockDataApiService extends ApiService {
   Future<ScoutingConfigModel?> getCachedQualConfig() async => fetchQualConfig();
 
   @override
-  Future<List<dynamic>> fetchScoutingEntries() async => [
+  Future<List<dynamic>> fetchScoutingEntries({bool forceRefresh = false}) async => [
         {
           'id': '101',
           'targetTeamNumber': 1234,
@@ -107,7 +107,7 @@ class _MockDataApiService extends ApiService {
   Future<List<dynamic>> getCachedScoutingEntries() async => fetchScoutingEntries();
 
   @override
-  Future<List<dynamic>> fetchPitScoutingEntries() async => [
+  Future<List<dynamic>> fetchPitScoutingEntries({bool forceRefresh = false}) async => [
         {
           'id': '201',
           'targetTeamNumber': 1234,
@@ -122,7 +122,7 @@ class _MockDataApiService extends ApiService {
   Future<List<dynamic>> getCachedPitScoutingEntries() async => fetchPitScoutingEntries();
 
   @override
-  Future<List<dynamic>> fetchQualScoutingEntries() async => [
+  Future<List<dynamic>> fetchQualScoutingEntries({bool forceRefresh = false}) async => [
         {
           'id': '301',
           'targetTeamNumber': 1234,
