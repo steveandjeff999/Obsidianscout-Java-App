@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
+import 'obsidian_nav_search.dart';
 import 'obsidian_user_avatar.dart';
 
 class ObsidianDesktopSidebar extends StatefulWidget {
@@ -14,6 +15,8 @@ class ObsidianDesktopSidebar extends StatefulWidget {
   final VoidCallback? onOpenAccounts;
   final bool isCollapsed;
   final ValueChanged<bool>? onToggleCollapse;
+  /// Bumped by the shell's Ctrl+K shortcut to expand the sidebar and focus its search box.
+  final ValueNotifier<int>? searchRequests;
 
   const ObsidianDesktopSidebar({
     super.key,
@@ -25,6 +28,7 @@ class ObsidianDesktopSidebar extends StatefulWidget {
     this.onOpenAccounts,
     this.isCollapsed = false,
     this.onToggleCollapse,
+    this.searchRequests,
   });
 
   @override
@@ -33,11 +37,74 @@ class ObsidianDesktopSidebar extends StatefulWidget {
 
 class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
   late bool _collapsed;
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocus = FocusNode();
+  String _query = '';
+  int _selectedMatch = 0;
+  List<Map<String, dynamic>> _matches = const [];
 
   @override
   void initState() {
     super.initState();
     _collapsed = widget.isCollapsed;
+    widget.searchRequests?.addListener(_focusSearch);
+  }
+
+  @override
+  void didUpdateWidget(ObsidianDesktopSidebar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.searchRequests != widget.searchRequests) {
+      oldWidget.searchRequests?.removeListener(_focusSearch);
+      widget.searchRequests?.addListener(_focusSearch);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.searchRequests?.removeListener(_focusSearch);
+    _searchController.dispose();
+    _searchFocus.dispose();
+    super.dispose();
+  }
+
+  /// Expands the sidebar if needed, then focuses and selects the search box.
+  void _focusSearch() {
+    if (!mounted) return;
+    if (_collapsed) setState(() => _collapsed = false);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _searchFocus.requestFocus();
+      _searchController.selection = TextSelection(baseOffset: 0, extentOffset: _searchController.text.length);
+    });
+  }
+
+  void _setQuery(String value) {
+    setState(() {
+      _query = value;
+      _selectedMatch = 0;
+    });
+  }
+
+  void _moveSelection(int delta) {
+    if (_matches.isEmpty) return;
+    setState(() => _selectedMatch = (_selectedMatch + delta) % _matches.length);
+  }
+
+  void _openItem(Map<String, dynamic> item) {
+    if (item['isAction'] == true) {
+      final action = item['action'] as VoidCallback?;
+      action?.call();
+    } else if (item['index'] is int) {
+      widget.onSelectScreen(item['index'] as int);
+    }
+  }
+
+  void _openSelectedMatch() {
+    if (_matches.isEmpty) return;
+    _openItem(_matches[_selectedMatch.clamp(0, _matches.length - 1)]);
+    _searchController.clear();
+    _setQuery('');
+    _searchFocus.unfocus();
   }
 
   @override
@@ -466,6 +533,24 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
       },
     ];
 
+    final isSearching = !_collapsed && _query.trim().isNotEmpty;
+    // Pages the user can open, narrowed by the search box when it has text.
+    final visibleSections = sections
+        .map((section) => {
+              'titleKey': section['titleKey'],
+              'items': (section['items'] as List<Map<String, dynamic>>)
+                  .where((item) =>
+                      widget.apiService.hasPageAccess(item['pageId'] as String) &&
+                      (!isSearching || navItemMatchesQuery(context, item, _query)))
+                  .toList(),
+            })
+        .where((section) => (section['items'] as List).isNotEmpty)
+        .toList();
+    _matches = isSearching
+        ? visibleSections.expand((s) => s['items'] as List<Map<String, dynamic>>).toList()
+        : const [];
+    final highlighted = _matches.isEmpty ? null : _matches[_selectedMatch.clamp(0, _matches.length - 1)];
+
     final width = _collapsed ? 72.0 : 240.0;
 
     return AnimatedContainer(
@@ -529,7 +614,13 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
                     size: 20.0,
                   ),
                   tooltip: _collapsed ? 'Expand Sidebar' : 'Collapse Sidebar',
-                  onPressed: () => setState(() => _collapsed = !_collapsed),
+                  onPressed: () => setState(() {
+                    _collapsed = !_collapsed;
+                    if (_collapsed) {
+                      _searchController.clear();
+                      _query = '';
+                    }
+                  }),
                   constraints: const BoxConstraints(minWidth: 32.0, minHeight: 32.0),
                   padding: EdgeInsets.zero,
                 ),
@@ -609,19 +700,45 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
               ),
             ),
 
+          if (!_collapsed)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8.0, 0.0, 8.0, 4.0),
+              child: ObsidianNavSearchField(
+                controller: _searchController,
+                focusNode: _searchFocus,
+                compact: true,
+                shortcutHint: 'Ctrl K',
+                onChanged: _setQuery,
+                onSubmitted: _openSelectedMatch,
+                onMoveSelection: _moveSelection,
+              ),
+            ),
+
           // Navigation Links
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
               children: [
-                ...sections.expand((section) {
-                  final rawItems = section['items'] as List<Map<String, dynamic>>;
-                  final visibleItems = rawItems.where((item) {
-                    final pageId = item['pageId'] as String;
-                    return widget.apiService.hasPageAccess(pageId);
-                  }).toList();
-
-                  if (visibleItems.isEmpty) return <Widget>[];
+                if (_collapsed)
+                  Tooltip(
+                    message: context.tr('sidebar.search.placeholder', 'Search pages...'),
+                    preferBelow: false,
+                    child: Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(itemRadius),
+                      child: InkWell(
+                        onTap: _focusSearch,
+                        borderRadius: BorderRadius.circular(itemRadius),
+                        child: SizedBox(
+                          height: 40.0,
+                          child: Icon(Icons.search_rounded, size: 20.0, color: sectionLabelColor),
+                        ),
+                      ),
+                    ),
+                  ),
+                if (isSearching && _matches.isEmpty) const ObsidianNavSearchEmpty(),
+                ...visibleSections.expand((section) {
+                  final visibleItems = section['items'] as List<Map<String, dynamic>>;
                   final titleKey = section['titleKey'] as String?;
 
                   return [
@@ -698,22 +815,16 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
                         );
                       }
 
+                      final isHighlighted = identical(item, highlighted);
                       return Container(
                         margin: const EdgeInsets.symmetric(vertical: 1.5),
                         child: Material(
                           color: isSelected
                               ? primaryAccent.withValues(alpha: 0.18)
-                              : Colors.transparent,
+                              : (isHighlighted ? primaryAccent.withValues(alpha: 0.10) : Colors.transparent),
                           borderRadius: BorderRadius.circular(itemRadius),
                           child: InkWell(
-                            onTap: () {
-                              if (isAction) {
-                                final action = item['action'] as VoidCallback?;
-                                action?.call();
-                              } else if (idx != null) {
-                                widget.onSelectScreen(idx);
-                              }
-                            },
+                            onTap: () => _openItem(item),
                             borderRadius: BorderRadius.circular(itemRadius),
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 7.0),

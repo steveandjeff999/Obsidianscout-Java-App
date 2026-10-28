@@ -40,6 +40,7 @@ class ApiService {
   static const String keyUseServerCustomTheme = "obsidianscout_use_server_custom_theme";
   static const String keyUiMode = "obsidianscout_ui_mode";
   static const String keyDesktopTabs = "obsidianscout_desktop_tabs_enabled";
+  static const String keyKeepScreenOnWhileScouting = "obsidianscout_keep_screen_on_scouting";
   static const String keyLocale = "obsidianscout_locale";
   static const String keyRequestTimeoutSeconds = "obsidianscout_request_timeout_seconds";
   static const String keyDeviceId = "obsidianscout_device_id";
@@ -112,6 +113,7 @@ class ApiService {
   final ValueNotifier<ThemePresetModel?> customThemeNotifier = ValueNotifier<ThemePresetModel?>(null);
   final ValueNotifier<String> uiModeNotifier = ValueNotifier<String>('auto'); // 'auto', 'mobile', 'desktop'
   final ValueNotifier<bool> desktopTabsNotifier = ValueNotifier<bool>(true);
+  final ValueNotifier<bool> keepScreenOnWhileScoutingNotifier = ValueNotifier<bool>(true);
   final ValueNotifier<Locale> localeNotifier = ValueNotifier<Locale>(const Locale('en'));
   final ValueNotifier<int> timeoutNotifier = ValueNotifier<int>(defaultRequestTimeoutSeconds);
 
@@ -182,6 +184,7 @@ class ApiService {
   ThemePresetModel? get currentCustomTheme => customThemeNotifier.value;
   String get uiMode => uiModeNotifier.value;
   bool get desktopTabsEnabled => desktopTabsNotifier.value;
+  bool get keepScreenOnWhileScouting => keepScreenOnWhileScoutingNotifier.value;
   Locale get currentLocale => localeNotifier.value;
   int get requestTimeoutSeconds => _requestTimeoutSeconds;
   Duration get requestTimeout => Duration(seconds: _requestTimeoutSeconds);
@@ -229,6 +232,12 @@ class ApiService {
     desktopTabsNotifier.value = enabled;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(keyDesktopTabs, enabled);
+  }
+
+  Future<void> setKeepScreenOnWhileScouting(bool enabled) async {
+    keepScreenOnWhileScoutingNotifier.value = enabled;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(keyKeepScreenOnWhileScouting, enabled);
   }
 
   Future<void> setLocale(Locale locale) async {
@@ -293,6 +302,8 @@ class ApiService {
 
     final savedDesktopTabs = prefs.getBool(keyDesktopTabs) ?? true;
     desktopTabsNotifier.value = savedDesktopTabs;
+
+    keepScreenOnWhileScoutingNotifier.value = prefs.getBool(keyKeepScreenOnWhileScouting) ?? true;
 
     _requestTimeoutSeconds = prefs.getInt(keyRequestTimeoutSeconds) ?? defaultRequestTimeoutSeconds;
     timeoutNotifier.value = _requestTimeoutSeconds;

@@ -67,6 +67,7 @@ dependencies:
   file_picker: ^13.3.0
   cronet_http: ^1.10.0
   cupertino_http: ^2.4.0
+  wakelock_plus: ^1.8.2
 
 dev_dependencies:
   flutter_test:

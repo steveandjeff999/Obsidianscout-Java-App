@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import '../l10n/app_localizations.dart';
 import '../models/desktop_tab_model.dart';
 import '../screens/login_screen.dart';
@@ -118,6 +119,44 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
       );
 
   int get _activeScreenIndex => _activeTab.screenIndex;
+
+  /// Screens that keep the display awake (match, pit, qual scout and prescouting).
+  static const Set<int> _keepAwakeScreenIndices = {1, 2, 3, 11};
+
+  /// Ctrl+K bumps this so the desktop sidebar focuses its page search.
+  final ValueNotifier<int> _sidebarSearchRequests = ValueNotifier<int>(0);
+
+  /// Ctrl+K: focus the sidebar search on desktop, open the drawer (which has the search box) on mobile.
+  void _openPageSearch() {
+    if (ObsidianResponsive.isDesktop(context, overrideMode: widget.apiService.uiMode)) {
+      _sidebarSearchRequests.value++;
+    } else {
+      _scaffoldKey.currentState?.openDrawer();
+    }
+  }
+  bool _wakelockEnabled = false;
+
+  /// Keeps the screen on while a scouting screen is the visible page, so the phone
+  /// doesn't dim or lock mid-match. Only calls the plugin when the wanted state changes.
+  void _syncScoutingWakelock() {
+    final isDesktopTabs = ObsidianResponsive.isDesktop(context, overrideMode: widget.apiService.uiMode) &&
+        widget.apiService.desktopTabsEnabled;
+    final visibleIndex = isDesktopTabs ? _activeScreenIndex : _currentIndex;
+    final shouldEnable = widget.apiService.keepScreenOnWhileScouting &&
+        _isAuthenticated &&
+        !_isLaunchLocked &&
+        !_isAddingAccount &&
+        _keepAwakeScreenIndices.contains(visibleIndex);
+    if (shouldEnable == _wakelockEnabled) return;
+    _wakelockEnabled = shouldEnable;
+    WakelockPlus.toggle(enable: shouldEnable).catchError((Object e) {
+      debugPrint('[MainShell] Wakelock toggle failed: $e');
+    });
+  }
+
+  void _onKeepScreenOnChanged() {
+    if (mounted) setState(() {});
+  }
 
   StreamSubscription<bool>? _onlineSub;
   StreamSubscription<int>? _serverErrorSub;
@@ -301,6 +340,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
     _checkLaunchLock();
 
     widget.apiService.permissionsNotifier.addListener(_onPermissionsChanged);
+    widget.apiService.keepScreenOnWhileScoutingNotifier.addListener(_onKeepScreenOnChanged);
 
     WidgetsBinding.instance.addObserver(this);
     _pendingWidgetLaunch = HomeWidgetService.instance.takeInitialLaunch();
@@ -545,6 +585,9 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   @override
   void dispose() {
     widget.apiService.permissionsNotifier.removeListener(_onPermissionsChanged);
+    widget.apiService.keepScreenOnWhileScoutingNotifier.removeListener(_onKeepScreenOnChanged);
+    if (_wakelockEnabled) WakelockPlus.disable();
+    _sidebarSearchRequests.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _widgetLaunchSub?.cancel();
     _onlineSub?.cancel();
@@ -934,6 +977,8 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    _syncScoutingWakelock();
+
     if (_isCheckingLaunchLock) {
       return Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -1024,6 +1069,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
               widget.apiService.setThemeMode(next);
             },
             const SingleActivator(LogicalKeyboardKey.keyQ, control: true): _openQrScanner,
+            const SingleActivator(LogicalKeyboardKey.keyK, control: true): _openPageSearch,
           }
         : <ShortcutActivator, VoidCallback>{
             const SingleActivator(LogicalKeyboardKey.digit1, control: true): () => _navigateScreen(0),
@@ -1040,6 +1086,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
               widget.apiService.setThemeMode(next);
             },
             const SingleActivator(LogicalKeyboardKey.keyQ, control: true): _openQrScanner,
+            const SingleActivator(LogicalKeyboardKey.keyK, control: true): _openPageSearch,
           };
 
     final shell = CallbackShortcuts(
@@ -1148,6 +1195,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
                               onOpenQrScanner: _openQrScanner,
                               onLogout: _handleLogout,
                               onOpenAccounts: _openAccountSwitcher,
+                              searchRequests: _sidebarSearchRequests,
                             ),
                             Expanded(
                               child: Column(
@@ -1189,6 +1237,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
                               onOpenQrScanner: _openQrScanner,
                               onLogout: _handleLogout,
                               onOpenAccounts: _openAccountSwitcher,
+                              searchRequests: _sidebarSearchRequests,
                             ),
                             Expanded(
                               child: Column(
