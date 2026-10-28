@@ -962,6 +962,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ],
                 ),
+                Divider(color: borderColor, height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            context.tr('settings.keep_screen_on', 'Keep Screen On While Scouting'),
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: primaryTextColor),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            context.tr(
+                              'settings.keep_screen_on_desc',
+                              'Stops the screen from dimming or locking while a match, pit, qualitative or prescouting form is open.',
+                            ),
+                            style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    ValueListenableBuilder<bool>(
+                      valueListenable: widget.apiService.keepScreenOnWhileScoutingNotifier,
+                      builder: (context, keepOn, _) {
+                        return Switch(
+                          value: keepOn,
+                          activeTrackColor: ObsidianUITheme.primaryAccent,
+                          activeThumbColor: Colors.white,
+                          onChanged: (value) => widget.apiService.setKeepScreenOnWhileScouting(value),
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ],
             ),
           ),

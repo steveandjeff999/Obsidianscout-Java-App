@@ -1,4 +1,9 @@
 {
+  "settings.keep_screen_on": "Mantener la pantalla encendida al scoutear",
+  "settings.keep_screen_on_desc": "Evita que la pantalla se atenúe o se bloquee mientras un formulario de partido, pits, cualitativo o pre-scouting está abierto.",
+  "sidebar.search.placeholder": "Buscar páginas...",
+  "sidebar.search.clear": "Borrar búsqueda",
+  "sidebar.search.no_results": "No se encontraron páginas",
   "app.press_back_again_to_exit": "Presiona atrás de nuevo para salir",
   "config.recency_title": "Sesgo de recencia",
   "config.recency_desc": "Da más peso a los partidos explorados recientes en predicciones, promedios de equipos, clasificaciones y comparaciones. La validación de datos siempre usa promedios simples.",

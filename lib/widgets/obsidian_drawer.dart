@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
+import 'obsidian_nav_search.dart';
 import 'obsidian_user_avatar.dart';
 
-class ObsidianNavigationDrawer extends StatelessWidget {
+class ObsidianNavigationDrawer extends StatefulWidget {
   final ApiService apiService;
   final int currentIndex;
   final Function(int) onSelectScreen;
@@ -24,7 +25,40 @@ class ObsidianNavigationDrawer extends StatelessWidget {
   });
 
   @override
+  State<ObsidianNavigationDrawer> createState() => _ObsidianNavigationDrawerState();
+}
+
+class _ObsidianNavigationDrawerState extends State<ObsidianNavigationDrawer> {
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocus = FocusNode();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocus.dispose();
+    super.dispose();
+  }
+
+  void _openItem(Map<String, dynamic> item) {
+    Navigator.of(context).pop();
+    if (item['isAction'] == true) {
+      final action = item['action'] as VoidCallback?;
+      action?.call();
+    } else if (item['index'] is int) {
+      widget.onSelectScreen(item['index'] as int);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final apiService = widget.apiService;
+    final currentIndex = widget.currentIndex;
+    final onOpenQrScanner = widget.onOpenQrScanner;
+    final onLogout = widget.onLogout;
+    final onOpenAccounts = widget.onOpenAccounts;
+    final isSearching = _query.trim().isNotEmpty;
+
     final isDark = ObsidianUITheme.isDark(context);
     final drawerBg = isDark
         ? ObsidianUITheme.getSurfaceColor(context)
@@ -451,6 +485,20 @@ class ObsidianNavigationDrawer extends StatelessWidget {
       },
     ];
 
+    // Pages the user can open, narrowed by the search box when it has text.
+    final visibleSections = sections
+        .map((section) => {
+              'titleKey': section['titleKey'],
+              'items': (section['items'] as List<Map<String, dynamic>>)
+                  .where((item) =>
+                      apiService.hasPageAccess(item['pageId'] as String) &&
+                      navItemMatchesQuery(context, item, _query))
+                  .toList(),
+            })
+        .where((section) => (section['items'] as List).isNotEmpty)
+        .toList();
+    final matches = visibleSections.expand((s) => s['items'] as List<Map<String, dynamic>>).toList();
+
     return Drawer(
       backgroundColor: drawerBg,
       child: Column(
@@ -540,22 +588,27 @@ class ObsidianNavigationDrawer extends StatelessWidget {
                   ),
                 ),
 
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12.0, 12.0, 12.0, 0.0),
+                  child: ObsidianNavSearchField(
+                    controller: _searchController,
+                    focusNode: _searchFocus,
+                    onChanged: (value) => setState(() => _query = value),
+                    onSubmitted: () {
+                      if (matches.isNotEmpty) _openItem(matches.first);
+                    },
+                  ),
+                ),
+
                 // Menu Items List
                 Expanded(
                   child: ListView(
                     physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
                     padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 12.0),
                     children: [
-                      ...sections.expand((section) {
-                        final rawItems = section['items'] as List<Map<String, dynamic>>;
-                        // Filter items by team custom role access
-                        final visibleItems = rawItems.where((item) {
-                          final pageId = item['pageId'] as String;
-                          return apiService.hasPageAccess(pageId);
-                        }).toList();
-
-                        if (visibleItems.isEmpty) return <Widget>[];
-
+                      if (isSearching && matches.isEmpty) const ObsidianNavSearchEmpty(),
+                      ...visibleSections.expand((section) {
+                        final visibleItems = section['items'] as List<Map<String, dynamic>>;
                         final titleKey = section['titleKey'] as String?;
 
                         return [
@@ -632,21 +685,14 @@ class ObsidianNavigationDrawer extends StatelessWidget {
                                         ),
                                       )
                                     : null,
-                                onTap: () {
-                                  Navigator.of(context).pop();
-                                  if (isAction) {
-                                    final action = item['action'] as VoidCallback?;
-                                    action?.call();
-                                  } else if (idx != null) {
-                                    onSelectScreen(idx);
-                                  }
-                                },
+                                onTap: () => _openItem(item),
                               ),
                             ),
                           );
                           }),
                         ];
                       }),
+                      if (!isSearching) ...[
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8.0),
                         child: Divider(color: borderColor),
@@ -699,6 +745,7 @@ class ObsidianNavigationDrawer extends StatelessWidget {
                           apiService.setThemeMode(nextMode);
                         },
                       ),
+                      ],
                     ],
                   ),
                 ),

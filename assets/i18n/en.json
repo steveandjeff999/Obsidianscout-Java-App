@@ -1,4 +1,9 @@
 {
+  "settings.keep_screen_on": "Keep Screen On While Scouting",
+  "settings.keep_screen_on_desc": "Stops the screen from dimming or locking while a match, pit, qualitative or prescouting form is open.",
+  "sidebar.search.placeholder": "Search pages...",
+  "sidebar.search.clear": "Clear search",
+  "sidebar.search.no_results": "No matching pages",
   "app.press_back_again_to_exit": "Press back again to exit",
   "config.recency_title": "Recency Bias",
   "config.recency_desc": "Weights recent scouted matches more heavily in predictions, team averages, rankings and compare. Data validation always uses plain averages.",

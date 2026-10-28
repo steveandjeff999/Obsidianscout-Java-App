@@ -1,4 +1,9 @@
 {
+  "settings.keep_screen_on": "השאר את המסך דולק בזמן סקאוטינג",
+  "settings.keep_screen_on_desc": "מונע מהמסך להתעמעם או להינעל כשטופס משחק, פיטס, איכותני או פרה-סקאוטינג פתוח.",
+  "sidebar.search.placeholder": "חיפוש דפים...",
+  "sidebar.search.clear": "נקה חיפוש",
+  "sidebar.search.no_results": "לא נמצאו דפים תואמים",
   "app.press_back_again_to_exit": "לחץ שוב על חזור כדי לצאת",
   "config.recency_title": "הטיית עדכניות",
   "config.recency_desc": "נותן משקל רב יותר למשחקים שנסקרו לאחרונה בתחזיות, בממוצעי קבוצות, בדירוגים ובהשוואה. אימות נתונים תמיד משתמש בממוצע רגיל.",
