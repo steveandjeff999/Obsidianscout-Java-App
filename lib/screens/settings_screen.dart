@@ -999,6 +999,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ],
                 ),
+                Divider(color: borderColor, height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            context.tr('settings.review_before_submit', 'Review Before Submitting'),
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: primaryTextColor),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            context.tr(
+                              'settings.review_before_submit_desc',
+                              'Shows an overview of the entry so you can check it before it is saved.',
+                            ),
+                            style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    ValueListenableBuilder<bool>(
+                      valueListenable: widget.apiService.reviewBeforeSubmitNotifier,
+                      builder: (context, reviewOn, _) {
+                        return Switch(
+                          value: reviewOn,
+                          activeTrackColor: ObsidianUITheme.primaryAccent,
+                          activeThumbColor: Colors.white,
+                          onChanged: (value) => widget.apiService.setReviewBeforeSubmit(value),
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ],
             ),
           ),

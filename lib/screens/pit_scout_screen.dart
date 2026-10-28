@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/scouting_draft_service.dart';
 import '../widgets/draft_restore_banner.dart';
+import '../widgets/submit_review_sheet.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/dynamic_field_widget.dart';
@@ -50,6 +51,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> with WidgetsBindingObse
 
   bool _isLoading = true;
   bool _isSubmitting = false;
+  bool _isReviewing = false;
   final Map<String, dynamic> _formData = {};
 
   // Assignment auto-advance: after a save, jump to the scout's next pit assignment.
@@ -570,6 +572,23 @@ class _PitScoutScreenState extends State<PitScoutScreen> with WidgetsBindingObse
     return true;
   }
 
+  /// Runs the pre-submit review when it is turned on. True means go ahead
+  /// (confirmed, or review is off); false means the scout went back to edit.
+  Future<bool> _confirmReview({String? submitLabel}) async {
+    if (!widget.apiService.reviewBeforeSubmit) return true;
+    if (_isReviewing) return false;
+    _isReviewing = true;
+    final confirmed = await showSubmitReview(
+      context,
+      title: context.tr('review.pit_title', 'Review Pit Entry'),
+      chips: [SubmitReviewChip(context.tr('review.team', 'Team'), '${_selectedTeam!.teamNumber}')],
+      sections: buildReviewSections(_config, _formData),
+      submitLabel: submitLabel,
+    );
+    _isReviewing = false;
+    return confirmed && mounted;
+  }
+
   void _submitPitData() async {
     if (!_validateSelection()) {
       ObsidianFeedback.showWarning(
@@ -589,6 +608,8 @@ class _PitScoutScreenState extends State<PitScoutScreen> with WidgetsBindingObse
       return;
     }
     _formKey.currentState!.save();
+
+    if (!await _confirmReview() || !mounted) return;
 
     setState(() => _isSubmitting = true);
 
@@ -671,10 +692,12 @@ class _PitScoutScreenState extends State<PitScoutScreen> with WidgetsBindingObse
     }
   }
 
-  void _generateBarcode() {
+  Future<void> _generateBarcode() async {
     if (!_validateSelection()) return;
 
     _formKey.currentState?.save();
+
+    if (!await _confirmReview(submitLabel: context.tr('review.show_qr', 'Show QR Code')) || !mounted) return;
 
     final payload = {
       'eventKey': _eventKey ?? '',
