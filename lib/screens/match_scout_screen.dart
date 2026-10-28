@@ -21,6 +21,7 @@ import '../widgets/next_assignment_chip.dart';
 import '../widgets/match_prediction_card.dart';
 import '../services/scouting_draft_service.dart';
 import '../widgets/draft_restore_banner.dart';
+import '../widgets/submit_review_sheet.dart';
 
 class MatchScoutScreen extends StatefulWidget {
   final ApiService apiService;
@@ -60,6 +61,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
 
   bool _isLoading = true;
   bool _isSubmitting = false;
+  bool _isReviewing = false;
   final Map<String, dynamic> _formData = {};
   StreamSubscription<GamepadActionEvent>? _gamepadSubscription;
 
@@ -641,6 +643,45 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
     }
   }
 
+  /// Runs the pre-submit review when it is turned on. True means go ahead
+  /// (confirmed, or review is off); false means the scout went back to edit.
+  Future<bool> _confirmReview({String? submitLabel}) async {
+    if (!widget.apiService.reviewBeforeSubmit) return true;
+    if (_isReviewing) return false;
+    _isReviewing = true;
+    final confirmed = await _showSubmitReview(submitLabel: submitLabel);
+    _isReviewing = false;
+    return confirmed && mounted;
+  }
+
+  /// Pre-submit overview: team, match, point totals and every field grouped by phase.
+  Future<bool> _showSubmitReview({String? submitLabel}) {
+    final points = _calculatePoints();
+    String pts(double v) => v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(1);
+    const phaseTitles = {'auto': 'Auto', 'teleop': 'Teleop', 'endgame': 'Endgame', 'postmatch': 'Post-Match'};
+    return showSubmitReview(
+      context,
+      title: context.tr('review.match_title', 'Review Match Entry'),
+      chips: [
+        SubmitReviewChip(context.tr('review.team', 'Team'), '${_selectedTeam!.teamNumber}'),
+        SubmitReviewChip(context.tr('review.match', 'Match'), _selectedMatch!.displayLabel),
+        if ((points['total'] ?? 0) > 0) ...[
+          SubmitReviewChip(context.tr('review.auto', 'Auto'), pts(points['auto'] ?? 0)),
+          SubmitReviewChip(context.tr('review.teleop', 'Teleop'), pts(points['teleop'] ?? 0)),
+          SubmitReviewChip(context.tr('review.endgame', 'Endgame'), pts(points['endgame'] ?? 0)),
+          SubmitReviewChip(context.tr('review.total_points', 'Total'), '${pts(points['total'] ?? 0)} pts'),
+        ],
+      ],
+      sections: buildReviewSections(
+        _config,
+        _formData,
+        groupOf: _getFieldPhase,
+        groupTitle: (phase) => context.tr('review.phase.$phase', phaseTitles[phase] ?? phase),
+      ),
+      submitLabel: submitLabel,
+    );
+  }
+
   bool _validateSelection() {
     if (_selectedTeam == null || _selectedMatch == null) {
       final title = context.tr('scout.selection_required_title');
@@ -736,6 +777,8 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
       return;
     }
     _formKey.currentState!.save();
+
+    if (!await _confirmReview() || !mounted) return;
 
     setState(() => _isSubmitting = true);
 
@@ -885,10 +928,12 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
     }
   }
 
-  void _generateBarcode() {
+  Future<void> _generateBarcode() async {
     if (!_validateSelection()) return;
 
     _formKey.currentState?.save();
+
+    if (!await _confirmReview(submitLabel: context.tr('review.show_qr', 'Show QR Code')) || !mounted) return;
 
     final payload = {
       'event_key': _eventKey ?? '',
@@ -1014,7 +1059,12 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
         break;
 
       case GamepadActionType.submit:
-        _submitData();
+        // A second Submit press while the review sheet is open confirms it.
+        if (_isReviewing) {
+          Navigator.of(context).pop(true);
+        } else {
+          _submitData();
+        }
         break;
 
       case GamepadActionType.barcode:

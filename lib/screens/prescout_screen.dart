@@ -11,6 +11,7 @@ import '../widgets/obsidian_barcode_modal.dart';
 import '../widgets/obsidian_feedback.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/sync_status_banner.dart';
+import '../widgets/submit_review_sheet.dart';
 
 enum PrescoutMode {
   dashboard,
@@ -39,6 +40,7 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
   PrescoutMode _currentMode = PrescoutMode.dashboard;
   bool _isLoading = true;
   bool _isSubmitting = false;
+  bool _isReviewing = false;
 
   // Settings & Configs
   String _eventCode = 'prescout';
@@ -355,6 +357,47 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
     return totals;
   }
 
+  /// Runs the pre-submit review when it is turned on. True means go ahead
+  /// (confirmed, or review is off); false means the scout went back to edit.
+  Future<bool> _confirmReview(Map<String, dynamic> payload, {String? submitLabel}) async {
+    if (!widget.apiService.reviewBeforeSubmit) return true;
+    if (_isReviewing) return false;
+    _isReviewing = true;
+    final confirmed = await _showSubmitReview(payload, submitLabel: submitLabel);
+    _isReviewing = false;
+    return confirmed && mounted;
+  }
+
+  Future<bool> _showSubmitReview(Map<String, dynamic> payload, {String? submitLabel}) {
+    final config = _currentMode == PrescoutMode.match
+        ? _matchConfig
+        : (_currentMode == PrescoutMode.pit ? _pitConfig : _qualConfig);
+    const phaseTitles = {'auto': 'Auto', 'teleop': 'Teleop', 'endgame': 'Endgame', 'postmatch': 'Post-Match'};
+    final total = _currentMode == PrescoutMode.match ? (_calculatePoints()['total'] ?? 0.0) : 0.0;
+    return showSubmitReview(
+      context,
+      title: context.tr('review.prescout_title', 'Review Prescout Entry'),
+      chips: [
+        SubmitReviewChip(context.tr('review.team', 'Team'), '${payload['targetTeamNumber']}'),
+        SubmitReviewChip(context.tr('review.event', 'Event'), '${payload['eventKey']}'),
+        if (payload['matchNumber'] != null)
+          SubmitReviewChip(context.tr('review.match', 'Match'), 'Q${payload['matchNumber']}'),
+        if (total > 0)
+          SubmitReviewChip(
+            context.tr('review.total_points', 'Total'),
+            '${total == total.roundToDouble() ? total.toInt() : total.toStringAsFixed(1)} pts',
+          ),
+      ],
+      sections: buildReviewSections(
+        config,
+        _formData,
+        groupOf: _currentMode == PrescoutMode.match ? _getFieldPhase : null,
+        groupTitle: (phase) => context.tr('review.phase.$phase', phaseTitles[phase] ?? phase),
+      ),
+      submitLabel: submitLabel,
+    );
+  }
+
   Map<String, dynamic>? _buildPayload() {
     final teamNum = int.tryParse(_teamNumberController.text.trim()) ?? 0;
     if (teamNum <= 0) {
@@ -396,6 +439,8 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
   Future<void> _handleSubmit({bool isOffline = false}) async {
     final payload = _buildPayload();
     if (payload == null) return;
+
+    if (!await _confirmReview(payload, submitLabel: isOffline ? context.tr('scout.save_offline') : null) || !mounted) return;
 
     setState(() => _isSubmitting = true);
 
@@ -635,9 +680,10 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
     }
   }
 
-  void _handleExportJson() {
+  Future<void> _handleExportJson() async {
     final payload = _buildPayload();
     if (payload == null) return;
+    if (!await _confirmReview(payload, submitLabel: context.tr('review.copy_json', 'Copy JSON')) || !mounted) return;
 
     final jsonStr = const JsonEncoder.withIndent('  ').convert(payload);
     Clipboard.setData(ClipboardData(text: jsonStr));
@@ -656,9 +702,10 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
     );
   }
 
-  void _handleGenerateQr() {
+  Future<void> _handleGenerateQr() async {
     final payload = _buildPayload();
     if (payload == null) return;
+    if (!await _confirmReview(payload, submitLabel: context.tr('review.show_qr', 'Show QR Code')) || !mounted) return;
 
     final prescoutType = _currentMode == PrescoutMode.pit ? 'prescout-pit' : (_currentMode == PrescoutMode.qual ? 'prescout-qual' : 'prescout-match');
     String typeLabel = 'Match Prescouting';

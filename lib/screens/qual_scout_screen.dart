@@ -8,6 +8,7 @@ import '../theme/obsidian_ui_theme.dart';
 import '../services/api_service.dart';
 import '../services/scout_history_service.dart';
 import '../widgets/obsidian_barcode_modal.dart';
+import '../widgets/submit_review_sheet.dart';
 import '../widgets/obsidian_feedback.dart';
 import '../widgets/sync_status_banner.dart';
 import '../models/assignment_models.dart';
@@ -57,6 +58,7 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
 
   bool _isLoading = true;
   bool _isSubmitting = false;
+  bool _isReviewing = false;
   final Map<String, dynamic> _formData = {};
 
   // Assignment auto-advance: after a save, jump to the scout's next qualitative assignment.
@@ -748,6 +750,44 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
     }
   }
 
+  /// Pre-submit overview. Alliance mode gets one section per team.
+  Future<bool> _confirmQualReview({String? submitLabel}) async {
+    if (!widget.apiService.reviewBeforeSubmit) return true;
+    if (_isReviewing) return false;
+    _isReviewing = true;
+    final List<SubmitReviewSection> sections;
+    final teamChip = context.tr('review.team', 'Team');
+    final List<SubmitReviewChip> chips;
+    if (_scope == QualScoutScope.singleTeam) {
+      chips = [SubmitReviewChip(teamChip, '${_selectedTeam!.teamNumber}')];
+      sections = buildReviewSections(_config, _formData);
+    } else {
+      final teams = _getAllianceTeamsForMatch(_selectedMatch, _scope);
+      chips = [SubmitReviewChip(context.tr('review.teams', 'Teams'), teams.map((t) => t.teamNumber).join(', '))];
+      sections = [
+        for (final t in teams)
+          SubmitReviewSection(
+            '$teamChip ${t.teamNumber}',
+            buildReviewSections(_config, _teamFormData[t.teamNumber] ?? const {})
+                .expand((s) => s.rows)
+                .toList(),
+          ),
+      ];
+    }
+    final confirmed = await showSubmitReview(
+      context,
+      title: context.tr('review.qual_title', 'Review Qualitative Entry'),
+      chips: [
+        ...chips,
+        if (_selectedMatch != null) SubmitReviewChip(context.tr('review.match', 'Match'), _selectedMatch!.displayLabel),
+      ],
+      sections: sections,
+      submitLabel: submitLabel,
+    );
+    _isReviewing = false;
+    return confirmed && mounted;
+  }
+
   void _submitQualData() async {
     if (!_validateSelection()) return;
 
@@ -761,6 +801,8 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
         return;
       }
       _formKey.currentState!.save();
+
+      if (!await _confirmQualReview() || !mounted) return;
 
       setState(() => _isSubmitting = true);
 
@@ -842,6 +884,8 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
     } else {
       // Alliance submission
       _formKey.currentState?.save();
+
+      if (!await _confirmQualReview() || !mounted) return;
 
       final allianceTeams = _getAllianceTeamsForMatch(_selectedMatch, _scope);
       setState(() => _isSubmitting = true);
@@ -933,8 +977,10 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
     }
   }
 
-  void _generateBarcode() {
+  Future<void> _generateBarcode() async {
     if (!_validateSelection()) return;
+    _formKey.currentState?.save();
+    if (!await _confirmQualReview(submitLabel: context.tr('review.show_qr', 'Show QR Code')) || !mounted) return;
 
     if (_scope == QualScoutScope.singleTeam) {
       final payload = {

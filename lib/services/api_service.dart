@@ -41,6 +41,7 @@ class ApiService {
   static const String keyUiMode = "obsidianscout_ui_mode";
   static const String keyDesktopTabs = "obsidianscout_desktop_tabs_enabled";
   static const String keyKeepScreenOnWhileScouting = "obsidianscout_keep_screen_on_scouting";
+  static const String keyReviewBeforeSubmit = "obsidianscout_review_before_submit";
   static const String keyLocale = "obsidianscout_locale";
   static const String keyRequestTimeoutSeconds = "obsidianscout_request_timeout_seconds";
   static const String keyDeviceId = "obsidianscout_device_id";
@@ -114,6 +115,7 @@ class ApiService {
   final ValueNotifier<String> uiModeNotifier = ValueNotifier<String>('auto'); // 'auto', 'mobile', 'desktop'
   final ValueNotifier<bool> desktopTabsNotifier = ValueNotifier<bool>(true);
   final ValueNotifier<bool> keepScreenOnWhileScoutingNotifier = ValueNotifier<bool>(true);
+  final ValueNotifier<bool> reviewBeforeSubmitNotifier = ValueNotifier<bool>(true);
   final ValueNotifier<Locale> localeNotifier = ValueNotifier<Locale>(const Locale('en'));
   final ValueNotifier<int> timeoutNotifier = ValueNotifier<int>(defaultRequestTimeoutSeconds);
 
@@ -185,6 +187,7 @@ class ApiService {
   String get uiMode => uiModeNotifier.value;
   bool get desktopTabsEnabled => desktopTabsNotifier.value;
   bool get keepScreenOnWhileScouting => keepScreenOnWhileScoutingNotifier.value;
+  bool get reviewBeforeSubmit => reviewBeforeSubmitNotifier.value;
   Locale get currentLocale => localeNotifier.value;
   int get requestTimeoutSeconds => _requestTimeoutSeconds;
   Duration get requestTimeout => Duration(seconds: _requestTimeoutSeconds);
@@ -238,6 +241,12 @@ class ApiService {
     keepScreenOnWhileScoutingNotifier.value = enabled;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(keyKeepScreenOnWhileScouting, enabled);
+  }
+
+  Future<void> setReviewBeforeSubmit(bool enabled) async {
+    reviewBeforeSubmitNotifier.value = enabled;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(keyReviewBeforeSubmit, enabled);
   }
 
   Future<void> setLocale(Locale locale) async {
@@ -304,6 +313,7 @@ class ApiService {
     desktopTabsNotifier.value = savedDesktopTabs;
 
     keepScreenOnWhileScoutingNotifier.value = prefs.getBool(keyKeepScreenOnWhileScouting) ?? true;
+    reviewBeforeSubmitNotifier.value = prefs.getBool(keyReviewBeforeSubmit) ?? true;
 
     _requestTimeoutSeconds = prefs.getInt(keyRequestTimeoutSeconds) ?? defaultRequestTimeoutSeconds;
     timeoutNotifier.value = _requestTimeoutSeconds;
