@@ -3,6 +3,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'api_service.dart';
 import 'home_widget_service.dart';
+import '../models/slack_models.dart';
+import '../widgets/slack_banner_overlay.dart';
 
 /// Silent pushes that arrive while the app is in the background or closed. Runs in its own isolate.
 @pragma('vm:entry-point')
@@ -85,6 +87,8 @@ class FcmHelper {
       FirebaseMessaging.onBackgroundMessage(obsidianFcmBackgroundHandler);
       FirebaseMessaging.onMessage.listen((message) {
         if (message.data['type'] == 'widget_refresh') HomeWidgetService.instance.requestRefresh();
+        // In the foreground the notification socket usually shows it first; the overlay skips ids it has shown.
+        if (message.data['type'] == 'slack') SlackBannerOverlay.show(_slackBannerFrom(message));
       });
 
       // Configure foreground notifications
@@ -132,6 +136,10 @@ class FcmHelper {
     try {
       // Handle background notification tap
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+        if (message.data['type'] == 'slack') {
+          SlackBannerOverlay.open(_slackBannerFrom(message));
+          return;
+        }
         final groupName = message.data['groupName'] as String? ?? 'general';
         debugPrint('[FCM] Notification tapped in background: group=$groupName');
         onNavigateToChat(groupName);
@@ -139,7 +147,9 @@ class FcmHelper {
 
       // Handle terminated app launch from notification
       final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
-      if (initialMessage != null) {
+      if (initialMessage != null && initialMessage.data['type'] == 'slack') {
+        SlackBannerOverlay.open(_slackBannerFrom(initialMessage));
+      } else if (initialMessage != null) {
         final groupName = initialMessage.data['groupName'] as String? ?? 'general';
         debugPrint('[FCM] Terminated app launched from notification: group=$groupName');
         onNavigateToChat(groupName);
@@ -147,6 +157,19 @@ class FcmHelper {
     } catch (e) {
       debugPrint('[FCM] Listener setup failed: $e');
     }
+  }
+
+  static SlackBanner _slackBannerFrom(RemoteMessage message) {
+    final title = message.data['title'] as String? ?? message.notification?.title ?? 'Slack';
+    final parts = title.split(' · ');
+    return SlackBanner(
+      id: message.data['slackNotificationId'] as String? ?? '',
+      channel: parts.first,
+      author: parts.length > 1 ? parts.sublist(1).join(' · ') : '',
+      text: message.data['body'] as String? ?? message.notification?.body ?? '',
+      url: message.data['url'] as String? ?? '',
+      mentioned: false,
+    );
   }
 
   static Future<void> unregisterOnLogout(ApiService apiService) async {

@@ -2189,6 +2189,51 @@ class ApiService {
     }
   }
 
+  // ---- Slack integration (/api/slack) ----
+
+  /// Calls a Slack route; `data` is the decoded JSON body. Slack settings are never cached: they need the server.
+  Future<ApiResponse<dynamic>> slackRequest(String method, String path, {Object? body}) async {
+    if (!_isOnline) {
+      return const ApiResponse.error(isOffline: true, message: 'Slack settings need a connection to the server.');
+    }
+    try {
+      final uri = Uri.parse('$_currentServerUrl/api/slack$path');
+      final encoded = body == null ? null : jsonEncode(body);
+      final http.Response response;
+      switch (method) {
+        case 'POST':
+          response = await http.post(uri, headers: _headers, body: encoded ?? '{}');
+          break;
+        case 'PUT':
+          response = await http.put(uri, headers: _headers, body: encoded ?? '{}');
+          break;
+        case 'DELETE':
+          response = await http.delete(uri, headers: _headers);
+          break;
+        default:
+          response = await http.get(uri, headers: _headers);
+      }
+      _checkResponse(response);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return ApiResponse.success(
+          response.body.isEmpty ? null : jsonDecode(response.body),
+          statusCode: response.statusCode,
+        );
+      }
+      return ApiResponse<dynamic>.fromHttpResponse(response, defaultErrorMessage: 'Slack request failed');
+    } catch (e) {
+      return ApiResponse.error(message: e.toString());
+    }
+  }
+
+  /// Slack banners missed while the notification socket was down (the server keeps 10 minutes).
+  Future<List<Map<String, dynamic>>> fetchMissedSlackNotifications(DateTime since) async {
+    final res = await slackRequest('GET', '/notifications?since=${Uri.encodeQueryComponent(since.toUtc().toIso8601String())}');
+    final data = res.data;
+    if (!res.success || data is! List) return const [];
+    return data.whereType<Map<String, dynamic>>().toList();
+  }
+
   Future<ApiResponse<AppSettingsModel>> saveThemes({
     required List<ThemePresetModel> themes,
     required String activeThemeName,

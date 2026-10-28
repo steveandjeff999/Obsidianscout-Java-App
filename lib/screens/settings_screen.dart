@@ -10,6 +10,7 @@ import '../widgets/obsidian_glass_card.dart';
 import '../widgets/obsidian_user_avatar.dart';
 import 'gamepad_settings_screen.dart';
 import 'theme_editor_screen.dart';
+import '../widgets/slack_integration_editor.dart';
 
 class SettingsScreen extends StatefulWidget {
   final ApiService apiService;
@@ -999,6 +1000,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ],
                 ),
+                Divider(color: borderColor, height: 24),
+                SlackPreferenceTile(apiService: widget.apiService),
                 Divider(color: borderColor, height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
