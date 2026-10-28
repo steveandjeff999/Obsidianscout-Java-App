@@ -14,6 +14,7 @@ import '../services/config_collab/config_sync_engine.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_feedback.dart';
 import '../widgets/obsidian_glass_card.dart';
+import '../widgets/slack_integration_editor.dart';
 
 /// Dropdown options in a config with no value, as "Field: Option". Picking one would store an
 /// empty answer that reads the same as "never answered".
@@ -259,6 +260,11 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
   }
 
   Future<void> _loadCurrentTabData() async {
+    // The Slack editor loads its own data.
+    if (_activeMainTab == 'integrations') {
+      if (_isLoading) setState(() => _isLoading = false);
+      return;
+    }
     if (_activeMainTab == 'api' || _activeMainTab == 'permissions') {
       await _loadSettingsData();
     } else {
@@ -2131,6 +2137,8 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
               _buildTopLevelTab('api', 'API keys', Icons.api_rounded),
               const SizedBox(width: 6),
               _buildTopLevelTab('permissions', 'Permissions', Icons.security_rounded),
+              const SizedBox(width: 6),
+              _buildTopLevelTab('integrations', context.tr('slack.tab', 'Integrations'), Icons.hub_rounded),
             ],
           ),
           const SizedBox(height: 14),
@@ -2168,6 +2176,8 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
             _buildApiSettingsEditor()
           else if (_activeMainTab == 'permissions')
             _buildPermissionsEditor()
+          else if (_activeMainTab == 'integrations')
+            SlackIntegrationEditor(apiService: widget.apiService)
           else if (_isRawMode)
             _buildRawEditor()
           else

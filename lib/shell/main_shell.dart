@@ -20,6 +20,7 @@ import '../services/notification_websocket_service.dart';
 import '../theme/obsidian_page_transitions.dart';
 import '../theme/obsidian_responsive.dart';
 import '../theme/obsidian_ui_theme.dart';
+import '../widgets/slack_banner_overlay.dart';
 import '../widgets/obsidian_account_switcher.dart';
 import '../widgets/obsidian_banner_widget.dart';
 import '../widgets/obsidian_bottom_nav.dart';
@@ -579,6 +580,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
           ),
         );
       },
+      onSlackNotification: SlackBannerOverlay.show,
     )..connect();
   }
 

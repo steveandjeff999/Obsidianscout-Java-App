@@ -2,11 +2,14 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
+import '../models/slack_models.dart';
 import 'api_service.dart';
+import 'config_collab/collab_socket_web.dart' if (dart.library.io) 'config_collab/collab_socket_io.dart' as platform;
 
 class NotificationWebSocketService {
   final ApiService apiService;
   final Function(String groupName, String title, String body, String sender) onNotificationReceived;
+  final void Function(SlackBanner banner)? onSlackNotification;
 
   WebSocketChannel? _channel;
   StreamSubscription? _subscription;
@@ -14,10 +17,13 @@ class NotificationWebSocketService {
   Timer? _reconnectTimer;
   bool _isDisposed = false;
   int _reconnectDelaySeconds = 10;
+  /// Newest Slack banner seen, so a reconnect can ask the server for what it missed.
+  DateTime? _lastSlackAt;
 
   NotificationWebSocketService({
     required this.apiService,
     required this.onNotificationReceived,
+    this.onSlackNotification,
   }) {
     _onlineSubscription = apiService.onOnlineStatusChanged.listen((isOnline) {
       if (isOnline && !_isDisposed && apiService.isLoggedIn && _channel == null) {
@@ -37,8 +43,9 @@ class NotificationWebSocketService {
       final portSuffix = uri.hasPort ? ':${uri.port}' : '';
       final wsUrl = '$scheme://${uri.host}$portSuffix/api/ws/notifications';
 
-      _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
-      _channel!.ready.catchError((err) {
+      // On mobile and desktop the session cookie has to be sent as a header, or the server closes the socket.
+      _channel = platform.connectChannel(Uri.parse(wsUrl), apiService.webSocketHeaders);
+      _channel!.ready.then((_) => _catchUpSlack()).catchError((err) {
         // Suppress unhandled future error in VM; error is handled by stream subscription onError
       });
 
@@ -79,9 +86,27 @@ class NotificationWebSocketService {
         final body = data['body'] as String? ?? '';
         final sender = data['sender'] as String? ?? 'Team Member';
         onNotificationReceived(groupName, title, body, sender);
+      } else if (data['type'] == 'slack_notification') {
+        _deliverSlack(SlackBanner.fromJson(data));
       }
     } catch (e) {
       debugPrint('[WS-Notification] Error handling frame: $e');
+    }
+  }
+
+  void _deliverSlack(SlackBanner banner) {
+    final at = banner.createdAt;
+    if (at != null && (_lastSlackAt == null || at.isAfter(_lastSlackAt!))) _lastSlackAt = at;
+    onSlackNotification?.call(banner);
+  }
+
+  Future<void> _catchUpSlack() async {
+    if (onSlackNotification == null || _isDisposed) return;
+    final since = _lastSlackAt ?? DateTime.now().subtract(const Duration(minutes: 5));
+    final missed = await apiService.fetchMissedSlackNotifications(since);
+    if (_isDisposed) return;
+    for (final json in missed) {
+      _deliverSlack(SlackBanner.fromJson(json));
     }
   }
 
