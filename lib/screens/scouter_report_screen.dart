@@ -41,7 +41,7 @@ class _ScouterReportScreenState extends State<ScouterReportScreen> {
   @override
   void initState() {
     super.initState();
-    if (widget.apiService.isAdmin) _init();
+    if (widget.apiService.canUseAdminPage('scouter-report')) _init();
   }
 
   Future<void> _init() async {
@@ -128,7 +128,7 @@ class _ScouterReportScreenState extends State<ScouterReportScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (!widget.apiService.isAdmin) {
+    if (!widget.apiService.canUseAdminPage('scouter-report')) {
       return PortedLocked(
         title: context.tr('scouter-report.admin_only', 'Admin only'),
         message: context.tr('scouter-report.admin_only_notice', 'You need admin access to view scouter reports.'),

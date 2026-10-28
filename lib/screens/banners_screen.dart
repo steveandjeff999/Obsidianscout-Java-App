@@ -33,13 +33,13 @@ class _BannersScreenState extends State<BannersScreen> {
   @override
   void initState() {
     super.initState();
-    if (widget.apiService.isAdmin) _load();
+    if (widget.apiService.canUseAdminPage('banners')) _load();
   }
 
   @override
   void didUpdateWidget(covariant BannersScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.isVisible && !oldWidget.isVisible && widget.apiService.isAdmin) _load();
+    if (widget.isVisible && !oldWidget.isVisible && widget.apiService.canUseAdminPage('banners')) _load();
   }
 
   Future<void> _load() async {
@@ -93,7 +93,7 @@ class _BannersScreenState extends State<BannersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (!widget.apiService.isAdmin) {
+    if (!widget.apiService.canUseAdminPage('banners')) {
       return PortedLocked(
         title: context.tr('config.admin_only', 'Admin only'),
         message: context.tr('banners.admin_locked_msg', 'You need admin or superadmin access to manage banners.'),

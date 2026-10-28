@@ -10,6 +10,8 @@ class ObsidianDesktopSidebar extends StatefulWidget {
   final Function(int) onSelectScreen;
   final VoidCallback onOpenQrScanner;
   final VoidCallback onLogout;
+  /// Opens the account switcher; the profile card is tappable when set.
+  final VoidCallback? onOpenAccounts;
   final bool isCollapsed;
   final ValueChanged<bool>? onToggleCollapse;
 
@@ -20,6 +22,7 @@ class ObsidianDesktopSidebar extends StatefulWidget {
     required this.onSelectScreen,
     required this.onOpenQrScanner,
     required this.onLogout,
+    this.onOpenAccounts,
     this.isCollapsed = false,
     this.onToggleCollapse,
   });
@@ -66,6 +69,13 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
             'icon': Icons.dashboard_rounded,
             'labelKey': 'nav.dashboard',
             'subKey': 'subtitle.dashboard',
+          },
+          {
+            'pageId': 'event-info',
+            'index': 51,
+            'icon': Icons.campaign_outlined,
+            'labelKey': 'nav.event_info',
+            'subKey': 'event_info.subtitle',
           },
         ],
       },
@@ -529,49 +539,59 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
 
           // User Profile Compact Card
           if (!_collapsed)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
-              margin: const EdgeInsets.all(8.0),
-              decoration: BoxDecoration(
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Material(
                 color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03),
-                borderRadius: BorderRadius.circular(itemRadius),
-                border: Border.all(color: borderColor),
-              ),
-              child: Row(
-                children: [
-                  ObsidianUserAvatar(
-                    profilePicture: user?.profilePicture,
-                    username: username,
-                    size: 32,
-                    serverUrl: widget.apiService.currentServerUrl,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(itemRadius),
+                  side: BorderSide(color: borderColor),
+                ),
+                child: InkWell(
+                  onTap: widget.onOpenAccounts,
+                  borderRadius: BorderRadius.circular(itemRadius),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
+                    child: Row(
                       children: [
-                        Text(
-                          username,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
-                            color: headerTextColor,
+                        ObsidianUserAvatar(
+                          profilePicture: user?.profilePicture,
+                          username: username,
+                          size: 32,
+                          serverUrl: widget.apiService.currentServerUrl,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                username,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: headerTextColor,
+                                ),
+                              ),
+                              Text(
+                                roleLabel,
+                                style: TextStyle(
+                                  fontSize: 10.0,
+                                  fontWeight: FontWeight.w600,
+                                  color: primaryAccent,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        Text(
-                          roleLabel,
-                          style: TextStyle(
-                            fontSize: 10.0,
-                            fontWeight: FontWeight.w600,
-                            color: primaryAccent,
-                          ),
-                        ),
+                        if (widget.onOpenAccounts != null)
+                          Icon(Icons.unfold_more_rounded, size: 18.0, color: sectionLabelColor),
                       ],
                     ),
                   ),
-                ],
+                ),
               ),
             )
           else
@@ -584,6 +604,7 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
                   username: username,
                   size: 36,
                   serverUrl: widget.apiService.currentServerUrl,
+                  onTap: widget.onOpenAccounts,
                 ),
               ),
             ),

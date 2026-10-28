@@ -16,6 +16,18 @@ class FcmHelper {
   static String? currentFcmToken;
   static bool _isFirebaseInitialized = false;
 
+  static bool get _isApple =>
+      !kIsWeb && (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS);
+
+  /// APNs registration finishes a moment after permission is granted; poll briefly instead of failing getToken().
+  static Future<bool> _waitForApnsToken() async {
+    for (var i = 0; i < 20; i++) {
+      if (await FirebaseMessaging.instance.getAPNSToken() != null) return true;
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+    }
+    return false;
+  }
+
   static Future<void> initializeDynamicFcm(ApiService apiService, Function(String groupName) onNavigateToChat) async {
     // FCM is supported on Android, iOS, macOS, and Web.
     // Windows and Linux desktop use WebSocket notification service.
@@ -29,10 +41,21 @@ class FcmHelper {
         return;
       }
 
-      final apiKey = config['apiKey'] as String? ?? '';
-      final appId = config['appId'] as String? ?? '';
+      var apiKey = config['apiKey'] as String? ?? '';
+      var appId = config['appId'] as String? ?? '';
       final messagingSenderId = config['messagingSenderId'] as String? ?? '';
       final projectId = config['projectId'] as String? ?? '';
+
+      // iOS and macOS need the Firebase project's iOS app (and its API key); the Android app ID is rejected there.
+      if (_isApple) {
+        final appleAppId = config['appleAppId'] as String? ?? '';
+        if (appleAppId.isEmpty) {
+          debugPrint('[FCM] No iOS / macOS app configured on the server; push notifications are off on this device.');
+          return;
+        }
+        appId = appleAppId;
+        apiKey = (config['appleApiKey'] as String? ?? '').ifEmpty(apiKey);
+      }
 
       if (apiKey.isEmpty || projectId.isEmpty) {
         return;
@@ -78,7 +101,12 @@ class FcmHelper {
         sound: true,
       );
 
-      // Fetch and register FCM token
+      // Fetch and register FCM token. On iOS / macOS getToken() throws until APNs has handed over its token.
+      if (_isApple && !await _waitForApnsToken()) {
+        debugPrint('[FCM] No APNs token; check the Push Notifications capability and the APNs key in Firebase.');
+        await setupNotificationListeners(onNavigateToChat);
+        return;
+      }
       currentFcmToken = await FirebaseMessaging.instance.getToken();
       if (currentFcmToken != null && currentFcmToken!.isNotEmpty) {
         final platformStr = kIsWeb ? 'web' : defaultTargetPlatform.name;

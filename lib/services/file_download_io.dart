@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 import 'file_download_helper.dart';
 
 Future<FileDownloadResult> downloadOrSaveFileImpl({
@@ -31,6 +32,9 @@ Future<FileDownloadResult> downloadOrSaveFileImpl({
           if (docs.existsSync()) targetDir = docs;
         }
       }
+    } else if (Platform.isIOS) {
+      // Shown in the Files app under ObsidianScout (UIFileSharingEnabled + LSSupportsOpeningDocumentsInPlace).
+      targetDir = await getApplicationDocumentsDirectory();
     }
 
     targetDir ??= Directory.systemTemp;
@@ -51,7 +55,7 @@ Future<FileDownloadResult> downloadOrSaveFileImpl({
     return FileDownloadResult(
       success: true,
       savedPath: file.path,
-      message: 'Saved $filename to ${targetDir.path}',
+      message: Platform.isIOS ? 'Saved $filename to the Files app (ObsidianScout folder)' : 'Saved $filename to ${targetDir.path}',
     );
   } catch (e) {
     return FileDownloadResult(
@@ -91,6 +95,9 @@ Future<FileDownloadResult> downloadOrSaveBytesImpl({
           if (docs.existsSync()) targetDir = docs;
         }
       }
+    } else if (Platform.isIOS) {
+      // Shown in the Files app under ObsidianScout (UIFileSharingEnabled + LSSupportsOpeningDocumentsInPlace).
+      targetDir = await getApplicationDocumentsDirectory();
     }
 
     targetDir ??= Directory.systemTemp;
@@ -111,7 +118,7 @@ Future<FileDownloadResult> downloadOrSaveBytesImpl({
     return FileDownloadResult(
       success: true,
       savedPath: file.path,
-      message: 'Saved $filename to ${targetDir.path}',
+      message: Platform.isIOS ? 'Saved $filename to the Files app (ObsidianScout folder)' : 'Saved $filename to ${targetDir.path}',
     );
   } catch (e) {
     return FileDownloadResult(

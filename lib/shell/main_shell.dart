@@ -7,6 +7,7 @@ import '../screens/login_screen.dart';
 import '../screens/match_list_screen.dart';
 import '../screens/qr_scanner_screen.dart';
 import '../screens/team_details_screen.dart';
+import '../services/account_manager_service.dart';
 import '../services/api_service.dart';
 import '../services/auth_storage_service.dart';
 import '../services/battery_tracker_sync.dart';
@@ -18,6 +19,7 @@ import '../services/notification_websocket_service.dart';
 import '../theme/obsidian_page_transitions.dart';
 import '../theme/obsidian_responsive.dart';
 import '../theme/obsidian_ui_theme.dart';
+import '../widgets/obsidian_account_switcher.dart';
 import '../widgets/obsidian_banner_widget.dart';
 import '../widgets/obsidian_bottom_nav.dart';
 import '../widgets/obsidian_desktop_app_bar.dart';
@@ -132,6 +134,13 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   bool _isCheckingLaunchLock = true;
   bool _isLaunchLocked = false;
   bool _isUnlocking = false;
+
+  /// Bumped when the signed-in account changes so every page is rebuilt for the new account.
+  int _accountGeneration = 0;
+  /// Showing the login screen to add (or sign back in to) another account.
+  bool _isAddingAccount = false;
+  SavedAccount? _addAccountPrefill;
+  bool _isSwitchingAccount = false;
 
   void _openNewTab([int initialIndex = 0]) {
     final pageId = ShellScreenRegistry.getPageIdForIndex(initialIndex);
@@ -737,6 +746,142 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
     }
   }
 
+  // ── Accounts ─────────────────────────────────────────────────────────────
+
+  Future<void> _openAccountSwitcher() async {
+    if (_isSwitchingAccount) return;
+    final isDesktop = ObsidianResponsive.isDesktop(context, overrideMode: widget.apiService.uiMode);
+    if (_scaffoldKey.currentState?.isDrawerOpen ?? false) _scaffoldKey.currentState!.closeDrawer();
+    final action = await showObsidianAccountSwitcher(
+      context: context,
+      apiService: widget.apiService,
+      alignLeft: isDesktop,
+    );
+    if (action == null || !mounted) return;
+    switch (action.type) {
+      case AccountMenuActionType.switchTo:
+        await _switchAccount(action.account!);
+      case AccountMenuActionType.addAccount:
+        await _startAddAccount();
+      case AccountMenuActionType.signOut:
+        await _signOutCurrentAccount();
+      case AccountMenuActionType.signOutAll:
+        await widget.apiService.removeOtherSavedAccounts(fcmToken: FcmHelper.currentFcmToken);
+        await _handleLogout();
+    }
+  }
+
+  void _showAccountMessage(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: isError ? const Color(0xFFB91C1C) : ObsidianUITheme.getSurfaceColor(context),
+        content: Text(
+          message,
+          style: TextStyle(
+            color: isError ? Colors.white : ObsidianUITheme.getPrimaryTextColor(context),
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showUnsyncedChangesMessage(int pending) {
+    _showAccountMessage(
+      context.tr(
+        'accounts.unsynced',
+        '{count} unsynced change(s) must upload before you change accounts. Reconnect and try again.',
+      ).replaceAll('{count}', '$pending'),
+      isError: true,
+    );
+  }
+
+  Future<void> _switchAccount(SavedAccount account) async {
+    setState(() => _isSwitchingAccount = true);
+    _wsNotificationService?.dispose();
+    _wsNotificationService = null;
+    final result = await widget.apiService.switchToAccount(account);
+    if (!mounted) return;
+    setState(() => _isSwitchingAccount = false);
+    switch (result) {
+      case AccountSwitchResult.switched:
+        _onAccountChanged();
+        _showAccountMessage(context.tr('accounts.switched', 'Switched to {name}').replaceAll('{name}', account.username));
+      case AccountSwitchResult.needsSignIn:
+        _bootstrapWsNotifications();
+        await _startAddAccount(prefill: account);
+      case AccountSwitchResult.unsyncedChanges:
+        _bootstrapWsNotifications();
+        _showUnsyncedChangesMessage(widget.apiService.outboxCount.value);
+    }
+  }
+
+  Future<void> _startAddAccount({SavedAccount? prefill}) async {
+    final pending = await widget.apiService.beginAddAccount();
+    if (!mounted) return;
+    if (pending > 0) {
+      _showUnsyncedChangesMessage(pending);
+      return;
+    }
+    _wsNotificationService?.dispose();
+    _wsNotificationService = null;
+    setState(() {
+      _isAddingAccount = true;
+      _addAccountPrefill = prefill;
+    });
+  }
+
+  Future<void> _cancelAddAccount() async {
+    await widget.apiService.cancelAddAccount();
+    if (!mounted) return;
+    setState(() {
+      _isAddingAccount = false;
+      _addAccountPrefill = null;
+    });
+    _bootstrapWsNotifications();
+  }
+
+  /// Signs out of the current account and moves to the next signed-in one, if any.
+  Future<void> _signOutCurrentAccount() async {
+    final next = widget.apiService.otherSavedAccounts.where(widget.apiService.hasActiveSession).firstOrNull;
+    await _handleLogout();
+    if (next == null || !mounted) return;
+    final result = await widget.apiService.switchToAccount(next);
+    if (!mounted || result != AccountSwitchResult.switched) return;
+    setState(() => _isAuthenticated = true);
+    _onAccountChanged();
+  }
+
+  /// A different account is now signed in: start its pages, tabs and notifications fresh.
+  void _onAccountChanged() {
+    _wsNotificationService?.dispose();
+    _wsNotificationService = null;
+    setState(() {
+      _isAddingAccount = false;
+      _addAccountPrefill = null;
+      _accountGeneration++;
+      _currentIndex = 0;
+      _screenHistory.clear();
+      _pendingChatChannel = null;
+      _pendingMatchParams = null;
+      _pendingPitParams = null;
+      _pendingQualParams = null;
+      _desktopTabs
+        ..clear()
+        ..add(DesktopTab(id: 'tab_${_tabCounter++}', screenIndex: 0));
+      _activeTabId = _desktopTabs.first.id;
+      _tabNavigatorKeys.clear();
+    });
+    _bootstrapFcm();
+    _bootstrapWsNotifications();
+    HomeWidgetService.instance.requestRefresh();
+  }
+
   Widget _buildScreenByIndex(int screenIndex, {required bool isTabActive, String? chatChannel}) {
     return ShellScreenRegistry.buildScreenByIndex(
       screenIndex: screenIndex,
@@ -807,6 +952,20 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
           });
         },
         onBackPress: _handleBackPress,
+      );
+    }
+
+    if (_isAddingAccount) {
+      return LoginScreen(
+        key: ValueKey('add_account_${_addAccountPrefill?.id ?? 'new'}'),
+        apiService: widget.apiService,
+        addAccountMode: true,
+        prefillAccount: _addAccountPrefill,
+        onCancel: _cancelAddAccount,
+        onLoginSuccess: () {
+          setState(() => _isAuthenticated = true);
+          _onAccountChanged();
+        },
       );
     }
 
@@ -883,7 +1042,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
             const SingleActivator(LogicalKeyboardKey.keyQ, control: true): _openQrScanner,
           };
 
-    return CallbackShortcuts(
+    final shell = CallbackShortcuts(
       bindings: shortcutBindings,
       child: Focus(
         autofocus: true,
@@ -975,6 +1134,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
                       onSelectScreen: _navigateScreen,
                       onOpenQrScanner: _openQrScanner,
                       onLogout: _handleLogout,
+                      onOpenAccounts: _openAccountSwitcher,
                     ),
               body: isDesktop
                   ? (isDesktopTabs
@@ -987,6 +1147,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
                               onSelectScreen: _navigateScreen,
                               onOpenQrScanner: _openQrScanner,
                               onLogout: _handleLogout,
+                              onOpenAccounts: _openAccountSwitcher,
                             ),
                             Expanded(
                               child: Column(
@@ -1027,6 +1188,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
                               onSelectScreen: _navigateScreen,
                               onOpenQrScanner: _openQrScanner,
                               onLogout: _handleLogout,
+                              onOpenAccounts: _openAccountSwitcher,
                             ),
                             Expanded(
                               child: Column(
@@ -1099,6 +1261,24 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
             ),
           ),
         ),
+      ),
+    );
+
+    // Keyed by account so a switch rebuilds every page with the new account's data.
+    return KeyedSubtree(
+      key: ValueKey('account_$_accountGeneration'),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          shell,
+          if (_isSwitchingAccount)
+            Positioned.fill(
+              child: ColoredBox(
+                color: Colors.black.withValues(alpha: 0.35),
+                child: const Center(child: CircularProgressIndicator()),
+              ),
+            ),
+        ],
       ),
     );
   }

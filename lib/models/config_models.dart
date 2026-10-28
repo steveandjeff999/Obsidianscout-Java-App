@@ -410,19 +410,64 @@ class AnalyticsSeriesPointModel {
   }
 }
 
+/// Pages every CUSTOM-role user has, whatever an admin picked (matches the server's CUSTOM_ROLE_BASE_PAGES).
+const List<String> customRoleBasePages = ['dashboard', 'my-assignments'];
+
+/// Team admin pages a CUSTOM user can be given (matches the server's CUSTOM_ROLE_ADMIN_PAGES).
+const List<String> customRoleAdminPages = ['assignments', 'admin-settings', 'users', 'scouter-report', 'banners'];
+
+/// Pages an admin can give a CUSTOM user, with labels. Superadmin pages are never offered (matches the server).
+const List<MapEntry<String, String>> customRoleGrantablePages = [
+  MapEntry('scout', 'Scout'),
+  MapEntry('pit-scout', 'Pit Scout'),
+  MapEntry('qual-scout', 'Qual Scout'),
+  MapEntry('prescout', 'Pre-Scout'),
+  MapEntry('qr-scanner', 'QR Scanner'),
+  MapEntry('scout-history', 'Scout History'),
+  MapEntry('all-data', 'All Data'),
+  MapEntry('match-data', 'Match Data'),
+  MapEntry('qual-data', 'Qual Data'),
+  MapEntry('pit-data', 'Pit Data'),
+  MapEntry('analytics', 'Analytics'),
+  MapEntry('custom-analytics', 'Custom Analytics'),
+  MapEntry('data-validation', 'Data Validation'),
+  MapEntry('graphs', 'Graphs'),
+  MapEntry('events', 'Events'),
+  MapEntry('teams', 'Teams'),
+  MapEntry('rankings', 'Rankings'),
+  MapEntry('projected-rankings', 'Projected Rankings'),
+  MapEntry('qual-rankings', 'Qual Rankings'),
+  MapEntry('matches', 'Matches'),
+  MapEntry('predictor', 'Predictor'),
+  MapEntry('event-predictor', 'Event Predictor'),
+  MapEntry('alliances', 'Alliances'),
+  MapEntry('alliance-selection', 'Alliance Selection'),
+  MapEntry('pick-list', 'Pick List'),
+  MapEntry('match-planning', 'Match Planning'),
+  MapEntry('chat', 'Chat'),
+  MapEntry('backup', 'Data Sharing'),
+  MapEntry('docs', 'Docs'),
+  MapEntry('contact', 'Contact'),
+  MapEntry('assignments', 'Scouting Assignments (Admin)'),
+  MapEntry('admin-settings', 'Admin Settings'),
+  MapEntry('users', 'Users'),
+  MapEntry('scouter-report', 'Scouter Report'),
+  MapEntry('banners', 'Banners'),
+];
+
 const List<String> defaultScoutPages = [
-  'dashboard', 'chat', 'scout', 'pit-scout', 'qual-scout', 'qr-scanner', 'contact', 'scout-history',
+  'dashboard', 'event-info', 'chat', 'scout', 'pit-scout', 'qual-scout', 'qr-scanner', 'contact', 'scout-history',
 ];
 
 const List<String> defaultAnalyticsPages = [
-  'dashboard', 'events', 'scout', 'pit-scout', 'qual-scout', 'qr-scanner',
+  'dashboard', 'event-info', 'events', 'scout', 'pit-scout', 'qual-scout', 'qr-scanner',
   'all-data', 'match-data', 'qual-data', 'pit-data', 'analytics', 'custom-analytics', 'graphs', 'data-validation',
   'teams', 'rankings', 'qual-rankings', 'matches', 'predictor',
   'event-predictor', 'alliances', 'alliance-selection', 'pick-list', 'match-planning', 'chat', 'backup', 'docs', 'contact', 'scout-history',
 ];
 
 const List<String> defaultAdminPages = [
-  'dashboard', 'admin-settings', 'default-configs', 'config-editor', 'users', 'banners', 'scout', 'pit-scout', 'qual-scout', 'qr-scanner',
+  'dashboard', 'event-info', 'admin-settings', 'default-configs', 'config-editor', 'users', 'banners', 'scout', 'pit-scout', 'qual-scout', 'qr-scanner',
   'all-data', 'match-data', 'qual-data', 'pit-data', 'analytics', 'custom-analytics', 'graphs', 'data-validation',
   'events', 'teams', 'rankings', 'qual-rankings', 'matches', 'predictor',
   'event-predictor', 'alliances', 'alliance-selection', 'pick-list', 'match-planning', 'chat', 'backup', 'docs', 'contact', 'scout-history',
@@ -446,7 +491,7 @@ class UserModel {
   final String username;
   final int teamNumber;
   final String program;
-  final String role; // "SUPERADMIN", "ADMIN", "ANALYTICS", "SCOUT"
+  final String role; // "SUPERADMIN", "ADMIN", "ANALYTICS", "CUSTOM", "SCOUT"
   final String? email;
   final String? profilePicture;
   final String? notificationPreference;
@@ -454,6 +499,8 @@ class UserModel {
   final bool nonScoutingToolsEnabled;
   final String? createdAt;
   final String? lastLogin;
+  /// For a CUSTOM user, the pages an admin picked (sent on the admin users list); empty otherwise.
+  final List<String> customPages;
 
   UserModel({
     required this.id,
@@ -467,9 +514,12 @@ class UserModel {
     this.nonScoutingToolsEnabled = false,
     this.createdAt,
     this.lastLogin,
+    this.customPages = const [],
   });
 
   String get displayName => username;
+
+  bool get isCustom => role.toUpperCase() == 'CUSTOM';
 
   bool get isSuperAdmin => role.toUpperCase() == 'SUPERADMIN';
   bool get isAdmin => isSuperAdmin || role.toUpperCase() == 'ADMIN';
@@ -525,6 +575,9 @@ class UserModel {
       nonScoutingToolsEnabled: json['nonScoutingToolsEnabled'] == true,
       createdAt: json['createdAt']?.toString(),
       lastLogin: json['lastLogin']?.toString(),
+      customPages: json['customPages'] is List
+          ? (json['customPages'] as List).map((e) => e.toString()).toList()
+          : const [],
     );
   }
 
@@ -541,6 +594,7 @@ class UserModel {
       'nonScoutingToolsEnabled': nonScoutingToolsEnabled,
       'createdAt': createdAt,
       'lastLogin': lastLogin,
+      if (customPages.isNotEmpty) 'customPages': customPages,
     };
   }
 }
@@ -824,6 +878,8 @@ class AppSettingsModel {
   final List<String> scoutPages;
   final List<String> analyticsPages;
   final List<String> adminPages;
+  /// Sent only to a CUSTOM user: the pages an admin picked for them. Null for every other role.
+  final List<String>? customPages;
   final String program;
   final String serverVersion;
   final ApiKeysModel apiKeys;
@@ -851,6 +907,7 @@ class AppSettingsModel {
     this.scoutPages = defaultScoutPages,
     this.analyticsPages = defaultAnalyticsPages,
     this.adminPages = defaultAdminPages,
+    this.customPages,
     this.program = 'FRC',
     this.serverVersion = '',
     ApiKeysModel? apiKeys,
@@ -983,6 +1040,9 @@ class AppSettingsModel {
       scoutPages: parseList(settingsMap['scoutPages'], defaultScoutPages),
       analyticsPages: parseList(settingsMap['analyticsPages'], defaultAnalyticsPages),
       adminPages: parseList(settingsMap['adminPages'], defaultAdminPages),
+      customPages: settingsMap['customPages'] is List
+          ? (settingsMap['customPages'] as List).map((e) => e.toString()).toList()
+          : null,
       program: settingsMap['program']?.toString() ?? json['program']?.toString() ?? 'FRC',
       serverVersion: json['version']?.toString() ?? json['serverVersion']?.toString() ?? '',
       apiKeys: parseApiKeys(settingsMap['apiKeys']),
@@ -1013,6 +1073,7 @@ class AppSettingsModel {
       'scoutPages': scoutPages,
       'analyticsPages': analyticsPages,
       'adminPages': adminPages,
+      if (customPages != null) 'customPages': customPages,
       'program': program,
       'serverVersion': serverVersion,
       'apiKeys': apiKeys.toJson(),
@@ -1042,6 +1103,7 @@ class AppSettingsModel {
     List<String>? scoutPages,
     List<String>? analyticsPages,
     List<String>? adminPages,
+    List<String>? customPages,
     String? program,
     String? serverVersion,
     ApiKeysModel? apiKeys,
@@ -1069,6 +1131,7 @@ class AppSettingsModel {
       scoutPages: scoutPages ?? this.scoutPages,
       analyticsPages: analyticsPages ?? this.analyticsPages,
       adminPages: adminPages ?? this.adminPages,
+      customPages: customPages ?? this.customPages,
       program: program ?? this.program,
       serverVersion: serverVersion ?? this.serverVersion,
       apiKeys: apiKeys ?? this.apiKeys,

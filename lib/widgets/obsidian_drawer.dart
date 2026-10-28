@@ -10,6 +10,8 @@ class ObsidianNavigationDrawer extends StatelessWidget {
   final Function(int) onSelectScreen;
   final VoidCallback onOpenQrScanner;
   final VoidCallback onLogout;
+  /// Opens the account switcher; the header is tappable when set.
+  final VoidCallback? onOpenAccounts;
 
   const ObsidianNavigationDrawer({
     super.key,
@@ -18,6 +20,7 @@ class ObsidianNavigationDrawer extends StatelessWidget {
     required this.onSelectScreen,
     required this.onOpenQrScanner,
     required this.onLogout,
+    this.onOpenAccounts,
   });
 
   @override
@@ -51,6 +54,13 @@ class ObsidianNavigationDrawer extends StatelessWidget {
             'icon': Icons.dashboard_rounded,
             'labelKey': 'nav.dashboard',
             'subKey': 'subtitle.dashboard',
+          },
+          {
+            'pageId': 'event-info',
+            'index': 51,
+            'icon': Icons.campaign_outlined,
+            'labelKey': 'nav.event_info',
+            'subKey': 'event_info.subtitle',
           },
         ],
       },
@@ -445,83 +455,88 @@ class ObsidianNavigationDrawer extends StatelessWidget {
       backgroundColor: drawerBg,
       child: Column(
               children: [
-                // Drawer Header
-                Container(
-                  padding: const EdgeInsets.fromLTRB(20.0, 56.0, 20.0, 20.0),
-                  decoration: BoxDecoration(
-                    border: Border(bottom: BorderSide(color: borderColor)),
-                  ),
-                  child: Row(
-                    children: [
-                      // User Avatar with deterministic color or profile picture
-                      ObsidianUserAvatar(
-                        profilePicture: user?.profilePicture,
-                        username: username,
-                        size: 48,
-                        serverUrl: apiService.currentServerUrl,
-                        boxShadow: [
-                          BoxShadow(
-                            color: avatarBgColor.withValues(alpha: 0.4),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              program.isNotEmpty ? 'ObsidianScout $program' : 'ObsidianScout',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: headerTextColor,
-                                letterSpacing: 0.3,
-                              ),
-                            ),
-                            const SizedBox(height: 3),
-                            Row(
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    username,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: isDark ? Colors.white70 : const Color(0xFF475569),
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: primaryAccent.withValues(alpha: 0.2),
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      color: primaryAccent.withValues(alpha: 0.4),
-                                      width: 0.8,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    roleLabel,
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w700,
-                                      color: primaryAccent,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                // Drawer Header (tap to switch or add accounts)
+                InkWell(
+                  onTap: onOpenAccounts,
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(20.0, 56.0, 20.0, 20.0),
+                    decoration: BoxDecoration(
+                      border: Border(bottom: BorderSide(color: borderColor)),
+                    ),
+                    child: Row(
+                      children: [
+                        // User Avatar with deterministic color or profile picture
+                        ObsidianUserAvatar(
+                          profilePicture: user?.profilePicture,
+                          username: username,
+                          size: 48,
+                          serverUrl: apiService.currentServerUrl,
+                          boxShadow: [
+                            BoxShadow(
+                              color: avatarBgColor.withValues(alpha: 0.4),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
                             ),
                           ],
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                program.isNotEmpty ? 'ObsidianScout $program' : 'ObsidianScout',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: headerTextColor,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      username,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: isDark ? Colors.white70 : const Color(0xFF475569),
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: primaryAccent.withValues(alpha: 0.2),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: primaryAccent.withValues(alpha: 0.4),
+                                        width: 0.8,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      roleLabel,
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                        color: primaryAccent,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (onOpenAccounts != null)
+                          Icon(Icons.unfold_more_rounded, size: 20, color: sectionLabelColor),
+                      ],
+                    ),
                   ),
                 ),
 

@@ -23,6 +23,7 @@ jobs:
       version_name: ${{ steps.set_tag.outputs.version_name }}
       msix_version: ${{ steps.set_tag.outputs.msix_version }}
       build_number: ${{ steps.set_tag.outputs.build_number }}
+      semver: ${{ steps.set_tag.outputs.semver }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -107,6 +108,8 @@ jobs:
           echo "version_name=$VERSION_4PART" >> $GITHUB_OUTPUT
           echo "msix_version=$VERSION_4PART" >> $GITHUB_OUTPUT
           echo "build_number=$NEW_BUILD" >> $GITHUB_OUTPUT
+          # Apple version strings allow at most three parts; the build number keeps each build unique
+          echo "semver=$SEMVER" >> $GITHUB_OUTPUT
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -367,10 +370,96 @@ jobs:
           name: linux-release
           path: linux_out/*
 
+  build-macos:
+    name: Build macOS App & DMG
+    needs: [auto-tag]
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.auto-tag.outputs.new_tag }}
+
+      - name: Set up Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Install Dependencies
+        run: |
+          flutter config --enable-swift-package-manager
+          flutter pub get
+
+      # No signing certificate in CI, so the app is ad-hoc signed. Push and keychain-group entitlements need a
+      # provisioning profile and would stop an ad-hoc signed app from launching, so leave them out of this build.
+      - name: Remove Entitlements That Need a Provisioning Profile
+        run: |
+          for f in macos/Runner/Release.entitlements macos/Runner/DebugProfile.entitlements; do
+            /usr/libexec/PlistBuddy -c "Delete :com.apple.developer.aps-environment" "$f" || true
+            /usr/libexec/PlistBuddy -c "Delete :keychain-access-groups" "$f" || true
+          done
+
+      - name: Build macOS Desktop Application
+        run: flutter build macos --release --build-name=${{ needs.auto-tag.outputs.semver }} --build-number=${{ needs.auto-tag.outputs.build_number }}
+
+      - name: Package macOS .dmg and .zip
+        run: |
+          APP_SRC="build/macos/Build/Products/Release/obsidianscout_app.app"
+          STAGE="/tmp/obsidianscout_dmg"
+          mkdir -p macos_out "$STAGE"
+          ditto "$APP_SRC" "$STAGE/ObsidianScout.app"
+          ln -s /Applications "$STAGE/Applications"
+          hdiutil create -volname "ObsidianScout" -srcfolder "$STAGE" -ov -format UDZO "macos_out/ObsidianScout-macOS.dmg"
+          ditto -c -k --keepParent "$STAGE/ObsidianScout.app" "macos_out/ObsidianScout-macOS.zip"
+
+      - name: Upload macOS Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-release
+          path: macos_out/*
+
+  build-ios:
+    name: Build iOS App (Unsigned IPA)
+    needs: [auto-tag]
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.auto-tag.outputs.new_tag }}
+
+      - name: Set up Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Install Dependencies
+        run: |
+          flutter config --enable-swift-package-manager
+          flutter pub get
+
+      - name: Build iOS Release App (No Code Signing)
+        run: flutter build ios --release --no-codesign --build-name=${{ needs.auto-tag.outputs.semver }} --build-number=${{ needs.auto-tag.outputs.build_number }}
+
+      # An unsigned .ipa can't be installed as-is; re-sign it with your own Apple ID (e.g. Sideloadly / AltStore)
+      - name: Package Unsigned .ipa
+        run: |
+          mkdir -p ios_out /tmp/obsidianscout_ipa/Payload
+          ditto build/ios/iphoneos/Runner.app /tmp/obsidianscout_ipa/Payload/Runner.app
+          (cd /tmp/obsidianscout_ipa && zip -qry "$GITHUB_WORKSPACE/ios_out/ObsidianScout-iOS-unsigned.ipa" Payload)
+
+      - name: Upload iOS Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-release
+          path: ios_out/*
+
   package-master-release:
     name: Generate Checksums & Stage Installers
     runs-on: ubuntu-latest
-    needs: [build-android, build-windows, build-linux]
+    needs: [build-android, build-windows, build-linux, build-macos, build-ios]
 
     steps:
       - name: Download All Artifacts
