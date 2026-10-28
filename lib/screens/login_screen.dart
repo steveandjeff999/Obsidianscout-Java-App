@@ -4,6 +4,7 @@ import '../l10n/app_localizations.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/reset_password_modal.dart';
+import '../services/account_manager_service.dart';
 import '../services/api_service.dart';
 import '../services/auth_storage_service.dart';
 import '../services/biometric_auth_service.dart';
@@ -13,11 +14,20 @@ import '../models/api_response.dart';
 class LoginScreen extends StatefulWidget {
   final ApiService apiService;
   final VoidCallback onLoginSuccess;
+  /// Signing in to another account while one stays signed in: shows a back button,
+  /// skips the biometric lock and prompts, and [onCancel] returns to the current account.
+  final bool addAccountMode;
+  final VoidCallback? onCancel;
+  /// A saved account whose session ended, to sign back in to.
+  final SavedAccount? prefillAccount;
 
   const LoginScreen({
     super.key,
     required this.apiService,
     required this.onLoginSuccess,
+    this.addAccountMode = false,
+    this.onCancel,
+    this.prefillAccount,
   });
 
   @override
@@ -68,7 +78,19 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    _serverUrlController = TextEditingController(text: widget.apiService.serverUrl);
+    final prefill = widget.prefillAccount;
+    _serverUrlController = TextEditingController(text: prefill?.serverUrl ?? widget.apiService.serverUrl);
+    if (widget.addAccountMode) {
+      _keepMeLoggedIn = true;
+      _regKeepMeLoggedIn = true;
+      if (prefill != null) {
+        _usernameController.text = prefill.username;
+        if (prefill.teamNumber > 0) _teamNumberController.text = prefill.teamNumber.toString();
+        _selectedProgram = prefill.program;
+      }
+      // Biometric sign-in is tied to one account, so it is not offered here.
+      return;
+    }
     _keepMeLoggedIn = widget.apiService.keepMeLoggedIn;
     _regKeepMeLoggedIn = widget.apiService.keepMeLoggedIn;
     if (widget.apiService.savedUsername.isNotEmpty) {
@@ -212,7 +234,9 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isSubmitting = false);
 
     if (mounted) {
-      if (success) {
+      if (success && widget.addAccountMode) {
+        widget.onLoginSuccess();
+      } else if (success) {
         final isAvailable = await BiometricAuthService.isAvailable();
         final isEnrolled = await AuthStorageService.isEnrolled();
         final isDismissed = await AuthStorageService.isPromptDismissed();
@@ -404,6 +428,10 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _handleBackPress() {
+    if (widget.addAccountMode && widget.onCancel != null) {
+      widget.onCancel!();
+      return;
+    }
     final now = DateTime.now();
     if (_lastBackPressTime == null || now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
       _lastBackPressTime = now;
@@ -629,6 +657,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
+                        if (widget.addAccountMode) ...[
+                          TextButton.icon(
+                            onPressed: _isSubmitting ? null : widget.onCancel,
+                            icon: Icon(Icons.arrow_back_rounded, color: primaryTextColor, size: 20.0),
+                            label: Text(
+                              context.tr('accounts.back', 'Back'),
+                              style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                          const Spacer(),
+                        ],
                         DropdownButton<String>(
                           value: widget.apiService.currentLocale.languageCode,
                           dropdownColor: surfaceColor,
@@ -672,7 +711,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     Text(
-                      context.tr('app.subtitle'),
+                      widget.addAccountMode
+                          ? (widget.prefillAccount != null
+                              ? context.tr('accounts.sign_back_in', 'Sign back in to {name}')
+                                  .replaceAll('{name}', widget.prefillAccount!.username)
+                              : context.tr('accounts.add', 'Add another account'))
+                          : context.tr('app.subtitle'),
                       style: TextStyle(fontSize: 14.0, color: secondaryTextColor),
                     ),
                     const SizedBox(height: 24.0),

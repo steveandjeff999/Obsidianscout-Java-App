@@ -24,6 +24,7 @@ import '../models/pick_list_models.dart';
 import '../models/match_pick_models.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../data/local_store.dart';
+import 'account_manager_service.dart';
 import 'auth_storage_service.dart';
 import 'entry_sync.dart' as entry_sync;
 import 'local_analytics.dart' as local_analytics;
@@ -90,6 +91,14 @@ class ApiService {
 
   UserModel? _currentUser;
   AppSettingsModel? _currentSettings;
+
+  /// Every account signed in on this device, most recently used first (see the account switcher).
+  final ValueNotifier<List<SavedAccount>> savedAccountsNotifier = ValueNotifier<List<SavedAccount>>(const []);
+  /// Session cookies of accounts signed in without "keep me logged in"; they last until the app closes.
+  final Map<String, String> _volatileCookies = {};
+  /// The signed-in session put aside while another account signs in (see [beginAddAccount]).
+  _ParkedSession? _parkedSession;
+  Future<void> _accountsWrite = Future.value();
   final ValueNotifier<int> permissionsNotifier = ValueNotifier<int>(0);
   /// Bumped after each background sync and whenever the user saves something that changes what the
   /// home-screen widgets show (a scouting entry, an assignment status), so they refresh right away.
@@ -153,6 +162,15 @@ class ApiService {
   AppSettingsModel? get currentSettings => _currentSettings;
   bool get isSuperAdmin => _currentUser?.isSuperAdmin ?? (currentUserRole.toUpperCase() == 'SUPERADMIN');
   bool get isAdmin => _currentUser?.isAdmin ?? (currentUserRole.toUpperCase() == 'ADMIN' || isSuperAdmin);
+
+  /// Whether the user may use the team admin page [page] (website id: 'users', 'banners', 'admin-settings',
+  /// 'assignments', 'scouter-report'): admins always, a CUSTOM user when an admin picked it for them.
+  bool canUseAdminPage(String page) {
+    if (isAdmin) return true;
+    final role = (_currentUser?.role ?? currentUserRole).toUpperCase();
+    if (role != 'CUSTOM' || !customRoleAdminPages.contains(page)) return false;
+    return _currentSettings?.customPages?.contains(page) ?? false;
+  }
   String get currentUserRole => _currentUser?.role ?? 'SCOUT';
   String get currentProgram => _currentUser?.program ?? _currentSettings?.program ?? 'FRC';
   bool get isOnline => _isOnline;
@@ -306,6 +324,8 @@ class ApiService {
     ScoutHistoryService.currentAccountProvider = () => currentAccountUsername;
     ScoutHistoryService.currentAccountIdProvider = () => currentAccountId;
     unawaited(ScoutHistoryService.purgeExpiredEntries());
+
+    savedAccountsNotifier.value = await AccountManagerService.load();
 
     if (_keepMeLoggedIn) {
       final savedCookie = prefs.getString(keySessionCookie);
@@ -864,6 +884,9 @@ class ApiService {
   /// Headers for the live config-editing WebSocket; the session cookie authenticates it.
   Map<String, String> get webSocketHeaders => Map<String, String>.of(_headers)..remove('Content-Type');
 
+  /// Headers for loading a server file straight into a widget (Event Info images); the session cookie authenticates it.
+  Map<String, String> get fileHeaders => Map<String, String>.of(_headers)..remove('Content-Type');
+
   void _handleUnauthorized([
     String reason = 'Your session has expired. Please log in again.',
     int? epoch,
@@ -884,6 +907,7 @@ class ApiService {
       prefs.setBool(keyKeepMeLoggedIn, false);
     });
     _store.remove("cache_auth_me").catchError((_) {});
+    unawaited(_forgetActiveSessionCookie());
     permissionsNotifier.value++;
     _sessionRevokedController.add(reason);
   }
@@ -993,10 +1017,14 @@ class ApiService {
         _keepMeLoggedIn = keepMeLoggedIn;
         _savedUsername = username;
         _sessionPassword = password;
-        await AuthStorageService.clearBiometricIfDifferentAccount(
-          newUsername: username,
-          newTeamNumber: teamNumber,
-        );
+        // Biometric sign-in belongs to one account; adding a second one keeps it.
+        if (_parkedSession == null) {
+          await AuthStorageService.clearBiometricIfDifferentAccount(
+            newUsername: username,
+            newTeamNumber: teamNumber,
+          );
+        }
+        await _finishAddAccount();
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool(keyKeepMeLoggedIn, keepMeLoggedIn);
@@ -1013,6 +1041,7 @@ class ApiService {
             fetchSettings().catchError((_) => null),
           ]).timeout(const Duration(seconds: 3));
         } catch (_) {}
+        await _rememberActiveAccount(username: username, teamNumber: teamNumber, program: program);
         return true;
       }
       lastLoginError = _extractServerError(response);
@@ -1078,10 +1107,14 @@ class ApiService {
         _keepMeLoggedIn = keepMeLoggedIn;
         _savedUsername = username;
         _sessionPassword = password;
-        await AuthStorageService.clearBiometricIfDifferentAccount(
-          newUsername: username,
-          newTeamNumber: teamNumber,
-        );
+        // Biometric sign-in belongs to one account; adding a second one keeps it.
+        if (_parkedSession == null) {
+          await AuthStorageService.clearBiometricIfDifferentAccount(
+            newUsername: username,
+            newTeamNumber: teamNumber,
+          );
+        }
+        await _finishAddAccount();
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool(keyKeepMeLoggedIn, keepMeLoggedIn);
@@ -1092,6 +1125,7 @@ class ApiService {
           await prefs.remove(keySessionCookie);
         }
         _startBackgroundSync();
+        await _rememberActiveAccount(username: username, teamNumber: teamNumber, program: program);
         unawaited(fetchCurrentUser().catchError((_) => null));
         unawaited(fetchSettings().catchError((_) => null));
         return const ApiResponse.success(null);
@@ -1109,6 +1143,8 @@ class ApiService {
     _handlingRevocation = false;
     _syncTimer?.cancel();
     _outboxRetryTimer?.cancel();
+    _parkedSession = null;
+    await _removeSavedAccount(activeSavedAccount);
     try {
       await http.post(
         Uri.parse('$_currentServerUrl/api/auth/logout'),
@@ -1125,6 +1161,256 @@ class ApiService {
     await prefs.setBool(keyKeepMeLoggedIn, false);
     await AuthStorageService.clearCredentials();
     permissionsNotifier.value++;
+  }
+
+  // ── Multiple accounts ────────────────────────────────────────────────────
+
+  /// The saved entry for the signed-in account, or null when signed out.
+  SavedAccount? get activeSavedAccount {
+    if (!isLoggedIn) return null;
+    final username = currentAccountUsername;
+    if (username == null || username.isEmpty) return null;
+    final team = _currentUser?.teamNumber ?? 0;
+    for (final a in savedAccountsNotifier.value) {
+      if (a.isSameAccount(username: username, teamNumber: team, serverUrl: _currentServerUrl)) return a;
+    }
+    return null;
+  }
+
+  /// Saved accounts other than the signed-in one.
+  List<SavedAccount> get otherSavedAccounts {
+    final active = activeSavedAccount;
+    return savedAccountsNotifier.value.where((a) => active == null || a.id != active.id).toList();
+  }
+
+  Future<void> _writeAccounts(List<SavedAccount> accounts) {
+    savedAccountsNotifier.value = List.unmodifiable(
+      [...accounts]..sort((a, b) => b.lastUsed.compareTo(a.lastUsed)),
+    );
+    final snapshot = savedAccountsNotifier.value;
+    _accountsWrite = _accountsWrite
+        .then((_) => AccountManagerService.save(snapshot))
+        .catchError((Object e) => debugPrint('[Accounts] Save failed: $e'));
+    return _accountsWrite;
+  }
+
+  /// Adds or refreshes the signed-in account in the saved list, with its current session.
+  Future<void> _rememberActiveAccount({String? username, int? teamNumber, String? program}) async {
+    if (!isLoggedIn) return;
+    final name = (_currentUser?.username.isNotEmpty == true ? _currentUser!.username : username ?? _savedUsername).trim();
+    if (name.isEmpty) return;
+    final team = (_currentUser?.teamNumber ?? 0) > 0 ? _currentUser!.teamNumber : (teamNumber ?? 0);
+    final accounts = [...savedAccountsNotifier.value];
+    final index = accounts.indexWhere((a) => a.isSameAccount(username: name, teamNumber: team, serverUrl: _currentServerUrl));
+    final existing = index >= 0 ? accounts.removeAt(index) : null;
+    final updated = SavedAccount(
+      username: name,
+      teamNumber: team > 0 ? team : (existing?.teamNumber ?? 0),
+      program: _currentUser?.program ?? program ?? existing?.program ?? 'FRC',
+      serverUrl: _currentServerUrl,
+      role: _currentUser?.role ?? existing?.role,
+      profilePicture: _currentUser != null
+          ? SavedAccount.storablePicture(_currentUser!.profilePicture)
+          : existing?.profilePicture,
+      // Without "keep me logged in" the session stays in memory only.
+      sessionCookie: _keepMeLoggedIn ? _sessionCookie : null,
+      lastUsed: DateTime.now(),
+    );
+    if (!_keepMeLoggedIn && _sessionCookie != null) {
+      _volatileCookies[updated.id] = _sessionCookie!;
+    } else {
+      _volatileCookies.remove(updated.id);
+    }
+    accounts.add(updated);
+    await _writeAccounts(accounts);
+  }
+
+  /// The signed-in account's session ended; it stays listed but needs a password next time.
+  Future<void> _forgetActiveSessionCookie() async {
+    final username = _currentUser?.username ?? _savedUsername;
+    if (username.isEmpty) return;
+    final accounts = savedAccountsNotifier.value.map((a) {
+      if (!a.isSameAccount(username: username, teamNumber: _currentUser?.teamNumber ?? 0, serverUrl: _currentServerUrl)) return a;
+      _volatileCookies.remove(a.id);
+      return a.copyWith(clearSessionCookie: true);
+    }).toList();
+    await _writeAccounts(accounts);
+  }
+
+  Future<void> _removeSavedAccount(SavedAccount? account) async {
+    if (account == null) return;
+    _volatileCookies.remove(account.id);
+    await _writeAccounts(savedAccountsNotifier.value.where((a) => a.id != account.id).toList());
+  }
+
+  String? _cookieFor(SavedAccount account) => account.sessionCookie ?? _volatileCookies[account.id];
+
+  /// Whether [account] can be switched to without typing its password.
+  bool hasActiveSession(SavedAccount account) => _cookieFor(account)?.isNotEmpty == true;
+
+  /// Asks the account's server whether its saved session is still signed in.
+  /// Offline counts as signed in, like the launch check does.
+  Future<bool> _probeSession(SavedAccount account) async {
+    final cookie = _cookieFor(account);
+    if (cookie == null || cookie.isEmpty) return false;
+    try {
+      final response = await http
+          .get(Uri.parse('${account.serverUrl}/api/auth/status'), headers: {..._headers, 'Cookie': cookie})
+          .timeout(_deadline(const Duration(seconds: 8)));
+      if (response.statusCode != 200) return false;
+      final decoded = jsonDecode(response.body);
+      return decoded is Map && decoded['loggedIn'] == true;
+    } catch (_) {
+      return !_isOnline;
+    }
+  }
+
+  /// Uploads queued changes so they are not sent under the next account.
+  /// Returns how many are still waiting (0 means it is safe to change accounts).
+  Future<int> _flushOutboxBeforeAccountChange() async {
+    if (outboxCount.value == 0) return 0;
+    try {
+      await syncOutbox().timeout(const Duration(seconds: 20));
+    } catch (_) {}
+    return outboxCount.value;
+  }
+
+  /// Stops background work and drops everything cached for the signed-in account,
+  /// so the next account never sees its data.
+  Future<void> _resetAccountState() async {
+    _syncTimer?.cancel();
+    _outboxRetryTimer?.cancel();
+    _authEpoch++;
+    _handlingRevocation = false;
+    _currentUser = null;
+    _currentSettings = null;
+    _sessionPassword = null;
+    settingsNotifier.value = null;
+    await clearAllCache();
+    _syncObsidianTheme();
+  }
+
+  Future<void> _persistActiveSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(keyKeepMeLoggedIn, _keepMeLoggedIn);
+    await prefs.setString(keySavedUsername, _savedUsername);
+    if (_keepMeLoggedIn && _sessionCookie != null) {
+      await prefs.setString(keySessionCookie, _sessionCookie!);
+    } else {
+      await prefs.remove(keySessionCookie);
+    }
+  }
+
+  /// Switches the app to [account] using its saved session.
+  Future<AccountSwitchResult> switchToAccount(SavedAccount account) async {
+    final active = activeSavedAccount;
+    if (active != null && active.id == account.id) return AccountSwitchResult.switched;
+
+    if (!hasActiveSession(account) || !await _probeSession(account)) {
+      final accounts = savedAccountsNotifier.value
+          .map((a) => a.id == account.id ? a.copyWith(clearSessionCookie: true) : a)
+          .toList();
+      _volatileCookies.remove(account.id);
+      await _writeAccounts(accounts);
+      return AccountSwitchResult.needsSignIn;
+    }
+    if (await _flushOutboxBeforeAccountChange() > 0) return AccountSwitchResult.unsyncedChanges;
+
+    final cookie = _cookieFor(account)!;
+    await _rememberActiveAccount();
+    await _resetAccountState();
+    await setServerUrl(account.serverUrl);
+    _sessionCookie = cookie;
+    _keepMeLoggedIn = account.sessionCookie != null;
+    _savedUsername = account.username;
+    await _persistActiveSession();
+
+    _startBackgroundSync();
+    try {
+      await Future.wait([
+        fetchCurrentUser().catchError((_) => null),
+        fetchSettings().catchError((_) => null),
+      ]).timeout(const Duration(seconds: 5));
+    } catch (_) {}
+    await _rememberActiveAccount(username: account.username, teamNumber: account.teamNumber, program: account.program);
+    permissionsNotifier.value++;
+    return AccountSwitchResult.switched;
+  }
+
+  /// Puts the signed-in session aside so another account can sign in on the login screen.
+  /// [cancelAddAccount] restores it; a successful [login] or [register] replaces it.
+  /// Returns how many queued changes are still waiting to upload (nothing is parked if any).
+  Future<int> beginAddAccount() async {
+    if (_parkedSession != null) return 0;
+    final pending = await _flushOutboxBeforeAccountChange();
+    if (pending > 0) return pending;
+    await _rememberActiveAccount();
+    _syncTimer?.cancel();
+    _outboxRetryTimer?.cancel();
+    _parkedSession = _ParkedSession(
+      cookie: _sessionCookie,
+      serverUrl: _currentServerUrl,
+      keepMeLoggedIn: _keepMeLoggedIn,
+      savedUsername: _savedUsername,
+      sessionPassword: _sessionPassword,
+    );
+    _authEpoch++;
+    _sessionCookie = null;
+    return 0;
+  }
+
+  bool get isAddingAccount => _parkedSession != null;
+
+  /// Goes back to the account that was signed in before [beginAddAccount].
+  Future<void> cancelAddAccount() async {
+    final parked = _parkedSession;
+    if (parked == null) return;
+    _parkedSession = null;
+    _authEpoch++;
+    _handlingRevocation = false;
+    if (parked.serverUrl != _currentServerUrl) await setServerUrl(parked.serverUrl);
+    _sessionCookie = parked.cookie;
+    _keepMeLoggedIn = parked.keepMeLoggedIn;
+    _savedUsername = parked.savedUsername;
+    _sessionPassword = parked.sessionPassword;
+    await _persistActiveSession();
+    _startBackgroundSync();
+  }
+
+  /// A new account signed in while another was parked: clear out the previous account's data.
+  Future<void> _finishAddAccount() async {
+    if (_parkedSession == null) return;
+    _parkedSession = null;
+    final password = _sessionPassword;
+    await _resetAccountState();
+    _sessionPassword = password;
+  }
+
+  /// Signs out of a saved account that is not the active one. [fcmToken] is this device's
+  /// push token, so the account stops sending notifications here.
+  Future<void> removeSavedAccount(SavedAccount account, {String? fcmToken}) async {
+    final cookie = _cookieFor(account);
+    if (cookie != null && cookie.isNotEmpty) {
+      try {
+        if (fcmToken != null && fcmToken.isNotEmpty) {
+          await http
+              .delete(Uri.parse('${account.serverUrl}/api/fcm/token'),
+                  headers: {..._headers, 'Cookie': cookie}, body: jsonEncode({'deviceToken': fcmToken}))
+              .timeout(_deadline(const Duration(seconds: 8)));
+        }
+        await http
+            .post(Uri.parse('${account.serverUrl}/api/auth/logout'), headers: {..._headers, 'Cookie': cookie})
+            .timeout(_deadline(const Duration(seconds: 8)));
+      } catch (_) {}
+    }
+    await _removeSavedAccount(account);
+  }
+
+  /// Signs out of every saved account except the active one (sign that one out with [logout]).
+  Future<void> removeOtherSavedAccounts({String? fcmToken}) async {
+    for (final account in otherSavedAccounts) {
+      await removeSavedAccount(account, fcmToken: fcmToken);
+    }
   }
 
   /// Attempts silent authentication using stored secure credentials (biometric gate completed).
@@ -1791,6 +2077,7 @@ class ApiService {
             if (userObj.isNotEmpty) {
               _currentUser = UserModel.fromJson(userObj);
               permissionsNotifier.value++;
+              unawaited(_rememberActiveAccount());
               return _currentUser;
             }
           }
@@ -2093,6 +2380,7 @@ class ApiService {
     String? email,
     String? program,
     required String role,
+    List<String>? customPages,
   }) async {
     if (!_isOnline) {
       return const ApiResponse.error(isOffline: true, message: 'Cannot create user while offline');
@@ -2107,6 +2395,7 @@ class ApiService {
       };
       if (email != null && email.trim().isNotEmpty) body['email'] = email.trim();
       if (program != null && program.trim().isNotEmpty) body['program'] = program.trim();
+      if (customPages != null && role.toUpperCase() == 'CUSTOM') body['customPages'] = customPages;
 
       final response = await http.post(
         Uri.parse('$_currentServerUrl/api/admin/users'),
@@ -2134,6 +2423,7 @@ class ApiService {
     String? email,
     String? profilePicture,
     bool clearProfilePicture = false,
+    List<String>? customPages,
   }) async {
     if (!_isOnline) {
       return const ApiResponse.error(isOffline: true, message: 'Cannot update user while offline');
@@ -2145,6 +2435,7 @@ class ApiService {
       if (password != null && password.isNotEmpty) body['password'] = password;
       if (role != null && role.isNotEmpty) body['role'] = role.toUpperCase();
       if (email != null) body['email'] = email.trim();
+      if (customPages != null) body['customPages'] = customPages;
       if (clearProfilePicture) {
         body['clearProfilePicture'] = true;
       } else if (profilePicture != null) {
@@ -2219,7 +2510,8 @@ class ApiService {
 
     // Admin only base pages (only ADMIN or SUPERADMIN can access)
     final isAdminPage = adminOnlyBasePages.contains(pageId);
-    if (role != 'ADMIN' && isAdminPage) {
+    // CUSTOM users can be given team admin pages; their own page list below decides.
+    if (role != 'ADMIN' && role != 'CUSTOM' && isAdminPage) {
       return false;
     }
 
@@ -2282,6 +2574,11 @@ class ApiService {
       candidatePages.add('all-data');
     }
 
+    // The app's 'scout-assignments' is the website's 'assignments'.
+    if (pageId == 'scout-assignments') {
+      candidatePages.add('assignments');
+    }
+
     if (pageId == 'match-planning') {
       candidatePages.addAll(['match-planner', 'matchplanning', 'planning']);
     } else if (pageId == 'match-planner' || pageId == 'matchplanning' || pageId == 'planning') {
@@ -2295,6 +2592,9 @@ class ApiService {
       allowedPages = settings?.adminPages ?? defaultAdminPages;
     } else if (role == 'ANALYTICS') {
       allowedPages = settings?.analyticsPages ?? defaultAnalyticsPages;
+    } else if (role == 'CUSTOM') {
+      // The server sends a CUSTOM user only their own picks; until then they get just the base pages.
+      allowedPages = settings?.customPages ?? customRoleBasePages;
     } else {
       allowedPages = settings?.scoutPages ?? defaultScoutPages;
     }
@@ -6833,3 +7133,21 @@ class ApiService {
 }
 
 enum _OutboxOutcome { uploaded, dropped, retryLater }
+
+enum AccountSwitchResult { switched, needsSignIn, unsyncedChanges }
+
+class _ParkedSession {
+  final String? cookie;
+  final String serverUrl;
+  final bool keepMeLoggedIn;
+  final String savedUsername;
+  final String? sessionPassword;
+
+  const _ParkedSession({
+    required this.cookie,
+    required this.serverUrl,
+    required this.keepMeLoggedIn,
+    required this.savedUsername,
+    required this.sessionPassword,
+  });
+}

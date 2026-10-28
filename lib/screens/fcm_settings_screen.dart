@@ -34,6 +34,8 @@ class _FcmSettingsScreenState extends State<FcmSettingsScreen> {
   final _appId = TextEditingController();
   final _senderId = TextEditingController();
   final _vapidKey = TextEditingController();
+  final _appleAppId = TextEditingController();
+  final _appleApiKey = TextEditingController();
 
   bool get _isSuper => widget.apiService.currentUserRole.toUpperCase() == 'SUPERADMIN';
 
@@ -45,7 +47,7 @@ class _FcmSettingsScreenState extends State<FcmSettingsScreen> {
 
   @override
   void dispose() {
-    for (final c in [_serviceAccount, _projectId, _apiKey, _appId, _senderId, _vapidKey]) {
+    for (final c in [_serviceAccount, _projectId, _apiKey, _appId, _senderId, _vapidKey, _appleAppId, _appleApiKey]) {
       c.dispose();
     }
     super.dispose();
@@ -67,6 +69,8 @@ class _FcmSettingsScreenState extends State<FcmSettingsScreen> {
       _appId.text = jsonStr(cfg['appId']);
       _senderId.text = jsonStr(cfg['messagingSenderId']);
       _vapidKey.text = jsonStr(cfg['vapidKey']);
+      _appleAppId.text = jsonStr(cfg['appleAppId']);
+      _appleApiKey.text = jsonStr(cfg['appleApiKey']);
     });
   }
 
@@ -122,6 +126,32 @@ class _FcmSettingsScreenState extends State<FcmSettingsScreen> {
     _parseJson(utf8.decode(bytes, allowMalformed: true), serviceAccount: serviceAccount);
   }
 
+  /// Fills the iOS / macOS fields from the iOS app's GoogleService-Info.plist (the macOS build shares that app).
+  Future<void> _pickApplePlist() async {
+    final picked = await FilePicker.pickFile(type: FileType.custom, allowedExtensions: ['plist']);
+    if (picked == null) return;
+    final text = utf8.decode(await picked.readAsBytes(), allowMalformed: true);
+    if (!mounted) return;
+    final values = <String, String>{
+      for (final m in RegExp(r'<key>([^<]+)</key>\s*<string>([^<]*)</string>').allMatches(text)) m.group(1)!: m.group(2)!,
+    };
+    final appId = values['GOOGLE_APP_ID'];
+    if (appId == null || appId.isEmpty) {
+      _showAlert(
+          context.tr('fcm.apple_plist_invalid',
+              'That file has no GOOGLE_APP_ID. Download GoogleService-Info.plist for the iOS app from Firebase Console -> Project Settings.'),
+          error: true);
+      return;
+    }
+    setState(() {
+      _appleAppId.text = appId;
+      if (values['API_KEY'] != null) _appleApiKey.text = values['API_KEY']!;
+      if (_projectId.text.isEmpty && values['PROJECT_ID'] != null) _projectId.text = values['PROJECT_ID']!;
+      if (_senderId.text.isEmpty && values['GCM_SENDER_ID'] != null) _senderId.text = values['GCM_SENDER_ID']!;
+    });
+    _showAlert(context.tr('fcm.apple_plist_loaded', 'iOS / macOS App ID and API Key extracted. Save to apply.'));
+  }
+
   Future<void> _save() async {
     setState(() => _saving = true);
     final res = await widget.apiService.requestJson('POST', '/api/admin/fcm', body: {
@@ -132,6 +162,8 @@ class _FcmSettingsScreenState extends State<FcmSettingsScreen> {
       'messagingSenderId': _senderId.text.trim(),
       'serviceAccountJson': _serviceAccount.text.trim(),
       'vapidKey': _vapidKey.text.trim(),
+      'appleAppId': _appleAppId.text.trim(),
+      'appleApiKey': _appleApiKey.text.trim(),
     });
     if (!mounted) return;
     setState(() => _saving = false);
@@ -240,6 +272,11 @@ class _FcmSettingsScreenState extends State<FcmSettingsScreen> {
             icon: const Icon(Icons.phone_android_rounded, size: 18),
             label: const Text('Upload google-services.json'),
           ),
+          OutlinedButton.icon(
+            onPressed: _pickApplePlist,
+            icon: const Icon(Icons.phone_iphone_rounded, size: 18),
+            label: Text(context.tr('fcm.btn_upload_apple_plist', 'Upload GoogleService-Info.plist')),
+          ),
         ],
         child: Column(
           children: [
@@ -261,6 +298,14 @@ class _FcmSettingsScreenState extends State<FcmSettingsScreen> {
                 controller: _vapidKey,
                 decoration: InputDecoration(
                     labelText: context.tr('fcm.vapid_key_label', 'VAPID Web Key (Optional for Web Push):'), hintText: 'BEl62i...')),
+            TextField(
+                controller: _appleAppId,
+                decoration: InputDecoration(
+                    labelText: context.tr('fcm.apple_app_id_label', 'iOS / macOS App ID:'), hintText: '1:123456789:ios:abcdef')),
+            TextField(
+                controller: _appleApiKey,
+                decoration:
+                    InputDecoration(labelText: context.tr('fcm.apple_api_key_label', 'iOS / macOS API Key:'), hintText: 'AIzaSy...')),
           ],
         ),
       ),

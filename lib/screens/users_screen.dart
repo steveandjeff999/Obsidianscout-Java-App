@@ -53,6 +53,7 @@ class _UsersScreenState extends State<UsersScreen> {
   final _createTeamController = TextEditingController();
   final _createPasswordController = TextEditingController();
   String _createRole = 'SCOUT';
+  List<String> _createCustomPages = [];
   bool _isCreatingUser = false;
   bool _isCreateFormExpanded = false;
 
@@ -102,8 +103,19 @@ class _UsersScreenState extends State<UsersScreen> {
 
   bool get _isAdmin {
     final caller = widget.apiService.currentUser;
-    return _isSuperAdmin || (caller?.isAdmin ?? (widget.apiService.currentUserRole == 'ADMIN'));
+    return _isSuperAdmin || (caller?.isAdmin ?? (widget.apiService.currentUserRole == 'ADMIN')) ||
+        widget.apiService.canUseAdminPage('users');
   }
+
+  /// A CUSTOM user given the Users page: manages scout-level accounts and hands out only their own pages.
+  bool get _isCustomManager {
+    final caller = widget.apiService.currentUser;
+    return (caller?.role ?? widget.apiService.currentUserRole).toUpperCase() == 'CUSTOM';
+  }
+
+  /// Pages the caller may hand out; null means every page.
+  Set<String>? get _grantablePages =>
+      _isCustomManager ? (widget.apiService.currentSettings?.customPages ?? const <String>[]).toSet() : null;
 
   Future<void> _loadUsers({bool append = false}) async {
     if (!_isAdmin) {
@@ -241,6 +253,7 @@ class _UsersScreenState extends State<UsersScreen> {
       email: _createEmailController.text.trim(),
       program: caller?.program ?? widget.apiService.currentProgram,
       role: _createRole,
+      customPages: _createRole == 'CUSTOM' ? _createCustomPages : null,
     );
 
     if (!mounted) return;
@@ -263,6 +276,7 @@ class _UsersScreenState extends State<UsersScreen> {
       }
       setState(() {
         _createRole = 'SCOUT';
+        _createCustomPages = [];
       });
       _loadUsers(append: false);
     } else {
@@ -278,7 +292,7 @@ class _UsersScreenState extends State<UsersScreen> {
   Future<void> _openEditModal(UserModel user) async {
     final caller = widget.apiService.currentUser;
     final callerRole = caller?.role ?? widget.apiService.currentUserRole;
-    final canEdit = _isSuperAdmin || (!user.isSuperAdmin && user.teamNumber == caller?.teamNumber);
+    final canEdit = _isSuperAdmin || (!user.isSuperAdmin && user.teamNumber == caller?.teamNumber && !(_isCustomManager && user.isAdmin));
 
     if (!canEdit) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -292,6 +306,7 @@ class _UsersScreenState extends State<UsersScreen> {
     final editPasswordCtrl = TextEditingController();
     String editRole = user.role.toUpperCase();
     if (editRole.isEmpty) editRole = 'SCOUT';
+    List<String> editCustomPages = List<String>.from(user.customPages);
 
     // Track pending avatar: null when explicitly removed, string when new photo uploaded, or null initially
     String? pendingAvatar = user.profilePicture;
@@ -310,7 +325,7 @@ class _UsersScreenState extends State<UsersScreen> {
             final cardBg = ObsidianUITheme.getSurfaceColor(dialogCtx);
 
             final canChangeUsername = _isSuperAdmin;
-            final canChangeRole = _isSuperAdmin || (callerRole == 'ADMIN' && !user.isSuperAdmin);
+            final canChangeRole = _isSuperAdmin || ((callerRole == 'ADMIN' || _isCustomManager) && !user.isSuperAdmin);
 
             return Dialog(
               backgroundColor: cardBg,
@@ -499,7 +514,9 @@ class _UsersScreenState extends State<UsersScreen> {
                                 items: [
                                   const DropdownMenuItem(value: 'SCOUT', child: Text('Scout')),
                                   const DropdownMenuItem(value: 'ANALYTICS', child: Text('Analytics')),
-                                  const DropdownMenuItem(value: 'ADMIN', child: Text('Admin')),
+                                  DropdownMenuItem(value: 'CUSTOM', child: Text(dialogCtx.tr('users.custom_role', 'Custom'))),
+                                  if (!_isCustomManager)
+                                    const DropdownMenuItem(value: 'ADMIN', child: Text('Admin')),
                                   if (_isSuperAdmin)
                                     const DropdownMenuItem(value: 'SUPERADMIN', child: Text('Super Admin')),
                                 ],
@@ -509,6 +526,15 @@ class _UsersScreenState extends State<UsersScreen> {
                                   }
                                 },
                               ),
+                              if (editRole == 'CUSTOM') ...[
+                                const SizedBox(height: 14),
+                                _buildCustomPagesPicker(
+                                  dialogCtx,
+                                  selected: editCustomPages,
+                                  enabled: !isSaving,
+                                  onChanged: (pages) => setModalState(() => editCustomPages = pages),
+                                ),
+                              ],
                             ],
                           ],
                         ),
@@ -573,6 +599,7 @@ class _UsersScreenState extends State<UsersScreen> {
                                         ? pendingAvatar
                                         : null,
                                     clearProfilePicture: clearAvatar,
+                                    customPages: canChangeRole && editRole == 'CUSTOM' ? editCustomPages : null,
                                   );
 
                                   if (!mounted) return;
@@ -942,6 +969,15 @@ class _UsersScreenState extends State<UsersScreen> {
                       const SizedBox(height: 16),
                       _buildCreateSubmitButton(),
                     ],
+                    if (_createRole == 'CUSTOM') ...[
+                      const SizedBox(height: 16),
+                      _buildCustomPagesPicker(
+                        context,
+                        selected: _createCustomPages,
+                        enabled: !_isCreatingUser,
+                        onChanged: (pages) => setState(() => _createCustomPages = pages),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -1050,13 +1086,87 @@ class _UsersScreenState extends State<UsersScreen> {
           items: [
             const DropdownMenuItem(value: 'SCOUT', child: Text('Scout')),
             const DropdownMenuItem(value: 'ANALYTICS', child: Text('Analytics')),
-            const DropdownMenuItem(value: 'ADMIN', child: Text('Admin')),
+            DropdownMenuItem(value: 'CUSTOM', child: Text(context.tr('users.custom_role', 'Custom'))),
+            if (!_isCustomManager)
+              const DropdownMenuItem(value: 'ADMIN', child: Text('Admin')),
             if (_isSuperAdmin)
               const DropdownMenuItem(value: 'SUPERADMIN', child: Text('Super Admin')),
           ],
           onChanged: (val) {
             if (val != null) setState(() => _createRole = val);
           },
+        ),
+      ],
+    );
+  }
+
+  /// Checkboxes for the pages a CUSTOM user can open, with shortcuts to copy a role's team page list.
+  Widget _buildCustomPagesPicker(
+    BuildContext ctx, {
+    required List<String> selected,
+    required bool enabled,
+    required ValueChanged<List<String>> onChanged,
+  }) {
+    final subColor = ObsidianUITheme.getSecondaryTextColor(ctx);
+    final settings = widget.apiService.currentSettings;
+    // A CUSTOM manager can only change the pages they have; locked boxes keep what the user already had.
+    final grantable = _grantablePages ?? customRoleGrantablePages.map((e) => e.key).toSet();
+    final locked = selected.where((p) => !grantable.contains(p)).toList();
+    void copyFrom(List<String> rolePages) => onChanged([...locked, ...rolePages.where(grantable.contains)]);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(ctx.tr('users.custom_pages', 'Pages this user can open'),
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: subColor)),
+        const SizedBox(height: 4),
+        Text(
+          ctx.tr('users.custom_pages_note',
+              "Dashboard and My Assignments are always included. Superadmin pages can't be given to a custom user."),
+          style: TextStyle(fontSize: 11, color: subColor),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          children: [
+            TextButton(
+              onPressed: enabled ? () => copyFrom(settings?.scoutPages ?? defaultScoutPages) : null,
+              child: Text(ctx.tr('users.copy_scout_pages', 'Copy Scout pages')),
+            ),
+            TextButton(
+              onPressed: enabled ? () => copyFrom(settings?.analyticsPages ?? defaultAnalyticsPages) : null,
+              child: Text(ctx.tr('users.copy_analytics_pages', 'Copy Analytics pages')),
+            ),
+            TextButton(
+              onPressed: enabled ? () => onChanged(locked) : null,
+              child: Text(ctx.tr('users.clear_pages', 'Clear')),
+            ),
+          ],
+        ),
+        Wrap(
+          spacing: 4,
+          children: [
+            for (final page in customRoleGrantablePages)
+              SizedBox(
+                width: 200,
+                child: CheckboxListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  visualDensity: VisualDensity.compact,
+                  title: Text(page.value, style: const TextStyle(fontSize: 13)),
+                  value: selected.contains(page.key),
+                  onChanged: enabled && grantable.contains(page.key)
+                      ? (checked) {
+                          final next = List<String>.from(selected)..remove(page.key);
+                          if (checked == true) next.add(page.key);
+                          onChanged(next);
+                        }
+                      : null,
+                ),
+              ),
+          ],
         ),
       ],
     );
@@ -1196,6 +1306,7 @@ class _UsersScreenState extends State<UsersScreen> {
                         DropdownMenuItem(value: '', child: Text(context.tr('users.all_roles', 'All Roles'))),
                         const DropdownMenuItem(value: 'SCOUT', child: Text('Scout')),
                         const DropdownMenuItem(value: 'ANALYTICS', child: Text('Analytics')),
+                        DropdownMenuItem(value: 'CUSTOM', child: Text(context.tr('users.custom_role', 'Custom'))),
                         DropdownMenuItem(value: 'ADMIN', child: Text(context.tr('index.admin', 'Admin'))),
                         if (_isSuperAdmin)
                           DropdownMenuItem(value: 'SUPERADMIN', child: Text(context.tr('users.super_admin', 'Super Admin'))),
@@ -1284,6 +1395,7 @@ class _UsersScreenState extends State<UsersScreen> {
                       DropdownMenuItem(value: '', child: Text(context.tr('users.all_roles', 'All Roles'))),
                       const DropdownMenuItem(value: 'SCOUT', child: Text('Scout')),
                       const DropdownMenuItem(value: 'ANALYTICS', child: Text('Analytics')),
+                      DropdownMenuItem(value: 'CUSTOM', child: Text(context.tr('users.custom_role', 'Custom'))),
                       DropdownMenuItem(value: 'ADMIN', child: Text(context.tr('index.admin', 'Admin'))),
                       if (_isSuperAdmin)
                         DropdownMenuItem(value: 'SUPERADMIN', child: Text(context.tr('users.super_admin', 'Super Admin'))),
@@ -1342,7 +1454,7 @@ class _UsersScreenState extends State<UsersScreen> {
               const DataColumn(label: Text('Actions')),
             ],
             rows: _users.map((user) {
-              final canEdit = _isSuperAdmin || (!user.isSuperAdmin && user.teamNumber == caller?.teamNumber);
+              final canEdit = _isSuperAdmin || (!user.isSuperAdmin && user.teamNumber == caller?.teamNumber && !(_isCustomManager && user.isAdmin));
               final teamDisplay = _isSuperAdmin ? '[${user.program}] ${user.teamNumber}' : '${user.teamNumber}';
               final createdDisplay = _formatDate(user.createdAt);
               final lastLoginDisplay = _formatDate(user.lastLogin) ?? 'Never';
@@ -1374,7 +1486,7 @@ class _UsersScreenState extends State<UsersScreen> {
                     ),
                   ),
                   DataCell(Text(teamDisplay)),
-                  DataCell(_buildRoleBadge(user.role)),
+                  DataCell(_buildRoleBadge(user.role, customPageCount: user.customPages.length)),
                   DataCell(Text(createdDisplay ?? '—')),
                   DataCell(Text(lastLoginDisplay)),
                   DataCell(
@@ -1416,7 +1528,7 @@ class _UsersScreenState extends State<UsersScreen> {
       itemCount: _users.length,
       itemBuilder: (context, index) {
         final user = _users[index];
-        final canEdit = _isSuperAdmin || (!user.isSuperAdmin && user.teamNumber == caller?.teamNumber);
+        final canEdit = _isSuperAdmin || (!user.isSuperAdmin && user.teamNumber == caller?.teamNumber && !(_isCustomManager && user.isAdmin));
         final teamDisplay = _isSuperAdmin ? '[${user.program}] Team ${user.teamNumber}' : 'Team ${user.teamNumber}';
         final lastLoginDisplay = _formatDate(user.lastLogin) ?? 'Never';
 
@@ -1461,7 +1573,7 @@ class _UsersScreenState extends State<UsersScreen> {
                           ],
                         ),
                       ),
-                      _buildRoleBadge(user.role),
+                      _buildRoleBadge(user.role, customPageCount: user.customPages.length),
                     ],
                   ),
                   const Divider(height: 20),
@@ -1514,7 +1626,7 @@ class _UsersScreenState extends State<UsersScreen> {
     );
   }
 
-  Widget _buildRoleBadge(String role) {
+  Widget _buildRoleBadge(String role, {int customPageCount = 0}) {
     final r = role.toUpperCase();
     Color bg;
     Color fg;
@@ -1535,6 +1647,11 @@ class _UsersScreenState extends State<UsersScreen> {
         bg = Colors.amber.withValues(alpha: 0.2);
         fg = Colors.amber;
         label = 'Analytics';
+        break;
+      case 'CUSTOM':
+        bg = Colors.green.withValues(alpha: 0.2);
+        fg = Colors.greenAccent;
+        label = '${context.tr('users.custom_role', 'Custom')} ($customPageCount ${context.tr('users.pages_count', 'pages')})';
         break;
       case 'SCOUT':
       default:

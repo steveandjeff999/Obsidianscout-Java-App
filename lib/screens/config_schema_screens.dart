@@ -48,13 +48,13 @@ class _SchemaHistoryScreenState extends State<SchemaHistoryScreen> {
   @override
   void initState() {
     super.initState();
-    if (widget.apiService.isAdmin) _load();
+    if (widget.apiService.canUseAdminPage('admin-settings')) _load();
   }
 
   @override
   void didUpdateWidget(covariant SchemaHistoryScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.isVisible && !oldWidget.isVisible && widget.apiService.isAdmin) _load();
+    if (widget.isVisible && !oldWidget.isVisible && widget.apiService.canUseAdminPage('admin-settings')) _load();
   }
 
   Future<void> _load() async {
@@ -134,7 +134,7 @@ class _SchemaHistoryScreenState extends State<SchemaHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (!widget.apiService.isAdmin) {
+    if (!widget.apiService.canUseAdminPage('admin-settings')) {
       return const PortedLocked(title: 'Admin only', message: 'You need team admin access to view schema history.');
     }
     final muted = ObsidianUITheme.getSecondaryTextColor(context);
@@ -248,13 +248,13 @@ class _ConfigMigrationScreenState extends State<ConfigMigrationScreen> {
   @override
   void initState() {
     super.initState();
-    if (widget.apiService.isAdmin) _load();
+    if (widget.apiService.canUseAdminPage('admin-settings')) _load();
   }
 
   @override
   void didUpdateWidget(covariant ConfigMigrationScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.isVisible && !oldWidget.isVisible && widget.apiService.isAdmin) _load();
+    if (widget.isVisible && !oldWidget.isVisible && widget.apiService.canUseAdminPage('admin-settings')) _load();
   }
 
   Future<void> _load() async {
@@ -323,7 +323,7 @@ class _ConfigMigrationScreenState extends State<ConfigMigrationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (!widget.apiService.isAdmin) {
+    if (!widget.apiService.canUseAdminPage('admin-settings')) {
       return const PortedLocked(title: 'Admin only', message: 'You need team admin access to run data migrations.');
     }
     final status = _status;

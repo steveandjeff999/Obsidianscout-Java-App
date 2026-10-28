@@ -1,5 +1,9 @@
+import 'dart:io' show Platform;
+
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:path_provider/path_provider.dart';
 
 part 'local_db.g.dart';
 
@@ -53,7 +57,13 @@ class LocalDb extends _$LocalDb {
 
   /// Opens `obsidianscout.sqlite` in the app documents directory. drift_flutter runs
   /// SQLite on a background isolate, so queries never block the UI thread.
-  factory LocalDb.open() => LocalDb(driftDatabase(name: 'obsidianscout'));
+  ///
+  /// On iOS the documents directory is shown in the Files app (exports go there), so the database lives in
+  /// Application Support instead, out of the user's reach.
+  factory LocalDb.open() => LocalDb(driftDatabase(
+        name: 'obsidianscout',
+        native: !kIsWeb && Platform.isIOS ? const DriftNativeOptions(databaseDirectory: getApplicationSupportDirectory) : null,
+      ));
 
   @override
   int get schemaVersion => 1;

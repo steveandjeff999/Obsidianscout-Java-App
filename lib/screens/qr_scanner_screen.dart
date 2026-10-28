@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:zxing_lib/common.dart' as zxing_common;
 import 'package:zxing_lib/qrcode.dart' as zxing_qr;
 import 'package:zxing_lib/zxing.dart' as zxing;
@@ -139,6 +140,7 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
   bool _showManualInput = false;
 
   bool get _isDesktopWindows => !kIsWeb && defaultTargetPlatform == TargetPlatform.windows && !Platform.environment.containsKey('FLUTTER_TEST');
+  bool get _isApple => !kIsWeb && (Platform.isIOS || Platform.isMacOS);
   List<CameraDescription> _availableCameras = [];
   CameraController? _desktopCameraController;
   int _selectedCameraIndex = 0;
@@ -180,6 +182,10 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
 
   Future<void> _checkAndRequestPermission({bool directRequest = true}) async {
     if (_isDesktopWindows) return;
+    if (_isApple) {
+      await _startAppleScanner();
+      return;
+    }
 
     setState(() {
       _isCheckingPermission = true;
@@ -248,6 +254,37 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
           _isCheckingPermission = false;
         });
       }
+    }
+  }
+
+  /// iOS/macOS: mobile_scanner asks for camera access itself when it starts, and permission_handler has no macOS
+  /// implementation, so skip the pre-check and read a denial off the controller instead.
+  Future<void> _startAppleScanner() async {
+    if (mounted) {
+      setState(() {
+        _hasCameraPermission = true;
+        _isCheckingPermission = false;
+      });
+    }
+    if (!_isScanning) return;
+
+    // start() waits only briefly for the MobileScanner widget to attach, so let it build first.
+    await WidgetsBinding.instance.endOfFrame;
+    try {
+      await _scannerController.start();
+    } catch (_) {}
+    if (!mounted) return;
+
+    // Apple platforms never show the prompt again after a denial; only Settings can grant it.
+    final denied = _scannerController.value.error?.errorCode == MobileScannerErrorCode.permissionDenied;
+    setState(() => _isPermanentlyDenied = denied);
+  }
+
+  Future<void> _openCameraSettings() async {
+    if (!kIsWeb && Platform.isMacOS) {
+      await launchUrl(Uri.parse('x-apple.systempreferences:com.apple.preference.security?Privacy_Camera'));
+    } else {
+      await openAppSettings();
     }
   }
 
@@ -1032,7 +1069,7 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
                     ),
                     onPressed: () async {
                       if (_isPermanentlyDenied) {
-                        await openAppSettings();
+                        await _openCameraSettings();
                       } else {
                         await _checkAndRequestPermission(directRequest: true);
                       }

@@ -49,6 +49,15 @@ class ObsidianPagesModal extends StatelessWidget {
         'color': ObsidianUITheme.primaryAccent,
       },
       {
+        'pageId': 'event-info',
+        'index': 51,
+        'icon': Icons.campaign_outlined,
+        'name': context.tr('nav.event_info', 'Event Info'),
+        'desc': 'Announcements, images and files from your admins',
+        'tag': 'Main',
+        'color': Colors.orangeAccent,
+      },
+      {
         'pageId': 'scout',
         'index': 1,
         'icon': Icons.sports_esports_rounded,

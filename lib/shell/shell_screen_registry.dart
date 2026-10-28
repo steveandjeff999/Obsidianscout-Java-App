@@ -49,6 +49,7 @@ import '../screens/config_schema_screens.dart';
 import '../screens/migration_screen.dart';
 import '../screens/fcm_settings_screen.dart';
 import '../screens/banners_screen.dart';
+import '../screens/event_info_screen.dart';
 import '../screens/storage_manager_screen.dart';
 import '../screens/backup_screen.dart';
 
@@ -97,7 +98,7 @@ class ShellScreenRegistry {
   ShellScreenRegistry._();
 
   /// Total number of shell screens (indices 0 to [screenCount] - 1).
-  static const int screenCount = 51;
+  static const int screenCount = 52;
 
   static const List<String> titleKeys = [
     'nav.dashboard',
@@ -151,6 +152,7 @@ class ShellScreenRegistry {
     'nav.storage_manager',
     'nav.backup',
     'nav.prediction_leaderboard',
+    'nav.event_info',
   ];
 
   static const List<String> subtitleKeys = [
@@ -205,6 +207,7 @@ class ShellScreenRegistry {
     'subtitle.storage_manager',
     'subtitle.backup',
     'leaderboard.notice',
+    'event_info.subtitle',
   ];
 
   static String getTitleKey(int index) {
@@ -325,6 +328,8 @@ class ShellScreenRegistry {
         return 'backup';
       case 50:
         return 'prediction-leaderboard';
+      case 51:
+        return 'event-info';
       default:
         return 'dashboard';
     }
@@ -434,6 +439,8 @@ class ShellScreenRegistry {
         return Icons.import_export_rounded;
       case 50:
         return Icons.emoji_events_outlined;
+      case 51:
+        return Icons.campaign_outlined;
       default:
         return Icons.dashboard_rounded;
     }
@@ -543,6 +550,8 @@ class ShellScreenRegistry {
         return context.tr('nav.backup', 'Data Sharing');
       case 50:
         return context.tr('nav.prediction_leaderboard', 'Prediction Leaderboard');
+      case 51:
+        return context.tr('nav.event_info', 'Event Info');
       default:
         return 'Dashboard';
     }
@@ -929,6 +938,12 @@ class ShellScreenRegistry {
           isVisible: isTabActive && currentIndex == 50,
           isBarsVisible: isBarsVisible,
           initialTab: 1,
+        );
+      case 51:
+        return EventInfoScreen(
+          apiService: apiService,
+          isVisible: isTabActive && currentIndex == 51,
+          isBarsVisible: isBarsVisible,
         );
       default:
         return DashboardScreen(

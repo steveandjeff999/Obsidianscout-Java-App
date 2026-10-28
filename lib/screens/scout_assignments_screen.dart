@@ -306,7 +306,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
   Widget build(BuildContext context) {
     if (!widget.isVisible) return const SizedBox.shrink();
 
-    if (!widget.apiService.isAdmin) {
+    if (!widget.apiService.canUseAdminPage('assignments')) {
       return Center(
         child: Text(
           'Admin access required for assignment management.',
