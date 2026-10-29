@@ -210,8 +210,9 @@ jobs:
           New-Item -ItemType Directory -Path $outDir -Force
           New-Item -ItemType Directory -Path $msixBundleDir -Force
 
-          # 1. Zip standalone portable executable bundle
-          Compress-Archive -Path "$winDir/*" -DestinationPath "$outDir/ObsidianScout-Windows-Portable.zip" -Force
+          # 1. Zip standalone portable executable bundle (without the MSIX, which ships separately, or linker leftovers)
+          $portableFiles = Get-ChildItem -Path $winDir -Exclude *.msix, *.lib, *.exp
+          Compress-Archive -Path $portableFiles.FullName -DestinationPath "$outDir/ObsidianScout-Windows-Portable.zip" -Force
 
           # 2. Extract MSIX, export certificate, and generate helper script inside the bundle directory
           $msix = Get-ChildItem -Path $winDir -Filter "*.msix" | Select-Object -First 1
@@ -243,6 +244,33 @@ jobs:
 
           # Remove uncompressed staging bundle folder from outDir so it isn't uploaded twice
           Remove-Item -Recurse -Force $msixBundleDir
+
+      # Microsoft Store package for uploading to Partner Center: the Store's identity, unsigned (the Store signs it)
+      # and a version ending in .0 as the Store requires (A.B.C.D becomes A.B.(C*10+D).0 so it keeps increasing).
+      # Runs once the repository variables MSSTORE_IDENTITY_NAME and MSSTORE_PUBLISHER are set from Partner Center >
+      # Product identity. It ships zipped under a name without "windows" or ".msix", so no version of the in-app
+      # updater offers it to sideloaded installs (it can't install outside the Store).
+      - name: Generate Microsoft Store Package
+        if: ${{ vars.MSSTORE_IDENTITY_NAME != '' && vars.MSSTORE_PUBLISHER != '' }}
+        continue-on-error: true
+        shell: pwsh
+        env:
+          MSIX_VERSION: ${{ needs.auto-tag.outputs.msix_version }}
+          STORE_IDENTITY_NAME: ${{ vars.MSSTORE_IDENTITY_NAME }}
+          STORE_PUBLISHER: ${{ vars.MSSTORE_PUBLISHER }}
+          STORE_PUBLISHER_DISPLAY_NAME: ${{ vars.MSSTORE_PUBLISHER_DISPLAY_NAME || 'Seth Herod' }}
+        run: |
+          # msix packs the whole Release folder; the sideload MSIX in it is already zipped and mustn't ride along
+          Remove-Item -Path "build/windows/x64/runner/Release/*.msix" -Force -ErrorAction SilentlyContinue
+          $p = $env:MSIX_VERSION.Split('.') | ForEach-Object { [int]$_ }
+          $storeVersion = "$($p[0]).$($p[1]).$($p[2] * 10 + $p[3]).0"
+          Write-Host "Store version: $storeVersion"
+          flutter pub run msix:create --store --build-windows false --version $storeVersion `
+            --identity-name $env:STORE_IDENTITY_NAME --publisher $env:STORE_PUBLISHER `
+            --publisher-display-name $env:STORE_PUBLISHER_DISPLAY_NAME `
+            --output-path store_out --output-name "ObsidianScout-MicrosoftStore-$storeVersion-UploadOnly-DoNotInstall"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Compress-Archive -Path store_out/*.msix -DestinationPath "windows_out/ObsidianScout-MicrosoftStore-UploadOnly-DoNotInstall.zip" -Force
 
       - name: Upload Windows Artifacts
         uses: actions/upload-artifact@v4

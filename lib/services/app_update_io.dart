@@ -35,6 +35,9 @@ Future<AppInstallSource> detectInstallSource() async {
   return AppInstallSource.unsupported;
 }
 
+/// Whether this is a Windows ARM64 build (an x64 build running under emulation on ARM reports x64).
+bool isArm64Build() => Abi.current() == Abi.windowsArm64;
+
 typedef _GetCurrentPackageFullNameNative = Int32 Function(Pointer<Uint32> length, Pointer<Utf16> name);
 typedef _GetCurrentPackageFullName = int Function(Pointer<Uint32> length, Pointer<Utf16> name);
 typedef _GetStagedPackageOriginNative = Int32 Function(Pointer<Utf16> fullName, Pointer<Int32> origin);

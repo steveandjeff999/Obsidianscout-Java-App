@@ -4,6 +4,8 @@ import 'app_update_service.dart';
 
 Future<AppInstallSource> detectInstallSource() async => AppInstallSource.unsupported;
 
+bool isArm64Build() => false;
+
 Future<String> downloadPackage(
   AppUpdateInfo update, {
   void Function(int received, int total)? onProgress,
