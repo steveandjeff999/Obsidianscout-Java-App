@@ -164,8 +164,9 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
+      # OBSIDIAN_RELEASE_VERSION lets the app compare itself with newer GitHub releases (lib/services/app_update_service.dart)
       - name: Build Android Release APK
-        run: flutter build apk --release --build-name=${{ needs.auto-tag.outputs.version_name }} --build-number=${{ needs.auto-tag.outputs.build_number }}
+        run: flutter build apk --release --build-name=${{ needs.auto-tag.outputs.version_name }} --build-number=${{ needs.auto-tag.outputs.build_number }} --dart-define=OBSIDIAN_RELEASE_VERSION=${{ needs.auto-tag.outputs.version_name }}
 
       - name: Upload Android APK Artifact
         uses: actions/upload-artifact@v4
@@ -193,10 +194,11 @@ jobs:
         run: flutter pub get
 
       - name: Build Windows Desktop Executable
-        run: flutter build windows --release --build-name=${{ needs.auto-tag.outputs.version_name }} --build-number=${{ needs.auto-tag.outputs.build_number }}
+        run: flutter build windows --release --build-name=${{ needs.auto-tag.outputs.version_name }} --build-number=${{ needs.auto-tag.outputs.build_number }} --dart-define=OBSIDIAN_RELEASE_VERSION=${{ needs.auto-tag.outputs.version_name }}
 
+      # Package the build above; letting msix rebuild would drop the release version define
       - name: Generate MSIX Package
-        run: flutter pub run msix:create --version ${{ needs.auto-tag.outputs.msix_version }}
+        run: flutter pub run msix:create --version ${{ needs.auto-tag.outputs.msix_version }} --build-windows false
 
       - name: Package Windows Zip & Extract Certificate
         shell: powershell
