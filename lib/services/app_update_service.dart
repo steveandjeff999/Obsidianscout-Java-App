@@ -97,7 +97,7 @@ class AppUpdateService {
     if (compareVersions(version, installedVersion) <= 0) return null;
 
     final assets = (release['assets'] as List? ?? const []).whereType<Map>().toList();
-    final asset = _pickAsset(assets, source);
+    final asset = pickAsset(assets, source, arm64: platform_updater.isArm64Build());
     if (asset == null) {
       debugPrint('[AppUpdate] Release $tag has no package for $source');
       return null;
@@ -191,10 +191,16 @@ class AppUpdateService {
     }
   }
 
-  static Map? _pickAsset(List<Map> assets, AppInstallSource source) {
+  /// The release asset for this install. Windows ARM64 builds take the "WinArm64" assets and x64 builds the
+  /// "Windows" ones, so an update never switches CPU architecture. Microsoft Store packages are never picked:
+  /// they're unsigned and carry the Store's identity.
+  @visibleForTesting
+  static Map? pickAsset(List<Map> assets, AppInstallSource source, {bool arm64 = false}) {
     Map? find(bool Function(String name) test) {
       for (final a in assets) {
-        if (test(a['name']?.toString().toLowerCase() ?? '')) return a;
+        final name = a['name']?.toString().toLowerCase() ?? '';
+        if (name.contains('store')) continue;
+        if (name.contains('arm64') == arm64 && test(name)) return a;
       }
       return null;
     }
@@ -204,9 +210,9 @@ class AppUpdateService {
         return find((n) => n == 'app-release.apk') ?? find((n) => n.endsWith('.apk'));
       case AppInstallSource.githubMsix:
         return find((n) => n.endsWith('.msix')) ??
-            find((n) => n.endsWith('.zip') && n.contains('windows') && n.contains('msix'));
+            find((n) => n.endsWith('.zip') && n.contains('win') && n.contains('msix'));
       case AppInstallSource.githubPortable:
-        return find((n) => n.endsWith('.zip') && n.contains('windows') && n.contains('portable'));
+        return find((n) => n.endsWith('.zip') && n.contains('win') && n.contains('portable'));
       case AppInstallSource.store:
       case AppInstallSource.unsupported:
         return null;
