@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -41,16 +43,38 @@ class _SlackIntegrationEditorState extends State<SlackIntegrationEditor> {
   final Map<String, SlackChannelRule> _rules = {};
   Map<String, String> _userLinks = {};
 
+  /// Re-reads the connection status: the socket connects a few seconds after a save, and Slack drops and reopens
+  /// it now and then, so the badge would otherwise show whatever it was when the page opened.
+  Timer? _statusTimer;
+  int _statusTicks = 0;
+
   ApiService get _api => widget.apiService;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _statusTimer = Timer.periodic(const Duration(seconds: 4), (_) => _refreshStatus());
+  }
+
+  Future<void> _refreshStatus() async {
+    if (_loading || _saving || !_integration.configured || !_integration.enabled) return;
+    // Every 4 s while it's settling, every 30 s or so once it's connected or has stopped with an error.
+    final settled = _integration.status == 'connected' || _integration.status == 'error';
+    if (settled && ++_statusTicks % 8 != 0) return;
+    final res = await _api.slackRequest('GET', '/integration');
+    if (!mounted || _loading || res.data is! Map<String, dynamic>) return;
+    final latest = SlackIntegration.fromJson(res.data as Map<String, dynamic>);
+    if (latest.status == _integration.status && latest.statusDetail == _integration.statusDetail &&
+        latest.lastEventAt == _integration.lastEventAt) {
+      return;
+    }
+    setState(() => _integration = _integration.withStatusFrom(latest));
   }
 
   @override
   void dispose() {
+    _statusTimer?.cancel();
     _botToken.dispose();
     _appToken.dispose();
     _search.dispose();
