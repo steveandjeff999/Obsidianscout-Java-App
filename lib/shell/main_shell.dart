@@ -10,6 +10,7 @@ import '../screens/qr_scanner_screen.dart';
 import '../screens/team_details_screen.dart';
 import '../services/account_manager_service.dart';
 import '../services/api_service.dart';
+import '../services/app_update_service.dart';
 import '../services/auth_storage_service.dart';
 import '../services/battery_tracker_sync.dart';
 import '../services/biometric_auth_service.dart';
@@ -21,6 +22,7 @@ import '../theme/obsidian_page_transitions.dart';
 import '../theme/obsidian_responsive.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/slack_banner_overlay.dart';
+import '../widgets/app_update_dialog.dart';
 import '../widgets/obsidian_account_switcher.dart';
 import '../widgets/obsidian_banner_widget.dart';
 import '../widgets/obsidian_bottom_nav.dart';
@@ -339,6 +341,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
     });
 
     _checkLaunchLock();
+    _checkForAppUpdate();
 
     widget.apiService.permissionsNotifier.addListener(_onPermissionsChanged);
     widget.apiService.keepScreenOnWhileScoutingNotifier.addListener(_onKeepScreenOnChanged);
@@ -429,6 +432,18 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
       case 'scan':
         _openQrScanner();
     }
+  }
+
+  /// Offers a newer GitHub release to installs that came from GitHub rather than a store.
+  Future<void> _checkForAppUpdate() async {
+    final update = await AppUpdateService.instance.checkOnLaunch();
+    if (update == null) return;
+    // Don't cover the unlock screen.
+    while (mounted && (_isCheckingLaunchLock || _isLaunchLocked)) {
+      await Future.delayed(const Duration(seconds: 1));
+    }
+    if (!mounted) return;
+    await AppUpdateDialog.show(context, update);
   }
 
   Future<void> _checkLaunchLock() async {

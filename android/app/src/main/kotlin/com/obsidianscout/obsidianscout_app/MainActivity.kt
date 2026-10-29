@@ -37,6 +37,25 @@ class MainActivity : FlutterFragmentActivity(), GamepadsCompatibleActivity {
                 else -> result.notImplemented()
             }
         }
+        // Self-updates for APKs installed from GitHub releases (lib/services/app_update_io.dart).
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "obsidianscout/app_update").setMethodCallHandler { call, result ->
+            when (call.method) {
+                "installerPackage" -> result.success(AppUpdater.installerPackage(applicationContext))
+                "installApk" -> {
+                    val path = call.argument<String>("path")
+                    if (path == null) {
+                        result.error("bad_args", "path is required", null)
+                    } else {
+                        try {
+                            result.success(AppUpdater.installApk(this, path))
+                        } catch (e: Exception) {
+                            result.error("install_failed", e.message, null)
+                        }
+                    }
+                }
+                else -> result.notImplemented()
+            }
+        }
     }
 
     override fun dispatchGenericMotionEvent(motionEvent: MotionEvent): Boolean {

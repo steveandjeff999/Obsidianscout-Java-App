@@ -98,10 +98,10 @@ New-Item -ItemType Directory -Force -Path $stagingDir | Out-Null
 # 5. Build Android Release APK
 Write-Host "`nBuilding Android Release APK..." -ForegroundColor Cyan
 try {
-    & $flutterCmd build apk --release
+    & $flutterCmd build apk --release --dart-define=OBSIDIAN_RELEASE_VERSION=$displayVersion
 } catch {
     Write-Host "Android build encountered a Gradle daemon issue, retrying..." -ForegroundColor Yellow
-    & $flutterCmd build apk --release
+    & $flutterCmd build apk --release --dart-define=OBSIDIAN_RELEASE_VERSION=$displayVersion
 }
 
 $apkSource = Join-Path $appDir "build\app\outputs\flutter-apk\app-release.apk"
@@ -115,7 +115,7 @@ if (Test-Path $apkSource) {
 
 # 6. Build Windows Desktop Release Executable & MSIX Installer
 Write-Host "`nBuilding Windows Desktop Release App..." -ForegroundColor Cyan
-& $flutterCmd build windows --release
+& $flutterCmd build windows --release --dart-define=OBSIDIAN_RELEASE_VERSION=$displayVersion
 
 $winSourceDir = Join-Path $appDir "build\windows\x64\runner\Release"
 $winExePath = Join-Path $winSourceDir "obsidianscout_app.exe"
@@ -127,7 +127,7 @@ if ((Test-Path $winSourceDir) -and (Test-Path $winExePath)) {
 
     Write-Host "`nGenerating Windows MSIX Installer..." -ForegroundColor Cyan
     try {
-        & $flutterCmd pub run msix:create -v $displayVersion
+        & $flutterCmd pub run msix:create -v $displayVersion --build-windows false
         $msixSource = Get-ChildItem -Path $winSourceDir -Filter "*.msix" | Select-Object -First 1
         if ($msixSource) {
             $msixTarget = Join-Path $stagingDir "ObsidianScout-v$displayVersion-Windows-Installer.msix"

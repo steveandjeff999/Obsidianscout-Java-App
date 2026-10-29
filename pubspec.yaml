@@ -68,6 +68,7 @@ dependencies:
   cronet_http: ^1.10.0
   cupertino_http: ^2.4.0
   wakelock_plus: ^1.8.2
+  ffi: ^2.1.0
 
 dev_dependencies:
   flutter_test:

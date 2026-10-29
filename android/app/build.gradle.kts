@@ -54,6 +54,13 @@ android {
             signingConfig = signingConfigs.getByName("release")
         }
     }
+
+    // App bundles go to Google Play, which forbids self-updating, so they drop the install-packages permission.
+    // APKs (GitHub releases) keep it for in-app updates.
+    val buildingBundle = gradle.startParameter.taskNames.any { it.contains("bundle", ignoreCase = true) }
+    if (buildingBundle) {
+        sourceSets.getByName("release").manifest.srcFile("src/playBundle/AndroidManifest.xml")
+    }
 }
 
 kotlin {
