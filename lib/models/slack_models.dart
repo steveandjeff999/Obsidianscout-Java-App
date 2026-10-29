@@ -191,6 +191,21 @@ class SlackIntegration {
         userLinks: (json['userLinks'] as Map? ?? const {}).map((k, v) => MapEntry(k.toString(), v.toString())),
         manifestUrl: json['manifestUrl']?.toString() ?? '',
       );
+
+  /// This integration with the connection status from [latest], leaving everything an admin may be editing alone.
+  SlackIntegration withStatusFrom(SlackIntegration latest) => SlackIntegration(
+        configured: configured,
+        enabled: enabled,
+        botTokenSet: botTokenSet,
+        appTokenSet: appTokenSet,
+        workspaceName: workspaceName,
+        status: latest.status,
+        statusDetail: latest.statusDetail,
+        lastEventAt: latest.lastEventAt,
+        rules: rules,
+        userLinks: userLinks,
+        manifestUrl: manifestUrl,
+      );
 }
 
 class SlackChannel {
