@@ -280,6 +280,7 @@
   "events.saved_success": "Etkinlik başarıyla kaydedildi",
   "events.save_failed": "Etkinlik kaydedilemedi",
   "events.confirm_delete": "Bu etkinliği silmek istediğinizden EMİN misiniz? Bu, ilişkili tüm takımları, maçları ve scouting kayıtlarını kalıcı olarak siler!",
+  "events.confirm_delete_team": "Bu etkinliği silmek istediğinizden EMİN misiniz? Etkinlik takımınız için kaldırılacak ve takımınızın bu etkinlikteki scouting kayıtları kalıcı olarak silinecek. Diğer takımlar etkilenmez.",
   "teams.title": "Takımlar",
   "teams.notice": "Seçilen etkinlik için takımları eşitleyin ve EPA/OPR istatistiklerini inceleyin.",
   "teams.sync_teams": "Takımları eşitle",
