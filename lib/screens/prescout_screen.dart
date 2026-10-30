@@ -228,7 +228,8 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
       final targetKey = '${eventKey}_qm$matchNum';
       for (final e in _matchEntries) {
         if (e is Map<String, dynamic>) {
-          if (e['targetTeamNumber'] == teamNum && (e['eventKey'] == eventKey || e['matchKey'] == targetKey)) {
+          final eMatch = e['matchNumber'] ?? (e['data'] is Map ? e['data']['matchNumber'] : null);
+          if (e['targetTeamNumber'] == teamNum && (e['matchKey'] == targetKey || (e['eventKey'] == eventKey && (matchNum == null || eMatch == matchNum)))) {
             foundEntry = e['data'] is Map<String, dynamic> ? e['data'] as Map<String, dynamic> : e;
             break;
           }
@@ -238,7 +239,8 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
       final targetKey = '${eventKey}_qm$matchNum';
       for (final e in _qualEntries) {
         if (e is Map<String, dynamic>) {
-          if (e['targetTeamNumber'] == teamNum && (e['eventKey'] == eventKey || e['matchKey'] == targetKey)) {
+          final eMatch = e['matchNumber'] ?? (e['data'] is Map ? e['data']['matchNumber'] : null);
+          if (e['targetTeamNumber'] == teamNum && (e['matchKey'] == targetKey || (e['eventKey'] == eventKey && (matchNum == null || eMatch == matchNum)))) {
             foundEntry = e['data'] is Map<String, dynamic> ? e['data'] as Map<String, dynamic> : e;
             break;
           }
@@ -445,8 +447,19 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
     setState(() => _isSubmitting = true);
 
     try {
-      if (isOffline) {
-        if (_currentMode == PrescoutMode.match) {
+      final prescoutType = _currentMode == PrescoutMode.pit
+          ? 'prescout-pit'
+          : (_currentMode == PrescoutMode.qual ? 'prescout-qual' : 'prescout-match');
+
+      if (_currentMode == PrescoutMode.match) {
+        final res = await widget.apiService.submitPrescoutMatchScouting(payload, forceOffline: isOffline);
+        if (res.success && !res.isOffline) {
+          ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+            type: prescoutType,
+            action: 'direct_upload',
+            status: 'synced',
+            payload: payload,
+          ));
           _matchEntries.add({
             'eventKey': payload['eventKey'],
             'targetTeamNumber': payload['targetTeamNumber'],
@@ -454,13 +467,123 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
             'matchKey': payload['matchKey'],
             'data': payload,
           });
-        } else if (_currentMode == PrescoutMode.pit) {
+          if (mounted) {
+            ObsidianFeedback.showSuccess(
+              context,
+              title: 'Match Prescout Saved',
+              message: 'Prescout entry saved for Team ${payload['targetTeamNumber']} (Match #${payload['matchNumber']}) (HTTP ${res.statusCode ?? 200})',
+              statusCode: res.statusCode ?? 200,
+            );
+          }
+        } else if (res.isOffline || res.success) {
+          ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+            type: prescoutType,
+            action: 'offline_cached',
+            status: 'pending',
+            payload: payload,
+          ));
+          _matchEntries.add({
+            'eventKey': payload['eventKey'],
+            'targetTeamNumber': payload['targetTeamNumber'],
+            'matchNumber': payload['matchNumber'],
+            'matchKey': payload['matchKey'],
+            'data': payload,
+          });
+          if (mounted) {
+            ObsidianFeedback.showWarning(
+              context,
+              title: 'Saved on This Device Only',
+              message: 'Prescout entry for Team ${payload['targetTeamNumber']} saved locally and will sync when online.',
+            );
+          }
+        } else {
+          ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+            type: prescoutType,
+            action: 'direct_upload',
+            status: 'failed',
+            payload: payload,
+          ));
+          if (mounted) {
+            ObsidianFeedback.showError(
+              context,
+              title: 'Save Failed',
+              message: res.message != null && res.message!.isNotEmpty
+                  ? res.message!
+                  : 'Failed to submit match prescout data.',
+              statusCode: res.statusCode,
+              isOffline: res.isOffline,
+            );
+          }
+        }
+      } else if (_currentMode == PrescoutMode.pit) {
+        final res = await widget.apiService.submitPrescoutPitScouting(payload, forceOffline: isOffline);
+        if (res.success && !res.isOffline) {
+          ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+            type: prescoutType,
+            action: 'direct_upload',
+            status: 'synced',
+            payload: payload,
+          ));
           _pitEntries.add({
             'eventKey': payload['eventKey'],
             'targetTeamNumber': payload['targetTeamNumber'],
             'data': payload,
           });
-        } else if (_currentMode == PrescoutMode.qual) {
+          if (mounted) {
+            ObsidianFeedback.showSuccess(
+              context,
+              title: 'Pit Prescout Saved',
+              message: 'Pit prescout entry saved for Team ${payload['targetTeamNumber']} (HTTP ${res.statusCode ?? 200})',
+              statusCode: res.statusCode ?? 200,
+            );
+          }
+        } else if (res.isOffline || res.success) {
+          ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+            type: prescoutType,
+            action: 'offline_cached',
+            status: 'pending',
+            payload: payload,
+          ));
+          _pitEntries.add({
+            'eventKey': payload['eventKey'],
+            'targetTeamNumber': payload['targetTeamNumber'],
+            'data': payload,
+          });
+          if (mounted) {
+            ObsidianFeedback.showWarning(
+              context,
+              title: 'Saved on This Device Only',
+              message: 'Pit prescout entry is not on the server yet. It will upload automatically when the connection returns.',
+            );
+          }
+        } else {
+          ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+            type: prescoutType,
+            action: 'direct_upload',
+            status: 'failed',
+            payload: payload,
+          ));
+          if (mounted) {
+            ObsidianFeedback.showError(
+              context,
+              title: 'Save Failed',
+              message: res.message != null && res.message!.isNotEmpty
+                  ? res.message!
+                  : 'Failed to submit pit prescout data.',
+              statusCode: res.statusCode,
+              isOffline: res.isOffline,
+            );
+          }
+        }
+      } else if (_currentMode == PrescoutMode.qual) {
+        final res = await widget.apiService.submitPrescoutQualScouting(payload, forceOffline: isOffline);
+        if (res.success && !res.isOffline) {
+          ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+            type: prescoutType,
+            action: 'direct_upload',
+            status: 'synced',
+            payload: payload,
+          ));
           _qualEntries.add({
             'eventKey': payload['eventKey'],
             'targetTeamNumber': payload['targetTeamNumber'],
@@ -468,193 +591,52 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
             'matchKey': payload['matchKey'],
             'data': payload,
           });
-        }
-
-        ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
-          type: _currentMode == PrescoutMode.pit ? 'prescout-pit' : (_currentMode == PrescoutMode.qual ? 'prescout-qual' : 'prescout-match'),
-          action: 'offline_cached',
-          status: 'pending',
-          payload: payload,
-        ));
-
-        if (mounted) {
-          ObsidianFeedback.showWarning(
-            context,
-            title: 'Saved on This Device Only',
-            message: 'Prescout entry for Team ${payload['targetTeamNumber']} saved locally and will sync when online.',
-          );
-        }
-      } else {
-        final prescoutType = _currentMode == PrescoutMode.pit ? 'prescout-pit' : (_currentMode == PrescoutMode.qual ? 'prescout-qual' : 'prescout-match');
-
-        if (_currentMode == PrescoutMode.match) {
-          final res = await widget.apiService.submitPrescoutMatchScouting(payload);
-          if (res.success) {
-            ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
-              type: prescoutType,
-              action: 'direct_upload',
-              status: 'synced',
-              payload: payload,
-            ));
-            _matchEntries.add({
-              'eventKey': payload['eventKey'],
-              'targetTeamNumber': payload['targetTeamNumber'],
-              'matchNumber': payload['matchNumber'],
-              'matchKey': payload['matchKey'],
-              'data': payload,
-            });
-            if (mounted) {
-              ObsidianFeedback.showSuccess(
-                context,
-                title: 'Match Prescout Saved',
-                message: 'Prescout entry saved for Team ${payload['targetTeamNumber']} (Match #${payload['matchNumber']}) (HTTP ${res.statusCode ?? 200})',
-                statusCode: res.statusCode ?? 200,
-              );
-            }
-          } else if (res.isOffline) {
-            ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
-              type: prescoutType,
-              action: 'offline_cached',
-              status: 'pending',
-              payload: payload,
-            ));
-            if (mounted) {
-              ObsidianFeedback.showWarning(
-                context,
-                title: 'Saved on This Device Only',
-                message: 'Prescout entry is not on the server yet. It will upload automatically when the connection returns.',
-              );
-            }
-          } else {
-            ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
-              type: prescoutType,
-              action: 'direct_upload',
-              status: 'failed',
-              payload: payload,
-            ));
-            if (mounted) {
-              ObsidianFeedback.showError(
-                context,
-                title: 'Save Failed',
-                message: res.message != null && res.message!.isNotEmpty
-                    ? res.message!
-                    : 'Failed to submit match prescout data.',
-                statusCode: res.statusCode,
-                isOffline: res.isOffline,
-              );
-            }
+          if (mounted) {
+            ObsidianFeedback.showSuccess(
+              context,
+              title: 'Qual Prescout Saved',
+              message: 'Qual prescout entry saved for Team ${payload['targetTeamNumber']} (Match #${payload['matchNumber']}) (HTTP ${res.statusCode ?? 200})',
+              statusCode: res.statusCode ?? 200,
+            );
           }
-        } else if (_currentMode == PrescoutMode.pit) {
-          final res = await widget.apiService.submitPrescoutPitScouting(payload);
-          if (res.success) {
-            ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
-              type: prescoutType,
-              action: 'direct_upload',
-              status: 'synced',
-              payload: payload,
-            ));
-            _pitEntries.add({
-              'eventKey': payload['eventKey'],
-              'targetTeamNumber': payload['targetTeamNumber'],
-              'data': payload,
-            });
-            if (mounted) {
-              ObsidianFeedback.showSuccess(
-                context,
-                title: 'Pit Prescout Saved',
-                message: 'Pit prescout entry saved for Team ${payload['targetTeamNumber']} (HTTP ${res.statusCode ?? 200})',
-                statusCode: res.statusCode ?? 200,
-              );
-            }
-          } else if (res.isOffline) {
-            ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
-              type: prescoutType,
-              action: 'offline_cached',
-              status: 'pending',
-              payload: payload,
-            ));
-            if (mounted) {
-              ObsidianFeedback.showWarning(
-                context,
-                title: 'Saved on This Device Only',
-                message: 'Pit prescout entry is not on the server yet. It will upload automatically when the connection returns.',
-              );
-            }
-          } else {
-            ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
-              type: prescoutType,
-              action: 'direct_upload',
-              status: 'failed',
-              payload: payload,
-            ));
-            if (mounted) {
-              ObsidianFeedback.showError(
-                context,
-                title: 'Save Failed',
-                message: res.message != null && res.message!.isNotEmpty
-                    ? res.message!
-                    : 'Failed to submit pit prescout data.',
-                statusCode: res.statusCode,
-                isOffline: res.isOffline,
-              );
-            }
+        } else if (res.isOffline || res.success) {
+          ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+            type: prescoutType,
+            action: 'offline_cached',
+            status: 'pending',
+            payload: payload,
+          ));
+          _qualEntries.add({
+            'eventKey': payload['eventKey'],
+            'targetTeamNumber': payload['targetTeamNumber'],
+            'matchNumber': payload['matchNumber'],
+            'matchKey': payload['matchKey'],
+            'data': payload,
+          });
+          if (mounted) {
+            ObsidianFeedback.showWarning(
+              context,
+              title: 'Saved on This Device Only',
+              message: 'Qualitative prescout entry is not on the server yet. It will upload automatically when the connection returns.',
+            );
           }
-        } else if (_currentMode == PrescoutMode.qual) {
-          final res = await widget.apiService.submitPrescoutQualScouting(payload);
-          if (res.success) {
-            ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
-              type: prescoutType,
-              action: 'direct_upload',
-              status: 'synced',
-              payload: payload,
-            ));
-            _qualEntries.add({
-              'eventKey': payload['eventKey'],
-              'targetTeamNumber': payload['targetTeamNumber'],
-              'matchNumber': payload['matchNumber'],
-              'matchKey': payload['matchKey'],
-              'data': payload,
-            });
-            if (mounted) {
-              ObsidianFeedback.showSuccess(
-                context,
-                title: 'Qual Prescout Saved',
-                message: 'Qual prescout entry saved for Team ${payload['targetTeamNumber']} (Match #${payload['matchNumber']}) (HTTP ${res.statusCode ?? 200})',
-                statusCode: res.statusCode ?? 200,
-              );
-            }
-          } else if (res.isOffline) {
-            ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
-              type: prescoutType,
-              action: 'offline_cached',
-              status: 'pending',
-              payload: payload,
-            ));
-            if (mounted) {
-              ObsidianFeedback.showWarning(
-                context,
-                title: 'Saved on This Device Only',
-                message: 'Qualitative prescout entry is not on the server yet. It will upload automatically when the connection returns.',
-              );
-            }
-          } else {
-            ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
-              type: prescoutType,
-              action: 'direct_upload',
-              status: 'failed',
-              payload: payload,
-            ));
-            if (mounted) {
-              ObsidianFeedback.showError(
-                context,
-                title: 'Save Failed',
-                message: res.message != null && res.message!.isNotEmpty
-                    ? res.message!
-                    : 'Failed to submit qualitative prescout data.',
-                statusCode: res.statusCode,
-                isOffline: res.isOffline,
-              );
-            }
+        } else {
+          ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+            type: prescoutType,
+            action: 'direct_upload',
+            status: 'failed',
+            payload: payload,
+          ));
+          if (mounted) {
+            ObsidianFeedback.showError(
+              context,
+              title: 'Save Failed',
+              message: res.message != null && res.message!.isNotEmpty
+                  ? res.message!
+                  : 'Failed to submit qualitative prescout data.',
+              statusCode: res.statusCode,
+              isOffline: res.isOffline,
+            );
           }
         }
       }

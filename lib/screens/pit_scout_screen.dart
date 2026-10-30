@@ -759,6 +759,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> with WidgetsBindingObse
               _buildPitGroupBanner(margin: const EdgeInsets.only(bottom: 8)),
               ObsidianGlassCard(
                 child: DropdownButtonFormField<TeamModel>(
+                  key: ValueKey('team_dropdown_${_selectedTeam?.teamNumber}'),
                   isExpanded: true,
                   initialValue: _teams.contains(_selectedTeam) ? _selectedTeam : null,
                   dropdownColor: ObsidianUITheme.getSurfaceColor(context),

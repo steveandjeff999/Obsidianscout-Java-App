@@ -589,9 +589,11 @@ class DynamicFieldWidget extends StatelessWidget {
             ? 'Gamepad: Press ${GamepadService.getButtonDisplayName(cycleBinding.inputKey, controllerType: activeProfile?.controllerType ?? 'xbox')} to cycle options'
             : null;
 
+        final currentSelectedVal = field.options.any((o) => o.value == val) ? val : (field.options.isNotEmpty ? field.options.first.value : null);
         final dropdownWidget = DropdownButtonFormField<String>(
+          key: ValueKey('select_${field.id}_$currentSelectedVal'),
           isExpanded: true,
-          initialValue: field.options.any((o) => o.value == val) ? val : (field.options.isNotEmpty ? field.options.first.value : null),
+          initialValue: currentSelectedVal,
           dropdownColor: surfaceColor,
           style: TextStyle(color: primaryTextColor),
           decoration: InputDecoration(
@@ -636,9 +638,10 @@ class DynamicFieldWidget extends StatelessWidget {
       case 'textarea':
       case 'notes':
         String val = currentValue?.toString() ?? '';
-        return TextFormField(
+        return _ObsidianDynamicTextField(
           key: ValueKey('textarea_${field.id}'),
-          initialValue: val,
+          fieldId: field.id,
+          value: val,
           maxLines: 3,
           style: TextStyle(color: primaryTextColor),
           decoration: InputDecoration(
@@ -711,9 +714,11 @@ class DynamicFieldWidget extends StatelessWidget {
 
       default:
         String val = currentValue?.toString() ?? '';
-        return TextFormField(
+        return _ObsidianDynamicTextField(
           key: ValueKey('field_${field.id}'),
-          initialValue: val,
+          fieldId: field.id,
+          value: val,
+          maxLines: 1,
           style: TextStyle(color: primaryTextColor),
           decoration: InputDecoration(
             labelText: context.tr(field.label),
@@ -1132,6 +1137,67 @@ class DynamicFieldWidget extends StatelessWidget {
           color: color ?? ObsidianUITheme.primaryAccent,
         ),
       ),
+    );
+  }
+}
+
+class _ObsidianDynamicTextField extends StatefulWidget {
+  final String fieldId;
+  final String value;
+  final int maxLines;
+  final InputDecoration decoration;
+  final TextStyle style;
+  final ValueChanged<String> onChanged;
+
+  const _ObsidianDynamicTextField({
+    super.key,
+    required this.fieldId,
+    required this.value,
+    this.maxLines = 1,
+    required this.decoration,
+    required this.style,
+    required this.onChanged,
+  });
+
+  @override
+  State<_ObsidianDynamicTextField> createState() => _ObsidianDynamicTextFieldState();
+}
+
+class _ObsidianDynamicTextFieldState extends State<_ObsidianDynamicTextField> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value);
+    _focusNode = FocusNode();
+  }
+
+  @override
+  void didUpdateWidget(covariant _ObsidianDynamicTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.value != _controller.text && !_focusNode.hasFocus) {
+      _controller.text = widget.value;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: _controller,
+      focusNode: _focusNode,
+      maxLines: widget.maxLines,
+      style: widget.style,
+      decoration: widget.decoration,
+      onChanged: widget.onChanged,
     );
   }
 }

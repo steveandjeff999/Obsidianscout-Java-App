@@ -522,7 +522,24 @@ class _ConflictResolutionModalState extends State<ConflictResolutionModal> {
                         final idx = item.key;
                         final entry = item.value;
                         final scouter = entry['scoutUsername'] ?? entry['username'] ?? 'Scouter ${idx + 1}';
-                        final created = entry['createdAt'] != null ? entry['createdAt'].toString().substring(11, 16) : '';
+                        String created = '';
+                        if (entry['createdAt'] != null) {
+                          final val = entry['createdAt'];
+                          if (val is int) {
+                            final dt = DateTime.fromMillisecondsSinceEpoch(val);
+                            created = '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+                          } else {
+                            final str = val.toString();
+                            final parsed = DateTime.tryParse(str);
+                            if (parsed != null) {
+                              created = '${parsed.hour.toString().padLeft(2, '0')}:${parsed.minute.toString().padLeft(2, '0')}';
+                            } else if (str.length >= 16) {
+                              created = str.substring(11, 16);
+                            } else {
+                              created = str;
+                            }
+                          }
+                        }
 
                         return Expanded(
                           child: Container(
