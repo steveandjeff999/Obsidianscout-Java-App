@@ -128,8 +128,8 @@ class _EventsScreenState extends State<EventsScreen> {
         ),
         content: Text(
           context.tr(
-            'events.confirm_delete',
-            'Are you SURE you want to delete this event (${event.name})? This will permanently delete all associated teams, matches, and scouting entries!',
+            'events.confirm_delete_team',
+            "Are you SURE you want to delete this event (${event.name})? It will be removed for your team, and your team's scouting entries for it will be permanently deleted. Other teams are not affected.",
           ),
           style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(ctx), fontSize: 13.5),
         ),

@@ -284,6 +284,7 @@
   "events.saved_success": "Event saved successfully",
   "events.save_failed": "Failed to save event",
   "events.confirm_delete": "Are you SURE you want to delete this event? This will permanently delete all associated teams, matches, and scouting entries!",
+  "events.confirm_delete_team": "Are you SURE you want to delete this event? It will be removed for your team, and your team's scouting entries for it will be permanently deleted. Other teams are not affected.",
   "teams.title": "Teams",
   "teams.notice": "Sync teams for the selected event and review EPA/OPR stats.",
   "teams.sync_teams": "Sync teams",
