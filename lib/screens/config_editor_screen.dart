@@ -3716,7 +3716,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     final borderColor = ObsidianUITheme.getBorderColor(context);
     final isFtc = widget.apiService.currentProgram == 'FTC';
 
-    final enteredYear = _yearController.text.trim().isNotEmpty ? _yearController.text.trim() : '2026';
+    final enteredYear = _yearController.text.trim().isNotEmpty ? _yearController.text.trim() : (widget.apiService.currentSettings?.year ?? DateTime.now().year).toString();
     final enteredCode = _eventCodeController.text.trim();
     final computedEventKey = enteredCode.isNotEmpty ? '$enteredYear$enteredCode' : '$enteredYear(event_code)';
 

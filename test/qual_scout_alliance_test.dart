@@ -63,10 +63,13 @@ class _MockQualScoutApiService extends ApiService {
   @override
   Future<List<MatchModel>> getCachedMatches(String? eventKey) async => fetchMatches(eventKey);
 
+  @override
+  bool get reviewBeforeSubmit => false;
+
   List<Map<String, dynamic>> lastBatchEntries = [];
 
   @override
-  Future<ApiResponse<void>> submitBatchQualScouting(List<Map<String, dynamic>> entries) async {
+  Future<ApiResponse<void>> submitBatchQualScouting(List<Map<String, dynamic>> entries, {bool forceOffline = false}) async {
     lastBatchEntries = entries;
     return const ApiResponse.success(null, statusCode: 200);
   }

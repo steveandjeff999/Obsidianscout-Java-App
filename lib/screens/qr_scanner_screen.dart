@@ -159,7 +159,8 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _loadQueue();
-    if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+    final isFlutterTest = !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST');
+    if (!isFlutterTest) {
       if (_isDesktopWindows) {
         _initDesktopCamera();
       } else {
@@ -742,9 +743,36 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
       Map<String, dynamic> payload = {};
 
       if (rawData is Map<String, dynamic>) {
-        payload = rawData;
+        payload = Map<String, dynamic>.from(rawData);
       } else if (parsed.containsKey('targetTeamNumber') || parsed.containsKey('eventKey')) {
-        payload = parsed;
+        payload = Map<String, dynamic>.from(parsed);
+      } else if (parsed.containsKey('team_number') || parsed.containsKey('event_key')) {
+        payload = Map<String, dynamic>.from(parsed);
+      }
+
+      if (!payload.containsKey('targetTeamNumber') && payload.containsKey('team_number')) {
+        payload['targetTeamNumber'] = payload['team_number'];
+      }
+      if (!payload.containsKey('eventKey') && payload.containsKey('event_key')) {
+        payload['eventKey'] = payload['event_key'];
+      }
+      if (!payload.containsKey('matchNumber') && payload.containsKey('match_number')) {
+        payload['matchNumber'] = payload['match_number'];
+      }
+      if (!payload.containsKey('compLevel') && payload.containsKey('comp_level')) {
+        payload['compLevel'] = payload['comp_level'];
+      }
+      if (!payload.containsKey('matchKey') && payload.containsKey('eventKey') && payload.containsKey('matchNumber')) {
+        final comp = payload['compLevel']?.toString() ?? 'qm';
+        payload['matchKey'] = '${payload['eventKey']}_$comp${payload['matchNumber']}';
+      }
+      if (parsed['data'] is Map<String, dynamic> && payload != parsed['data']) {
+        final inner = parsed['data'] as Map<String, dynamic>;
+        for (final entry in inner.entries) {
+          if (!payload.containsKey(entry.key)) {
+            payload[entry.key] = entry.value;
+          }
+        }
       }
 
       if (type == null && payload.isEmpty) {

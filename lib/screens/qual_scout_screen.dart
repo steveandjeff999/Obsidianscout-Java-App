@@ -1119,6 +1119,7 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
                   const SizedBox(height: 12.0),
                   if (_scope == QualScoutScope.singleTeam) ...[
                     DropdownButtonFormField<TeamModel>(
+                      key: ValueKey('qual_team_dropdown_${_selectedTeam?.teamNumber}'),
                       isExpanded: true,
                       initialValue: _availableTeams.contains(_selectedTeam) ? _selectedTeam : null,
                       dropdownColor: ObsidianUITheme.getSurfaceColor(context),
@@ -1143,6 +1144,7 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
                     const SizedBox(height: 12.0),
                   ],
                   DropdownButtonFormField<MatchModel>(
+                    key: ValueKey('qual_match_dropdown_${_selectedMatch?.matchKey}'),
                     isExpanded: true,
                     initialValue: _availableMatches.contains(_selectedMatch) ? _selectedMatch : null,
                     dropdownColor: ObsidianUITheme.getSurfaceColor(context),

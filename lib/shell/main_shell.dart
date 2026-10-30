@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
@@ -176,6 +178,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   bool _isCheckingLaunchLock = true;
   bool _isLaunchLocked = false;
   bool _isUnlocking = false;
+  bool _forcePasswordOnLogin = false;
 
   /// Bumped when the signed-in account changes so every page is rebuilt for the new account.
   int _accountGeneration = 0;
@@ -556,6 +559,8 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   }
 
   void _bootstrapWsNotifications() {
+    if (!kIsWeb && Platform.environment.containsKey('FLUTTER_TEST')) return;
+    _wsNotificationService?.dispose();
     _wsNotificationService = NotificationWebSocketService(
       apiService: widget.apiService,
       onNotificationReceived: (groupName, title, body, sender) {
@@ -799,9 +804,12 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
     _wsNotificationService = null;
     await FcmHelper.unregisterOnLogout(widget.apiService);
     await widget.apiService.logout();
+    _onAccountChanged();
     if (mounted) {
       setState(() {
         _isAuthenticated = false;
+        _currentIndex = 0;
+        _screenHistory.clear();
       });
     }
   }
@@ -873,10 +881,8 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
         _onAccountChanged();
         _showAccountMessage(context.tr('accounts.switched', 'Switched to {name}').replaceAll('{name}', account.username));
       case AccountSwitchResult.needsSignIn:
-        _bootstrapWsNotifications();
         await _startAddAccount(prefill: account);
       case AccountSwitchResult.unsyncedChanges:
-        _bootstrapWsNotifications();
         _showUnsyncedChangesMessage(widget.apiService.outboxCount.value);
     }
   }
@@ -1011,6 +1017,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
           setState(() {
             _isLaunchLocked = false;
             _isAuthenticated = false;
+            _forcePasswordOnLogin = true;
           });
         },
         onBackPress: _handleBackPress,
@@ -1034,7 +1041,10 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
     if (!_isAuthenticated) {
       return LoginScreen(
         apiService: widget.apiService,
+        forcePasswordEntry: _forcePasswordOnLogin,
         onLoginSuccess: () {
+          _forcePasswordOnLogin = false;
+          _onAccountChanged();
           setState(() {
             _isAuthenticated = true;
           });

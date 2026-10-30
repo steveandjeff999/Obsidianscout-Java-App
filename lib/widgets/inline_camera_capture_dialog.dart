@@ -113,13 +113,13 @@ class _InlineCameraCaptureDialogState extends State<InlineCameraCaptureDialog> {
     ];
 
     for (final preset in presets) {
+      final ctrl = CameraController(
+        camera,
+        preset,
+        enableAudio: false,
+        imageFormatGroup: ImageFormatGroup.jpeg,
+      );
       try {
-        final ctrl = CameraController(
-          camera,
-          preset,
-          enableAudio: false,
-          imageFormatGroup: ImageFormatGroup.jpeg,
-        );
         await ctrl.initialize();
         if (mounted) {
           setState(() {
@@ -128,8 +128,17 @@ class _InlineCameraCaptureDialogState extends State<InlineCameraCaptureDialog> {
             _errorMessage = null;
           });
           return true;
+        } else {
+          try {
+            await ctrl.dispose();
+          } catch (_) {}
+          return false;
         }
-      } catch (_) {}
+      } catch (_) {
+        try {
+          await ctrl.dispose();
+        } catch (_) {}
+      }
     }
 
     return false;

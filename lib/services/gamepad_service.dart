@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:gamepads_platform_interface/api/gamepad_event.dart';
@@ -128,7 +129,7 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
   Future<void> refreshConnectedDevices() async {
     try {
       List<GamepadDeviceInfo> newDevices = [];
-      if (Platform.isWindows) {
+      if (!kIsWeb && Platform.isWindows) {
         for (var i = 0; i < 4; i++) {
           try {
             final gp = win32.Gamepad(i);
@@ -187,7 +188,7 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
     _gamepadSubscription?.cancel();
     _windowsInputPollTimer?.cancel();
 
-    if (Platform.isWindows) {
+    if (!kIsWeb && Platform.isWindows) {
       _windowsInputPollTimer = Timer.periodic(
         const Duration(milliseconds: 16),
         (_) => _pollWindowsGamepads(),
@@ -399,7 +400,7 @@ class GamepadService with ChangeNotifier, WidgetsBindingObserver {
     required double highFrequency,
     required Duration duration,
   }) async {
-    if (Platform.isWindows) {
+    if (!kIsWeb && Platform.isWindows) {
       try {
         final index = int.tryParse(targetId) ?? 0;
         final gp = win32.Gamepad(index);

@@ -936,11 +936,12 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
     if (!await _confirmReview(submitLabel: context.tr('review.show_qr', 'Show QR Code')) || !mounted) return;
 
     final payload = {
-      'event_key': _eventKey ?? '',
-      'team_number': _selectedTeam!.teamNumber,
-      'match_number': _selectedMatch!.matchNumber,
-      'comp_level': _selectedMatch!.compLevel,
-      'data': _formData,
+      'eventKey': _eventKey ?? '',
+      'targetTeamNumber': _selectedTeam!.teamNumber,
+      'matchKey': _selectedMatch!.matchKey,
+      'matchNumber': _selectedMatch!.matchNumber,
+      'compLevel': _selectedMatch!.compLevel,
+      ..._formData,
       'timestamp': DateTime.now().millisecondsSinceEpoch,
     };
 

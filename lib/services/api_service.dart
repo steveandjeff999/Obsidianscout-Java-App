@@ -369,8 +369,13 @@ class ApiService {
   void _configureNetwork() {
     final net = http.NetClient.instance;
     net.connectTimeout = () => requestTimeout;
+    String etagCacheKey(String url) {
+      final userScope = _currentUser?.id ?? (_savedUsername.isNotEmpty ? _savedUsername : 'anon');
+      final teamScope = _currentUser?.teamNumber ?? 0;
+      return 'cache_etag:${userScope}_$teamScope:$url';
+    }
     net.readEtag = (url) async {
-      final raw = await _getCache('cache_etag:$url');
+      final raw = await _getCache(etagCacheKey(url));
       if (raw == null || raw.isEmpty) return null;
       try {
         final decoded = jsonDecode(raw) as Map<String, dynamic>;
@@ -379,7 +384,7 @@ class ApiService {
         return null;
       }
     };
-    net.writeEtag = (url, record) => _setCache('cache_etag:$url', jsonEncode({'etag': record.etag, 'body': record.body}));
+    net.writeEtag = (url, record) => _setCache(etagCacheKey(url), jsonEncode({'etag': record.etag, 'body': record.body}));
     // Going slow or fast changes how often the background sync runs.
     LinkQuality.instance.lowBandwidth.removeListener(_onLinkQualityChanged);
     LinkQuality.instance.lowBandwidth.addListener(_onLinkQualityChanged);
@@ -711,106 +716,159 @@ class ApiService {
     return [];
   }
 
+  Future<List<dynamic>> _mergePendingOutboxEntries(List<dynamic> baseList, Set<String> kinds) async {
+    try {
+      final outboxItems = await _store.outbox();
+      if (outboxItems.isEmpty) return baseList;
+      final merged = List<dynamic>.from(baseList);
+      bool sameEntry(Map a, Map b) {
+        final aData = a['data'] is Map ? a['data'] as Map : a;
+        final bData = b['data'] is Map ? b['data'] as Map : b;
+        if (a['id'] != null && b['id'] != null && a['id'].toString() == b['id'].toString()) return true;
+        if (a['clientId'] != null && b['clientId'] != null && a['clientId'].toString() == b['clientId'].toString()) return true;
+        final aTeam = a['targetTeamNumber'] ?? aData['targetTeamNumber'];
+        final bTeam = b['targetTeamNumber'] ?? bData['targetTeamNumber'];
+        final aEvent = a['eventKey'] ?? aData['eventKey'];
+        final bEvent = b['eventKey'] ?? bData['eventKey'];
+        final aMatch = a['matchKey'] ?? aData['matchKey'] ?? a['matchNumber'] ?? aData['matchNumber'];
+        final bMatch = b['matchKey'] ?? bData['matchKey'] ?? b['matchNumber'] ?? bData['matchNumber'];
+        return aTeam != null && aTeam == bTeam && aEvent == bEvent && aMatch == bMatch;
+      }
+
+      for (final item in outboxItems) {
+        if (!kinds.contains(item.kind)) continue;
+        final List<Map<String, dynamic>> candidates = item.kind == 'qual_batch'
+            ? ((item.payload['entries'] as List?) ?? const []).whereType<Map>().map((m) => Map<String, dynamic>.from(m)).toList()
+            : [
+                if (item.payload['data'] is Map)
+                  Map<String, dynamic>.from(item.payload['data'] as Map)
+                else
+                  Map<String, dynamic>.from(item.payload),
+              ];
+        for (final c in candidates) {
+          final entryWithMeta = <String, dynamic>{
+            ...c,
+            if (item.kind.startsWith('prescout_')) 'isPrescout': true,
+            if (!c.containsKey('data')) 'data': Map<String, dynamic>.from(c),
+          };
+          final exists = merged.any((existing) => existing is Map && sameEntry(existing, entryWithMeta));
+          if (!exists) {
+            merged.add(entryWithMeta);
+          }
+        }
+      }
+      return merged;
+    } catch (_) {
+      return baseList;
+    }
+  }
+
   Future<List<dynamic>> getCachedScoutingEntries() async {
     final inMem = getFromMemoryCache<List<dynamic>>("cache_scouting");
-    if (inMem != null) return inMem;
+    if (inMem != null) return _mergePendingOutboxEntries(inMem, const {'match', 'prescout_match'});
     final cached = await _getCache("cache_scouting");
+    List<dynamic> list = [];
     if (cached != null && cached.isNotEmpty) {
       try {
         final decoded = await _decodeCached(cached);
-        final List list = decoded is List
+        list = decoded is List
             ? decoded
             : (decoded is Map && decoded['entries'] is List ? decoded['entries'] as List : []);
-        setMemoryCache("cache_scouting", list);
-        return list;
       } catch (_) {}
     }
-    return [];
+    list = await _mergePendingOutboxEntries(list, const {'match', 'prescout_match'});
+    if (list.isNotEmpty) setMemoryCache("cache_scouting", list);
+    return list;
   }
 
   Future<List<dynamic>> getCachedPitScoutingEntries() async {
     final inMem = getFromMemoryCache<List<dynamic>>("cache_pit_scouting");
-    if (inMem != null) return inMem;
+    if (inMem != null) return _mergePendingOutboxEntries(inMem, const {'pit', 'prescout_pit'});
     final cached = await _getCache("cache_pit_scouting");
+    List<dynamic> list = [];
     if (cached != null && cached.isNotEmpty) {
       try {
         final decoded = await _decodeCached(cached);
-        final List list = decoded is List
+        list = decoded is List
             ? decoded
             : (decoded is Map && decoded['entries'] is List ? decoded['entries'] as List : []);
-        setMemoryCache("cache_pit_scouting", list);
-        return list;
       } catch (_) {}
     }
-    return [];
+    list = await _mergePendingOutboxEntries(list, const {'pit', 'prescout_pit'});
+    if (list.isNotEmpty) setMemoryCache("cache_pit_scouting", list);
+    return list;
   }
 
   Future<List<dynamic>> getCachedQualScoutingEntries() async {
     final inMem = getFromMemoryCache<List<dynamic>>("cache_qual_scouting");
-    if (inMem != null) return inMem;
+    if (inMem != null) return _mergePendingOutboxEntries(inMem, const {'qual', 'qual_batch', 'prescout_qual'});
     final cached = await _getCache("cache_qual_scouting");
+    List<dynamic> list = [];
     if (cached != null && cached.isNotEmpty) {
       try {
         final decoded = await _decodeCached(cached);
-        final List list = decoded is List
+        list = decoded is List
             ? decoded
             : (decoded is Map && decoded['entries'] is List ? decoded['entries'] as List : []);
-        setMemoryCache("cache_qual_scouting", list);
-        return list;
       } catch (_) {}
     }
-    return [];
+    list = await _mergePendingOutboxEntries(list, const {'qual', 'qual_batch', 'prescout_qual'});
+    if (list.isNotEmpty) setMemoryCache("cache_qual_scouting", list);
+    return list;
   }
 
   Future<List<dynamic>> getCachedPrescoutScoutingEntries() async {
     final inMem = getFromMemoryCache<List<dynamic>>("cache_prescout_scouting");
-    if (inMem != null) return inMem;
+    if (inMem != null) return _mergePendingOutboxEntries(inMem, const {'prescout_match'});
     final cached = await _getCache("cache_prescout_scouting");
+    List<dynamic> list = [];
     if (cached != null && cached.isNotEmpty) {
       try {
         final decoded = await _decodeCached(cached);
-        final List list = decoded is List
+        list = decoded is List
             ? decoded
             : (decoded is Map && decoded['entries'] is List ? decoded['entries'] as List : []);
-        setMemoryCache("cache_prescout_scouting", list);
-        return list;
       } catch (_) {}
     }
-    return [];
+    list = await _mergePendingOutboxEntries(list, const {'prescout_match'});
+    if (list.isNotEmpty) setMemoryCache("cache_prescout_scouting", list);
+    return list;
   }
 
   Future<List<dynamic>> getCachedPrescoutPitScoutingEntries() async {
     final inMem = getFromMemoryCache<List<dynamic>>("cache_prescout_pit_scouting");
-    if (inMem != null) return inMem;
+    if (inMem != null) return _mergePendingOutboxEntries(inMem, const {'prescout_pit'});
     final cached = await _getCache("cache_prescout_pit_scouting");
+    List<dynamic> list = [];
     if (cached != null && cached.isNotEmpty) {
       try {
         final decoded = await _decodeCached(cached);
-        final List list = decoded is List
+        list = decoded is List
             ? decoded
             : (decoded is Map && decoded['entries'] is List ? decoded['entries'] as List : []);
-        setMemoryCache("cache_prescout_pit_scouting", list);
-        return list;
       } catch (_) {}
     }
-    return [];
+    list = await _mergePendingOutboxEntries(list, const {'prescout_pit'});
+    if (list.isNotEmpty) setMemoryCache("cache_prescout_pit_scouting", list);
+    return list;
   }
 
   Future<List<dynamic>> getCachedPrescoutQualScoutingEntries() async {
     final inMem = getFromMemoryCache<List<dynamic>>("cache_prescout_qual_scouting");
-    if (inMem != null) return inMem;
+    if (inMem != null) return _mergePendingOutboxEntries(inMem, const {'prescout_qual'});
     final cached = await _getCache("cache_prescout_qual_scouting");
+    List<dynamic> list = [];
     if (cached != null && cached.isNotEmpty) {
       try {
         final decoded = await _decodeCached(cached);
-        final List list = decoded is List
+        list = decoded is List
             ? decoded
             : (decoded is Map && decoded['entries'] is List ? decoded['entries'] as List : []);
-        setMemoryCache("cache_prescout_qual_scouting", list);
-        return list;
       } catch (_) {}
     }
-    return [];
+    list = await _mergePendingOutboxEntries(list, const {'prescout_qual'});
+    if (list.isNotEmpty) setMemoryCache("cache_prescout_qual_scouting", list);
+    return list;
   }
 
   Future<List<EventModel>> getCachedEvents({int? year}) async {
@@ -921,14 +979,19 @@ class ApiService {
     _handlingRevocation = true;
     _syncTimer?.cancel();
     _sessionCookie = null;
+    _sessionPassword = null;
     _currentUser = null;
+    _currentSettings = null;
+    settingsNotifier.value = null;
     _keepMeLoggedIn = false;
     SharedPreferences.getInstance().then((prefs) {
       prefs.remove(keySessionCookie);
       prefs.setBool(keyKeepMeLoggedIn, false);
     });
     _store.remove("cache_auth_me").catchError((_) {});
+    unawaited(clearAllCache());
     unawaited(_forgetActiveSessionCookie());
+    _syncObsidianTheme();
     permissionsNotifier.value++;
     _sessionRevokedController.add(reason);
   }
@@ -1176,11 +1239,15 @@ class ApiService {
     _sessionPassword = null;
     _keepMeLoggedIn = false;
     _currentUser = null;
+    _currentSettings = null;
+    settingsNotifier.value = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(keySessionCookie);
     await _store.remove("cache_auth_me");
+    await clearAllCache();
     await prefs.setBool(keyKeepMeLoggedIn, false);
     await AuthStorageService.clearCredentials();
+    _syncObsidianTheme();
     permissionsNotifier.value++;
   }
 
@@ -1446,12 +1513,22 @@ class ApiService {
       await setServerUrl(creds.serverUrl);
     }
 
+    if ((_sessionCookie == null || _sessionCookie!.isEmpty) && creds.jwt.isNotEmpty) {
+      _sessionCookie = creds.jwt;
+    }
+
     // Attempt verify session first if we have a cookie
     if (_sessionCookie != null && _sessionCookie!.isNotEmpty) {
       final valid = await _verifySession();
       if (valid) {
-        _sessionPassword = creds.password;
+        if (creds.password.isNotEmpty) {
+          _sessionPassword = creds.password;
+        }
         _handlingRevocation = false;
+        _keepMeLoggedIn = true;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(keySessionCookie, _sessionCookie!);
+        await prefs.setBool(keyKeepMeLoggedIn, true);
         _startBackgroundSync();
         try {
           await Future.wait([fetchCurrentUser(), fetchSettings()]).timeout(const Duration(seconds: 3));
@@ -1459,6 +1536,8 @@ class ApiService {
         return true;
       }
     }
+
+    if (creds.password.isEmpty) return false;
 
     // If session verification failed or no session, re-login with stored password
     final success = await login(
@@ -3782,7 +3861,8 @@ class ApiService {
     if (_entrySyncSupported) {
       final all = await fetchScoutingEntries();
       if (_entrySyncSupported) {
-        final list = entry_sync.resolveEntries(all.where((e) => e is Map && e['isPrescout'] == true).toList(), 'match', _currentUser?.teamNumber);
+        List<dynamic> list = entry_sync.resolveEntries(all.where((e) => e is Map && e['isPrescout'] == true).toList(), 'match', _currentUser?.teamNumber);
+        list = await _mergePendingOutboxEntries(list, const {'prescout_match'});
         await _setCache(cacheKey, jsonEncode(list));
         setMemoryCache(cacheKey, list);
         return list;
@@ -3793,11 +3873,12 @@ class ApiService {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/prescout/scouting'), headers: _headers);
       if (response.statusCode == 200) {
-        await _setCache(cacheKey, response.body);
         final decoded = jsonDecode(response.body);
         List<dynamic> list = [];
         if (decoded is List) list = decoded;
         if (decoded is Map && decoded['entries'] is List) list = decoded['entries'] as List;
+        list = await _mergePendingOutboxEntries(list, const {'prescout_match'});
+        await _setCache(cacheKey, jsonEncode(list));
         setMemoryCache(cacheKey, list);
         return list;
       }
@@ -3819,7 +3900,8 @@ class ApiService {
     if (_entrySyncSupported) {
       final all = await fetchPitScoutingEntries();
       if (_entrySyncSupported) {
-        final list = entry_sync.resolveEntries(all.where((e) => e is Map && e['isPrescout'] == true).toList(), 'pit', _currentUser?.teamNumber);
+        List<dynamic> list = entry_sync.resolveEntries(all.where((e) => e is Map && e['isPrescout'] == true).toList(), 'pit', _currentUser?.teamNumber);
+        list = await _mergePendingOutboxEntries(list, const {'prescout_pit'});
         await _setCache(cacheKey, jsonEncode(list));
         setMemoryCache(cacheKey, list);
         return list;
@@ -3830,11 +3912,12 @@ class ApiService {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/prescout/pit-scouting'), headers: _headers);
       if (response.statusCode == 200) {
-        await _setCache(cacheKey, response.body);
         final decoded = jsonDecode(response.body);
         List<dynamic> list = [];
         if (decoded is List) list = decoded;
         if (decoded is Map && decoded['entries'] is List) list = decoded['entries'] as List;
+        list = await _mergePendingOutboxEntries(list, const {'prescout_pit'});
+        await _setCache(cacheKey, jsonEncode(list));
         setMemoryCache(cacheKey, list);
         return list;
       }
@@ -3856,7 +3939,8 @@ class ApiService {
     if (_entrySyncSupported) {
       final all = await fetchQualScoutingEntries();
       if (_entrySyncSupported) {
-        final list = entry_sync.resolveEntries(all.where((e) => e is Map && e['isPrescout'] == true).toList(), 'qual', _currentUser?.teamNumber);
+        List<dynamic> list = entry_sync.resolveEntries(all.where((e) => e is Map && e['isPrescout'] == true).toList(), 'qual', _currentUser?.teamNumber);
+        list = await _mergePendingOutboxEntries(list, const {'prescout_qual'});
         await _setCache(cacheKey, jsonEncode(list));
         setMemoryCache(cacheKey, list);
         return list;
@@ -3867,11 +3951,12 @@ class ApiService {
       final response = await http
           .get(Uri.parse('$_currentServerUrl/api/prescout/qual-scouting'), headers: _headers);
       if (response.statusCode == 200) {
-        await _setCache(cacheKey, response.body);
         final decoded = jsonDecode(response.body);
         List<dynamic> list = [];
         if (decoded is List) list = decoded;
         if (decoded is Map && decoded['entries'] is List) list = decoded['entries'] as List;
+        list = await _mergePendingOutboxEntries(list, const {'prescout_qual'});
+        await _setCache(cacheKey, jsonEncode(list));
         setMemoryCache(cacheKey, list);
         return list;
       }
@@ -3881,23 +3966,23 @@ class ApiService {
   }
 
   // Data Submissions
-  Future<ApiResponse<void>> submitMatchScouting(Map<String, dynamic> data) =>
-      _submitEntry(kind: 'match', cacheKey: 'cache_scouting', entries: [data], defaultErrorMessage: 'Failed to submit match scouting');
+  Future<ApiResponse<void>> submitMatchScouting(Map<String, dynamic> data, {bool forceOffline = false}) =>
+      _submitEntry(kind: 'match', cacheKey: 'cache_scouting', entries: [data], defaultErrorMessage: 'Failed to submit match scouting', forceOffline: forceOffline);
 
-  Future<ApiResponse<void>> submitPrescoutMatchScouting(Map<String, dynamic> data) =>
-      _submitEntry(kind: 'prescout_match', cacheKey: 'cache_prescout_scouting', entries: [data], defaultErrorMessage: 'Failed to submit match prescout');
+  Future<ApiResponse<void>> submitPrescoutMatchScouting(Map<String, dynamic> data, {bool forceOffline = false}) =>
+      _submitEntry(kind: 'prescout_match', cacheKey: 'cache_prescout_scouting', entries: [data], defaultErrorMessage: 'Failed to submit match prescout', forceOffline: forceOffline);
 
-  Future<ApiResponse<void>> submitPitScouting(Map<String, dynamic> data) =>
-      _submitEntry(kind: 'pit', cacheKey: 'cache_pit_scouting', entries: [data], defaultErrorMessage: 'Failed to submit pit scouting');
+  Future<ApiResponse<void>> submitPitScouting(Map<String, dynamic> data, {bool forceOffline = false}) =>
+      _submitEntry(kind: 'pit', cacheKey: 'cache_pit_scouting', entries: [data], defaultErrorMessage: 'Failed to submit pit scouting', forceOffline: forceOffline);
 
-  Future<ApiResponse<void>> submitPrescoutPitScouting(Map<String, dynamic> data) =>
-      _submitEntry(kind: 'prescout_pit', cacheKey: 'cache_prescout_pit_scouting', entries: [data], defaultErrorMessage: 'Failed to submit pit prescout');
+  Future<ApiResponse<void>> submitPrescoutPitScouting(Map<String, dynamic> data, {bool forceOffline = false}) =>
+      _submitEntry(kind: 'prescout_pit', cacheKey: 'cache_prescout_pit_scouting', entries: [data], defaultErrorMessage: 'Failed to submit pit prescout', forceOffline: forceOffline);
 
-  Future<ApiResponse<void>> submitQualScouting(Map<String, dynamic> data) =>
-      _submitEntry(kind: 'qual', cacheKey: 'cache_qual_scouting', entries: [data], defaultErrorMessage: 'Failed to submit qualitative scouting');
+  Future<ApiResponse<void>> submitQualScouting(Map<String, dynamic> data, {bool forceOffline = false}) =>
+      _submitEntry(kind: 'qual', cacheKey: 'cache_qual_scouting', entries: [data], defaultErrorMessage: 'Failed to submit qualitative scouting', forceOffline: forceOffline);
 
-  Future<ApiResponse<void>> submitBatchQualScouting(List<Map<String, dynamic>> entries) =>
-      _submitEntry(kind: 'qual_batch', cacheKey: 'cache_qual_scouting', entries: entries, defaultErrorMessage: 'Failed to submit batch qualitative scouting');
+  Future<ApiResponse<void>> submitBatchQualScouting(List<Map<String, dynamic>> entries, {bool forceOffline = false}) =>
+      _submitEntry(kind: 'qual_batch', cacheKey: 'cache_qual_scouting', entries: entries, defaultErrorMessage: 'Failed to submit batch qualitative scouting', forceOffline: forceOffline);
 
   // ── Outbox: submissions saved on this device until the server has them ──
 
@@ -3935,20 +4020,53 @@ class ApiService {
     required String cacheKey,
     required List<Map<String, dynamic>> entries,
     required String defaultErrorMessage,
+    bool forceOffline = false,
   }) async {
-    try {
-      final cached = await _getCache(cacheKey);
-      List list = [];
-      if (cached != null && cached.isNotEmpty) {
-        final decoded = await _decodeCached(cached);
-        if (decoded is List) list = decoded;
-      }
-      list.addAll(entries);
-      await _setCache(cacheKey, jsonEncode(list));
-    } catch (_) {}
-
     // The outbox id doubles as the upload's clientId, so a retry after a lost response isn't stored twice.
     final itemId = _generateUuidV4();
+    final isPrescout = kind.startsWith('prescout_');
+
+    try {
+      final cached = await _getCache(cacheKey);
+      List<dynamic> list = [];
+      if (cached != null && cached.isNotEmpty) {
+        final decoded = await _decodeCached(cached);
+        if (decoded is List) {
+          list = List<dynamic>.from(decoded);
+        } else if (decoded is Map && decoded['entries'] is List) {
+          list = List<dynamic>.from(decoded['entries'] as List);
+        }
+      }
+      final enrichedEntries = entries.map((e) => <String, dynamic>{
+        ...e,
+        if (isPrescout) 'isPrescout': true,
+        if (!e.containsKey('data')) 'data': Map<String, dynamic>.from(e),
+        'clientId': itemId,
+      }).toList();
+      list.addAll(enrichedEntries);
+      await _setCache(cacheKey, jsonEncode(list));
+      setMemoryCache(cacheKey, list);
+
+      if (isPrescout) {
+        final mainCacheKey = kind == 'prescout_pit'
+            ? 'cache_pit_scouting'
+            : (kind == 'prescout_qual' ? 'cache_qual_scouting' : 'cache_scouting');
+        final mainCached = await _getCache(mainCacheKey);
+        List<dynamic> mainList = [];
+        if (mainCached != null && mainCached.isNotEmpty) {
+          final decodedMain = await _decodeCached(mainCached);
+          if (decodedMain is List) {
+            mainList = List<dynamic>.from(decodedMain);
+          } else if (decodedMain is Map && decodedMain['entries'] is List) {
+            mainList = List<dynamic>.from(decodedMain['entries'] as List);
+          }
+        }
+        mainList.addAll(enrichedEntries);
+        await _setCache(mainCacheKey, jsonEncode(mainList));
+        setMemoryCache(mainCacheKey, mainList);
+      }
+    } catch (_) {}
+
     final body = kind == 'qual_batch'
         ? <String, dynamic>{'entries': entries}
         : <String, dynamic>{'data': entries.first, 'clientId': itemId};
@@ -3961,7 +4079,7 @@ class ApiService {
       return ApiResponse.error(isOffline: true, message: reason);
     }
 
-    if (!_isOnline) {
+    if (forceOffline || !_isOnline) {
       return queued('Saved on this device only. It will upload automatically when the connection returns.');
     }
     if (LinkQuality.instance.isLowBandwidth && outboxId != null) {
@@ -4058,6 +4176,13 @@ class ApiService {
       final items = await _store.outbox();
       var next = 0;
       while (next < items.length && _isOnline) {
+        if (items[next].kind == 'delete_entry') {
+          final outcome = await _uploadOutboxItem(items[next]);
+          if (outcome == _OutboxOutcome.uploaded) uploaded++;
+          if (outcome == _OutboxOutcome.retryLater) break;
+          next++;
+          continue;
+        }
         if (_outboxBatchSupported) {
           final chunk = _nextOutboxChunk(items, next);
           final sent = await _uploadOutboxBatch(chunk);
@@ -4104,7 +4229,7 @@ class ApiService {
   /// The item's payload with its outbox id as `clientId`, so the server recognises a retry of an upload whose
   /// response was lost and doesn't store a second copy.
   static Map<String, dynamic> _outboxPayload(OutboxItem item) {
-    if (item.kind == 'assignment_status' || item.kind == 'qual_batch' || item.payload['clientId'] != null) return item.payload;
+    if (item.kind == 'assignment_status' || item.kind == 'qual_batch' || item.kind == 'delete_entry' || item.payload['clientId'] != null) return item.payload;
     return {...item.payload, 'clientId': item.id};
   }
 
@@ -4112,6 +4237,7 @@ class ApiService {
     final chunk = <OutboxItem>[];
     var chars = 0;
     for (var i = start; i < items.length && chunk.length < _outboxBatchMaxItems; i++) {
+      if (items[i].kind == 'delete_entry') break;
       final size = jsonEncode(items[i].payload).length;
       if (chunk.isNotEmpty && chars + size > _outboxBatchMaxChars) break;
       chunk.add(items[i]);
@@ -4150,10 +4276,13 @@ class ApiService {
       return null;
     }
     final byId = {for (final item in chunk) item.id: item};
+    final seenIds = <String>{};
     var uploaded = 0;
     for (final raw in results.whereType<Map>()) {
-      final item = byId[raw['id']?.toString()];
+      final idStr = raw['id']?.toString();
+      final item = byId[idStr];
       if (item == null) continue;
+      seenIds.add(item.id);
       final status = (raw['status'] as num?)?.toInt() ?? 500;
       if (status >= 200 && status < 300) {
         await _store.removeFromOutbox(item.id);
@@ -4169,14 +4298,38 @@ class ApiService {
         await _markOutboxHistory(item, 'failed');
       }
     }
-    return (uploaded: uploaded, stop: false);
+    var anyOmitted = false;
+    for (final item in chunk) {
+      if (!seenIds.contains(item.id)) {
+        anyOmitted = true;
+        await _store.recordOutboxFailure(item.id, 'Omitted from batch response');
+      }
+    }
+    return (uploaded: uploaded, stop: anyOmitted);
   }
 
   /// One item on its own route, for servers without `/api/sync/outbox`.
   Future<_OutboxOutcome> _uploadOutboxItem(OutboxItem item) async {
     try {
       final http.Response response;
-      if (item.kind == 'assignment_status') {
+      if (item.kind == 'delete_entry') {
+        final endpoint = item.payload['endpoint']?.toString();
+        if (endpoint == null || endpoint.isEmpty) {
+          await _store.removeFromOutbox(item.id);
+          return _OutboxOutcome.dropped;
+        }
+        response = await http.delete(Uri.parse('$_currentServerUrl$endpoint'), headers: _headers);
+        if ((response.statusCode >= 200 && response.statusCode < 300) || response.statusCode == 404) {
+          await _store.removeFromOutbox(item.id);
+          return _OutboxOutcome.uploaded;
+        } else if (_isRetryableStatus(response.statusCode)) {
+          await _store.recordOutboxFailure(item.id, 'HTTP ${response.statusCode}');
+          return _OutboxOutcome.retryLater;
+        } else {
+          await _store.removeFromOutbox(item.id);
+          return _OutboxOutcome.dropped;
+        }
+      } else if (item.kind == 'assignment_status') {
         final id = Uri.encodeComponent(item.payload['id'].toString());
         response = await http.post(Uri.parse('$_currentServerUrl/api/assignments/$id/status'),
             headers: _headers, body: jsonEncode({'status': item.payload['status']}));
@@ -4232,45 +4385,51 @@ class ApiService {
     }
   }
 
-  Future<ApiResponse<void>> submitPrescoutQualScouting(Map<String, dynamic> data) =>
-      _submitEntry(kind: 'prescout_qual', cacheKey: 'cache_prescout_qual_scouting', entries: [data], defaultErrorMessage: 'Failed to submit qualitative prescout');
+  Future<ApiResponse<void>> submitPrescoutQualScouting(Map<String, dynamic> data, {bool forceOffline = false}) =>
+      _submitEntry(kind: 'prescout_qual', cacheKey: 'cache_prescout_qual_scouting', entries: [data], defaultErrorMessage: 'Failed to submit qualitative prescout', forceOffline: forceOffline);
 
   Future<ApiResponse<void>> submitScannedItem(String type, Map<String, dynamic> data) async {
-    String endpoint;
     final lowerType = type.toLowerCase().replaceAll('_', '-');
+    final Map<String, dynamic> innerData = data.containsKey('data') && data['data'] is Map
+        ? Map<String, dynamic>.from(data['data'] as Map)
+        : Map<String, dynamic>.from(data);
+
+    // Ensure normalized top-level identifiers if scanned from a legacy QR wrapper
+    if (!innerData.containsKey('targetTeamNumber') && (data['targetTeamNumber'] ?? data['team_number']) != null) {
+      innerData['targetTeamNumber'] = data['targetTeamNumber'] ?? data['team_number'];
+    }
+    if (!innerData.containsKey('eventKey') && (data['eventKey'] ?? data['event_key']) != null) {
+      innerData['eventKey'] = data['eventKey'] ?? data['event_key'];
+    }
+    if (!innerData.containsKey('matchNumber') && (data['matchNumber'] ?? data['match_number']) != null) {
+      innerData['matchNumber'] = data['matchNumber'] ?? data['match_number'];
+    }
+    if (!innerData.containsKey('compLevel') && (data['compLevel'] ?? data['comp_level']) != null) {
+      innerData['compLevel'] = data['compLevel'] ?? data['comp_level'];
+    }
+    if (!innerData.containsKey('matchKey')) {
+      if (data['matchKey'] != null || data['match_key'] != null) {
+        innerData['matchKey'] = data['matchKey'] ?? data['match_key'];
+      } else if (innerData['eventKey'] != null && innerData['matchNumber'] != null) {
+        final comp = innerData['compLevel']?.toString() ?? 'qm';
+        innerData['matchKey'] = '${innerData['eventKey']}_$comp${innerData['matchNumber']}';
+      }
+    }
+
     if (lowerType == 'scout' || lowerType == 'match-scout' || lowerType == 'match-scouting' || lowerType == 'match') {
-      endpoint = '/api/scouting';
+      return submitMatchScouting(innerData);
     } else if (lowerType == 'pit-scout' || lowerType == 'pit-scouting' || lowerType == 'pit') {
-      endpoint = '/api/pit-scouting';
+      return submitPitScouting(innerData);
     } else if (lowerType == 'qual-scout' || lowerType == 'qualitative-scouting' || lowerType == 'qual-scouting' || lowerType == 'qual') {
-      endpoint = '/api/qual-scouting';
+      return submitQualScouting(innerData);
     } else if (lowerType == 'prescout-scout' || lowerType == 'prescout-match') {
-      endpoint = '/api/prescout/scouting';
+      return submitPrescoutMatchScouting(innerData);
     } else if (lowerType == 'prescout-pit') {
-      endpoint = '/api/prescout/pit-scouting';
+      return submitPrescoutPitScouting(innerData);
     } else if (lowerType == 'prescout-qual') {
-      endpoint = '/api/prescout/qual-scouting';
+      return submitPrescoutQualScouting(innerData);
     } else {
-      endpoint = '/api/scouting';
-    }
-
-    if (!_isOnline) {
-      return const ApiResponse.error(isOffline: true, message: 'Device is offline');
-    }
-
-    try {
-      final innerData = data.containsKey('data') && data['data'] is Map<String, dynamic>
-          ? data['data']
-          : data;
-
-      final response = await http.post(
-        Uri.parse('$_currentServerUrl$endpoint'),
-        headers: _headers,
-        body: jsonEncode({'data': innerData}),
-      );
-      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to upload scanned item');
-    } catch (e) {
-      return ApiResponse.error(message: e.toString());
+      return submitMatchScouting(innerData);
     }
   }
 
@@ -4292,16 +4451,39 @@ class ApiService {
     // Remove from the stored list optimistically, so the data pages update without downloading it again.
     final isPit = lower == 'pit' || id.toLowerCase().startsWith('pit-');
     await _patchCachedEntries(_entryCacheKeyFor(type, id), (list) {
-      final removed = list.whereType<Map>().where((e) => e['id']?.toString() == cleanId).toList();
-      final kept = list.where((e) => !(e is Map && e['id']?.toString() == cleanId)).toList();
+      final removed = list.whereType<Map>().where((e) => e['id']?.toString() == cleanId || e['clientId']?.toString() == cleanId).toList();
+      final kept = list.where((e) => !(e is Map && (e['id']?.toString() == cleanId || e['clientId']?.toString() == cleanId))).toList();
       for (final r in removed) {
         _clearResolvedDiscrepancy(kept, r, isPit: isPit);
       }
       return kept;
     });
 
+    // If this entry was still pending in the local outbox, remove it from the outbox too.
+    try {
+      final outboxItems = await _store.outbox();
+      for (final item in outboxItems) {
+        final itemData = item.payload['data'];
+        final dataId = itemData is Map ? (itemData['id']?.toString() ?? itemData['clientId']?.toString()) : null;
+        if (item.id == cleanId || item.payload['clientId']?.toString() == cleanId || dataId == cleanId) {
+          await _store.removeFromOutbox(item.id);
+        }
+      }
+    } catch (_) {}
+
+    Future<ApiResponse<void>> queueOfflineDelete(String reason) async {
+      await _enqueueOutbox(
+        'delete_entry',
+        {'endpoint': endpoint, 'id': cleanId, 'type': lower},
+        null,
+        reason,
+      );
+      _scheduleOutboxRetry();
+      return const ApiResponse.success(null, message: 'Removed locally and queued for deletion when online.');
+    }
+
     if (!_isOnline) {
-      return const ApiResponse.success(null, message: 'Removed from local cache (offline).');
+      return queueOfflineDelete('Pending offline delete');
     }
 
     try {
@@ -4309,9 +4491,12 @@ class ApiService {
         Uri.parse('$_currentServerUrl$endpoint'),
         headers: _headers,
       );
+      if (_isRetryableStatus(response.statusCode)) {
+        return await queueOfflineDelete('HTTP ${response.statusCode}');
+      }
       return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to delete scouting entry');
     } catch (e) {
-      return ApiResponse.error(message: e.toString());
+      return await queueOfflineDelete(e.toString());
     }
   }
 
@@ -5008,6 +5193,7 @@ class ApiService {
   Future<void> clearAllCache() async {
     try {
       await _store.removeWithPrefix("cache_");
+      await _store.removeWithPrefix("cache_etag");
       _memoryCache.clear();
       _cacheTimestamps.clear();
     } catch (_) {}

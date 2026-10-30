@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -17,6 +18,9 @@ Future<void> obsidianFcmBackgroundHandler(RemoteMessage message) async {
 class FcmHelper {
   static String? currentFcmToken;
   static bool _isFirebaseInitialized = false;
+  static StreamSubscription<RemoteMessage>? _messageSubscription;
+  static StreamSubscription<String>? _tokenRefreshSubscription;
+  static StreamSubscription<RemoteMessage>? _messageOpenedAppSubscription;
 
   static bool get _isApple =>
       !kIsWeb && (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS);
@@ -85,7 +89,8 @@ class FcmHelper {
 
       // Silent "widgets are out of date" pushes: fetch now in the foreground, hand to the widgets otherwise.
       FirebaseMessaging.onBackgroundMessage(obsidianFcmBackgroundHandler);
-      FirebaseMessaging.onMessage.listen((message) {
+      _messageSubscription?.cancel();
+      _messageSubscription = FirebaseMessaging.onMessage.listen((message) {
         if (message.data['type'] == 'widget_refresh') HomeWidgetService.instance.requestRefresh();
         // In the foreground the notification socket usually shows it first; the overlay skips ids it has shown.
         if (message.data['type'] == 'slack') SlackBannerOverlay.show(_slackBannerFrom(message));
@@ -118,7 +123,8 @@ class FcmHelper {
       }
 
       // Listen for token refreshes
-      FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
+      _tokenRefreshSubscription?.cancel();
+      _tokenRefreshSubscription = FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
         currentFcmToken = newToken;
         final platformStr = kIsWeb ? 'web' : defaultTargetPlatform.name;
         apiService.registerFcmToken(newToken, platformStr);
@@ -135,7 +141,8 @@ class FcmHelper {
     if (!_isFirebaseInitialized) return;
     try {
       // Handle background notification tap
-      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      _messageOpenedAppSubscription?.cancel();
+      _messageOpenedAppSubscription = FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
         if (message.data['type'] == 'slack') {
           SlackBannerOverlay.open(_slackBannerFrom(message));
           return;

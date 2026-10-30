@@ -43,7 +43,18 @@ class CsvExportService {
       return '"${json.replaceAll('"', '""')}"';
     }
 
-    final str = value.toString();
+    var str = value.toString();
+    if (str.isNotEmpty &&
+        (str.startsWith('=') ||
+            str.startsWith('+') ||
+            str.startsWith('-') ||
+            str.startsWith('@') ||
+            str.startsWith('\t') ||
+            str.startsWith('\r'))) {
+      if (num.tryParse(str) == null) {
+        str = "'$str";
+      }
+    }
     // If it contains comma, double quote, newline, or carriage return, enclose in quotes
     if (str.contains(',') ||
         str.contains('"') ||

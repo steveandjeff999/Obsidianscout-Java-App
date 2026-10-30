@@ -99,8 +99,10 @@ Future<String> downloadPackage(
 }) async {
   final root = await _updatesRoot();
   final sep = Platform.pathSeparator;
-  final dir = Directory('${root.path}$sep${update.tag}');
-  final file = File('${dir.path}$sep${update.assetName}');
+  final safeTag = update.tag.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
+  final safeAssetName = update.assetName.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
+  final dir = Directory('${root.path}$sep$safeTag');
+  final file = File('${dir.path}$sep$safeAssetName');
 
   if (await file.exists() && (update.size == 0 || await file.length() == update.size)) {
     onProgress?.call(update.size, update.size);
@@ -279,7 +281,18 @@ robocopy "$Source" "$Target" /E /R:10 /W:1 /NP /NFL /NDL /NJH /NJS | Out-Null
 $copied = $LASTEXITCODE -lt 8
 
 if (-not $copied -and -not $Elevated) {
-  $argList = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$PSCommandPath`" -ProcessId $ProcessId -Source `"$Source`" -Target `"$Target`" -Exe `"$Exe`" -Cleanup `"$Cleanup`" -Elevated"
+  $argList = @(
+    "-NoProfile",
+    "-ExecutionPolicy", "Bypass",
+    "-WindowStyle", "Hidden",
+    "-File", $PSCommandPath,
+    "-ProcessId", "$ProcessId",
+    "-Source", $Source,
+    "-Target", $Target,
+    "-Exe", $Exe,
+    "-Cleanup", $Cleanup,
+    "-Elevated"
+  )
   try {
     Start-Process powershell.exe -Verb RunAs -WindowStyle Hidden -ArgumentList $argList -ErrorAction Stop
     exit

@@ -35,6 +35,15 @@ Future<FileDownloadResult> downloadOrSaveFileImpl({
     } else if (Platform.isIOS) {
       // Shown in the Files app under ObsidianScout (UIFileSharingEnabled + LSSupportsOpeningDocumentsInPlace).
       targetDir = await getApplicationDocumentsDirectory();
+    } else if (Platform.isAndroid) {
+      try {
+        final extDirs = await getExternalStorageDirectories(type: StorageDirectory.downloads);
+        if (extDirs != null && extDirs.isNotEmpty) {
+          targetDir = extDirs.first;
+        }
+      } catch (_) {}
+      targetDir ??= await getExternalStorageDirectory();
+      targetDir ??= await getApplicationDocumentsDirectory();
     }
 
     targetDir ??= Directory.systemTemp;
@@ -55,7 +64,9 @@ Future<FileDownloadResult> downloadOrSaveFileImpl({
     return FileDownloadResult(
       success: true,
       savedPath: file.path,
-      message: Platform.isIOS ? 'Saved $filename to the Files app (ObsidianScout folder)' : 'Saved $filename to ${targetDir.path}',
+      message: Platform.isIOS
+          ? 'Saved $filename to the Files app (ObsidianScout folder)'
+          : (Platform.isAndroid ? 'Saved $filename to Downloads' : 'Saved $filename to ${targetDir.path}'),
     );
   } catch (e) {
     return FileDownloadResult(
@@ -98,6 +109,15 @@ Future<FileDownloadResult> downloadOrSaveBytesImpl({
     } else if (Platform.isIOS) {
       // Shown in the Files app under ObsidianScout (UIFileSharingEnabled + LSSupportsOpeningDocumentsInPlace).
       targetDir = await getApplicationDocumentsDirectory();
+    } else if (Platform.isAndroid) {
+      try {
+        final extDirs = await getExternalStorageDirectories(type: StorageDirectory.downloads);
+        if (extDirs != null && extDirs.isNotEmpty) {
+          targetDir = extDirs.first;
+        }
+      } catch (_) {}
+      targetDir ??= await getExternalStorageDirectory();
+      targetDir ??= await getApplicationDocumentsDirectory();
     }
 
     targetDir ??= Directory.systemTemp;
@@ -118,7 +138,9 @@ Future<FileDownloadResult> downloadOrSaveBytesImpl({
     return FileDownloadResult(
       success: true,
       savedPath: file.path,
-      message: Platform.isIOS ? 'Saved $filename to the Files app (ObsidianScout folder)' : 'Saved $filename to ${targetDir.path}',
+      message: Platform.isIOS
+          ? 'Saved $filename to the Files app (ObsidianScout folder)'
+          : (Platform.isAndroid ? 'Saved $filename to Downloads' : 'Saved $filename to ${targetDir.path}'),
     );
   } catch (e) {
     return FileDownloadResult(

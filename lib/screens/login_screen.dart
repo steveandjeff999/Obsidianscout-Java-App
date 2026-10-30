@@ -20,6 +20,7 @@ class LoginScreen extends StatefulWidget {
   final VoidCallback? onCancel;
   /// A saved account whose session ended, to sign back in to.
   final SavedAccount? prefillAccount;
+  final bool forcePasswordEntry;
 
   const LoginScreen({
     super.key,
@@ -28,6 +29,7 @@ class LoginScreen extends StatefulWidget {
     this.addAccountMode = false,
     this.onCancel,
     this.prefillAccount,
+    this.forcePasswordEntry = false,
   });
 
   @override
@@ -100,6 +102,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _initBiometrics() async {
+    if (widget.forcePasswordEntry) return;
     final available = await BiometricAuthService.isAvailable();
     if (!available) return;
 
