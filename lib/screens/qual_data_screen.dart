@@ -10,11 +10,13 @@ import '../widgets/obsidian_feedback.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/conflict_resolution_modal.dart';
 import '../widgets/obsidian_image_preview_card.dart';
+import '../widgets/edit_scouting_entry_modal.dart';
 
 class QualScoutingRecord {
   final String id;
   final int targetTeamNumber;
-  final String eventKey;
+  final String eventKey; // 'prescout' for prescout entries, for grouping and display
+  final String? rawEventKey; // The event key stored on the entry
   final bool isPrescout;
   final int? matchNumber;
   final String? matchKey;
@@ -27,6 +29,7 @@ class QualScoutingRecord {
     required this.id,
     required this.targetTeamNumber,
     required this.eventKey,
+    this.rawEventKey,
     this.isPrescout = false,
     this.matchNumber,
     this.matchKey,
@@ -160,6 +163,7 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
             id: e['id']?.toString() ?? '',
             targetTeamNumber: (e['targetTeamNumber'] as num?)?.toInt() ?? 0,
             eventKey: isPrescout ? 'prescout' : (e['eventKey']?.toString() ?? ''),
+            rawEventKey: e['eventKey']?.toString(),
             isPrescout: isPrescout,
             matchNumber: (e['matchNumber'] as num?)?.toInt(),
             matchKey: e['matchKey']?.toString(),
@@ -228,6 +232,7 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
             id: e['id']?.toString() ?? '',
             targetTeamNumber: (e['targetTeamNumber'] as num?)?.toInt() ?? 0,
             eventKey: isPrescout ? 'prescout' : (e['eventKey']?.toString() ?? ''),
+            rawEventKey: e['eventKey']?.toString(),
             isPrescout: isPrescout,
             matchNumber: (e['matchNumber'] as num?)?.toInt(),
             matchKey: e['matchKey']?.toString(),
@@ -433,7 +438,7 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
       'createdAt': c.createdAt,
       'data': c.data,
       'targetTeamNumber': c.targetTeamNumber,
-      'eventKey': c.eventKey,
+      'eventKey': c.rawEventKey ?? c.eventKey,
       'matchKey': c.matchKey,
       'matchNumber': c.matchNumber,
     }).toList();
@@ -1075,7 +1080,7 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                                   ],
                                 ),
                               ),
-                              if (hasConflict) ...[
+                              if (hasConflict && widget.apiService.isAdmin) ...[
                                 InkWell(
                                   onTap: () => _openConflictResolver(entry),
                                   borderRadius: BorderRadius.circular(8),
@@ -1299,6 +1304,46 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
     );
   }
 
+  Future<void> _confirmAndDeleteQualRecord(BuildContext sheetContext, QualScoutingRecord entry) async {
+    final matchInfo = entry.matchNumber != null ? ' (Match ${entry.matchNumber})' : '';
+    final confirmed = await showDialog<bool>(
+      context: sheetContext,
+      builder: (dCtx) => AlertDialog(
+        backgroundColor: ObsidianUITheme.getSurfaceColor(dCtx),
+        title: Text('Delete Qualitative Entry', style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(dCtx))),
+        content: Text(
+          'Are you sure you want to delete this Qualitative scouting entry for Team ${entry.targetTeamNumber}$matchInfo? This cannot be undone.',
+          style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(dCtx)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dCtx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.of(dCtx).pop(true),
+            child: const Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      if (sheetContext.mounted) {
+        Navigator.of(sheetContext).pop();
+      }
+      final res = await widget.apiService.deleteScoutingEntry(entry.id, type: 'qual');
+      if (!mounted) return;
+      if (res.success) {
+        ObsidianFeedback.showSuccess(context, message: 'Qualitative entry deleted successfully');
+        _loadData();
+      } else {
+        ObsidianFeedback.showError(context, message: res.message ?? 'Failed to delete entry');
+      }
+    }
+  }
+
   void _showQualEntryDetailBottomSheet(BuildContext context, QualScoutingRecord entry) {
     showModalBottomSheet(
       context: context,
@@ -1378,6 +1423,63 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                       controller: scrollController,
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
                       children: [
+                        if (widget.apiService.isAdmin && entry.id.isNotEmpty)
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(vertical: 8),
+                                      side: BorderSide(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.6)),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    ),
+                                    onPressed: () {
+                                      Navigator.of(ctx).pop();
+                                      EditScoutingEntryModal.show(
+                                        context: context,
+                                        apiService: widget.apiService,
+                                        id: entry.id,
+                                        type: 'qual',
+                                        title: 'Edit Qualitative Entry · Team ${entry.targetTeamNumber}',
+                                        subtitle: 'Match ${entry.matchNumber ?? '--'} · Event: ${entry.eventKey}',
+                                        targetTeamNumber: entry.targetTeamNumber,
+                                        matchNumber: entry.matchNumber,
+                                        matchKey: entry.matchKey,
+                                        eventKey: entry.rawEventKey,
+                                        isPrescout: entry.isPrescout,
+                                        initialData: entry.data,
+                                        fields: _qualConfig?.fields ?? [],
+                                        onSaved: () => _loadData(),
+                                      );
+                                    },
+                                    icon: Icon(Icons.edit_rounded, size: 16, color: ObsidianUITheme.primaryAccent),
+                                    label: Text('Edit Entry', style: TextStyle(color: ObsidianUITheme.primaryAccent, fontSize: 13, fontWeight: FontWeight.bold)),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(vertical: 8),
+                                      side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.6)),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    ),
+                                    onPressed: () => _confirmAndDeleteQualRecord(ctx, entry),
+                                    icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Colors.redAccent),
+                                    label: const Text('Delete Entry', style: TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.bold)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         if (_getConflictingRecordsFor(entry).length > 1)
                           Container(
                             margin: const EdgeInsets.only(bottom: 12),
@@ -1397,6 +1499,8 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.amberAccent),
                                   ),
                                 ),
+                                // Resolving edits and deletes entries, which takes an admin.
+                                if (widget.apiService.isAdmin)
                                 ElevatedButton.icon(
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.amberAccent,

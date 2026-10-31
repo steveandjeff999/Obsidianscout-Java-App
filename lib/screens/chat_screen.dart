@@ -1229,11 +1229,13 @@ class _ChatScreenState extends State<ChatScreen> {
                     tooltip: context.tr('chat.channel_settings'),
                     onPressed: () => _showChannelSettingsModal(context, _currentGroup),
                   ),
-                IconButton(
-                  icon: Icon(Icons.add_circle_outline_rounded, color: ObsidianUITheme.primaryAccent, size: 22),
-                  tooltip: 'Create Channel',
-                  onPressed: _showCreateGroupDialog,
-                ),
+                // Creating a group takes an admin on the server.
+                if (_currentUserRole?.toUpperCase() == 'ADMIN' || _currentUserRole?.toUpperCase() == 'SUPERADMIN')
+                  IconButton(
+                    icon: Icon(Icons.add_circle_outline_rounded, color: ObsidianUITheme.primaryAccent, size: 22),
+                    tooltip: 'Create Channel',
+                    onPressed: _showCreateGroupDialog,
+                  ),
               ],
             ),
           ),

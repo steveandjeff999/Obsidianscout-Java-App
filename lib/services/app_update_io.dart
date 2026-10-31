@@ -231,7 +231,7 @@ Future<AppUpdateInstallResult> _installPortable(String packagePath) async {
   }
 
   final script = File('$packageDir\\apply-update.ps1');
-  await script.writeAsString(_portableUpdateScript);
+  await script.writeAsString(portableUpdateScript);
   await Process.start(
     'powershell.exe',
     [
@@ -265,7 +265,8 @@ void _exitSoon() {
 
 /// Waits for the app to close, copies the new files over the install folder (elevating once if
 /// the folder needs admin rights), restarts the app and deletes the downloaded package.
-const String _portableUpdateScript = r'''
+@visibleForTesting
+const String portableUpdateScript = r'''
 param(
   [int]$ProcessId,
   [string]$Source,
@@ -281,18 +282,8 @@ robocopy "$Source" "$Target" /E /R:10 /W:1 /NP /NFL /NDL /NJH /NJS | Out-Null
 $copied = $LASTEXITCODE -lt 8
 
 if (-not $copied -and -not $Elevated) {
-  $argList = @(
-    "-NoProfile",
-    "-ExecutionPolicy", "Bypass",
-    "-WindowStyle", "Hidden",
-    "-File", $PSCommandPath,
-    "-ProcessId", "$ProcessId",
-    "-Source", $Source,
-    "-Target", $Target,
-    "-Exe", $Exe,
-    "-Cleanup", $Cleanup,
-    "-Elevated"
-  )
+  # One string, quoted by hand: Start-Process joins an array with spaces and doesn't quote paths that contain them.
+  $argList = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$PSCommandPath`" -ProcessId $ProcessId -Source `"$Source`" -Target `"$Target`" -Exe `"$Exe`" -Cleanup `"$Cleanup`" -Elevated"
   try {
     Start-Process powershell.exe -Verb RunAs -WindowStyle Hidden -ArgumentList $argList -ErrorAction Stop
     exit

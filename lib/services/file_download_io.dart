@@ -64,9 +64,7 @@ Future<FileDownloadResult> downloadOrSaveFileImpl({
     return FileDownloadResult(
       success: true,
       savedPath: file.path,
-      message: Platform.isIOS
-          ? 'Saved $filename to the Files app (ObsidianScout folder)'
-          : (Platform.isAndroid ? 'Saved $filename to Downloads' : 'Saved $filename to ${targetDir.path}'),
+      message: Platform.isIOS ? 'Saved $filename to the Files app (ObsidianScout folder)' : 'Saved $filename to ${targetDir.path}',
     );
   } catch (e) {
     return FileDownloadResult(
@@ -138,9 +136,7 @@ Future<FileDownloadResult> downloadOrSaveBytesImpl({
     return FileDownloadResult(
       success: true,
       savedPath: file.path,
-      message: Platform.isIOS
-          ? 'Saved $filename to the Files app (ObsidianScout folder)'
-          : (Platform.isAndroid ? 'Saved $filename to Downloads' : 'Saved $filename to ${targetDir.path}'),
+      message: Platform.isIOS ? 'Saved $filename to the Files app (ObsidianScout folder)' : 'Saved $filename to ${targetDir.path}',
     );
   } catch (e) {
     return FileDownloadResult(

@@ -146,6 +146,16 @@ class _MockDataApiService extends ApiService {
   Future<ApiResponse<void>> updateScoutingEntry(String id, Map<String, dynamic> data, {String type = 'match'}) async {
     return const ApiResponse.success(null);
   }
+
+  @override
+  Future<ApiResponse<void>> resolveConflict({
+    required String keepId,
+    Map<String, dynamic>? data,
+    required List<String> deleteIds,
+    String type = 'match',
+  }) async {
+    return const ApiResponse.success(null);
+  }
 }
 
 void main() {
