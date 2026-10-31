@@ -25,7 +25,7 @@ class ScannedQueueItem {
   final String id;
   final String type;
   final Map<String, dynamic> data;
-  String status; // "pending", "success", "error"
+  String status; // "pending", "queued" (in the outbox, uploads by itself), "success", "error"
   String errorMsg;
 
   ScannedQueueItem({
@@ -856,6 +856,7 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
     setState(() => _isUploading = true);
 
     int successCount = 0;
+    int queuedCount = 0;
     int failCount = 0;
     String? lastErrorMsg;
     int? lastErrorCode;
@@ -874,6 +875,19 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
           payload: item.data,
         ));
         successCount++;
+      } else if (response.isOffline) {
+        // Now in the outbox, which uploads it automatically. Sending it again would only queue a second copy.
+        setState(() {
+          item.status = 'queued';
+          item.errorMsg = '';
+        });
+        ScoutHistoryService.addEntry(ScoutHistoryService.buildEntry(
+          type: _historyTypeFor(item.type),
+          action: 'qr_scanned',
+          status: 'pending',
+          payload: item.data,
+        ));
+        queuedCount++;
       } else {
         final errorText = response.statusCode != null
             ? 'HTTP ${response.statusCode}${response.message != null && response.message!.isNotEmpty ? ": ${response.message!}" : ""}'
@@ -892,24 +906,30 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
     setState(() => _isUploading = false);
 
     if (mounted) {
-      if (successCount > 0 && failCount == 0) {
+      if (queuedCount > 0 && failCount == 0) {
+        ObsidianFeedback.showWarning(
+          context,
+          title: 'Saved on This Device',
+          message: '${successCount > 0 ? 'Uploaded $successCount entries. ' : ''}$queuedCount entries will upload automatically when the connection returns.',
+        );
+      } else if (successCount > 0 && failCount == 0) {
         ObsidianFeedback.showSuccess(
           context,
           title: 'Upload Successful',
           message: 'Successfully uploaded $successCount entries to server!',
         );
-      } else if (failCount > 0 && successCount == 0) {
+      } else if (failCount > 0 && successCount == 0 && queuedCount == 0) {
         ObsidianFeedback.showError(
           context,
           title: 'Upload Failed',
           message: 'Failed to upload $failCount entries ($lastErrorMsg)',
           statusCode: lastErrorCode,
         );
-      } else if (failCount > 0 && successCount > 0) {
+      } else if (failCount > 0) {
         ObsidianFeedback.showWarning(
           context,
           title: 'Partial Upload Complete',
-          message: 'Uploaded $successCount entries. Failed to upload $failCount entries ($lastErrorMsg)',
+          message: 'Uploaded $successCount entries${queuedCount > 0 ? ', saved $queuedCount to upload later' : ''}. Failed to upload $failCount entries ($lastErrorMsg)',
         );
       }
     }

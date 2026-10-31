@@ -4226,6 +4226,9 @@ class ApiService {
   /// Statuses that mean "try this again later" rather than "the server will never take it".
   static bool _isRetryableStatus(int code) => code == 401 || code == 403 || code == 408 || code == 429 || code >= 500;
 
+  /// A 403 on a delete is the server's permission check saying no, which trying again won't change.
+  static bool _isRetryableDelete(int code) => code != 403 && _isRetryableStatus(code);
+
   /// The item's payload with its outbox id as `clientId`, so the server recognises a retry of an upload whose
   /// response was lost and doesn't store a second copy.
   static Map<String, dynamic> _outboxPayload(OutboxItem item) {
@@ -4322,10 +4325,11 @@ class ApiService {
         if ((response.statusCode >= 200 && response.statusCode < 300) || response.statusCode == 404) {
           await _store.removeFromOutbox(item.id);
           return _OutboxOutcome.uploaded;
-        } else if (_isRetryableStatus(response.statusCode)) {
+        } else if (_isRetryableDelete(response.statusCode)) {
           await _store.recordOutboxFailure(item.id, 'HTTP ${response.statusCode}');
           return _OutboxOutcome.retryLater;
         } else {
+          await _restoreRefusedDelete(item);
           await _store.removeFromOutbox(item.id);
           return _OutboxOutcome.dropped;
         }
@@ -4448,16 +4452,10 @@ class ApiService {
             ? '/api/qual-scouting/$cleanId'
             : '/api/scouting/$cleanId';
 
-    // Remove from the stored list optimistically, so the data pages update without downloading it again.
+    // Removed from the stored list once the delete is settled, so the data pages update without downloading it
+    // again. A refused delete leaves it there: the server still has it, and delta sync wouldn't send it back.
     final isPit = lower == 'pit' || id.toLowerCase().startsWith('pit-');
-    await _patchCachedEntries(_entryCacheKeyFor(type, id), (list) {
-      final removed = list.whereType<Map>().where((e) => e['id']?.toString() == cleanId || e['clientId']?.toString() == cleanId).toList();
-      final kept = list.where((e) => !(e is Map && (e['id']?.toString() == cleanId || e['clientId']?.toString() == cleanId))).toList();
-      for (final r in removed) {
-        _clearResolvedDiscrepancy(kept, r, isPit: isPit);
-      }
-      return kept;
-    });
+    final cacheKey = _entryCacheKeyFor(type, id);
 
     // If this entry was still pending in the local outbox, remove it from the outbox too.
     try {
@@ -4472,9 +4470,18 @@ class ApiService {
     } catch (_) {}
 
     Future<ApiResponse<void>> queueOfflineDelete(String reason) async {
+      final stored = await _removeStoredEntry(cacheKey, cleanId, isPit: isPit);
       await _enqueueOutbox(
         'delete_entry',
-        {'endpoint': endpoint, 'id': cleanId, 'type': lower},
+        // restore and restoreFlags undo the local change if the server refuses this delete later.
+        {
+          'endpoint': endpoint,
+          'id': cleanId,
+          'type': lower,
+          'cacheKey': cacheKey,
+          'restore': stored.removed,
+          'restoreFlags': stored.clearedFlags,
+        },
         null,
         reason,
       );
@@ -4491,13 +4498,126 @@ class ApiService {
         Uri.parse('$_currentServerUrl$endpoint'),
         headers: _headers,
       );
-      if (_isRetryableStatus(response.statusCode)) {
+      if (_isRetryableDelete(response.statusCode)) {
         return await queueOfflineDelete('HTTP ${response.statusCode}');
       }
-      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to delete scouting entry');
+      // 404: already gone, which is what was asked for.
+      if (response.statusCode == 404) {
+        await _removeStoredEntry(cacheKey, cleanId, isPit: isPit);
+        return const ApiResponse.success(null);
+      }
+      final result = ApiResponse<void>.fromHttpResponse(response, defaultErrorMessage: 'Failed to delete scouting entry');
+      if (result.success) await _removeStoredEntry(cacheKey, cleanId, isPit: isPit);
+      return result;
     } catch (e) {
       return await queueOfflineDelete(e.toString());
     }
+  }
+
+  /// Keeps [keepId], saved with [data] when merging, and deletes [deleteIds] as one change on the server: if any part
+  /// is refused, nothing changes on either side. Offline, or on a server too old to have this, the steps run one by
+  /// one instead, so deletes can still queue.
+  Future<ApiResponse<void>> resolveConflict({
+    required String keepId,
+    Map<String, dynamic>? data,
+    required List<String> deleteIds,
+    String type = 'match',
+  }) async {
+    Future<ApiResponse<void>> stepByStep() async {
+      if (data != null) {
+        final saved = await updateScoutingEntry(keepId, data, type: type);
+        if (!saved.success) return saved;
+      }
+      for (final id in deleteIds) {
+        final deleted = await deleteScoutingEntry(id, type: type);
+        if (!deleted.success) return deleted;
+      }
+      return const ApiResponse.success(null);
+    }
+
+    if (!_isOnline) return stepByStep();
+
+    String clean(String id) {
+      for (final prefix in ['match-', 'pit-', 'qual-', 'qualitative-']) {
+        if (id.toLowerCase().startsWith(prefix)) return id.substring(prefix.length);
+      }
+      return id;
+    }
+
+    final cleanKeepId = clean(keepId);
+    final cleanDeleteIds = deleteIds.map(clean).toList();
+    final cacheKey = _entryCacheKeyFor(type, keepId);
+    final isPit = cacheKey == 'cache_pit_scouting';
+    final collection = isPit ? 'pit-scouting' : (cacheKey == 'cache_qual_scouting' ? 'qual-scouting' : 'scouting');
+
+    try {
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/$collection/resolve'),
+        headers: _headers,
+        body: jsonEncode({'keepId': cleanKeepId, 'deleteIds': cleanDeleteIds, if (data != null) 'data': data}),
+      );
+      // The route answers a missing entry with 409, so these only come from a server without it.
+      if (response.statusCode == 404 || response.statusCode == 405) return await stepByStep();
+      final result = ApiResponse<void>.fromHttpResponse(response, defaultErrorMessage: 'Failed to resolve conflict');
+      if (result.success) {
+        if (data != null) {
+          await _patchCachedEntries(cacheKey, (list) => [
+                for (final e in list)
+                  if (e is Map && e['id']?.toString() == cleanKeepId) {...e, 'data': data} else e,
+              ]);
+        }
+        for (final id in cleanDeleteIds) {
+          await _removeStoredEntry(cacheKey, id, isPit: isPit);
+        }
+      }
+      return result;
+    } catch (e) {
+      return ApiResponse.error(message: e.toString());
+    }
+  }
+
+  /// Takes an entry out of a stored list. Returns it, and the flags that cleared on the entry it left alone, so the
+  /// change can be undone if the delete behind it is refused later.
+  Future<({List<Map> removed, List<Map<String, dynamic>> clearedFlags})> _removeStoredEntry(
+    String cacheKey,
+    String cleanId, {
+    required bool isPit,
+  }) async {
+    List<Map> removed = const [];
+    final clearedFlags = <Map<String, dynamic>>[];
+    await _patchCachedEntries(cacheKey, (list) {
+      bool matches(Map e) => e['id']?.toString() == cleanId || e['clientId']?.toString() == cleanId;
+      removed = list.whereType<Map>().where(matches).toList();
+      final kept = list.where((e) => !(e is Map && matches(e))).toList();
+      for (final r in removed) {
+        clearedFlags.addAll(_clearResolvedDiscrepancy(kept, r, isPit: isPit));
+      }
+      return kept;
+    });
+    return (removed: removed, clearedFlags: clearedFlags);
+  }
+
+  /// The server refused a delete queued earlier, so it still has the entry: puts it back in the stored list, along
+  /// with the discrepancy flags that were cleared because it had gone. Delta sync wouldn't send those back.
+  Future<void> _restoreRefusedDelete(OutboxItem item) async {
+    final cacheKey = item.payload['cacheKey']?.toString();
+    final restore = item.payload['restore'];
+    if (cacheKey == null || restore is! List || restore.isEmpty) return;
+    final flags = {
+      for (final flag in (item.payload['restoreFlags'] as List?) ?? const [])
+        if (flag is Map) flag['id']?.toString(): flag,
+    };
+    await _patchCachedEntries(cacheKey, (list) {
+      final present = list.whereType<Map>().map((e) => e['id']?.toString()).toSet();
+      return [
+        for (final e in list)
+          if (e is Map && flags.containsKey(e['id']?.toString()))
+            {...e, 'hasDiscrepancy': true, 'conflictingTeams': flags[e['id']?.toString()]!['conflictingTeams']}
+          else
+            e,
+        ...restore.where((e) => e is Map && !present.contains(e['id']?.toString())),
+      ];
+    });
   }
 
   /// Stored entry list for an entry of [type] (or an id carrying a `pit-`/`qual-` prefix).
@@ -4535,14 +4655,20 @@ class ApiService {
 
   /// After [removed] is gone, an entry left alone in its group no longer disagrees with anything. Other groups keep
   /// their flags: the delta sync only re-sends entries that changed, so a flag cleared here would stay cleared.
-  static void _clearResolvedDiscrepancy(List<dynamic> entries, Map removed, {required bool isPit}) {
+  /// Returns the flags it cleared.
+  static List<Map<String, dynamic>> _clearResolvedDiscrepancy(List<dynamic> entries, Map removed, {required bool isPit}) {
     final group = _discrepancyGroup(removed, isPit: isPit);
     final same = entries.whereType<Map>().where((e) => _discrepancyGroup(e, isPit: isPit) == group).toList();
-    if (same.length > 1) return;
+    if (same.length > 1) return const [];
+    final cleared = <Map<String, dynamic>>[
+      for (final e in same)
+        if (e['hasDiscrepancy'] == true) {'id': e['id'], 'conflictingTeams': e['conflictingTeams']},
+    ];
     for (final e in same) {
       e['hasDiscrepancy'] = false;
       e.remove('conflictingTeams');
     }
+    return cleared;
   }
 
   Future<ApiResponse<void>> updateScoutingEntry(String id, Map<String, dynamic> data, {String type = 'match'}) async {

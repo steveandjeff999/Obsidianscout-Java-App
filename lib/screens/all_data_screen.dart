@@ -9,6 +9,7 @@ import '../widgets/obsidian_feedback.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/conflict_resolution_modal.dart';
 import '../widgets/obsidian_image_preview_card.dart';
+import '../widgets/edit_scouting_entry_modal.dart';
 import '../widgets/obsidian_share_modal.dart';
 
 class UnifiedScoutingEntry {
@@ -16,7 +17,8 @@ class UnifiedScoutingEntry {
   final String originalId;
   final String type; // 'Match', 'Pit', 'Qualitative'
   final int targetTeamNumber;
-  final String eventKey;
+  final String eventKey; // 'prescout' for prescout entries, for grouping and display
+  final String? rawEventKey; // The event key stored on the entry
   final bool isPrescout;
   final int? matchNumber;
   final String? matchKey;
@@ -32,6 +34,7 @@ class UnifiedScoutingEntry {
     required this.type,
     required this.targetTeamNumber,
     required this.eventKey,
+    this.rawEventKey,
     this.isPrescout = false,
     this.matchNumber,
     this.matchKey,
@@ -115,7 +118,7 @@ class _AllDataScreenState extends State<AllDataScreen> {
       'createdAt': c.createdAt,
       'data': c.data,
       'targetTeamNumber': c.targetTeamNumber,
-      'eventKey': c.eventKey,
+      'eventKey': c.rawEventKey ?? c.eventKey,
       'matchKey': c.matchKey,
       'matchNumber': c.matchNumber,
     }).toList();
@@ -177,6 +180,7 @@ class _AllDataScreenState extends State<AllDataScreen> {
             type: 'Match',
             targetTeamNumber: (e['targetTeamNumber'] as num?)?.toInt() ?? 0,
             eventKey: isPrescout ? 'prescout' : (e['eventKey']?.toString() ?? ''),
+            rawEventKey: e['eventKey']?.toString(),
             isPrescout: isPrescout,
             matchNumber: (e['matchNumber'] as num?)?.toInt(),
             matchKey: e['matchKey']?.toString(),
@@ -198,6 +202,7 @@ class _AllDataScreenState extends State<AllDataScreen> {
             type: 'Pit',
             targetTeamNumber: (e['targetTeamNumber'] as num?)?.toInt() ?? 0,
             eventKey: isPrescout ? 'prescout' : (e['eventKey']?.toString() ?? ''),
+            rawEventKey: e['eventKey']?.toString(),
             isPrescout: isPrescout,
             createdAt: e['createdAt']?.toString(),
             data: e['data'] is Map ? Map<String, dynamic>.from(e['data'] as Map) : {},
@@ -215,6 +220,7 @@ class _AllDataScreenState extends State<AllDataScreen> {
             type: 'Qualitative',
             targetTeamNumber: (e['targetTeamNumber'] as num?)?.toInt() ?? 0,
             eventKey: isPrescout ? 'prescout' : (e['eventKey']?.toString() ?? ''),
+            rawEventKey: e['eventKey']?.toString(),
             isPrescout: isPrescout,
             matchNumber: (e['matchNumber'] as num?)?.toInt(),
             matchKey: e['matchKey']?.toString(),
@@ -285,6 +291,7 @@ class _AllDataScreenState extends State<AllDataScreen> {
             type: 'Match',
             targetTeamNumber: (e['targetTeamNumber'] as num?)?.toInt() ?? 0,
             eventKey: isPrescout ? 'prescout' : (e['eventKey']?.toString() ?? ''),
+            rawEventKey: e['eventKey']?.toString(),
             isPrescout: isPrescout,
             matchNumber: (e['matchNumber'] as num?)?.toInt(),
             matchKey: e['matchKey']?.toString(),
@@ -306,6 +313,7 @@ class _AllDataScreenState extends State<AllDataScreen> {
             type: 'Pit',
             targetTeamNumber: (e['targetTeamNumber'] as num?)?.toInt() ?? 0,
             eventKey: isPrescout ? 'prescout' : (e['eventKey']?.toString() ?? ''),
+            rawEventKey: e['eventKey']?.toString(),
             isPrescout: isPrescout,
             createdAt: e['createdAt']?.toString(),
             data: e['data'] is Map ? Map<String, dynamic>.from(e['data'] as Map) : {},
@@ -323,6 +331,7 @@ class _AllDataScreenState extends State<AllDataScreen> {
             type: 'Qualitative',
             targetTeamNumber: (e['targetTeamNumber'] as num?)?.toInt() ?? 0,
             eventKey: isPrescout ? 'prescout' : (e['eventKey']?.toString() ?? ''),
+            rawEventKey: e['eventKey']?.toString(),
             isPrescout: isPrescout,
             matchNumber: (e['matchNumber'] as num?)?.toInt(),
             matchKey: e['matchKey']?.toString(),
@@ -967,7 +976,7 @@ class _AllDataScreenState extends State<AllDataScreen> {
                                     ),
                                   ],
                                   const Spacer(),
-                                  if (hasConflict) ...[
+                                  if (hasConflict && widget.apiService.isAdmin) ...[
                                     InkWell(
                                       onTap: () => _openConflictResolver(entry),
                                       borderRadius: BorderRadius.circular(8),
@@ -1034,6 +1043,50 @@ class _AllDataScreenState extends State<AllDataScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _confirmAndDeleteAllRecord(BuildContext sheetContext, UnifiedScoutingEntry entry) async {
+    final eType = entry.type.toLowerCase() == 'pit'
+        ? 'pit'
+        : (entry.type.toLowerCase().startsWith('qual') ? 'qual' : 'match');
+    final matchInfo = entry.matchNumber != null ? ' (Match ${entry.matchNumber})' : '';
+    final confirmed = await showDialog<bool>(
+      context: sheetContext,
+      builder: (dCtx) => AlertDialog(
+        backgroundColor: ObsidianUITheme.getSurfaceColor(dCtx),
+        title: Text('Delete ${entry.type} Entry', style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(dCtx))),
+        content: Text(
+          'Are you sure you want to delete this ${entry.type} scouting entry for Team ${entry.targetTeamNumber}$matchInfo? This cannot be undone.',
+          style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(dCtx)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dCtx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.of(dCtx).pop(true),
+            child: const Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      if (sheetContext.mounted) {
+        Navigator.of(sheetContext).pop();
+      }
+      final cleanId = entry.originalId.isNotEmpty ? entry.originalId : entry.id;
+      final res = await widget.apiService.deleteScoutingEntry(cleanId, type: eType);
+      if (!mounted) return;
+      if (res.success) {
+        ObsidianFeedback.showSuccess(context, message: '${entry.type} entry deleted successfully');
+        _loadData();
+      } else {
+        ObsidianFeedback.showError(context, message: res.message ?? 'Failed to delete entry');
+      }
+    }
   }
 
   void _showEntryDetailBottomSheet(BuildContext context, UnifiedScoutingEntry entry) {
@@ -1122,6 +1175,68 @@ class _AllDataScreenState extends State<AllDataScreen> {
                       controller: scrollController,
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
                       children: [
+                        if (widget.apiService.isAdmin && entry.originalId.isNotEmpty)
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(vertical: 8),
+                                      side: BorderSide(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.6)),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    ),
+                                    onPressed: () {
+                                      Navigator.of(ctx).pop();
+                                      final eType = entry.type.toLowerCase() == 'pit'
+                                          ? 'pit'
+                                          : (entry.type.toLowerCase().startsWith('qual') ? 'qual' : 'match');
+                                      final config = eType == 'pit' ? _pitConfig : (eType == 'qual' ? _qualConfig : _matchConfig);
+                                      final cleanId = entry.originalId.isNotEmpty ? entry.originalId : entry.id;
+                                      EditScoutingEntryModal.show(
+                                        context: context,
+                                        apiService: widget.apiService,
+                                        id: cleanId,
+                                        type: eType,
+                                        title: 'Edit ${entry.type} Entry · Team ${entry.targetTeamNumber}',
+                                        subtitle: 'Event: ${entry.eventKey}',
+                                        targetTeamNumber: entry.targetTeamNumber,
+                                        matchNumber: entry.matchNumber,
+                                        matchKey: entry.matchKey,
+                                        eventKey: entry.rawEventKey,
+                                        isPrescout: entry.isPrescout,
+                                        initialData: entry.data,
+                                        fields: config?.fields ?? [],
+                                        onSaved: () => _loadData(),
+                                      );
+                                    },
+                                    icon: Icon(Icons.edit_rounded, size: 16, color: ObsidianUITheme.primaryAccent),
+                                    label: Text('Edit Entry', style: TextStyle(color: ObsidianUITheme.primaryAccent, fontSize: 13, fontWeight: FontWeight.bold)),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(vertical: 8),
+                                      side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.6)),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    ),
+                                    onPressed: () => _confirmAndDeleteAllRecord(ctx, entry),
+                                    icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Colors.redAccent),
+                                    label: const Text('Delete Entry', style: TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.bold)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         if (_getConflictingEntriesFor(entry).length > 1 || entry.hasDiscrepancy)
                           Container(
                             margin: const EdgeInsets.only(bottom: 12),
@@ -1141,6 +1256,8 @@ class _AllDataScreenState extends State<AllDataScreen> {
                                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.amberAccent),
                                   ),
                                 ),
+                                // Resolving edits and deletes entries, which takes an admin.
+                                if (widget.apiService.isAdmin)
                                 ElevatedButton.icon(
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.amberAccent,

@@ -9,6 +9,7 @@ import '../widgets/obsidian_feedback.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/conflict_resolution_modal.dart';
 import '../widgets/obsidian_image_preview_card.dart';
+import '../widgets/edit_scouting_entry_modal.dart';
 
 class TeamPitCoverageItem {
   final int teamNumber;
@@ -18,6 +19,7 @@ class TeamPitCoverageItem {
   final String? scoutUsername;
   final Map<String, dynamic> pitData;
   final String? entryId;
+  final String? entryEventKey; // The event key stored on the entry
 
   TeamPitCoverageItem({
     required this.teamNumber,
@@ -27,6 +29,7 @@ class TeamPitCoverageItem {
     this.scoutUsername,
     this.pitData = const {},
     this.entryId,
+    this.entryEventKey,
   });
 
   DateTime? get updatedDateTime {
@@ -101,6 +104,7 @@ class _PitDataScreenState extends State<PitDataScreen> {
       final Map<int, String?> updateTimeMap = {};
       final Map<int, String?> scoutUserMap = {};
       final Map<int, String?> entryIdMap = {};
+      final Map<int, String?> entryEventKeyMap = {};
 
       for (final e in cachedPitRaw) {
         if (e is Map<String, dynamic>) {
@@ -113,6 +117,7 @@ class _PitDataScreenState extends State<PitDataScreen> {
               updateTimeMap[tNum] = e['createdAt']?.toString();
               scoutUserMap[tNum] = e['scoutUsername']?.toString() ?? e['username']?.toString();
               entryIdMap[tNum] = e['id']?.toString();
+              entryEventKeyMap[tNum] = e['eventKey']?.toString();
             }
           }
         }
@@ -129,6 +134,7 @@ class _PitDataScreenState extends State<PitDataScreen> {
           scoutUsername: scoutUserMap[t.teamNumber],
           pitData: pitMap[t.teamNumber] ?? {},
           entryId: entryIdMap[t.teamNumber],
+          entryEventKey: entryEventKeyMap[t.teamNumber],
         ));
       }
 
@@ -142,6 +148,7 @@ class _PitDataScreenState extends State<PitDataScreen> {
             scoutUsername: scoutUserMap[entry.key],
             pitData: entry.value,
             entryId: entryIdMap[entry.key],
+            entryEventKey: entryEventKeyMap[entry.key],
           ));
         }
       }
@@ -195,6 +202,7 @@ class _PitDataScreenState extends State<PitDataScreen> {
       final Map<int, String?> updateTimeMap = {};
       final Map<int, String?> scoutUserMap = {};
       final Map<int, String?> entryIdMap = {};
+      final Map<int, String?> entryEventKeyMap = {};
 
       for (final e in pitRaw) {
         if (e is Map<String, dynamic>) {
@@ -208,6 +216,7 @@ class _PitDataScreenState extends State<PitDataScreen> {
               updateTimeMap[tNum] = e['createdAt']?.toString();
               scoutUserMap[tNum] = e['scoutUsername']?.toString() ?? e['username']?.toString();
               entryIdMap[tNum] = e['id']?.toString();
+              entryEventKeyMap[tNum] = e['eventKey']?.toString();
             }
           }
         }
@@ -225,6 +234,7 @@ class _PitDataScreenState extends State<PitDataScreen> {
           scoutUsername: scoutUserMap[t.teamNumber],
           pitData: pitMap[t.teamNumber] ?? {},
           entryId: entryIdMap[t.teamNumber],
+          entryEventKey: entryEventKeyMap[t.teamNumber],
         ));
       }
 
@@ -239,6 +249,7 @@ class _PitDataScreenState extends State<PitDataScreen> {
             scoutUsername: scoutUserMap[entry.key],
             pitData: entry.value,
             entryId: entryIdMap[entry.key],
+            entryEventKey: entryEventKeyMap[entry.key],
           ));
         }
       }
@@ -746,7 +757,7 @@ class _PitDataScreenState extends State<PitDataScreen> {
                                     ),
                                   ),
                                   const Spacer(),
-                                  if (hasConflict) ...[
+                                  if (hasConflict && widget.apiService.isAdmin) ...[
                                     InkWell(
                                       onTap: () => _openConflictResolver(item),
                                       borderRadius: BorderRadius.circular(8),
@@ -820,6 +831,46 @@ class _PitDataScreenState extends State<PitDataScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _confirmAndDeletePitRecord(BuildContext sheetContext, TeamPitCoverageItem item) async {
+    if (item.entryId == null) return;
+    final confirmed = await showDialog<bool>(
+      context: sheetContext,
+      builder: (dCtx) => AlertDialog(
+        backgroundColor: ObsidianUITheme.getSurfaceColor(dCtx),
+        title: Text('Delete Pit Entry', style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(dCtx))),
+        content: Text(
+          'Are you sure you want to delete this Pit scouting entry for Team ${item.teamNumber}? This cannot be undone.',
+          style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(dCtx)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dCtx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.of(dCtx).pop(true),
+            child: const Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      if (sheetContext.mounted) {
+        Navigator.of(sheetContext).pop();
+      }
+      final res = await widget.apiService.deleteScoutingEntry(item.entryId!, type: 'pit');
+      if (!mounted) return;
+      if (res.success) {
+        ObsidianFeedback.showSuccess(context, message: 'Pit entry deleted successfully');
+        _loadData();
+      } else {
+        ObsidianFeedback.showError(context, message: res.message ?? 'Failed to delete entry');
+      }
+    }
   }
 
   void _showPitDetailBottomSheet(BuildContext context, TeamPitCoverageItem item) {
@@ -901,6 +952,60 @@ class _PitDataScreenState extends State<PitDataScreen> {
                       controller: scrollController,
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
                       children: [
+                        if (widget.apiService.isAdmin && item.hasPitData && item.entryId != null)
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(vertical: 8),
+                                      side: BorderSide(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.6)),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    ),
+                                    onPressed: () {
+                                      Navigator.of(ctx).pop();
+                                      EditScoutingEntryModal.show(
+                                        context: context,
+                                        apiService: widget.apiService,
+                                        id: item.entryId!,
+                                        type: 'pit',
+                                        title: 'Edit Pit Entry · Team ${item.teamNumber}',
+                                        subtitle: item.nickname,
+                                        targetTeamNumber: item.teamNumber,
+                                        eventKey: item.entryEventKey,
+                                        initialData: item.pitData,
+                                        fields: _pitConfig?.fields ?? [],
+                                        onSaved: () => _loadData(),
+                                      );
+                                    },
+                                    icon: Icon(Icons.edit_rounded, size: 16, color: ObsidianUITheme.primaryAccent),
+                                    label: Text('Edit Entry', style: TextStyle(color: ObsidianUITheme.primaryAccent, fontSize: 13, fontWeight: FontWeight.bold)),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(vertical: 8),
+                                      side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.6)),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    ),
+                                    onPressed: () => _confirmAndDeletePitRecord(ctx, item),
+                                    icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Colors.redAccent),
+                                    label: const Text('Delete Entry', style: TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.bold)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         if (_getConflictingEntriesForTeam(item.teamNumber).length > 1)
                           Container(
                             margin: const EdgeInsets.only(bottom: 12),
@@ -920,6 +1025,8 @@ class _PitDataScreenState extends State<PitDataScreen> {
                                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.amberAccent),
                                   ),
                                 ),
+                                // Resolving edits and deletes entries, which takes an admin.
+                                if (widget.apiService.isAdmin)
                                 ElevatedButton.icon(
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.amberAccent,

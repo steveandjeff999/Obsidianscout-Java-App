@@ -9,11 +9,13 @@ import '../widgets/obsidian_feedback.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/conflict_resolution_modal.dart';
 import '../widgets/obsidian_image_preview_card.dart';
+import '../widgets/edit_scouting_entry_modal.dart';
 
 class MatchScoutingRecord {
   final String id;
   final int targetTeamNumber;
-  final String eventKey;
+  final String eventKey; // 'prescout' for prescout entries, for grouping and display
+  final String? rawEventKey; // The event key stored on the entry
   final bool isPrescout;
   final int matchNumber;
   final String? matchKey;
@@ -27,6 +29,7 @@ class MatchScoutingRecord {
     required this.id,
     required this.targetTeamNumber,
     required this.eventKey,
+    this.rawEventKey,
     this.isPrescout = false,
     required this.matchNumber,
     this.matchKey,
@@ -116,6 +119,7 @@ class _MatchDataScreenState extends State<MatchDataScreen> {
               id: e['id']?.toString() ?? '',
               targetTeamNumber: (e['targetTeamNumber'] as num?)?.toInt() ?? 0,
               eventKey: isPrescout ? 'prescout' : (e['eventKey']?.toString() ?? ''),
+              rawEventKey: e['eventKey']?.toString(),
               isPrescout: isPrescout,
               matchNumber: matchNum,
               matchKey: e['matchKey']?.toString(),
@@ -178,6 +182,7 @@ class _MatchDataScreenState extends State<MatchDataScreen> {
               id: e['id']?.toString() ?? '',
               targetTeamNumber: (e['targetTeamNumber'] as num?)?.toInt() ?? 0,
               eventKey: isPrescout ? 'prescout' : (e['eventKey']?.toString() ?? ''),
+              rawEventKey: e['eventKey']?.toString(),
               isPrescout: isPrescout,
               matchNumber: matchNum,
               matchKey: e['matchKey']?.toString(),
@@ -234,7 +239,7 @@ class _MatchDataScreenState extends State<MatchDataScreen> {
       'createdAt': c.createdAt,
       'data': c.data,
       'targetTeamNumber': c.targetTeamNumber,
-      'eventKey': c.eventKey,
+      'eventKey': c.rawEventKey ?? c.eventKey,
       'matchKey': c.matchKey,
       'matchNumber': c.matchNumber,
     }).toList();
@@ -702,7 +707,7 @@ class _MatchDataScreenState extends State<MatchDataScreen> {
                               ),
                             ),
                             const Spacer(),
-                            if (hasConflict) ...[
+                            if (hasConflict && widget.apiService.isAdmin) ...[
                               InkWell(
                                 onTap: () => _openConflictResolver(record),
                                 borderRadius: BorderRadius.circular(8),
@@ -762,6 +767,45 @@ class _MatchDataScreenState extends State<MatchDataScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _confirmAndDeleteMatchRecord(BuildContext sheetContext, MatchScoutingRecord record) async {
+    final confirmed = await showDialog<bool>(
+      context: sheetContext,
+      builder: (dCtx) => AlertDialog(
+        backgroundColor: ObsidianUITheme.getSurfaceColor(dCtx),
+        title: Text('Delete Match Entry', style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(dCtx))),
+        content: Text(
+          'Are you sure you want to delete this Match scouting entry for Team ${record.targetTeamNumber} (Match ${record.matchNumber})? This cannot be undone.',
+          style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(dCtx)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dCtx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.of(dCtx).pop(true),
+            child: const Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      if (sheetContext.mounted) {
+        Navigator.of(sheetContext).pop();
+      }
+      final res = await widget.apiService.deleteScoutingEntry(record.id, type: 'match');
+      if (!mounted) return;
+      if (res.success) {
+        ObsidianFeedback.showSuccess(context, message: 'Match entry deleted successfully');
+        _loadData();
+      } else {
+        ObsidianFeedback.showError(context, message: res.message ?? 'Failed to delete entry');
+      }
+    }
   }
 
   void _showMatchDetailBottomSheet(BuildContext context, MatchScoutingRecord record) {
@@ -865,6 +909,63 @@ class _MatchDataScreenState extends State<MatchDataScreen> {
                       controller: scrollController,
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
                       children: [
+                        if (widget.apiService.isAdmin && record.id.isNotEmpty)
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(vertical: 8),
+                                      side: BorderSide(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.6)),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    ),
+                                    onPressed: () {
+                                      Navigator.of(ctx).pop();
+                                      EditScoutingEntryModal.show(
+                                        context: context,
+                                        apiService: widget.apiService,
+                                        id: record.id,
+                                        type: 'match',
+                                        title: 'Edit Match Entry · Team ${record.targetTeamNumber}',
+                                        subtitle: 'Match ${record.matchNumber} · Event: ${record.eventKey}',
+                                        targetTeamNumber: record.targetTeamNumber,
+                                        matchNumber: record.matchNumber,
+                                        matchKey: record.matchKey,
+                                        eventKey: record.rawEventKey,
+                                        isPrescout: record.isPrescout,
+                                        initialData: record.data,
+                                        fields: _matchConfig?.fields ?? [],
+                                        onSaved: () => _loadData(),
+                                      );
+                                    },
+                                    icon: Icon(Icons.edit_rounded, size: 16, color: ObsidianUITheme.primaryAccent),
+                                    label: Text('Edit Entry', style: TextStyle(color: ObsidianUITheme.primaryAccent, fontSize: 13, fontWeight: FontWeight.bold)),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(vertical: 8),
+                                      side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.6)),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    ),
+                                    onPressed: () => _confirmAndDeleteMatchRecord(ctx, record),
+                                    icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Colors.redAccent),
+                                    label: const Text('Delete Entry', style: TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.bold)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         if (_getConflictingRecordsFor(record).length > 1 || record.hasDiscrepancy)
                           Container(
                             margin: const EdgeInsets.only(bottom: 12),
@@ -884,6 +985,8 @@ class _MatchDataScreenState extends State<MatchDataScreen> {
                                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.orangeAccent),
                                   ),
                                 ),
+                                // Resolving edits and deletes entries, which takes an admin.
+                                if (widget.apiService.isAdmin)
                                 ElevatedButton.icon(
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.orangeAccent,

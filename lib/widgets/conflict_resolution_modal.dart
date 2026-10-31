@@ -160,6 +160,11 @@ class _ConflictResolutionModalState extends State<ConflictResolutionModal> {
     return false;
   }
 
+  List<String> _idsOtherThan(String id) => widget.conflictingEntries
+      .map((e) => e['id']?.toString() ?? '')
+      .where((other) => other.isNotEmpty && other != id)
+      .toList();
+
   Future<void> _keepSingleEntry(Map<String, dynamic> winningEntry) async {
     setState(() {
       _isProcessing = true;
@@ -168,16 +173,13 @@ class _ConflictResolutionModalState extends State<ConflictResolutionModal> {
 
     try {
       final winningId = winningEntry['id']?.toString() ?? '';
-      final entriesToDelete = widget.conflictingEntries.where((e) => e['id']?.toString() != winningId).toList();
-
-      for (final e in entriesToDelete) {
-        final id = e['id']?.toString();
-        if (id != null && id.isNotEmpty) {
-          final res = await widget.apiService.deleteScoutingEntry(id, type: widget.type);
-          if (!res.success) {
-            throw Exception(res.message ?? 'Failed to delete duplicate entry ($id)');
-          }
-        }
+      final res = await widget.apiService.resolveConflict(
+        keepId: winningId,
+        deleteIds: _idsOtherThan(winningId),
+        type: widget.type,
+      );
+      if (!res.success) {
+        throw Exception(res.message ?? 'Failed to resolve conflict');
       }
 
       if (mounted) {
@@ -258,21 +260,15 @@ class _ConflictResolutionModalState extends State<ConflictResolutionModal> {
         }
       }
 
-      // Update primary entry with merged data
-      final updateRes = await widget.apiService.updateScoutingEntry(primaryId, dataToSend, type: widget.type);
-      if (!updateRes.success) {
-        throw Exception(updateRes.message ?? 'Failed to update scouting entry ($primaryId)');
-      }
-
-      // Delete other conflicting entries
-      for (int i = 1; i < widget.conflictingEntries.length; i++) {
-        final id = widget.conflictingEntries[i]['id']?.toString();
-        if (id != null && id.isNotEmpty) {
-          final delRes = await widget.apiService.deleteScoutingEntry(id, type: widget.type);
-          if (!delRes.success) {
-            throw Exception(delRes.message ?? 'Failed to delete duplicate entry ($id)');
-          }
-        }
+      // Merged data onto the primary entry and the others deleted, as one change.
+      final res = await widget.apiService.resolveConflict(
+        keepId: primaryId,
+        data: dataToSend,
+        deleteIds: _idsOtherThan(primaryId),
+        type: widget.type,
+      );
+      if (!res.success) {
+        throw Exception(res.message ?? 'Failed to save merged entry');
       }
 
       if (mounted) {

@@ -315,7 +315,7 @@ class DynamicFieldWidget extends StatelessWidget {
                           : null,
                       borderRadius: const BorderRadius.horizontal(left: Radius.circular(7.0)),
                       child: Container(
-                        constraints: const BoxConstraints(minWidth: 44.0, minHeight: 40.0),
+                        constraints: const BoxConstraints(minWidth: 56.0, minHeight: 56.0),
                         alignment: Alignment.center,
                         child: Icon(
                           Icons.remove_circle_outline,
@@ -361,7 +361,7 @@ class DynamicFieldWidget extends StatelessWidget {
                           : null,
                       borderRadius: const BorderRadius.horizontal(right: Radius.circular(7.0)),
                       child: Container(
-                        constraints: const BoxConstraints(minWidth: 44.0, minHeight: 40.0),
+                        constraints: const BoxConstraints(minWidth: 56.0, minHeight: 56.0),
                         alignment: Alignment.center,
                         child: Icon(
                           Icons.add_circle_outline,
