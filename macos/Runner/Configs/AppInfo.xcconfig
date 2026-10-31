@@ -11,4 +11,4 @@ PRODUCT_NAME = obsidianscout_app
 PRODUCT_BUNDLE_IDENTIFIER = com.obsidianscout.obsidianscoutApp
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 com.obsidianscout. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 Seth Herod

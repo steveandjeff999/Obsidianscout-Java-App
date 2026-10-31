@@ -17,19 +17,17 @@ class ObsidianBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = ObsidianUITheme.isDark(context);
     final navBg = ObsidianUITheme.getSurfaceColor(context);
     final borderColor = ObsidianUITheme.getBorderColor(context);
-    final shadowColor = isDark ? Colors.black.withValues(alpha: 0.35) : Colors.black.withValues(alpha: 0.06);
     final inactiveItemColor = ObsidianUITheme.getSecondaryTextColor(context);
 
     final allNavItems = [
-      {'pageId': 'dashboard', 'targetIndex': 0, 'icon': Icons.dashboard_rounded, 'labelKey': 'nav.dashboard'},
-      {'pageId': 'scout', 'targetIndex': 1, 'icon': Icons.sports_esports_rounded, 'labelKey': 'nav.scout'},
-      {'pageId': 'alliance-selection', 'targetIndex': 7, 'icon': Icons.stars_rounded, 'labelKey': 'nav.alliances'},
-      {'pageId': 'chat', 'targetIndex': 6, 'icon': Icons.chat_bubble_outline_rounded, 'labelKey': 'nav.team_chat'},
-      {'pageId': 'graphs', 'targetIndex': 4, 'icon': Icons.bar_chart_rounded, 'labelKey': 'nav.graphs'},
-      {'pageId': 'settings', 'targetIndex': 5, 'icon': Icons.settings_suggest_rounded, 'labelKey': 'nav.settings'},
+      {'pageId': 'dashboard', 'targetIndex': 0, 'icon': Icons.dashboard_outlined, 'activeIcon': Icons.dashboard_rounded, 'labelKey': 'nav.dashboard'},
+      {'pageId': 'scout', 'targetIndex': 1, 'icon': Icons.sports_esports_outlined, 'activeIcon': Icons.sports_esports_rounded, 'labelKey': 'nav.scout'},
+      {'pageId': 'alliance-selection', 'targetIndex': 7, 'icon': Icons.stars_outlined, 'activeIcon': Icons.stars_rounded, 'labelKey': 'nav.alliances'},
+      {'pageId': 'chat', 'targetIndex': 6, 'icon': Icons.chat_bubble_outline_rounded, 'activeIcon': Icons.chat_bubble_rounded, 'labelKey': 'nav.team_chat'},
+      {'pageId': 'graphs', 'targetIndex': 4, 'icon': Icons.bar_chart_outlined, 'activeIcon': Icons.bar_chart_rounded, 'labelKey': 'nav.graphs'},
+      {'pageId': 'settings', 'targetIndex': 5, 'icon': Icons.settings_outlined, 'activeIcon': Icons.settings_rounded, 'labelKey': 'nav.settings'},
     ];
 
     final navItems = allNavItems.where((item) {
@@ -38,38 +36,37 @@ class ObsidianBottomNav extends StatelessWidget {
     }).toList();
 
     return Container(
-      margin: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 12.0),
-      height: 64.0,
-      padding: const EdgeInsets.symmetric(horizontal: 8.0),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(32.0),
         color: navBg,
-        border: Border.all(
-          color: borderColor,
-          width: 1.0,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: shadowColor,
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+        border: Border(
+          top: BorderSide(
+            color: borderColor,
+            width: 1.0,
           ),
-        ],
+        ),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: List.generate(navItems.length, (index) {
-          final targetIndex = navItems[index]['targetIndex'] as int;
-          final isSelected = targetIndex == currentIndex;
-          return _ObsidianNavItem(
-            targetIndex: targetIndex,
-            isSelected: isSelected,
-            icon: navItems[index]['icon'] as IconData,
-            labelKey: navItems[index]['labelKey'] as String,
-            inactiveItemColor: inactiveItemColor,
-            onTap: onTap,
-          );
-        }),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 58.0,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: List.generate(navItems.length, (index) {
+              final targetIndex = navItems[index]['targetIndex'] as int;
+              final isSelected = targetIndex == currentIndex;
+              return Expanded(
+                child: _ObsidianNavItem(
+                  targetIndex: targetIndex,
+                  isSelected: isSelected,
+                  icon: (isSelected ? navItems[index]['activeIcon'] : navItems[index]['icon']) as IconData,
+                  labelKey: navItems[index]['labelKey'] as String,
+                  inactiveItemColor: inactiveItemColor,
+                  onTap: onTap,
+                ),
+              );
+            }),
+          ),
+        ),
       ),
     );
   }
@@ -102,8 +99,6 @@ class _ObsidianNavItemState extends State<_ObsidianNavItem> {
   @override
   Widget build(BuildContext context) {
     final primaryAccent = ObsidianUITheme.getPrimaryAccent(context);
-    final secondaryAccent = ObsidianUITheme.getSecondaryAccent(context);
-    final pillRadius = ObsidianUITheme.getButtonRadius(context, fallback: 20.0).clamp(10.0, 32.0);
 
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
@@ -113,60 +108,43 @@ class _ObsidianNavItemState extends State<_ObsidianNavItem> {
       },
       onTapCancel: () => setState(() => _isPressed = false),
       behavior: HitTestBehavior.opaque,
-      child: AnimatedScale(
-        scale: _isPressed ? 0.88 : (widget.isSelected ? 1.05 : 1.0),
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOutBack,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.fastOutSlowIn,
-          padding: EdgeInsets.symmetric(
-            horizontal: widget.isSelected ? 8.0 : 4.0,
-            vertical: 6.0,
-          ),
-          decoration: widget.isSelected
-              ? BoxDecoration(
-                  borderRadius: BorderRadius.circular(pillRadius),
-                  gradient: LinearGradient(
-                    colors: [
-                      primaryAccent,
-                      secondaryAccent,
-                    ],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: primaryAccent.withValues(alpha: 0.4),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                )
-              : const BoxDecoration(),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
+      child: AnimatedOpacity(
+        opacity: _isPressed ? 0.65 : 1.0,
+        duration: const Duration(milliseconds: 100),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOutCubic,
+              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 3.0),
+              decoration: BoxDecoration(
+                color: widget.isSelected
+                    ? primaryAccent.withValues(alpha: 0.14)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(10.0),
+              ),
+              child: Icon(
                 widget.icon,
-                color: widget.isSelected ? Colors.white : widget.inactiveItemColor,
+                color: widget.isSelected ? primaryAccent : widget.inactiveItemColor,
                 size: 20.0,
               ),
-              if (widget.isSelected) ...[
-                const SizedBox(width: 4.0),
-                Flexible(
-                  child: Text(
-                    context.tr(widget.labelKey),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 11.5,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
+            ),
+            const SizedBox(height: 2.0),
+            Text(
+              context.tr(widget.labelKey),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: widget.isSelected ? primaryAccent : widget.inactiveItemColor,
+                fontWeight: widget.isSelected ? FontWeight.w600 : FontWeight.w500,
+                fontSize: 10.5,
+                letterSpacing: -0.1,
+              ),
+            ),
+          ],
         ),
       ),
     );

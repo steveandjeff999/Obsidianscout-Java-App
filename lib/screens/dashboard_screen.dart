@@ -146,11 +146,18 @@ class DashboardScreen extends StatelessWidget {
                             margin: const EdgeInsets.only(left: 16.0, right: 8.0, top: 8.0, bottom: 8.0),
                             child: Column(
                               children: [
-                                Icon(Icons.sports_esports_rounded, size: 36.0, color: ObsidianUITheme.primaryAccent),
-                                const SizedBox(height: 12.0),
-                                Text(context.tr('nav.match_scout'), style: TextStyle(fontWeight: FontWeight.bold, color: primaryTextColor)),
-                                const SizedBox(height: 4.0),
-                                Text(context.tr('subtitle.match_scout'), style: TextStyle(fontSize: 11.0, color: tertiaryTextColor)),
+                                Container(
+                                  padding: const EdgeInsets.all(8.0),
+                                  decoration: BoxDecoration(
+                                    color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(8.0),
+                                  ),
+                                  child: Icon(Icons.sports_esports_rounded, size: 24.0, color: ObsidianUITheme.primaryAccent),
+                                ),
+                                const SizedBox(height: 10.0),
+                                Text(context.tr('nav.match_scout'), style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.0, color: primaryTextColor)),
+                                const SizedBox(height: 2.0),
+                                Text(context.tr('subtitle.match_scout'), maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11.0, color: tertiaryTextColor)),
                               ],
                             ),
                           ),
@@ -161,11 +168,18 @@ class DashboardScreen extends StatelessWidget {
                             margin: const EdgeInsets.only(left: 8.0, right: 16.0, top: 8.0, bottom: 8.0),
                             child: Column(
                               children: [
-                                Icon(Icons.build_circle_rounded, size: 36.0, color: ObsidianUITheme.secondaryAccent),
-                                const SizedBox(height: 12.0),
-                                Text(context.tr('nav.pit_scout'), style: TextStyle(fontWeight: FontWeight.bold, color: primaryTextColor)),
-                                const SizedBox(height: 4.0),
-                                Text(context.tr('subtitle.pit_scout'), style: TextStyle(fontSize: 11.0, color: tertiaryTextColor)),
+                                Container(
+                                  padding: const EdgeInsets.all(8.0),
+                                  decoration: BoxDecoration(
+                                    color: ObsidianUITheme.secondaryAccent.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(8.0),
+                                  ),
+                                  child: Icon(Icons.build_circle_rounded, size: 24.0, color: ObsidianUITheme.secondaryAccent),
+                                ),
+                                const SizedBox(height: 10.0),
+                                Text(context.tr('nav.pit_scout'), style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.0, color: primaryTextColor)),
+                                const SizedBox(height: 2.0),
+                                Text(context.tr('subtitle.pit_scout'), maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11.0, color: tertiaryTextColor)),
                               ],
                             ),
                           ),

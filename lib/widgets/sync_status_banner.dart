@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
@@ -76,7 +75,7 @@ class _SyncStatusBannerState extends State<SyncStatusBanner> {
       return _shell(
         context,
         color: ObsidianUITheme.successGreen,
-        icon: FontAwesomeIcons.circleCheck,
+        icon: Icons.check_circle_outline,
         message: 'All saved entries are on the server.',
       );
     }
@@ -86,7 +85,7 @@ class _SyncStatusBannerState extends State<SyncStatusBanner> {
       return _shell(
         context,
         color: ObsidianUITheme.primaryAccent,
-        icon: FontAwesomeIcons.arrowsRotate,
+        icon: Icons.sync,
         message: 'Uploading $count saved ${count == 1 ? 'entry' : 'entries'} to the server...',
       );
     }
@@ -94,18 +93,18 @@ class _SyncStatusBannerState extends State<SyncStatusBanner> {
       return _shell(
         context,
         color: ObsidianUITheme.errorRed,
-        icon: FontAwesomeIcons.mobileScreenButton,
+        icon: Icons.smartphone,
         message: 'Offline. $count $noun saved on this device only. They upload automatically when the connection returns.',
       );
     }
     return _shell(
       context,
       color: ObsidianUITheme.warningOrange,
-      icon: FontAwesomeIcons.mobileScreenButton,
+      icon: Icons.smartphone,
       message: '$count $noun saved on this device only and not on the server yet.',
       action: TextButton.icon(
         onPressed: () => api.syncOutbox(),
-        icon: const FaIcon(FontAwesomeIcons.cloudArrowUp, size: 14),
+        icon: const Icon(Icons.cloud_upload_outlined, size: 16),
         label: const Text('Sync now'),
         style: TextButton.styleFrom(foregroundColor: ObsidianUITheme.warningOrange),
       ),
@@ -115,7 +114,7 @@ class _SyncStatusBannerState extends State<SyncStatusBanner> {
   Widget _shell(
     BuildContext context, {
     required Color color,
-    required FaIconData icon,
+    required IconData icon,
     required String message,
     Widget? action,
   }) {
@@ -132,7 +131,7 @@ class _SyncStatusBannerState extends State<SyncStatusBanner> {
         ),
         child: Row(
           children: [
-            FaIcon(icon, size: 16, color: color),
+            Icon(icon, size: 18, color: color),
             const SizedBox(width: 10),
             Expanded(
               child: Text(

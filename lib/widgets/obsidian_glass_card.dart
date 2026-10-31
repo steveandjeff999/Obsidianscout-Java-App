@@ -11,9 +11,9 @@ class ObsidianGlassCard extends StatefulWidget {
   const ObsidianGlassCard({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(20.0),
-    this.margin = const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-    this.borderRadius = 24.0,
+    this.padding = const EdgeInsets.all(16.0),
+    this.margin = const EdgeInsets.symmetric(vertical: 6.0, horizontal: 16.0),
+    this.borderRadius = 12.0,
     this.onTap,
   });
 
@@ -30,8 +30,8 @@ class _ObsidianGlassCardState extends State<ObsidianGlassCard> {
     final cardBgColor = ObsidianUITheme.getSurfaceColor(context);
     final borderColor = ObsidianUITheme.getBorderColor(context);
     final shadowColor = isDark
-        ? Colors.black.withValues(alpha: 0.25)
-        : Colors.black.withValues(alpha: 0.04);
+        ? Colors.black.withValues(alpha: 0.18)
+        : Colors.black.withValues(alpha: 0.03);
 
     final content = Material(
       color: Colors.transparent,
@@ -44,9 +44,9 @@ class _ObsidianGlassCardState extends State<ObsidianGlassCard> {
       ),
     );
 
-    final effectiveRadius = widget.borderRadius == 24.0
+    final effectiveRadius = (widget.borderRadius == 24.0 || widget.borderRadius == 12.0)
         ? ObsidianUITheme.getCardBorderRadius(context)
-        : (widget.borderRadius >= 999.0 ? 24.0 : widget.borderRadius.clamp(0.0, 28.0));
+        : (widget.borderRadius >= 999.0 ? 12.0 : widget.borderRadius.clamp(0.0, 20.0));
 
     // Static card optimization (no onTap): Render pure container without animation overhead
     if (widget.onTap == null) {
@@ -64,8 +64,8 @@ class _ObsidianGlassCardState extends State<ObsidianGlassCard> {
           boxShadow: [
             BoxShadow(
               color: shadowColor,
-              blurRadius: 6,
-              offset: const Offset(0, 2),
+              blurRadius: 3,
+              offset: const Offset(0, 1),
             ),
           ],
         ),
@@ -73,15 +73,15 @@ class _ObsidianGlassCardState extends State<ObsidianGlassCard> {
       );
     }
 
-    // Interactive card: Smooth press feedback
+    // Interactive card: Clean tactile press feedback
     return GestureDetector(
       onTap: widget.onTap,
       onTapDown: (_) => setState(() => _isPressed = true),
       onTapUp: (_) => setState(() => _isPressed = false),
       onTapCancel: () => setState(() => _isPressed = false),
       child: AnimatedScale(
-        scale: _isPressed ? 0.985 : 1.0,
-        duration: const Duration(milliseconds: 100),
+        scale: _isPressed ? 0.99 : 1.0,
+        duration: const Duration(milliseconds: 80),
         curve: Curves.easeOutCubic,
         child: Container(
           margin: widget.margin,
@@ -92,15 +92,15 @@ class _ObsidianGlassCardState extends State<ObsidianGlassCard> {
             color: cardBgColor,
             border: Border.all(
               color: _isPressed
-                  ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.6)
+                  ? ObsidianUITheme.getPrimaryAccent(context).withValues(alpha: 0.7)
                   : borderColor,
               width: 1.0,
             ),
             boxShadow: [
               BoxShadow(
                 color: shadowColor,
-                blurRadius: _isPressed ? 2 : 6,
-                offset: _isPressed ? const Offset(0, 1) : const Offset(0, 2),
+                blurRadius: _isPressed ? 1 : 3,
+                offset: _isPressed ? const Offset(0, 0.5) : const Offset(0, 1),
               ),
             ],
           ),

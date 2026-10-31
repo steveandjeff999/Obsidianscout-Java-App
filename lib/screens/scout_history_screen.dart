@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../models/api_response.dart';
 import '../models/scout_history_models.dart';
 import '../services/api_service.dart';
@@ -643,21 +642,21 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
           const SizedBox(width: 16),
           _filterChip('Synced', _statusFilter == 'synced',
               () => setState(() => _statusFilter = _statusFilter == 'synced' ? 'all' : 'synced'),
-              ObsidianUITheme.successGreen, icon: FontAwesomeIcons.circleCheck),
+              ObsidianUITheme.successGreen, icon: Icons.check_circle_outline),
           const SizedBox(width: 6),
           _filterChip('Pending', _statusFilter == 'pending',
               () => setState(() => _statusFilter = _statusFilter == 'pending' ? 'all' : 'pending'),
-              ObsidianUITheme.warningOrange, icon: FontAwesomeIcons.clock),
+              ObsidianUITheme.warningOrange, icon: Icons.access_time),
           const SizedBox(width: 6),
           _filterChip('Failed', _statusFilter == 'failed',
               () => setState(() => _statusFilter = _statusFilter == 'failed' ? 'all' : 'failed'),
-              ObsidianUITheme.errorRed, icon: FontAwesomeIcons.circleXmark),
+              ObsidianUITheme.errorRed, icon: Icons.cancel_outlined),
         ],
       ),
     );
   }
 
-  Widget _filterChip(String label, bool selected, VoidCallback onTap, Color accent, {FaIconData? icon}) {
+  Widget _filterChip(String label, bool selected, VoidCallback onTap, Color accent, {IconData? icon}) {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -685,7 +684,7 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
               ),
               if (icon != null) ...[
                 const SizedBox(width: 5),
-                FaIcon(icon, size: 11, color: selected ? accent : ObsidianUITheme.getSecondaryTextColor(context)),
+                Icon(icon, size: 13, color: selected ? accent : ObsidianUITheme.getSecondaryTextColor(context)),
               ],
             ],
           ),

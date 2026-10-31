@@ -209,7 +209,7 @@ class DynamicFieldWidget extends StatelessWidget {
                     ),
                     child: Text(
                       '$val',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: isDesktop ? 14.0 : 16.0, color: primaryTextColor),
+                      style: ObsidianUITheme.tabularFigures(style: TextStyle(fontWeight: FontWeight.bold, fontSize: isDesktop ? 14.0 : 16.0, color: primaryTextColor)),
                     ),
                   ),
                   const SizedBox(width: 6.0),
@@ -295,51 +295,84 @@ class DynamicFieldWidget extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Expanded(child: labelWidget),
-            Row(
-              children: [
-                Tooltip(
-                  message: decTooltip,
-                  child: IconButton(
-                    onPressed: val > minVal
-                        ? () {
-                            HapticFeedback.lightImpact();
-                            onChanged((val - stepVal).clamp(minVal, maxVal));
-                          }
-                        : null,
-                    icon: Icon(Icons.remove_circle_outline, color: secondaryTextColor, size: 30.0),
-                    iconSize: 30.0,
-                    padding: const EdgeInsets.all(14.0),
-                    constraints: const BoxConstraints(minWidth: 56.0, minHeight: 56.0),
+            Container(
+              decoration: BoxDecoration(
+                color: surfaceColor,
+                borderRadius: BorderRadius.circular(8.0),
+                border: Border.all(color: borderColor, width: 1.0),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Tooltip(
+                    message: decTooltip,
+                    child: InkWell(
+                      onTap: val > minVal
+                          ? () {
+                              HapticFeedback.lightImpact();
+                              onChanged((val - stepVal).clamp(minVal, maxVal));
+                            }
+                          : null,
+                      borderRadius: const BorderRadius.horizontal(left: Radius.circular(7.0)),
+                      child: Container(
+                        constraints: const BoxConstraints(minWidth: 44.0, minHeight: 40.0),
+                        alignment: Alignment.center,
+                        child: Icon(
+                          Icons.remove_circle_outline,
+                          color: val > minVal ? primaryTextColor : faintTextColor,
+                          size: 20.0,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 8.0),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12.0),
-                    color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.25),
-                    border: Border.all(color: ObsidianUITheme.getGlassBorderColor(context)),
+                  Container(
+                    height: 24.0,
+                    width: 1.0,
+                    color: borderColor,
                   ),
-                  child: Text(
-                    '$val',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0, color: primaryTextColor),
+                  Container(
+                    constraints: const BoxConstraints(minWidth: 48.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                    alignment: Alignment.center,
+                    child: Text(
+                      '$val',
+                      style: ObsidianUITheme.tabularFigures(
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16.0,
+                          color: primaryTextColor,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-                Tooltip(
-                  message: incTooltip,
-                  child: IconButton(
-                    onPressed: val < maxVal
-                        ? () {
-                            HapticFeedback.lightImpact();
-                            onChanged((val + stepVal).clamp(minVal, maxVal));
-                          }
-                        : null,
-                    icon: Icon(Icons.add_circle_outline, color: ObsidianUITheme.primaryAccent, size: 30.0),
-                    iconSize: 30.0,
-                    padding: const EdgeInsets.all(14.0),
-                    constraints: const BoxConstraints(minWidth: 56.0, minHeight: 56.0),
+                  Container(
+                    height: 24.0,
+                    width: 1.0,
+                    color: borderColor,
                   ),
-                ),
-              ],
+                  Tooltip(
+                    message: incTooltip,
+                    child: InkWell(
+                      onTap: val < maxVal
+                          ? () {
+                              HapticFeedback.lightImpact();
+                              onChanged((val + stepVal).clamp(minVal, maxVal));
+                            }
+                          : null,
+                      borderRadius: const BorderRadius.horizontal(right: Radius.circular(7.0)),
+                      child: Container(
+                        constraints: const BoxConstraints(minWidth: 44.0, minHeight: 40.0),
+                        alignment: Alignment.center,
+                        child: Icon(
+                          Icons.add_circle_outline,
+                          color: val < maxVal ? ObsidianUITheme.getPrimaryAccent(context) : faintTextColor,
+                          size: 20.0,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         );

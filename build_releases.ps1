@@ -238,7 +238,7 @@ Name:           obsidianscout
 Version:        $displayVersion
 Release:        1
 Summary:        ObsidianScout Scouting App
-License:        Proprietary
+License:        GPLv3
 BuildArch:      x86_64
 AutoReqProv:    no
 
