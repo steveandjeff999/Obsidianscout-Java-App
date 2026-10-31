@@ -1158,15 +1158,15 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
                   HapticFeedback.mediumImpact();
                   setState(() => _activeTab = tab['key']!);
                 },
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(8),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
                   padding: const EdgeInsets.symmetric(vertical: 10.0),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.25)
+                        ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.16)
                         : ObsidianUITheme.getSurfaceColor(context),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                       color: isSelected
                           ? ObsidianUITheme.primaryAccent
@@ -1265,7 +1265,9 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
         const SizedBox(height: 4.0),
         Text(
           value,
-          style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold, color: accentColor),
+          style: ObsidianUITheme.tabularFigures(
+            style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold, color: accentColor),
+          ),
         ),
       ],
     );

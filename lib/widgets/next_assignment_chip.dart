@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../models/assignment_models.dart';
 import '../services/assignment_advance_service.dart';
@@ -53,10 +52,10 @@ class NextAssignmentChip extends StatelessWidget {
     final muted = ObsidianUITheme.getSecondaryTextColor(context);
     const bold = TextStyle(fontWeight: FontWeight.w700);
 
-    Widget line(FaIconData? icon, Color? iconColor, List<InlineSpan> spans, {Color? color}) => Row(
+    Widget line(IconData? icon, Color? iconColor, List<InlineSpan> spans, {Color? color}) => Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (icon != null) ...[FaIcon(icon, size: 13, color: iconColor), const SizedBox(width: 8)],
+            if (icon != null) ...[Icon(icon, size: 15, color: iconColor), const SizedBox(width: 8)],
             Flexible(
               child: Text.rich(TextSpan(children: spans), style: TextStyle(fontSize: 13, color: color ?? textColor)),
             ),
@@ -66,7 +65,7 @@ class NextAssignmentChip extends StatelessWidget {
     final lines = <Widget>[];
     Widget? action;
     if (current != null) {
-      lines.add(line(FontAwesomeIcons.forwardStep, accent, [
+      lines.add(line(Icons.skip_next, accent, [
         const TextSpan(text: 'Current assignment: '),
         TextSpan(text: AssignmentAdvanceService.describe(current!), style: bold),
         if (skippedPast > 0) TextSpan(text: '  (skipped $skippedPast already played)', style: TextStyle(color: muted)),
@@ -91,7 +90,7 @@ class NextAssignmentChip extends StatelessWidget {
         );
       }
     } else if (upNext != null) {
-      lines.add(line(FontAwesomeIcons.forwardStep, accent, [
+      lines.add(line(Icons.skip_next, accent, [
         const TextSpan(text: 'Your next assignment: '),
         TextSpan(text: AssignmentAdvanceService.describe(upNext!), style: bold),
       ]));
@@ -103,7 +102,7 @@ class NextAssignmentChip extends StatelessWidget {
         );
       }
     } else {
-      lines.add(line(FontAwesomeIcons.circleCheck, ObsidianUITheme.successGreen,
+      lines.add(line(Icons.check_circle_outline, ObsidianUITheme.successGreen,
           [const TextSpan(text: 'No more assignments. Pick a team and match manually.')]));
     }
 

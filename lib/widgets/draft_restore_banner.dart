@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../services/scouting_draft_service.dart';
 import '../theme/obsidian_ui_theme.dart';
 
@@ -38,7 +37,7 @@ class DraftRestoreBanner extends StatelessWidget {
         ),
         child: Row(
           children: [
-            FaIcon(FontAwesomeIcons.clockRotateLeft, size: 16, color: color),
+            Icon(Icons.history, size: 18, color: color),
             const SizedBox(width: 10),
             Expanded(
               child: Column(

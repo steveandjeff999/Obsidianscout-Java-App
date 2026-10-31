@@ -1,22 +1,23 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../models/config_models.dart';
 import 'obsidian_page_transitions.dart';
 
 class ObsidianUITheme {
   // Brand default colors (Dark)
-  static const Color defaultBackground = Color(0xFF0A0C10);
-  static const Color defaultSurface = Color(0xFF121620);
+  static const Color defaultBackground = Color(0xFF000000);
+  static const Color defaultSurface = Color(0xFF0E1014);
 
   // Brand default colors (Light)
-  static const Color defaultBackgroundLight = Color(0xFFF4F6FB);
+  static const Color defaultBackgroundLight = Color(0xFFF6F8FA);
   static const Color defaultSurfaceLight = Color(0xFFFFFFFF);
 
-  static const Color defaultPrimaryAccent = Color(0xFF5B6CFF); // Electric Blue/Violet
-  static const Color defaultSecondaryAccent = Color(0xFF9D4EDD); // Glowing Purple
-  static const Color successGreen = Color(0xFF00E676);
-  static const Color warningOrange = Color(0xFFFF9100);
-  static const Color errorRed = Color(0xFFFF1744);
+  static const Color defaultPrimaryAccent = Color(0xFF388BFD); // Electric Blue/Violet
+  static const Color defaultSecondaryAccent = Color(0xFF38BDF8); // Glowing Purple
+  static const Color successGreen = Color(0xFF10B981);
+  static const Color warningOrange = Color(0xFFF59E0B);
+  static const Color errorRed = Color(0xFFEF4444);
 
   // Fallback / legacy constants
   static const Color background = defaultBackground;
@@ -82,7 +83,7 @@ class ObsidianUITheme {
 
   static double get buttonRadius {
     if (_customThemeEnabled && _customTheme != null) {
-      return parseRadius(_customTheme!.btnRadius, fallback: 12.0);
+      return parseRadius(_customTheme!.btnRadius, fallback: 8.0);
     }
     return 12.0;
   }
@@ -99,16 +100,16 @@ class ObsidianUITheme {
   }
 
   // Glassmorphism translucent fills & borders (Dark Mode)
-  static const Color glassSurface = Color(0x18FFFFFF);
-  static const Color glassSurfaceHover = Color(0x28FFFFFF);
-  static const Color glassBorderLight = Color(0x33FFFFFF);
-  static const Color glassBorderDark = Color(0x0DFFFFFF);
-  static const Color glassInputBackground = Color(0x10FFFFFF);
+  static const Color glassSurface = Color(0xFF0E1014);
+  static const Color glassSurfaceHover = Color(0xFF16181D);
+  static const Color glassBorderLight = Color(0xFF20232A);
+  static const Color glassBorderDark = Color(0xFF16181D);
+  static const Color glassInputBackground = Color(0xFF16181D);
 
   // Glassmorphism translucent fills & borders (Light Mode)
-  static const Color glassSurfaceLightMode = Color(0xE6FFFFFF);
-  static const Color glassBorderLightMode = Color(0x1F000000);
-  static const Color glassInputBackgroundLightMode = Color(0x0D000000);
+  static const Color glassSurfaceLightMode = Color(0xFFFFFFFF);
+  static const Color glassBorderLightMode = Color(0xFFD0D7DE);
+  static const Color glassInputBackgroundLightMode = Color(0xFFF6F8FA);
 
   static const PageTransitionsTheme _pageTransitionsTheme = PageTransitionsTheme(
     builders: {
@@ -184,12 +185,12 @@ class ObsidianUITheme {
     final muted = (custom != null ? parseHex(custom.darkMuted) : null) ?? Colors.white70;
     final radiusStr = custom != null
         ? (custom.darkRadius.isNotEmpty ? custom.darkRadius : custom.btnRadius)
-        : '12px';
-    final radius = parseRadius(radiusStr, fallback: 12.0);
+        : '8px';
+    final radius = parseRadius(radiusStr, fallback: 8.0);
     final cardRadius = custom != null
-        ? (parseRadius(radiusStr, fallback: 20.0) >= 999.0
+        ? (parseRadius(radiusStr, fallback: 12.0) >= 999.0
             ? 20.0
-            : parseRadius(radiusStr, fallback: 20.0).clamp(0.0, 24.0))
+            : parseRadius(radiusStr, fallback: 12.0).clamp(0.0, 16.0))
         : 20.0;
 
     final surfaceColor = () {
@@ -254,11 +255,11 @@ class ObsidianUITheme {
         fillColor: glassInputBackground,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radius.clamp(4.0, 16.0)),
-          borderSide: const BorderSide(color: Colors.white12),
+          borderSide: const BorderSide(color: Color(0xFF20232A)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radius.clamp(4.0, 16.0)),
-          borderSide: const BorderSide(color: Colors.white12),
+          borderSide: const BorderSide(color: Color(0xFF20232A)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radius.clamp(4.0, 16.0)),
@@ -303,7 +304,7 @@ class ObsidianUITheme {
         unselectedLabelColor: muted,
         indicatorColor: accent,
         indicatorSize: TabBarIndicatorSize.tab,
-        dividerColor: Colors.white12,
+        dividerColor: const Color(0xFF20232A),
       ),
       drawerTheme: DrawerThemeData(
         backgroundColor: bgSolid,
@@ -353,12 +354,12 @@ class ObsidianUITheme {
     final muted = (custom != null ? parseHex(custom.lightMuted) : null) ?? const Color(0xFF334155);
     final radiusStr = custom != null
         ? (custom.lightRadius.isNotEmpty ? custom.lightRadius : custom.btnRadius)
-        : '12px';
-    final radius = parseRadius(radiusStr, fallback: 12.0);
+        : '8px';
+    final radius = parseRadius(radiusStr, fallback: 8.0);
     final cardRadius = custom != null
-        ? (parseRadius(radiusStr, fallback: 20.0) >= 999.0
+        ? (parseRadius(radiusStr, fallback: 12.0) >= 999.0
             ? 20.0
-            : parseRadius(radiusStr, fallback: 20.0).clamp(0.0, 24.0))
+            : parseRadius(radiusStr, fallback: 12.0).clamp(0.0, 16.0))
         : 20.0;
 
     final surfaceColor = () {
@@ -418,11 +419,11 @@ class ObsidianUITheme {
         fillColor: glassInputBackgroundLightMode,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radius.clamp(4.0, 16.0)),
-          borderSide: const BorderSide(color: Color(0x1F000000)),
+          borderSide: const BorderSide(color: Color(0xFFD0D7DE)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radius.clamp(4.0, 16.0)),
-          borderSide: const BorderSide(color: Color(0x1F000000)),
+          borderSide: const BorderSide(color: Color(0xFFD0D7DE)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radius.clamp(4.0, 16.0)),
@@ -467,7 +468,7 @@ class ObsidianUITheme {
         unselectedLabelColor: muted,
         indicatorColor: accent,
         indicatorSize: TabBarIndicatorSize.tab,
-        dividerColor: const Color(0x1F000000),
+        dividerColor: const Color(0xFFD0D7DE),
       ),
       drawerTheme: DrawerThemeData(
         backgroundColor: bgSolid,
@@ -583,9 +584,9 @@ class ObsidianUITheme {
         final accent = getPrimaryAccent(context);
         return Color.alphaBlend(accent.withValues(alpha: 0.12), Colors.white.withValues(alpha: 0.08));
       }
-      return Colors.white12;
+      return const Color(0xFF20232A);
     }
-    return const Color(0x1F000000);
+    return const Color(0xFFD0D7DE);
   }
 
   static Color getInputFillColor(BuildContext context) {
@@ -658,7 +659,7 @@ class ObsidianUITheme {
     return BoxDecoration(color: isDark(context) ? defaultBackground : defaultBackgroundLight);
   }
 
-  static double getCardBorderRadius(BuildContext context, {double defaultRadius = 24.0}) {
+  static double getCardBorderRadius(BuildContext context, {double defaultRadius = 12.0}) {
     final custom = activeCustomTheme;
     if (custom != null) {
       final rStr = isDark(context)
@@ -666,12 +667,16 @@ class ObsidianUITheme {
           : (custom.lightRadius.isNotEmpty ? custom.lightRadius : custom.btnRadius);
       final parsed = parseRadius(rStr, fallback: defaultRadius);
       if (parsed >= 999.0) {
-        return defaultRadius.clamp(0.0, 24.0);
+        return defaultRadius.clamp(0.0, 16.0);
       }
-      return parsed.clamp(0.0, 24.0);
+      return parsed.clamp(0.0, 16.0);
     }
-    return defaultRadius.clamp(0.0, 24.0);
+    return defaultRadius.clamp(0.0, 16.0);
+  }
+
+  static TextStyle tabularFigures({TextStyle? style}) {
+    return (style ?? const TextStyle()).copyWith(
+      fontFeatures: const [ui.FontFeature.tabularFigures()],
+    );
   }
 }
-
-
