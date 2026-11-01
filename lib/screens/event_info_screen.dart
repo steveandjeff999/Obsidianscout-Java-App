@@ -366,7 +366,9 @@ class _PostDialogState extends State<_PostDialog> {
 
   static Uint8List _gzip(Uint8List bytes) => Uint8List.fromList(GZipEncoder().encode(bytes));
 
+  /// Returns the smallest attempt, even if it is still over [maxBytes].
   Future<_PendingFile> _compressToFit(String name, Uint8List bytes, int maxBytes) async {
+    var best = _PendingFile(name, bytes);
     final lower = name.toLowerCase();
     if (lower.endsWith('.png') || lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.webp')) {
       try {
@@ -378,19 +380,20 @@ class _PostDialogState extends State<_PostDialog> {
           budgetBytes: maxBytes,
         );
         final imgBytes = ImageProcessingUtils.dataUrlToBytes(processed?.dataUrl);
-        if (imgBytes != null && imgBytes.length <= maxBytes) {
+        if (imgBytes != null && imgBytes.length < best.bytes.length) {
           final webpName = '${name.replaceFirst(RegExp(r'\.[^.]+$'), '')}.webp';
-          return _PendingFile(webpName, imgBytes, originalSize: bytes.length);
+          best = _PendingFile(webpName, imgBytes, originalSize: bytes.length);
+          if (imgBytes.length <= maxBytes) return best;
         }
       } catch (_) {}
     }
     try {
       final compressed = await Isolate.run(() => _gzip(bytes));
-      if (compressed.length < bytes.length) {
-        return _PendingFile(name, compressed, originalSize: bytes.length);
+      if (compressed.length < best.bytes.length) {
+        best = _PendingFile(name, compressed, originalSize: bytes.length);
       }
     } catch (_) {}
-    return _PendingFile(name, bytes);
+    return best;
   }
 
   Future<void> _pick() async {
@@ -407,8 +410,8 @@ class _PostDialogState extends State<_PostDialog> {
         if (!mounted) return;
         if (file.bytes.length > widget.maxFileBytes) {
           ObsidianFeedback.showError(context,
-              message: context.trArgs('event_info.err_too_large', '{name} is larger than {size}.',
-                  {'name': f.name, 'size': fmtBytes(widget.maxFileBytes)}));
+              message: context.trArgs('event_info.err_too_large_compressed', '{name} is still {size} after compression. The limit is {limit}.',
+                  {'name': f.name, 'size': fmtBytes(file.bytes.length), 'limit': fmtBytes(widget.maxFileBytes)}));
           continue;
         }
         setState(() => _pending.add(file));
