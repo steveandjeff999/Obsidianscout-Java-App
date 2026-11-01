@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
+import '../services/live_refresh.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/ported_page_kit.dart';
@@ -18,7 +19,25 @@ class ScouterReportScreen extends StatefulWidget {
   State<ScouterReportScreen> createState() => _ScouterReportScreenState();
 }
 
-class _ScouterReportScreenState extends State<ScouterReportScreen> {
+class _ScouterReportScreenState extends State<ScouterReportScreen> with LiveRefresh<ScouterReportScreen> {
+  @override
+  ApiService get liveApi => widget.apiService;
+
+  @override
+  bool get liveVisible => widget.isVisible;
+
+  @override
+  Set<String> get liveTopics => const {'scouting', 'pit-scouting', 'qual-scouting', 'assignments'};
+
+  @override
+  Future<void> liveReload() => _load();
+
+  @override
+  String? get liveEventKey => _scope == 'event' ? _eventKey : null;
+
+  @override
+  Duration get liveMinInterval => const Duration(seconds: 15);
+
   bool _loading = true;
   String _scope = 'event';
   String? _eventKey;
@@ -78,13 +97,15 @@ class _ScouterReportScreenState extends State<ScouterReportScreen> {
       });
       return;
     }
-    setState(() => _loading = true);
+    final quiet = isLiveRefreshing;
+    if (!quiet) setState(() => _loading = true);
     final res = await widget.apiService.requestJson('GET', '/api/admin/scouter-report', query: _query());
     if (!mounted) return;
+    if (quiet && !res.success) return;
     if (!res.success) reportResult(context, res, action: context.tr('scouter-report.title', 'Scouter Report'));
     setState(() {
       _report = res.success ? jsonMap(res.data) : null;
-      _expanded.clear();
+      if (!quiet) _expanded.clear();
       _loading = false;
     });
   }

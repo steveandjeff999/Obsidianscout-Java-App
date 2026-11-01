@@ -3,6 +3,7 @@ import '../l10n/app_localizations.dart';
 import '../models/team_match_models.dart';
 import '../models/validation_models.dart';
 import '../services/api_service.dart';
+import '../services/live_refresh.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
 import 'team_details_screen.dart';
@@ -23,7 +24,25 @@ class DataValidationScreen extends StatefulWidget {
   State<DataValidationScreen> createState() => _DataValidationScreenState();
 }
 
-class _DataValidationScreenState extends State<DataValidationScreen> {
+class _DataValidationScreenState extends State<DataValidationScreen> with LiveRefresh<DataValidationScreen> {
+  @override
+  ApiService get liveApi => widget.apiService;
+
+  @override
+  bool get liveVisible => widget.isVisible;
+
+  @override
+  Set<String> get liveTopics => const {'scouting', 'schedule'};
+
+  @override
+  Future<void> liveReload() => _loadData();
+
+  @override
+  String? get liveEventKey => _selectedEventKey;
+
+  @override
+  Duration get liveMinInterval => const Duration(seconds: 10);
+
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -104,10 +123,12 @@ class _DataValidationScreenState extends State<DataValidationScreen> {
   Future<void> _loadData() async {
     if (_selectedEventKey.isEmpty) return;
 
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    if (!isLiveRefreshing) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    }
 
     try {
       final summary = await widget.apiService.fetchValidationData(
@@ -123,7 +144,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> {
         });
       }
     } catch (e) {
-      if (mounted) {
+      if (mounted && !isLiveRefreshing) {
         setState(() {
           _errorMessage = 'Validation check failed: $e';
           _isLoading = false;

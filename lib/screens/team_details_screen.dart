@@ -4,6 +4,8 @@ import '../l10n/app_localizations.dart';
 import '../models/config_models.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
+import '../widgets/last_updated_line.dart';
+import '../services/live_refresh.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/obsidian_image_preview_card.dart';
@@ -25,7 +27,22 @@ class TeamDetailsScreen extends StatefulWidget {
   State<TeamDetailsScreen> createState() => _TeamDetailsScreenState();
 }
 
-class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTickerProviderStateMixin {
+class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTickerProviderStateMixin, LiveRefresh<TeamDetailsScreen> {
+  @override
+  ApiService get liveApi => widget.apiService;
+
+  @override
+  Set<String> get liveTopics => const {'scouting', 'pit-scouting', 'qual-scouting', 'schedule', 'rankings'};
+
+  @override
+  Future<void> liveReload() => _loadData();
+
+  @override
+  String? get liveEventKey => widget.eventKey;
+
+  @override
+  Duration get liveMinInterval => const Duration(seconds: 10);
+
   late TabController _tabController;
   bool _isLoading = true;
 
@@ -64,7 +81,7 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
   }
 
   Future<void> _loadData() async {
-    setState(() => _isLoading = true);
+    if (!isLiveRefreshing) setState(() => _isLoading = true);
     final resolvedEvent = widget.eventKey ?? await widget.apiService.fetchCurrentEventKey();
 
     try {
@@ -317,6 +334,12 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
     final isDark = ObsidianUITheme.isDark(context);
 
     return Scaffold(
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: LastUpdatedLine(apiService: widget.apiService),
+        ),
+      ),
       body: SafeArea(
         child: Column(
           children: [

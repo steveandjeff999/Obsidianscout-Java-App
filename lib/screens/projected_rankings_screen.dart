@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
+import '../services/live_refresh.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/ported_page_kit.dart';
@@ -19,7 +20,25 @@ class ProjectedRankingsScreen extends StatefulWidget {
   State<ProjectedRankingsScreen> createState() => _ProjectedRankingsScreenState();
 }
 
-class _ProjectedRankingsScreenState extends State<ProjectedRankingsScreen> {
+class _ProjectedRankingsScreenState extends State<ProjectedRankingsScreen> with LiveRefresh<ProjectedRankingsScreen> {
+  @override
+  ApiService get liveApi => widget.apiService;
+
+  @override
+  bool get liveVisible => widget.isVisible;
+
+  @override
+  Set<String> get liveTopics => const {'schedule', 'rankings'};
+
+  @override
+  Future<void> liveReload() => _load();
+
+  @override
+  String? get liveEventKey => _eventKey;
+
+  @override
+  Duration get liveMinInterval => const Duration(seconds: 30);
+
   static const _simOptions = [1000, 2000, 5000, 10000];
 
   bool _loading = true;
@@ -55,16 +74,19 @@ class _ProjectedRankingsScreenState extends State<ProjectedRankingsScreen> {
       return;
     }
     final id = ++_requestId;
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    if (!isLiveRefreshing) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     final res = await widget.apiService.requestJson('GET', '/api/matches/projected-rankings', query: {
       'eventKey': _eventKey,
       'simulations': '$_simulations',
       if (fresh) 'seed': '${Random().nextInt(2147483647)}',
     }, cacheKey: 'cache_projected_rankings_$_eventKey');
     if (!mounted || id != _requestId) return;
+    if (isLiveRefreshing && !res.success) return;
     setState(() {
       _loading = false;
       _data = res.success ? jsonMap(res.data) : null;

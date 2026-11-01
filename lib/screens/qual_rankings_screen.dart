@@ -4,6 +4,7 @@ import '../l10n/app_localizations.dart';
 import '../models/config_models.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
+import '../services/live_refresh.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../theme/obsidian_responsive.dart';
 import '../widgets/obsidian_glass_card.dart';
@@ -51,7 +52,22 @@ class _TeamQualScore {
   });
 }
 
-class _QualRankingsScreenState extends State<QualRankingsScreen> {
+class _QualRankingsScreenState extends State<QualRankingsScreen> with LiveRefresh<QualRankingsScreen> {
+  @override
+  ApiService get liveApi => widget.apiService;
+
+  @override
+  bool get liveVisible => widget.isVisible;
+
+  @override
+  Set<String> get liveTopics => const {'qual-scouting', 'schedule'};
+
+  @override
+  Future<void> liveReload() => _loadData();
+
+  @override
+  String? get liveEventKey => _selectedEventKey;
+
   ScoutingConfigModel? _qualConfig;
   List<ScoutingFieldModel> _metricFields = [];
   List<_QualRankingMetric> _rankingMetrics = [];

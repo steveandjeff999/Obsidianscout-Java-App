@@ -27,6 +27,7 @@ import '../data/local_store.dart';
 import 'account_manager_service.dart';
 import 'auth_storage_service.dart';
 import 'entry_sync.dart' as entry_sync;
+import 'live_refresh.dart';
 import 'local_analytics.dart' as local_analytics;
 import 'net/link_quality.dart';
 import 'scout_history_service.dart';
@@ -179,6 +180,34 @@ class ApiService {
   String get currentProgram => _currentUser?.program ?? _currentSettings?.program ?? 'FRC';
   bool get isOnline => _isOnline;
   Stream<bool> get onOnlineStatusChanged => _onlineStreamController.stream;
+
+  final StreamController<LiveDataChange> _dataChangedController = StreamController<LiveDataChange>.broadcast();
+
+  /// Data on the server changed; screens listen through the [LiveRefresh] mixin.
+  Stream<LiveDataChange> get onDataChanged => _dataChangedController.stream;
+
+  static const Map<String, List<String>> _topicCaches = {
+    'scouting': ['cache_scouting', 'cache_prescout_scouting', 'cache_analytics', 'cache_validation_', 'cache_predict_'],
+    'pit-scouting': ['cache_pit_scouting', 'cache_prescout_pit_scouting'],
+    'qual-scouting': ['cache_qual_scouting', 'cache_prescout_qual_scouting'],
+    'schedule': ['cache_matches_', 'cache_teams_', 'cache_predict_', 'cache_validation_'],
+    'rankings': ['cache_teams_', 'cache_stats_history_', 'cache_predict_'],
+    'assignments': ['cache_my_assignments_'],
+  };
+
+  /// Saved copies of changed data stop counting as fresh, so the next fetch of them asks the server.
+  void announceDataChanged(LiveDataChange change) {
+    if (change.everything) {
+      for (final prefixes in _topicCaches.values) {
+        prefixes.forEach(invalidateMemoryCache);
+      }
+    } else {
+      for (final topic in change.topics) {
+        _topicCaches[topic]?.forEach(invalidateMemoryCache);
+      }
+    }
+    _dataChangedController.add(change);
+  }
   Stream<int> get onServerError => _serverErrorController.stream;
   Stream<String> get onSessionRevoked => _sessionRevokedController.stream;
   ThemeMode get themeMode => themeNotifier.value;
@@ -275,7 +304,26 @@ class ApiService {
     permissionsNotifier.value++;
   }
 
+  static const String _lastDataAtKey = 'last_data_at';
+  static const Duration _lastDataAtSaveEvery = Duration(minutes: 1);
+  DateTime? _lastDataAtSaved;
+
+  /// The time on screen survives a restart, so opening the app offline can say how old its saved data is.
+  Future<void> _trackLastDataAt() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = DateTime.tryParse(prefs.getString(_lastDataAtKey) ?? '');
+    http.NetClient.lastDataAt.value ??= saved;
+    http.NetClient.lastDataAt.addListener(() {
+      final at = http.NetClient.lastDataAt.value;
+      final previous = _lastDataAtSaved;
+      if (at == null || (previous != null && at.difference(previous) < _lastDataAtSaveEvery)) return;
+      _lastDataAtSaved = at;
+      prefs.setString(_lastDataAtKey, at.toIso8601String());
+    });
+  }
+
   Future<void> init() async {
+    await _trackLastDataAt();
     final prefs = await SharedPreferences.getInstance();
     _currentServerUrl = prefs.getString(keyServerUrl) ?? defaultUrl;
     _keepMeLoggedIn = prefs.getBool(keyKeepMeLoggedIn) ?? false;

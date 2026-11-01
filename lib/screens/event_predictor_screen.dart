@@ -3,6 +3,7 @@ import '../l10n/app_localizations.dart';
 import '../models/predictor_models.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
+import '../services/live_refresh.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../theme/obsidian_responsive.dart';
 import '../widgets/obsidian_glass_card.dart';
@@ -24,7 +25,29 @@ class EventPredictorScreen extends StatefulWidget {
   State<EventPredictorScreen> createState() => _EventPredictorScreenState();
 }
 
-class _EventPredictorScreenState extends State<EventPredictorScreen> {
+class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRefresh<EventPredictorScreen> {
+  @override
+  ApiService get liveApi => widget.apiService;
+
+  @override
+  bool get liveVisible => widget.isVisible;
+
+  @override
+  Set<String> get liveTopics => const {'scouting', 'schedule', 'rankings'};
+
+  @override
+  Future<void> liveReload() async {
+    final eventKey = _selectedEventKey;
+    if (eventKey != null && eventKey.isNotEmpty) await _fetchPredictions(eventKey);
+  }
+
+  @override
+  String? get liveEventKey => _selectedEventKey;
+
+  // Each reload recalculates the whole event.
+  @override
+  Duration get liveMinInterval => const Duration(seconds: 30);
+
   List<EventModel> _events = [];
   String? _selectedEventKey;
   List<MatchPredictionResponse> _predictions = [];
@@ -131,7 +154,7 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> {
         _predictions = cached;
         _isCalculating = false;
       });
-    } else if (mounted) {
+    } else if (mounted && !isLiveRefreshing) {
       setState(() => _isCalculating = true);
     }
 
