@@ -1,10 +1,13 @@
+import 'dart:isolate';
 import 'dart:typed_data';
 
+import 'package:archive/archive.dart' show GZipEncoder;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
+import '../services/image_utils.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_feedback.dart';
 import '../widgets/obsidian_glass_card.dart';
@@ -26,7 +29,8 @@ class EventInfoScreen extends StatefulWidget {
 class _PendingFile {
   final String name;
   final Uint8List bytes;
-  const _PendingFile(this.name, this.bytes);
+  final int? originalSize;
+  const _PendingFile(this.name, this.bytes, {this.originalSize});
 }
 
 final _urlPattern = RegExp(r'https?://[^\s<>"]+');
@@ -36,7 +40,7 @@ class _EventInfoScreenState extends State<EventInfoScreen> {
   String? _error;
   String _eventKey = '';
   bool _canEdit = false;
-  int _maxFileBytes = 10 * 1024 * 1024;
+  int _maxFileBytes = 15 * 1024 * 1024;
   List<Map<String, dynamic>> _posts = [];
 
   @override
@@ -350,6 +354,7 @@ class _PostDialogState extends State<_PostDialog> {
   late bool _allEvents = widget.post != null && jsonStr(widget.post!['eventKey']).isEmpty;
   late List<Map<String, dynamic>> _existing = jsonMaps(widget.post?['files']);
   final List<_PendingFile> _pending = [];
+  bool _picking = false;
   String? _error;
 
   @override
@@ -359,18 +364,57 @@ class _PostDialogState extends State<_PostDialog> {
     super.dispose();
   }
 
+  static Uint8List _gzip(Uint8List bytes) => Uint8List.fromList(GZipEncoder().encode(bytes));
+
+  Future<_PendingFile> _compressToFit(String name, Uint8List bytes, int maxBytes) async {
+    final lower = name.toLowerCase();
+    if (lower.endsWith('.png') || lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.webp')) {
+      try {
+        final processed = await ImageProcessingUtils.processImageBytesAsync(
+          bytes,
+          maxDimension: 3840,
+          quality: 85,
+          slowLink: false,
+          budgetBytes: maxBytes,
+        );
+        final imgBytes = ImageProcessingUtils.dataUrlToBytes(processed?.dataUrl);
+        if (imgBytes != null && imgBytes.length <= maxBytes) {
+          final webpName = '${name.replaceFirst(RegExp(r'\.[^.]+$'), '')}.webp';
+          return _PendingFile(webpName, imgBytes, originalSize: bytes.length);
+        }
+      } catch (_) {}
+    }
+    try {
+      final compressed = await Isolate.run(() => _gzip(bytes));
+      if (compressed.length < bytes.length) {
+        return _PendingFile(name, compressed, originalSize: bytes.length);
+      }
+    } catch (_) {}
+    return _PendingFile(name, bytes);
+  }
+
   Future<void> _pick() async {
     final picked = await FilePicker.pickFiles();
-    for (final f in picked) {
-      final bytes = await f.readAsBytes();
-      if (!mounted) return;
-      if (bytes.length > widget.maxFileBytes) {
-        ObsidianFeedback.showError(context,
-            message: context.trArgs('event_info.err_too_large', '{name} is larger than {size}.',
-                {'name': f.name, 'size': fmtBytes(widget.maxFileBytes)}));
-        continue;
+    if (!mounted) return;
+    setState(() => _picking = true);
+    try {
+      for (final f in picked) {
+        final bytes = await f.readAsBytes();
+        if (!mounted) return;
+        final file = bytes.length > widget.maxFileBytes
+            ? await _compressToFit(f.name, bytes, widget.maxFileBytes)
+            : _PendingFile(f.name, bytes);
+        if (!mounted) return;
+        if (file.bytes.length > widget.maxFileBytes) {
+          ObsidianFeedback.showError(context,
+              message: context.trArgs('event_info.err_too_large', '{name} is larger than {size}.',
+                  {'name': f.name, 'size': fmtBytes(widget.maxFileBytes)}));
+          continue;
+        }
+        setState(() => _pending.add(file));
       }
-      setState(() => _pending.add(_PendingFile(f.name, bytes)));
+    } finally {
+      if (mounted) setState(() => _picking = false);
     }
   }
 
@@ -459,7 +503,10 @@ class _PostDialogState extends State<_PostDialog> {
                   contentPadding: EdgeInsets.zero,
                   leading: Icon(Icons.attach_file_rounded, color: secondary),
                   title: Text(_pending[i].name, maxLines: 1, overflow: TextOverflow.ellipsis),
-                  subtitle: Text(fmtBytes(_pending[i].bytes.length)),
+                  subtitle: Text(_pending[i].originalSize != null
+                      ? context.trArgs('event_info.compressed_from', '{size} (compressed from {original})',
+                          {'size': fmtBytes(_pending[i].bytes.length), 'original': fmtBytes(_pending[i].originalSize!)})
+                      : fmtBytes(_pending[i].bytes.length)),
                   trailing: IconButton(
                     tooltip: context.tr('event_info.remove', 'Remove'),
                     icon: const Icon(Icons.close_rounded),
@@ -467,8 +514,10 @@ class _PostDialogState extends State<_PostDialog> {
                   ),
                 ),
               TextButton.icon(
-                onPressed: _pick,
-                icon: const Icon(Icons.attach_file_rounded, size: 18),
+                onPressed: _picking ? null : _pick,
+                icon: _picking
+                    ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.attach_file_rounded, size: 18),
                 label: Text(context.tr('event_info.add_files', 'Add files')),
               ),
               CheckboxListTile(
@@ -490,7 +539,7 @@ class _PostDialogState extends State<_PostDialog> {
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: Text(context.tr('common.cancel', 'Cancel'))),
         FilledButton(
-          onPressed: _submit,
+          onPressed: _picking ? null : _submit,
           child: Text(widget.post == null ? context.tr('event_info.btn_post', 'Post') : context.tr('common.save', 'Save')),
         ),
       ],

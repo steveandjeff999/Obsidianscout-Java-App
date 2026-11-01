@@ -68,24 +68,26 @@ class ImageProcessingUtils {
   /// Offloads CPU-intensive image decoding, resizing, and WebP compression
   /// to a background Dart isolate to keep the UI thread completely fluid.
   /// On a slow link ([slowLink], by default the measured link) the photo is made smaller.
+  /// Past [budgetBytes] (by default the scouting-photo budget) it is shrunk to at most 1280px.
   static Future<ProcessedImageResult?> processImageBytesAsync(
     Uint8List rawBytes, {
     int maxDimension = 1280,
     int quality = 76,
     bool? slowLink,
+    int? budgetBytes,
   }) async {
-    var budgetBytes = defaultBudgetBytes;
+    var budget = budgetBytes ?? defaultBudgetBytes;
     if (slowLink ?? LinkQuality.instance.isLowBandwidth) {
       if (maxDimension > slowLinkMaxDimension) maxDimension = slowLinkMaxDimension;
       if (quality > slowLinkQuality) quality = slowLinkQuality;
-      budgetBytes = slowLinkBudgetBytes;
+      budget = slowLinkBudgetBytes;
     }
     try {
       return await Isolate.run(() => processImageBytes(
         rawBytes,
         maxDimension: maxDimension,
         quality: quality,
-        budgetBytes: budgetBytes,
+        budgetBytes: budget,
       ));
     } catch (_) {
       // Fallback to synchronous processing if isolate spawn fails
@@ -93,7 +95,7 @@ class ImageProcessingUtils {
         rawBytes,
         maxDimension: maxDimension,
         quality: quality,
-        budgetBytes: budgetBytes,
+        budgetBytes: budget,
       );
     }
   }
