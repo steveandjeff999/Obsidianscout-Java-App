@@ -3,6 +3,8 @@ import 'file_download_io.dart'
 
 class FileDownloadResult {
   final bool success;
+
+  /// Where the user will find the file, for showing to them; not always a real path.
   final String? savedPath;
   final String? message;
   final bool isWebDownload;

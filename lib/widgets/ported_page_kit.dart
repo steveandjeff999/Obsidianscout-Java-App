@@ -426,7 +426,7 @@ bool reportResult(BuildContext context, ApiResponse res, {required String action
   return res.success;
 }
 
-/// Saves downloaded bytes to the device (Downloads on desktop) and says where they went.
+/// Saves downloaded bytes to the device's Downloads folder and says where they went.
 Future<void> saveDownloadedBytes(BuildContext context, ApiResponse<List<int>> res, String fallbackName, String mimeType) async {
   if (!res.success || res.data == null) {
     reportResult(context, res, action: context.tr('common.download', 'Download'));
