@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import '../models/slack_models.dart';
 import 'api_service.dart';
+import 'live_refresh.dart';
 import 'config_collab/collab_socket_web.dart' if (dart.library.io) 'config_collab/collab_socket_io.dart' as platform;
 
 class NotificationWebSocketService {
@@ -19,6 +21,7 @@ class NotificationWebSocketService {
   int _reconnectDelaySeconds = 10;
   /// Newest Slack banner seen, so a reconnect can ask the server for what it missed.
   DateTime? _lastSlackAt;
+  bool _everConnected = false;
 
   NotificationWebSocketService({
     required this.apiService,
@@ -45,7 +48,12 @@ class NotificationWebSocketService {
 
       // On mobile and desktop the session cookie has to be sent as a header, or the server closes the socket.
       _channel = platform.connectChannel(Uri.parse(wsUrl), apiService.webSocketHeaders);
-      _channel!.ready.then((_) => _catchUpSlack()).catchError((err) {
+      _channel!.ready.then((_) {
+        // Changes made while the socket was down were never announced.
+        if (_everConnected) apiService.announceDataChanged(const LiveDataChange.everything());
+        _everConnected = true;
+        return _catchUpSlack();
+      }).catchError((err) {
         // Suppress unhandled future error in VM; error is handled by stream subscription onError
       });
 
@@ -88,6 +96,9 @@ class NotificationWebSocketService {
         onNotificationReceived(groupName, title, body, sender);
       } else if (data['type'] == 'slack_notification') {
         _deliverSlack(SlackBanner.fromJson(data));
+      } else if (data['type'] == 'invalidate') {
+        final topics = (data['topics'] as List?)?.map((t) => t.toString()).toSet() ?? const <String>{};
+        apiService.announceDataChanged(LiveDataChange(topics, eventKey: data['eventKey'] as String?));
       }
     } catch (e) {
       debugPrint('[WS-Notification] Error handling frame: $e');
@@ -113,7 +124,9 @@ class NotificationWebSocketService {
   void _scheduleReconnect() {
     if (_isDisposed || !apiService.isLoggedIn || !apiService.isOnline) return;
     _reconnectTimer?.cancel();
-    _reconnectTimer = Timer(Duration(seconds: _reconnectDelaySeconds), () {
+    // Randomised so that everyone dropped by a server restart doesn't reconnect in step.
+    final delay = Duration(seconds: _reconnectDelaySeconds) * (0.5 + Random().nextDouble());
+    _reconnectTimer = Timer(delay, () {
       if (!_isDisposed && apiService.isLoggedIn && apiService.isOnline) {
         connect();
       }

@@ -34,6 +34,13 @@ class NetClient {
 
   static final NetClient instance = NetClient._();
 
+  /// When data last came from the server, an unchanged answer included (see LastUpdatedLine).
+  static final ValueNotifier<DateTime?> lastDataAt = ValueNotifier<DateTime?>(null);
+  static final RegExp _backgroundRequests = RegExp(r'^/api/(auth|version|health|banners|chat|slack|notifications|push|theme)(/|$)');
+
+  /// Above zero while a screen updates itself, so the server's load profiler can tell that from someone using the app.
+  static int liveRefreshes = 0;
+
   /// JSON bodies at least this large are gzipped before upload.
   static const int gzipMinBytes = 1024;
 
@@ -119,6 +126,7 @@ class NetClient {
     RequestPriority? priority,
   }) async {
     final hdrs = <String, String>{...?headers};
+    if (liveRefreshes > 0) hdrs['X-Live-Refresh'] = '1';
     final prio = priority ?? RequestScheduler.priorityFor(method, url.path);
 
     EtagRecord? stored;
@@ -157,6 +165,11 @@ class NetClient {
     }
 
     if (method == 'GET') {
+      if ((res.statusCode == 200 || res.statusCode == 304) &&
+          url.path.startsWith('/api/') &&
+          !_backgroundRequests.hasMatch(url.path)) {
+        lastDataAt.value = DateTime.now();
+      }
       if (res.statusCode == 304 && stored != null) {
         return http.Response(stored.body, 200,
             headers: {...res.headers, 'content-type': 'application/json; charset=utf-8', 'x-obsidian-revalidated': '1'},

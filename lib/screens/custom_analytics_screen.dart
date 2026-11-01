@@ -6,6 +6,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../services/api_service.dart';
+import '../services/live_refresh.dart';
 import '../models/custom_analytics_models.dart';
 import '../models/graph_models.dart';
 import '../widgets/obsidian_chart_interactive_wrapper.dart';
@@ -28,7 +29,22 @@ class CustomAnalyticsScreen extends StatefulWidget {
   State<CustomAnalyticsScreen> createState() => _CustomAnalyticsScreenState();
 }
 
-class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
+class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> with LiveRefresh<CustomAnalyticsScreen> {
+  @override
+  ApiService get liveApi => widget.apiService;
+
+  @override
+  bool get liveVisible => widget.isVisible;
+
+  @override
+  Set<String> get liveTopics => const {'scouting', 'pit-scouting', 'qual-scouting', 'schedule'};
+
+  @override
+  Future<void> liveReload() => _reloadDataset();
+
+  @override
+  Duration get liveMinInterval => const Duration(seconds: 15);
+
   bool _isLoading = true;
   CustomAnalyticsDataset _dataset = CustomAnalyticsDataset(
     generatedAt: DateTime.now().toIso8601String(),
@@ -116,7 +132,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> {
   }
 
   Future<void> _reloadDataset() async {
-    setState(() => _isLoading = true);
+    if (!isLiveRefreshing) setState(() => _isLoading = true);
     final dataset = await widget.apiService.fetchCustomAnalyticsDataset(
       eventKey: _currentReport.slicers.eventKey.isNotEmpty ? _currentReport.slicers.eventKey : null,
       includePrescout: _currentReport.slicers.includePrescout,

@@ -4,6 +4,7 @@ import '../l10n/app_localizations.dart';
 import '../models/assignment_models.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
+import '../services/live_refresh.dart';
 import '../services/scout_history_service.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
@@ -34,7 +35,19 @@ class MyAssignmentsScreen extends StatefulWidget {
 }
 
 class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, LiveRefresh<MyAssignmentsScreen> {
+  @override
+  ApiService get liveApi => widget.apiService;
+
+  @override
+  bool get liveVisible => widget.isVisible;
+
+  @override
+  Set<String> get liveTopics => const {'assignments', 'schedule'};
+
+  @override
+  Future<void> liveReload() => _loadData();
+
   late TabController _tabController;
   Timer? _countdownTimer;
   Timer? _syncReloadDebounce;

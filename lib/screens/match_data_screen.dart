@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/config_models.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
+import '../services/live_refresh.dart';
 import '../services/csv_export_service.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/csv_export_modal.dart';
@@ -62,7 +63,22 @@ class MatchDataScreen extends StatefulWidget {
   State<MatchDataScreen> createState() => _MatchDataScreenState();
 }
 
-class _MatchDataScreenState extends State<MatchDataScreen> {
+class _MatchDataScreenState extends State<MatchDataScreen> with LiveRefresh<MatchDataScreen> {
+  @override
+  ApiService get liveApi => widget.apiService;
+
+  @override
+  bool get liveVisible => widget.isVisible;
+
+  @override
+  Set<String> get liveTopics => const {'scouting'};
+
+  @override
+  Future<void> liveReload() => _loadData();
+
+  @override
+  String? get liveEventKey => _selectedEventKey;
+
   bool _isLoading = true;
   String? _errorMessage;
 

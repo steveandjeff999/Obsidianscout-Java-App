@@ -3,6 +3,7 @@ import '../l10n/app_localizations.dart';
 import '../models/match_pick_models.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
+import '../services/live_refresh.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/match_prediction_card.dart';
 import '../widgets/obsidian_glass_card.dart';
@@ -32,7 +33,19 @@ class MatchPredictionsScreen extends StatefulWidget {
 
 enum _ShowFilter { open, needs, done, all }
 
-class _MatchPredictionsScreenState extends State<MatchPredictionsScreen> with SingleTickerProviderStateMixin {
+class _MatchPredictionsScreenState extends State<MatchPredictionsScreen> with SingleTickerProviderStateMixin, LiveRefresh<MatchPredictionsScreen> {
+  @override
+  ApiService get liveApi => widget.apiService;
+
+  @override
+  bool get liveVisible => widget.isVisible;
+
+  @override
+  Set<String> get liveTopics => const {'schedule'};
+
+  @override
+  Future<void> liveReload() => _load();
+
   late final TabController _tabs = TabController(length: 2, vsync: this, initialIndex: widget.initialTab.clamp(0, 1));
 
   // Predict tab

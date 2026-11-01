@@ -3,6 +3,7 @@ import '../l10n/app_localizations.dart';
 import '../models/predictor_models.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
+import '../services/live_refresh.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../theme/obsidian_responsive.dart';
 import '../widgets/obsidian_glass_card.dart';
@@ -26,7 +27,25 @@ class PredictorScreen extends StatefulWidget {
   State<PredictorScreen> createState() => _PredictorScreenState();
 }
 
-class _PredictorScreenState extends State<PredictorScreen> {
+class _PredictorScreenState extends State<PredictorScreen> with LiveRefresh<PredictorScreen> {
+  @override
+  ApiService get liveApi => widget.apiService;
+
+  @override
+  bool get liveVisible => widget.isVisible;
+
+  @override
+  Set<String> get liveTopics => const {'scouting', 'schedule', 'rankings'};
+
+  @override
+  Future<void> liveReload() async {
+    final matchKey = _selectedMatchKey;
+    if (matchKey != null) await _fetchPrediction(matchKey);
+  }
+
+  @override
+  Duration get liveMinInterval => const Duration(seconds: 10);
+
   List<MatchModel> _matches = [];
   String? _selectedMatchKey;
   MatchPredictionResponse? _prediction;
@@ -136,7 +155,7 @@ class _PredictorScreenState extends State<PredictorScreen> {
         _isCalculating = false;
       });
     } else if (mounted) {
-      setState(() => _isCalculating = true);
+      if (!isLiveRefreshing) setState(() => _isCalculating = true);
     }
 
     // 2. Fetch fresh prediction from network in background

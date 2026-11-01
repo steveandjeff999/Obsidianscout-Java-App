@@ -28,6 +28,7 @@ import '../widgets/app_update_dialog.dart';
 import '../widgets/obsidian_account_switcher.dart';
 import '../widgets/obsidian_banner_widget.dart';
 import '../widgets/obsidian_bottom_nav.dart';
+import '../widgets/last_updated_line.dart';
 import '../widgets/obsidian_desktop_app_bar.dart';
 import '../widgets/obsidian_desktop_sidebar.dart';
 import '../widgets/obsidian_desktop_tab_bar.dart';
@@ -1076,6 +1077,21 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
       ),
     );
 
+    // Floats over the page, so showing it or the bottom bar moving never shifts the page's content.
+    final pageArea = Stack(
+      children: [
+        Positioned.fill(child: mainIndexedStack),
+        AnimatedPositioned(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.fastOutSlowIn,
+          left: 0,
+          right: 0,
+          bottom: isDesktop ? 2 : MediaQuery.of(context).padding.bottom + (_isBarsVisible ? 70 : 4),
+          child: IgnorePointer(child: LastUpdatedLine(apiService: widget.apiService)),
+        ),
+      ],
+    );
+
     final Map<ShortcutActivator, VoidCallback> shortcutBindings = isDesktopTabs
         ? <ShortcutActivator, VoidCallback>{
             const SingleActivator(LogicalKeyboardKey.keyT, control: true): () => _openNewTab(0),
@@ -1282,7 +1298,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
                                     isBarsVisible: true,
                                   ),
                                   Expanded(
-                                    child: mainIndexedStack,
+                                    child: pageArea,
                                   ),
                                 ],
                               ),
@@ -1300,7 +1316,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
                               isBarsVisible: _isBarsVisible,
                             ),
                             Expanded(
-                              child: mainIndexedStack,
+                              child: pageArea,
                             ),
                           ],
                         ),

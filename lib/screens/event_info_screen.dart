@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
+import '../services/live_refresh.dart';
 import '../services/image_utils.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_feedback.dart';
@@ -35,7 +36,19 @@ class _PendingFile {
 
 final _urlPattern = RegExp(r'https?://[^\s<>"]+');
 
-class _EventInfoScreenState extends State<EventInfoScreen> {
+class _EventInfoScreenState extends State<EventInfoScreen> with LiveRefresh<EventInfoScreen> {
+  @override
+  ApiService get liveApi => widget.apiService;
+
+  @override
+  bool get liveVisible => widget.isVisible;
+
+  @override
+  Set<String> get liveTopics => const {'event-info'};
+
+  @override
+  Future<void> liveReload() => _load();
+
   bool _loading = true;
   String? _error;
   String _eventKey = '';
@@ -56,9 +69,10 @@ class _EventInfoScreenState extends State<EventInfoScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = _posts.isEmpty);
+    if (!isLiveRefreshing) setState(() => _loading = _posts.isEmpty);
     final res = await widget.apiService.requestJson('GET', '/api/event-info', cacheKey: 'cache_event_info');
     if (!mounted) return;
+    if (isLiveRefreshing && !res.success) return;
     setState(() {
       _loading = false;
       if (res.success) {

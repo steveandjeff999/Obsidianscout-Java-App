@@ -9,6 +9,7 @@ import '../models/team_match_models.dart';
 import '../models/graph_models.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../services/api_service.dart';
+import '../services/live_refresh.dart';
 import '../widgets/obsidian_chart_interactive_wrapper.dart';
 import '../widgets/obsidian_share_modal.dart';
 
@@ -68,7 +69,25 @@ class GraphsScreen extends StatefulWidget {
   State<GraphsScreen> createState() => _GraphsScreenState();
 }
 
-class _GraphsScreenState extends State<GraphsScreen> {
+class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScreen> {
+  @override
+  ApiService get liveApi => widget.apiService;
+
+  @override
+  bool get liveVisible => widget.isVisible;
+
+  @override
+  Set<String> get liveTopics => const {'scouting', 'schedule', 'rankings'};
+
+  @override
+  Future<void> liveReload() => _loadData();
+
+  @override
+  String? get liveEventKey => _eventKey;
+
+  @override
+  Duration get liveMinInterval => const Duration(seconds: 10);
+
   bool _isLoading = true;
   AppSettingsModel? _settings;
   String? _eventKey;

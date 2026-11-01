@@ -3,6 +3,7 @@ import '../l10n/app_localizations.dart';
 import '../models/graph_models.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
+import '../services/live_refresh.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/ported_page_kit.dart';
@@ -20,7 +21,27 @@ class CompareScreen extends StatefulWidget {
   State<CompareScreen> createState() => _CompareScreenState();
 }
 
-class _CompareScreenState extends State<CompareScreen> {
+class _CompareScreenState extends State<CompareScreen> with LiveRefresh<CompareScreen> {
+  @override
+  ApiService get liveApi => widget.apiService;
+
+  @override
+  bool get liveVisible => widget.isVisible;
+
+  @override
+  Set<String> get liveTopics => const {'scouting', 'rankings'};
+
+  @override
+  Future<void> liveReload() async {
+    if (_result != null) await _compare();
+  }
+
+  @override
+  String? get liveEventKey => _eventKey;
+
+  @override
+  Duration get liveMinInterval => const Duration(seconds: 10);
+
   bool _loading = true;
   bool _comparing = false;
   List<EventModel> _events = [];
@@ -75,10 +96,12 @@ class _CompareScreenState extends State<CompareScreen> {
       setState(() => _result = null);
       return;
     }
-    setState(() {
-      _comparing = true;
-      _error = null;
-    });
+    if (!isLiveRefreshing) {
+      setState(() {
+        _comparing = true;
+        _error = null;
+      });
+    }
     if (_source == 'exp') {
       await _compareExp(teams);
       return;
@@ -88,6 +111,7 @@ class _CompareScreenState extends State<CompareScreen> {
       if (_eventKey.isNotEmpty) 'eventKey': _eventKey,
     });
     if (!mounted) return;
+    if (isLiveRefreshing && !res.success) return;
     setState(() {
       _comparing = false;
       _result = res.success ? jsonMap(res.data) : null;

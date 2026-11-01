@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
+import '../services/live_refresh.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../theme/obsidian_responsive.dart';
 import '../widgets/obsidian_glass_card.dart';
@@ -25,7 +26,19 @@ class MatchListScreen extends StatefulWidget {
   State<MatchListScreen> createState() => _MatchListScreenState();
 }
 
-class _MatchListScreenState extends State<MatchListScreen> {
+class _MatchListScreenState extends State<MatchListScreen> with LiveRefresh<MatchListScreen> {
+  @override
+  ApiService get liveApi => widget.apiService;
+
+  @override
+  bool get liveVisible => widget.isVisible;
+
+  @override
+  Set<String> get liveTopics => const {'schedule'};
+
+  @override
+  Future<void> liveReload() => _loadMatches();
+
   List<MatchModel> _matches = [];
   bool _isLoading = true;
   String _searchQuery = '';

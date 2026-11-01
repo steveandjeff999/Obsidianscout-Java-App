@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
+import '../services/live_refresh.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../theme/obsidian_responsive.dart';
 import '../widgets/obsidian_glass_card.dart';
@@ -23,7 +24,22 @@ class RankingsScreen extends StatefulWidget {
   State<RankingsScreen> createState() => _RankingsScreenState();
 }
 
-class _RankingsScreenState extends State<RankingsScreen> {
+class _RankingsScreenState extends State<RankingsScreen> with LiveRefresh<RankingsScreen> {
+  @override
+  ApiService get liveApi => widget.apiService;
+
+  @override
+  bool get liveVisible => widget.isVisible;
+
+  @override
+  Set<String> get liveTopics => const {'scouting', 'schedule', 'rankings'};
+
+  @override
+  Future<void> liveReload() => _loadTeams();
+
+  @override
+  String? get liveEventKey => _selectedEventKey;
+
   List<TeamModel> _teams = [];
   List<EventModel> _events = [];
   String _selectedEventKey = '';

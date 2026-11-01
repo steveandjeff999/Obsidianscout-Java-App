@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../models/config_models.dart';
 import '../services/api_service.dart';
+import '../services/live_refresh.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/ported_page_kit.dart';
@@ -18,7 +19,22 @@ class AnalyticsScreen extends StatefulWidget {
   State<AnalyticsScreen> createState() => _AnalyticsScreenState();
 }
 
-class _AnalyticsScreenState extends State<AnalyticsScreen> {
+class _AnalyticsScreenState extends State<AnalyticsScreen> with LiveRefresh<AnalyticsScreen> {
+  @override
+  ApiService get liveApi => widget.apiService;
+
+  @override
+  bool get liveVisible => widget.isVisible;
+
+  @override
+  Set<String> get liveTopics => const {'scouting', 'pit-scouting', 'qual-scouting', 'schedule'};
+
+  @override
+  Future<void> liveReload() => _load();
+
+  @override
+  Duration get liveMinInterval => const Duration(seconds: 10);
+
   bool _loading = true;
   bool _usePrescout = false;
   List<AnalyticsWidgetModel> _widgets = [];
@@ -36,9 +52,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    if (!isLiveRefreshing) setState(() => _loading = true);
     final widgets = await widget.apiService.fetchAnalyticsWidgets(usePrescout: _usePrescout);
     if (!mounted) return;
+    if (isLiveRefreshing && widgets.isEmpty) return;
     setState(() {
       _widgets = widgets;
       _loading = false;

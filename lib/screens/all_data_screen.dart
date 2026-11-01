@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/config_models.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
+import '../services/live_refresh.dart';
 import '../services/csv_export_service.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/csv_export_modal.dart';
@@ -67,7 +68,19 @@ class AllDataScreen extends StatefulWidget {
   State<AllDataScreen> createState() => _AllDataScreenState();
 }
 
-class _AllDataScreenState extends State<AllDataScreen> {
+class _AllDataScreenState extends State<AllDataScreen> with LiveRefresh<AllDataScreen> {
+  @override
+  ApiService get liveApi => widget.apiService;
+
+  @override
+  bool get liveVisible => widget.isVisible;
+
+  @override
+  Set<String> get liveTopics => const {'scouting', 'pit-scouting', 'qual-scouting'};
+
+  @override
+  Future<void> liveReload() => _loadData();
+
   bool _isLoading = true;
   String? _errorMessage;
 
