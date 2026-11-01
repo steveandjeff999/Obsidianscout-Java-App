@@ -595,7 +595,7 @@ class _MatchChecklistScreenState extends State<MatchChecklistScreen> {
       }
     });
     // Default to our next match without a finished checklist.
-    final next = _visibleMatches.where((m) => !_isMatchComplete(m.matchKey, _completions[m.matchKey])).firstOrNull;
+    final next = _visibleMatches.where((m) => !m.assumedPlayed && !_isMatchComplete(m.matchKey, _completions[m.matchKey])).firstOrNull;
     await _selectMatch(_onlyOurs ? (next?.matchKey ?? '') : '');
   }
 

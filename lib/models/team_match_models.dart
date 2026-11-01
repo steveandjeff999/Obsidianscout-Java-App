@@ -163,6 +163,10 @@ class MatchModel {
   final int? blueScore;
   final String? eventTimezone;
 
+  /// A practice match with no result of its own that the server counts as played because
+  /// qualifications are underway (practice results often never reach the APIs).
+  final bool assumedPlayed;
+
   MatchModel({
     required this.matchKey,
     required this.eventKey,
@@ -178,6 +182,7 @@ class MatchModel {
     this.redScore,
     this.blueScore,
     this.eventTimezone,
+    this.assumedPlayed = false,
   });
 
   static int? _intOf(dynamic v) => v is num ? v.toInt() : int.tryParse(v?.toString() ?? '');
@@ -190,11 +195,12 @@ class MatchModel {
 
   DateTime? get scheduledStart => _epoch(scheduledTime);
 
-  /// Played = it has a score, or an actual start time that differs from the schedule (same rule as the server).
+  /// Played = it has a score, an actual start time that differs from the schedule, or the server
+  /// assumes so (same rule as the server).
   bool get isPlayed {
     final hasScore = (redScore ?? -1) >= 0 || (blueScore ?? -1) >= 0;
     final act = actualTime;
-    return hasScore || (act != null && act > 0 && scheduledTime != null && act != scheduledTime);
+    return assumedPlayed || hasScore || (act != null && act > 0 && scheduledTime != null && act != scheduledTime);
   }
 
   factory MatchModel.fromJson(Map<String, dynamic> json) {
@@ -247,6 +253,7 @@ class MatchModel {
       redScore: _intOf(json['redScore']),
       blueScore: _intOf(json['blueScore']),
       eventTimezone: json['eventTimezone']?.toString(),
+      assumedPlayed: json['assumedPlayed'] == true,
     );
   }
 
