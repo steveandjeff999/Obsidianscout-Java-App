@@ -56,6 +56,31 @@ class MainActivity : FlutterFragmentActivity(), GamepadsCompatibleActivity {
                 else -> result.notImplemented()
             }
         }
+        // Saves app downloads to the shared Downloads folder (lib/services/file_download_io.dart).
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "obsidianscout/downloads").setMethodCallHandler { call, result ->
+            when (call.method) {
+                "saveToDownloads" -> {
+                    val filename = call.argument<String>("filename")
+                    val mimeType = call.argument<String>("mimeType")
+                    val bytes = call.argument<ByteArray>("bytes")
+                    if (filename == null || mimeType == null || bytes == null) {
+                        result.error("bad_args", "filename, mimeType and bytes are required", null)
+                    } else {
+                        Thread {
+                            try {
+                                val saved = DownloadsSaver.save(applicationContext, filename, mimeType, bytes)
+                                runOnUiThread { result.success(saved) }
+                            } catch (e: DownloadsSaver.NeedsPermission) {
+                                runOnUiThread { result.error("needs_permission", e.message, null) }
+                            } catch (e: Exception) {
+                                runOnUiThread { result.error("save_failed", e.message, null) }
+                            }
+                        }.start()
+                    }
+                }
+                else -> result.notImplemented()
+            }
+        }
     }
 
     override fun dispatchGenericMotionEvent(motionEvent: MotionEvent): Boolean {
