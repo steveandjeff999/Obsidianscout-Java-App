@@ -758,7 +758,7 @@ class _BatteryTrackerScreenState extends State<BatteryTrackerScreen> {
         children.add(note(context.tr('battery.rotation.no_batteries', 'Add a match battery to build the rotation.')));
       } else {
         final slots = _schedule;
-        final nextKey = _matches.where((m) => slots[m.matchKey]?.source != 'used').firstOrNull?.matchKey;
+        final nextKey = _matches.where((m) => !m.assumedPlayed && slots[m.matchKey]?.source != 'used').firstOrNull?.matchKey;
         for (final m in _matches) {
           children.add(_buildMatchRow(m, slots[m.matchKey]!, m.matchKey == nextKey));
         }

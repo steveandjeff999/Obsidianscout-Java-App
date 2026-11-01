@@ -36,6 +36,10 @@ void main() {
       expect(MatchModel.fromJson({'matchKey': 'c', 'scheduledTime': 100, 'actualTime': 160}).isPlayed, isTrue);
       expect(MatchModel.fromJson({'matchKey': 'd', 'scheduledTime': 100, 'actualTime': 100}).isPlayed, isFalse);
     });
+
+    test('played when the server assumes so, even with no result', () {
+      expect(MatchModel.fromJson({'matchKey': 'e_pr1', 'compLevel': 'practice', 'assumedPlayed': true}).isPlayed, isTrue);
+    });
   });
 
   group('WidgetLaunch', () {
