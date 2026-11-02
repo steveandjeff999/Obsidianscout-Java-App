@@ -1,5 +1,7 @@
 // ignore_for_file: non_constant_identifier_names
 
+import 'dart:math' as math;
+
 // ---------------------------------------------------------------------------
 // Cluster Models — mirrors ClusterManagementService.kt & PeerLoadRouter.kt & SnapshotService.kt
 // ---------------------------------------------------------------------------
@@ -237,11 +239,10 @@ class LoadBalancingRecentStats {
       LoadBalancingRecentStats(
         totalForwarded30m: (j['totalForwarded30m'] as num?)?.toInt() ?? 0,
         totalLocalServed30m: (j['totalLocalServed30m'] as num?)?.toInt() ?? 0,
-        forwardedRatio30m:
-            (j['forwardedRatio30m'] as num?)?.toDouble() ?? 0.0,
-        targetDistribution: (j['targetDistribution'] as Map<String, dynamic>? ??
-                {})
-            .map((k, v) => MapEntry(k, (v as num?)?.toInt() ?? 0)),
+        forwardedRatio30m: (j['forwardedRatio30m'] as num?)?.toDouble() ?? 0.0,
+        targetDistribution:
+            (j['targetDistribution'] as Map<String, dynamic>? ?? {})
+                .map((k, v) => MapEntry(k, (v as num?)?.toInt() ?? 0)),
       );
 }
 
@@ -298,8 +299,8 @@ class LoadBalancerStatus {
                 j['recentStats'] as Map<String, dynamic>)
             : const LoadBalancingRecentStats(),
         activityHistory: (j['activityHistory'] as List<dynamic>? ?? [])
-            .map((e) => LoadBalancingActivityEntry.fromJson(
-                e as Map<String, dynamic>))
+            .map((e) =>
+                LoadBalancingActivityEntry.fromJson(e as Map<String, dynamic>))
             .toList(),
       );
 }
@@ -342,9 +343,10 @@ class LoadBalancerSettings {
             (j['localPreferenceMargin'] as num?)?.toDouble() ?? 0.10,
         maxExpectedLatencyMs:
             (j['maxExpectedLatencyMs'] as num?)?.toDouble() ?? 150.0,
-        excludedPathPrefixes: (j['excludedPathPrefixes'] as List<dynamic>? ?? [])
-            .map((e) => e.toString())
-            .toList(),
+        excludedPathPrefixes:
+            (j['excludedPathPrefixes'] as List<dynamic>? ?? [])
+                .map((e) => e.toString())
+                .toList(),
       );
 
   Map<String, dynamic> toJson() => {
@@ -467,18 +469,32 @@ class QuorumFallbackConfigDetails {
 
   factory QuorumFallbackConfigDetails.fromJson(Map<String, dynamic> j) =>
       QuorumFallbackConfigDetails(
-        mirrorAllData: j['mirror_all_data'] == true || j['mirrorAllData'] == true,
+        mirrorAllData:
+            j['mirror_all_data'] == true || j['mirrorAllData'] == true,
         mirrorUsers: j['mirror_users'] != false && j['mirrorUsers'] != false,
-        mirrorScouting: j['mirror_scouting'] != false && j['mirrorScouting'] != false,
-        mirrorApiData: j['mirror_api_data'] != false && j['mirrorApiData'] != false,
-        mirrorCustomAnalytics: j['mirror_custom_analytics'] != false && j['mirrorCustomAnalytics'] != false,
+        mirrorScouting:
+            j['mirror_scouting'] != false && j['mirrorScouting'] != false,
+        mirrorApiData:
+            j['mirror_api_data'] != false && j['mirrorApiData'] != false,
+        mirrorCustomAnalytics: j['mirror_custom_analytics'] != false &&
+            j['mirrorCustomAnalytics'] != false,
         mirrorConfigs: true,
-        mirrorAlliances: j['mirror_alliances'] != false && j['mirrorAlliances'] != false,
+        mirrorAlliances:
+            j['mirror_alliances'] != false && j['mirrorAlliances'] != false,
         mirrorChat: j['mirror_chat'] != false && j['mirrorChat'] != false,
-        mirrorNotificationsSecrets: j['mirror_notifications_secrets'] != false && j['mirrorNotificationsSecrets'] != false,
-        scoutingRetentionDays: (j['scouting_retention_days'] as num?)?.toInt() ?? (j['scoutingRetentionDays'] as num?)?.toInt() ?? 7,
-        syncIntervalSeconds: (j['sync_interval_seconds'] as num?)?.toInt() ?? (j['syncIntervalSeconds'] as num?)?.toInt() ?? 30,
-        sqliteFile: j['sqlite_file']?.toString() ?? j['sqliteFile']?.toString() ?? "data/quorum_fallback.db",
+        mirrorNotificationsSecrets:
+            j['mirror_notifications_secrets'] != false &&
+                j['mirrorNotificationsSecrets'] != false,
+        scoutingRetentionDays:
+            (j['scouting_retention_days'] as num?)?.toInt() ??
+                (j['scoutingRetentionDays'] as num?)?.toInt() ??
+                7,
+        syncIntervalSeconds: (j['sync_interval_seconds'] as num?)?.toInt() ??
+            (j['syncIntervalSeconds'] as num?)?.toInt() ??
+            30,
+        sqliteFile: j['sqlite_file']?.toString() ??
+            j['sqliteFile']?.toString() ??
+            "data/quorum_fallback.db",
       );
 
   Map<String, dynamic> toJson({String? targetIp}) => {
@@ -613,8 +629,8 @@ class QuorumFallbackInspection {
         tableCounts: (j['tableCounts'] as Map<String, dynamic>? ?? {})
             .map((k, v) => MapEntry(k, (v as num?)?.toInt() ?? 0)),
         activeEvents: (j['activeEvents'] as List<dynamic>? ?? [])
-            .map((e) => QuorumFallbackInspectEvent.fromJson(
-                e as Map<String, dynamic>))
+            .map((e) =>
+                QuorumFallbackInspectEvent.fromJson(e as Map<String, dynamic>))
             .toList(),
       );
 }
@@ -718,4 +734,399 @@ class AutoBackupCombinedStatus {
     required this.localNodeStatus,
     required this.clusterNodes,
   });
+}
+
+// ---------------------------------------------------------------------------
+// Load Profiler Models & Calculations — mirrors LoadProfiler.kt & load-profile.js
+// ---------------------------------------------------------------------------
+
+class LoadMinute {
+  final int minute; // epoch timestamp ms
+  final int requests;
+  final int liveRequests;
+  final double serverMs;
+  final double liveServerMs;
+  final int bytes;
+  final int liveBytes;
+  final int errors;
+  final int invalidations;
+  final int usersReached;
+
+  const LoadMinute({
+    required this.minute,
+    this.requests = 0,
+    this.liveRequests = 0,
+    this.serverMs = 0.0,
+    this.liveServerMs = 0.0,
+    this.bytes = 0,
+    this.liveBytes = 0,
+    this.errors = 0,
+    this.invalidations = 0,
+    this.usersReached = 0,
+  });
+
+  factory LoadMinute.fromJson(Map<String, dynamic> j) => LoadMinute(
+        minute: (j['minute'] as num?)?.toInt() ?? 0,
+        requests: (j['requests'] as num?)?.toInt() ?? 0,
+        liveRequests: (j['liveRequests'] as num?)?.toInt() ?? 0,
+        serverMs: (j['serverMs'] as num?)?.toDouble() ?? 0.0,
+        liveServerMs: (j['liveServerMs'] as num?)?.toDouble() ?? 0.0,
+        bytes: (j['bytes'] as num?)?.toInt() ?? 0,
+        liveBytes: (j['liveBytes'] as num?)?.toInt() ?? 0,
+        errors: (j['errors'] as num?)?.toInt() ?? 0,
+        invalidations: (j['invalidations'] as num?)?.toInt() ?? 0,
+        usersReached: (j['usersReached'] as num?)?.toInt() ?? 0,
+      );
+}
+
+class LoadRoute {
+  final String route;
+  final int requests;
+  final int liveRequests;
+  final double serverMs;
+  final double maxMs;
+  final int bytes;
+
+  const LoadRoute({
+    required this.route,
+    required this.requests,
+    required this.liveRequests,
+    required this.serverMs,
+    required this.maxMs,
+    required this.bytes,
+  });
+
+  factory LoadRoute.fromJson(Map<String, dynamic> j) => LoadRoute(
+        route: j['route']?.toString() ?? '',
+        requests: (j['requests'] as num?)?.toInt() ?? 0,
+        liveRequests: (j['liveRequests'] as num?)?.toInt() ?? 0,
+        serverMs: (j['serverMs'] as num?)?.toDouble() ?? 0.0,
+        maxMs: (j['maxMs'] as num?)?.toDouble() ?? 0.0,
+        bytes: (j['bytes'] as num?)?.toInt() ?? 0,
+      );
+}
+
+class LoadTopic {
+  final String topic;
+  final int messages;
+  final int usersReached;
+
+  const LoadTopic({
+    required this.topic,
+    required this.messages,
+    required this.usersReached,
+  });
+
+  factory LoadTopic.fromJson(Map<String, dynamic> j) => LoadTopic(
+        topic: j['topic']?.toString() ?? '',
+        messages: (j['messages'] as num?)?.toInt() ?? 0,
+        usersReached: (j['usersReached'] as num?)?.toInt() ?? 0,
+      );
+}
+
+class NodeLoadProfile {
+  final String nodeIp;
+  final int trackingSinceMs;
+  final int usersConnected;
+  final double cpuLoad;
+  final int usedHeapMb;
+  final int maxHeapMb;
+  final int relayRowsWritten;
+  final int relayRowsDelivered;
+  final List<LoadMinute> minutes;
+  final List<LoadRoute> routes;
+  final List<LoadTopic> topics;
+
+  const NodeLoadProfile({
+    required this.nodeIp,
+    required this.trackingSinceMs,
+    required this.usersConnected,
+    required this.cpuLoad,
+    required this.usedHeapMb,
+    required this.maxHeapMb,
+    required this.relayRowsWritten,
+    required this.relayRowsDelivered,
+    required this.minutes,
+    required this.routes,
+    required this.topics,
+  });
+
+  factory NodeLoadProfile.fromJson(Map<String, dynamic> j) => NodeLoadProfile(
+        nodeIp: j['nodeIp']?.toString() ?? '',
+        trackingSinceMs: (j['trackingSinceMs'] as num?)?.toInt() ?? 0,
+        usersConnected: (j['usersConnected'] as num?)?.toInt() ?? 0,
+        cpuLoad: (j['cpuLoad'] as num?)?.toDouble() ?? 0.0,
+        usedHeapMb: (j['usedHeapMb'] as num?)?.toInt() ?? 0,
+        maxHeapMb: (j['maxHeapMb'] as num?)?.toInt() ?? 0,
+        relayRowsWritten: (j['relayRowsWritten'] as num?)?.toInt() ?? 0,
+        relayRowsDelivered: (j['relayRowsDelivered'] as num?)?.toInt() ?? 0,
+        minutes: (j['minutes'] as List<dynamic>? ?? [])
+            .map((e) => LoadMinute.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        routes: (j['routes'] as List<dynamic>? ?? [])
+            .map((e) => LoadRoute.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        topics: (j['topics'] as List<dynamic>? ?? [])
+            .map((e) => LoadTopic.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+}
+
+class ClusterLoadProfile {
+  final int windowMinutes;
+  final List<NodeLoadProfile> nodes;
+  final List<String> unreachableNodes;
+
+  const ClusterLoadProfile({
+    required this.windowMinutes,
+    required this.nodes,
+    required this.unreachableNodes,
+  });
+
+  factory ClusterLoadProfile.fromJson(Map<String, dynamic> j) =>
+      ClusterLoadProfile(
+        windowMinutes: (j['windowMinutes'] as num?)?.toInt() ?? 15,
+        nodes: (j['nodes'] as List<dynamic>? ?? [])
+            .map((e) => NodeLoadProfile.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        unreachableNodes: (j['unreachableNodes'] as List<dynamic>? ?? [])
+            .map((e) => e.toString())
+            .toList(),
+      );
+}
+
+class CombinedLoadProfile {
+  final int nodeCount;
+  final List<LoadMinute> minutes;
+  final List<LoadRoute> routes;
+  final List<LoadTopic> topics;
+  final int usersConnected;
+  final double cpuLoad;
+  final double heapShare;
+  final int trackingSinceMs;
+
+  const CombinedLoadProfile({
+    required this.nodeCount,
+    required this.minutes,
+    required this.routes,
+    required this.topics,
+    required this.usersConnected,
+    required this.cpuLoad,
+    required this.heapShare,
+    required this.trackingSinceMs,
+  });
+}
+
+class LoadProfileSummary {
+  final int requests;
+  final int liveRequests;
+  final double requestsPerSecond;
+  final double livePerSecond;
+  final double peakPerSecond;
+  final double liveShare;
+  final double liveServerShare;
+  final double averageMs;
+  final double bytesPerMinute;
+  final int liveBytes;
+  final int errors;
+  final int invalidations;
+
+  const LoadProfileSummary({
+    required this.requests,
+    required this.liveRequests,
+    required this.requestsPerSecond,
+    required this.livePerSecond,
+    required this.peakPerSecond,
+    required this.liveShare,
+    required this.liveServerShare,
+    required this.averageMs,
+    required this.bytesPerMinute,
+    required this.liveBytes,
+    required this.errors,
+    required this.invalidations,
+  });
+}
+
+/// One view of the given nodes: minutes and routes added together, and the busiest node's CPU and memory.
+CombinedLoadProfile combineProfiles(List<NodeLoadProfile> nodes) {
+  final minutesMap = <int, LoadMinute>{};
+  final routesMap = <String, LoadRoute>{};
+  final topicsMap = <String, LoadTopic>{};
+
+  for (final node in nodes) {
+    for (final row in node.minutes) {
+      final existing = minutesMap[row.minute];
+      if (existing == null) {
+        minutesMap[row.minute] = row;
+      } else {
+        minutesMap[row.minute] = LoadMinute(
+          minute: row.minute,
+          requests: existing.requests + row.requests,
+          liveRequests: existing.liveRequests + row.liveRequests,
+          serverMs: existing.serverMs + row.serverMs,
+          liveServerMs: existing.liveServerMs + row.liveServerMs,
+          bytes: existing.bytes + row.bytes,
+          liveBytes: existing.liveBytes + row.liveBytes,
+          errors: existing.errors + row.errors,
+          invalidations: existing.invalidations + row.invalidations,
+          usersReached: existing.usersReached + row.usersReached,
+        );
+      }
+    }
+
+    for (final row in node.routes) {
+      final existing = routesMap[row.route];
+      if (existing == null) {
+        routesMap[row.route] = row;
+      } else {
+        routesMap[row.route] = LoadRoute(
+          route: row.route,
+          requests: existing.requests + row.requests,
+          liveRequests: existing.liveRequests + row.liveRequests,
+          serverMs: existing.serverMs + row.serverMs,
+          maxMs: math.max(existing.maxMs, row.maxMs),
+          bytes: existing.bytes + row.bytes,
+        );
+      }
+    }
+
+    for (final row in node.topics) {
+      final existing = topicsMap[row.topic];
+      if (existing == null) {
+        topicsMap[row.topic] = row;
+      } else {
+        topicsMap[row.topic] = LoadTopic(
+          topic: row.topic,
+          messages: existing.messages + row.messages,
+          usersReached: existing.usersReached + row.usersReached,
+        );
+      }
+    }
+  }
+
+  final sortedMinutes = minutesMap.values.toList()
+    ..sort((a, b) => a.minute.compareTo(b.minute));
+  final sortedRoutes = routesMap.values.toList()
+    ..sort((a, b) => b.serverMs.compareTo(a.serverMs));
+  final sortedTopics = topicsMap.values.toList()
+    ..sort((a, b) => b.messages.compareTo(a.messages));
+
+  final totalUsers = nodes.fold<int>(0, (sum, n) => sum + n.usersConnected);
+  final maxCpu = nodes.isEmpty
+      ? 0.0
+      : nodes.map((n) => n.cpuLoad).fold<double>(0.0, math.max);
+  final maxHeapShare = nodes.isEmpty
+      ? 0.0
+      : nodes
+          .map((n) => n.usedHeapMb / math.max(1, n.maxHeapMb))
+          .fold<double>(0.0, math.max);
+  final minTrackingSince = nodes.isEmpty
+      ? 0
+      : nodes
+          .map((n) => n.trackingSinceMs)
+          .fold<int>(nodes.first.trackingSinceMs, math.min);
+
+  return CombinedLoadProfile(
+    nodeCount: nodes.length,
+    minutes: sortedMinutes,
+    routes: sortedRoutes,
+    topics: sortedTopics,
+    usersConnected: totalUsers,
+    cpuLoad: math.max(0.0, maxCpu),
+    heapShare: math.max(0.0, maxHeapShare),
+    trackingSinceMs: minTrackingSince,
+  );
+}
+
+/// Headline figures. Rates count only the time actually recorded: not the rest of this minute, or before a restart.
+LoadProfileSummary summarizeLoadProfile(CombinedLoadProfile profile,
+    [int? nowMs]) {
+  nowMs ??= DateTime.now().millisecondsSinceEpoch;
+  int requests = 0;
+  int liveRequests = 0;
+  double serverMs = 0.0;
+  double liveServerMs = 0.0;
+  int bytes = 0;
+  int liveBytes = 0;
+  int errors = 0;
+  int invalidations = 0;
+  int peakMinute = 0;
+
+  for (final m in profile.minutes) {
+    requests += m.requests;
+    liveRequests += m.liveRequests;
+    serverMs += m.serverMs;
+    liveServerMs += m.liveServerMs;
+    bytes += m.bytes;
+    liveBytes += m.liveBytes;
+    errors += m.errors;
+    invalidations += m.invalidations;
+    if (m.requests > peakMinute) {
+      peakMinute = m.requests;
+    }
+  }
+
+  final firstMinute =
+      profile.minutes.isNotEmpty ? profile.minutes.first.minute : nowMs;
+  final baselineTime = math.max(firstMinute, profile.trackingSinceMs);
+  final seconds = math.max(1.0, (nowMs - baselineTime) / 1000.0);
+  final requestsPerSecond = requests / seconds;
+  final livePerSecond = liveRequests / seconds;
+  final peakPerSecond = math.max(peakMinute / 60.0, requestsPerSecond);
+  final liveShare = requests > 0 ? liveRequests / requests : 0.0;
+  final liveServerShare = serverMs > 0 ? liveServerMs / serverMs : 0.0;
+  final averageMs = requests > 0 ? serverMs / requests : 0.0;
+  final bytesPerMinute = bytes / (seconds / 60.0);
+
+  return LoadProfileSummary(
+    requests: requests,
+    liveRequests: liveRequests,
+    requestsPerSecond: requestsPerSecond,
+    livePerSecond: livePerSecond,
+    peakPerSecond: peakPerSecond,
+    liveShare: liveShare,
+    liveServerShare: liveServerShare,
+    averageMs: averageMs,
+    bytesPerMinute: bytesPerMinute,
+    liveBytes: liveBytes,
+    errors: errors,
+    invalidations: invalidations,
+  );
+}
+
+String formatLoadBytes(num bytes) {
+  if (bytes < 1024) return '${bytes.round()} B';
+  if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+  if (bytes < 1024 * 1024 * 1024) {
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+  return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
+}
+
+String formatLoadMs(num ms) {
+  if (ms < 10) return '${ms.toStringAsFixed(1)} ms';
+  if (ms < 10000) return '${ms.round()} ms';
+  return '${(ms / 1000).toStringAsFixed(1)} s';
+}
+
+String formatLoadRate(num perSecond) {
+  return perSecond < 10
+      ? perSecond.toStringAsFixed(2)
+      : perSecond.toStringAsFixed(1);
+}
+
+String formatLoadPercent(num share) {
+  return '${(share * 100).round()}%';
+}
+
+int niceMaximum(num value) {
+  if (value <= 4) return 4;
+  final magnitude = math.pow(10, (math.log(value) / math.ln10).floor()).toInt();
+  const steps = [1, 2, 4, 5, 10];
+  for (final candidate in steps) {
+    if (candidate * magnitude >= value) {
+      return candidate * magnitude;
+    }
+  }
+  return 10 * magnitude;
 }

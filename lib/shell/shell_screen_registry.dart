@@ -52,6 +52,7 @@ import '../screens/banners_screen.dart';
 import '../screens/event_info_screen.dart';
 import '../screens/storage_manager_screen.dart';
 import '../screens/backup_screen.dart';
+import '../screens/load_profiler_screen.dart';
 
 class MatchScoutParams {
   final String? matchKey;
@@ -98,7 +99,7 @@ class ShellScreenRegistry {
   ShellScreenRegistry._();
 
   /// Total number of shell screens (indices 0 to [screenCount] - 1).
-  static const int screenCount = 52;
+  static const int screenCount = 53;
 
   static const List<String> titleKeys = [
     'nav.dashboard',
@@ -153,6 +154,7 @@ class ShellScreenRegistry {
     'nav.backup',
     'nav.prediction_leaderboard',
     'nav.event_info',
+    'nav.load_profiler',
   ];
 
   static const List<String> subtitleKeys = [
@@ -208,6 +210,7 @@ class ShellScreenRegistry {
     'subtitle.backup',
     'leaderboard.notice',
     'event_info.subtitle',
+    'subtitle.load_profiler',
   ];
 
   static String getTitleKey(int index) {
@@ -330,6 +333,8 @@ class ShellScreenRegistry {
         return 'prediction-leaderboard';
       case 51:
         return 'event-info';
+      case 52:
+        return 'load-profiler';
       default:
         return 'dashboard';
     }
@@ -441,6 +446,8 @@ class ShellScreenRegistry {
         return Icons.emoji_events_outlined;
       case 51:
         return Icons.campaign_outlined;
+      case 52:
+        return Icons.speed_rounded;
       default:
         return Icons.dashboard_rounded;
     }
@@ -453,17 +460,21 @@ class ShellScreenRegistry {
       case 1:
         return context.tr('nav.scout', context.tr('nav.match_scout', 'Scout'));
       case 2:
-        return context.tr('nav.pit-scout', context.tr('nav.pit_scout', 'Pit Scout'));
+        return context.tr(
+            'nav.pit-scout', context.tr('nav.pit_scout', 'Pit Scout'));
       case 3:
-        return context.tr('nav.qual-scout', context.tr('nav.qual_scout', 'Qual Scout'));
+        return context.tr(
+            'nav.qual-scout', context.tr('nav.qual_scout', 'Qual Scout'));
       case 4:
         return context.tr('nav.graphs', 'Graphs');
       case 5:
-        return context.tr('nav.settings', context.tr('nav.settings_cache', 'Settings'));
+        return context.tr(
+            'nav.settings', context.tr('nav.settings_cache', 'Settings'));
       case 6:
         return context.tr('nav.chat', 'Chat');
       case 7:
-        return context.tr('nav.alliance-selection', context.tr('nav.alliance_selection', 'Alliance Selection'));
+        return context.tr('nav.alliance-selection',
+            context.tr('nav.alliance_selection', 'Alliance Selection'));
       case 8:
         return context.tr('nav.teams', 'Teams');
       case 9:
@@ -473,31 +484,41 @@ class ShellScreenRegistry {
       case 11:
         return context.tr('nav.prescout', 'Prescouting');
       case 12:
-        return context.tr('nav.all-data', context.tr('nav.all_data', 'All Data'));
+        return context.tr(
+            'nav.all-data', context.tr('nav.all_data', 'All Data'));
       case 13:
-        return context.tr('nav.match-data', context.tr('nav.match_data', 'Match Data'));
+        return context.tr(
+            'nav.match-data', context.tr('nav.match_data', 'Match Data'));
       case 14:
-        return context.tr('nav.pit-data', context.tr('nav.pit_data', 'Pit Data'));
+        return context.tr(
+            'nav.pit-data', context.tr('nav.pit_data', 'Pit Data'));
       case 15:
-        return context.tr('nav.qual-data', context.tr('nav.qual_data', 'Qual Data'));
+        return context.tr(
+            'nav.qual-data', context.tr('nav.qual_data', 'Qual Data'));
       case 16:
-        return context.tr('nav.data-validation', context.tr('nav.data_validation', 'Data Validation'));
+        return context.tr('nav.data-validation',
+            context.tr('nav.data_validation', 'Data Validation'));
       case 17:
-        return context.tr('nav.scout-history', context.tr('nav.scout_history', 'Scout History'));
+        return context.tr('nav.scout-history',
+            context.tr('nav.scout_history', 'Scout History'));
       case 18:
-        return context.tr('nav.custom_analytics', context.tr('nav.analytics', 'Analytics'));
+        return context.tr(
+            'nav.custom_analytics', context.tr('nav.analytics', 'Analytics'));
       case 19:
         return context.tr('nav.contact', 'Contact');
       case 20:
         return context.tr('nav.predictor', 'Predictor');
       case 21:
-        return context.tr('nav.event-predictor', context.tr('nav.event_predictor', 'Event Predictor'));
+        return context.tr('nav.event-predictor',
+            context.tr('nav.event_predictor', 'Event Predictor'));
       case 22:
         return context.tr('nav.users', 'Users');
       case 23:
-        return context.tr('nav.cluster-management', context.tr('nav.cluster_management', 'Server Management'));
+        return context.tr('nav.cluster-management',
+            context.tr('nav.cluster_management', 'Server Management'));
       case 24:
-        return context.tr('nav.error-reports', context.tr('nav.error_reports', 'Error Reports'));
+        return context.tr('nav.error-reports',
+            context.tr('nav.error_reports', 'Error Reports'));
       case 25:
         return context.tr('events.title', 'Events');
       case 26:
@@ -549,9 +570,13 @@ class ShellScreenRegistry {
       case 49:
         return context.tr('nav.backup', 'Data Sharing');
       case 50:
-        return context.tr('nav.prediction_leaderboard', 'Prediction Leaderboard');
+        return context.tr(
+            'nav.prediction_leaderboard', 'Prediction Leaderboard');
       case 51:
         return context.tr('nav.event_info', 'Event Info');
+      case 52:
+        return context.tr('nav.load-profiler',
+            context.tr('nav.load_profiler', 'Load Profiler'));
       default:
         return 'Dashboard';
     }
@@ -571,9 +596,21 @@ class ShellScreenRegistry {
     required void Function(int index) onNavigateScreen,
     required VoidCallback onOpenQrScanner,
     required Future<void> Function() onLogout,
-    required void Function({String? matchKey, int? matchNumber, int? targetTeamNumber, String? sourceAssignmentId}) onNavigateToMatchScout,
-    required void Function({int? targetTeamNumber, String? sourceAssignmentId}) onNavigateToPitScout,
-    required void Function({String? matchKey, int? matchNumber, String? allianceColor, int? targetTeamNumber, String? sourceAssignmentId}) onNavigateToQualScout,
+    required void Function(
+            {String? matchKey,
+            int? matchNumber,
+            int? targetTeamNumber,
+            String? sourceAssignmentId})
+        onNavigateToMatchScout,
+    required void Function({int? targetTeamNumber, String? sourceAssignmentId})
+        onNavigateToPitScout,
+    required void Function(
+            {String? matchKey,
+            int? matchNumber,
+            String? allianceColor,
+            int? targetTeamNumber,
+            String? sourceAssignmentId})
+        onNavigateToQualScout,
   }) {
     switch (screenIndex) {
       case 0:
@@ -631,6 +668,7 @@ class ShellScreenRegistry {
           onNavigateConfigEditor: () => onNavigateScreen(10),
           onNavigateUsers: () => onNavigateScreen(22),
           onNavigateErrorReports: () => onNavigateScreen(24),
+          onNavigateLoadProfiler: () => onNavigateScreen(52),
           onNavigateThemeEditor: () => onNavigateScreen(28),
           isVisible: isTabActive && currentIndex == 5,
           isBarsVisible: isBarsVisible,
@@ -744,6 +782,7 @@ class ShellScreenRegistry {
           isVisible: isTabActive && currentIndex == 23,
           isBarsVisible: isBarsVisible,
           onNavigateErrorReports: () => onNavigateScreen(24),
+          onNavigateLoadProfiler: () => onNavigateScreen(52),
         );
       case 24:
         return ErrorReportsScreen(
@@ -796,7 +835,8 @@ class ShellScreenRegistry {
               sourceAssignmentId: assignmentId,
             );
           },
-          onNavigateQual: (matchKey, matchNum, allianceColor, teamNum, assignmentId) {
+          onNavigateQual:
+              (matchKey, matchNum, allianceColor, teamNum, assignmentId) {
             onNavigateToQualScout(
               matchKey: matchKey,
               matchNumber: matchNum,
@@ -944,6 +984,14 @@ class ShellScreenRegistry {
           apiService: apiService,
           isVisible: isTabActive && currentIndex == 51,
           isBarsVisible: isBarsVisible,
+        );
+      case 52:
+        return LoadProfilerScreen(
+          apiService: apiService,
+          isVisible: isTabActive && currentIndex == 52,
+          isBarsVisible: isBarsVisible,
+          onNavigateCluster: () => onNavigateScreen(23),
+          onNavigateSettings: () => onNavigateScreen(10),
         );
       default:
         return DashboardScreen(

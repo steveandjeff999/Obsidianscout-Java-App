@@ -2534,5 +2534,8 @@
   "slack.pref_mentions": "Only when I'm mentioned",
   "slack.pref_none": "Off",
   "slack.personal_pref_desc": "Popups for messages from the Slack channels your admins picked.",
-  "slack.retry": "Try again"
+  "slack.retry": "Try again",
+  "nav.load_profiler": "Load Profiler",
+  "nav.load-profiler": "Load Profiler",
+  "subtitle.load_profiler": "Cluster load & real-time request metrics"
 }

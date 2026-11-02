@@ -2417,5 +2417,8 @@
   "slack.pref_mentions": "Yalnızca benden bahsedildiğinde",
   "slack.pref_none": "Kapalı",
   "slack.personal_pref_desc": "Yöneticilerinizin seçtiği Slack kanallarındaki mesajlar için açılır bildirimler.",
-  "slack.retry": "Tekrar dene"
+  "slack.retry": "Tekrar dene",
+  "nav.load_profiler": "Yük Profili",
+  "nav.load-profiler": "Yük Profili",
+  "subtitle.load_profiler": "Küme yükü ve gerçek zamanlı istek metrikleri"
 }

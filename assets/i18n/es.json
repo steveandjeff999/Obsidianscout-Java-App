@@ -2417,5 +2417,8 @@
   "slack.pref_mentions": "Solo cuando me mencionan",
   "slack.pref_none": "Desactivados",
   "slack.personal_pref_desc": "Avisos emergentes de los canales de Slack que eligieron tus administradores.",
-  "slack.retry": "Reintentar"
+  "slack.retry": "Reintentar",
+  "nav.load_profiler": "Perfil de Carga",
+  "nav.load-profiler": "Perfil de Carga",
+  "subtitle.load_profiler": "Métricas de carga del servidor y solicitudes en tiempo real"
 }

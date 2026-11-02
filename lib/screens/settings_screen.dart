@@ -18,6 +18,7 @@ class SettingsScreen extends StatefulWidget {
   final VoidCallback? onNavigateConfigEditor;
   final VoidCallback? onNavigateUsers;
   final VoidCallback? onNavigateErrorReports;
+  final VoidCallback? onNavigateLoadProfiler;
   final VoidCallback? onNavigateThemeEditor;
   final bool isVisible;
   final bool isBarsVisible;
@@ -29,6 +30,7 @@ class SettingsScreen extends StatefulWidget {
     this.onNavigateConfigEditor,
     this.onNavigateUsers,
     this.onNavigateErrorReports,
+    this.onNavigateLoadProfiler,
     this.onNavigateThemeEditor,
     this.isVisible = true,
     this.isBarsVisible = true,
@@ -123,7 +125,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               if (ctx.mounted) {
                 setDialogState(() {
                   isVerifying = false;
-                  errorMessage = 'Incorrect password. You must enter the exact password you used to sign in.';
+                  errorMessage =
+                      'Incorrect password. You must enter the exact password you used to sign in.';
                 });
               }
               return;
@@ -141,7 +144,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(message, style: TextStyle(color: secondaryTextColor, fontSize: 13)),
+                Text(message,
+                    style: TextStyle(color: secondaryTextColor, fontSize: 13)),
                 const SizedBox(height: 14),
                 TextField(
                   controller: controller,
@@ -156,35 +160,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     errorMaxLines: 3,
                     suffixIcon: IconButton(
                       icon: Icon(
-                        obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        obscureText
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
                         color: secondaryTextColor,
                         size: 20,
                       ),
-                      onPressed: () => setDialogState(() => obscureText = !obscureText),
+                      onPressed: () =>
+                          setDialogState(() => obscureText = !obscureText),
                     ),
-                    enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
-                    focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
-                    errorBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.errorRed)),
-                    focusedErrorBorder: const OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.errorRed)),
+                    enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                            color: ObsidianUITheme.getBorderColor(context))),
+                    focusedBorder: OutlineInputBorder(
+                        borderSide:
+                            BorderSide(color: ObsidianUITheme.primaryAccent)),
+                    errorBorder: const OutlineInputBorder(
+                        borderSide:
+                            BorderSide(color: ObsidianUITheme.errorRed)),
+                    focusedErrorBorder: const OutlineInputBorder(
+                        borderSide:
+                            BorderSide(color: ObsidianUITheme.errorRed)),
                   ),
                 ),
               ],
             ),
             actions: [
               TextButton(
-                onPressed: isVerifying ? null : () => Navigator.of(ctx).pop(null),
-                child: Text(context.tr('events.cancel'), style: TextStyle(color: tertiaryTextColor)),
+                onPressed:
+                    isVerifying ? null : () => Navigator.of(ctx).pop(null),
+                child: Text(context.tr('events.cancel'),
+                    style: TextStyle(color: tertiaryTextColor)),
               ),
               ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.primaryAccent),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: ObsidianUITheme.primaryAccent),
                 onPressed: isVerifying ? null : submit,
                 child: isVerifying
                     ? const SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white),
                       )
-                    : const Text('Confirm', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    : const Text('Confirm',
+                        style: TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.bold)),
               ),
             ],
           );
@@ -315,7 +336,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: surfaceColor,
-        title: Text('Revoke Session', style: TextStyle(color: primaryTextColor)),
+        title:
+            Text('Revoke Session', style: TextStyle(color: primaryTextColor)),
         content: Text(
           'Are you sure you want to revoke session for "$deviceName"? This device will be signed out immediately.',
           style: TextStyle(color: secondaryTextColor),
@@ -323,10 +345,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(context.tr('events.cancel'), style: TextStyle(color: tertiaryTextColor)),
+            child: Text(context.tr('events.cancel'),
+                style: TextStyle(color: tertiaryTextColor)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.errorRed),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: ObsidianUITheme.errorRed),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text('Revoke', style: TextStyle(color: Colors.white)),
           ),
@@ -371,7 +395,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: surfaceColor,
-        title: Text('Revoke Other Sessions', style: TextStyle(color: primaryTextColor)),
+        title: Text('Revoke Other Sessions',
+            style: TextStyle(color: primaryTextColor)),
         content: Text(
           'Are you sure you want to revoke all other active sessions? All other logged-in devices will be signed out immediately.',
           style: TextStyle(color: secondaryTextColor),
@@ -379,12 +404,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(context.tr('events.cancel'), style: TextStyle(color: tertiaryTextColor)),
+            child: Text(context.tr('events.cancel'),
+                style: TextStyle(color: tertiaryTextColor)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.errorRed),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: ObsidianUITheme.errorRed),
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Revoke All Others', style: TextStyle(color: Colors.white)),
+            child: const Text('Revoke All Others',
+                style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -419,11 +447,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   IconData _getDeviceIcon(String clientType, String deviceName) {
     final name = deviceName.toLowerCase();
-    if (name.contains('android') || name.contains('iphone') || name.contains('ios') || clientType.toLowerCase() == 'mobile') {
+    if (name.contains('android') ||
+        name.contains('iphone') ||
+        name.contains('ios') ||
+        clientType.toLowerCase() == 'mobile') {
       return Icons.smartphone_rounded;
     } else if (name.contains('ipad') || name.contains('tablet')) {
       return Icons.tablet_mac_rounded;
-    } else if (name.contains('mac') || name.contains('windows') || name.contains('linux') || name.contains('pc')) {
+    } else if (name.contains('mac') ||
+        name.contains('windows') ||
+        name.contains('linux') ||
+        name.contains('pc')) {
       return Icons.computer_rounded;
     }
     return Icons.devices_rounded;
@@ -476,7 +510,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: surfaceColor,
-        title: Text(context.tr('settings.clear_cache'), style: TextStyle(color: primaryTextColor)),
+        title: Text(context.tr('settings.clear_cache'),
+            style: TextStyle(color: primaryTextColor)),
         content: Text(
           'This will purge all locally saved teams, matches, configs, and analytics. New data will be fetched when online.',
           style: TextStyle(color: secondaryTextColor),
@@ -484,12 +519,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(context.tr('events.cancel'), style: TextStyle(color: tertiaryTextColor)),
+            child: Text(context.tr('events.cancel'),
+                style: TextStyle(color: tertiaryTextColor)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.errorRed),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: ObsidianUITheme.errorRed),
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(context.tr('graphs.clear_all'), style: const TextStyle(color: Colors.white)),
+            child: Text(context.tr('graphs.clear_all'),
+                style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -520,24 +558,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: surfaceColor,
-        title: Text(context.tr('login.server_url'), style: TextStyle(color: primaryTextColor)),
+        title: Text(context.tr('login.server_url'),
+            style: TextStyle(color: primaryTextColor)),
         content: TextField(
           controller: controller,
           style: TextStyle(color: primaryTextColor),
           decoration: InputDecoration(
             labelText: 'Server URL (e.g. http://192.168.1.50:8080)',
             labelStyle: TextStyle(color: ObsidianUITheme.primaryAccent),
-            enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
-            focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+            enabledBorder: OutlineInputBorder(
+                borderSide:
+                    BorderSide(color: ObsidianUITheme.getBorderColor(context))),
+            focusedBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(context.tr('events.cancel'), style: TextStyle(color: tertiaryTextColor)),
+            child: Text(context.tr('events.cancel'),
+                style: TextStyle(color: tertiaryTextColor)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.primaryAccent),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: ObsidianUITheme.primaryAccent),
             onPressed: () async {
               final newUrl = controller.text.trim();
               if (newUrl.isNotEmpty) {
@@ -546,7 +590,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _handleSyncNow();
               }
             },
-            child: Text(context.tr('settings.save'), style: const TextStyle(color: Colors.white)),
+            child: Text(context.tr('settings.save'),
+                style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -578,13 +623,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
       case 'cache_analytics':
         return 'Analytics & Visualizations';
       default:
-        if (rawKey.startsWith('cache_teams_')) return 'Teams List (${rawKey.replaceAll('cache_teams_', '')})';
-        if (rawKey.startsWith('cache_matches_')) return 'Match Schedule (${rawKey.replaceAll('cache_matches_', '')})';
+        if (rawKey.startsWith('cache_teams_'))
+          return 'Teams List (${rawKey.replaceAll('cache_teams_', '')})';
+        if (rawKey.startsWith('cache_matches_'))
+          return 'Match Schedule (${rawKey.replaceAll('cache_matches_', '')})';
         return rawKey.replaceAll('cache_', '').replaceAll('_', ' ');
     }
   }
 
-  int get _totalBytes => _cacheSummary.values.fold(0, (sum, size) => sum + size);
+  int get _totalBytes =>
+      _cacheSummary.values.fold(0, (sum, size) => sum + size);
 
   Future<void> _setNonScoutingTools(bool enabled) async {
     setState(() => _savingNonScoutingTools = true);
@@ -596,8 +644,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (result.isSuccess) {
       messenger.showSnackBar(SnackBar(
         content: Text(enabled
-            ? context.tr('settings.non_scouting_tools_enabled', 'Non-scouting tools enabled')
-            : context.tr('settings.non_scouting_tools_disabled', 'Non-scouting tools disabled')),
+            ? context.tr('settings.non_scouting_tools_enabled',
+                'Non-scouting tools enabled')
+            : context.tr('settings.non_scouting_tools_disabled',
+                'Non-scouting tools disabled')),
         backgroundColor: ObsidianUITheme.primaryAccent,
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
@@ -605,8 +655,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } else {
       messenger.showSnackBar(SnackBar(
         content: Text(result.message == 'offline'
-            ? context.tr('settings.non_scouting_tools_offline', 'Connect to the server to change this setting')
-            : context.tr('settings.non_scouting_tools_failed', 'Could not update the setting')),
+            ? context.tr('settings.non_scouting_tools_offline',
+                'Connect to the server to change this setting')
+            : context.tr('settings.non_scouting_tools_failed',
+                'Could not update the setting')),
         backgroundColor: ObsidianUITheme.errorRed,
         behavior: SnackBarBehavior.floating,
       ));
@@ -621,8 +673,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final borderColor = ObsidianUITheme.getBorderColor(context);
 
     return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
-      padding: EdgeInsets.fromLTRB(16.0, 4.0, 16.0, widget.isBarsVisible ? 100.0 : 20.0),
+      physics:
+          const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+      padding: EdgeInsets.fromLTRB(
+          16.0, 4.0, 16.0, widget.isBarsVisible ? 100.0 : 20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -636,7 +690,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Icon(Icons.settings_suggest_rounded, color: ObsidianUITheme.primaryAccent, size: 32),
+                  child: Icon(Icons.settings_suggest_rounded,
+                      color: ObsidianUITheme.primaryAccent, size: 32),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -645,12 +700,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       Text(
                         context.tr('nav.settings_cache'),
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: primaryTextColor),
+                        style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: primaryTextColor),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         context.tr('subtitle.settings'),
-                        style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                        style:
+                            TextStyle(fontSize: 12, color: secondaryTextColor),
                       ),
                     ],
                   ),
@@ -670,23 +729,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.palette_rounded, color: ObsidianUITheme.primaryAccent),
+                        Icon(Icons.palette_rounded,
+                            color: ObsidianUITheme.primaryAccent),
                         const SizedBox(width: 8),
                         Text(
                           'Theme & Styling',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: primaryTextColor),
                         ),
                       ],
                     ),
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: ObsidianUITheme.getPrimaryAccent(context),
+                        backgroundColor:
+                            ObsidianUITheme.getPrimaryAccent(context),
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
                       ),
                       icon: const Icon(Icons.tune_rounded, size: 16),
-                      label: const Text('Theme Editor', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      label: const Text('Theme Editor',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 12)),
                       onPressed: () {
                         if (widget.onNavigateThemeEditor != null) {
                           widget.onNavigateThemeEditor!();
@@ -694,7 +762,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (ctx) => ThemeEditorScreen(apiService: widget.apiService),
+                              builder: (ctx) => ThemeEditorScreen(
+                                  apiService: widget.apiService),
                             ),
                           );
                         }
@@ -712,9 +781,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Theme Appearance', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: primaryTextColor)),
+                          Text('Theme Appearance',
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: primaryTextColor)),
                           const SizedBox(height: 2),
-                          Text('Choose dark, light, or follow device system theme.', style: TextStyle(fontSize: 12, color: secondaryTextColor)),
+                          Text(
+                              'Choose dark, light, or follow device system theme.',
+                              style: TextStyle(
+                                  fontSize: 12, color: secondaryTextColor)),
                         ],
                       ),
                     ),
@@ -724,13 +800,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       builder: (context, currentMode, _) {
                         return DropdownButton<ThemeMode>(
                           value: currentMode,
-                          dropdownColor: ObsidianUITheme.getSurfaceColor(context),
-                          style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.bold),
-                          underline: Container(height: 2, color: ObsidianUITheme.getPrimaryAccent(context)),
+                          dropdownColor:
+                              ObsidianUITheme.getSurfaceColor(context),
+                          style: TextStyle(
+                              color: primaryTextColor,
+                              fontWeight: FontWeight.bold),
+                          underline: Container(
+                              height: 2,
+                              color: ObsidianUITheme.getPrimaryAccent(context)),
                           items: const [
-                            DropdownMenuItem(value: ThemeMode.dark, child: Text('Dark Mode 🌙')),
-                            DropdownMenuItem(value: ThemeMode.light, child: Text('Light Mode ☀️')),
-                            DropdownMenuItem(value: ThemeMode.system, child: Text('System Default ⚙️')),
+                            DropdownMenuItem(
+                                value: ThemeMode.dark,
+                                child: Text('Dark Mode 🌙')),
+                            DropdownMenuItem(
+                                value: ThemeMode.light,
+                                child: Text('Light Mode ☀️')),
+                            DropdownMenuItem(
+                                value: ThemeMode.system,
+                                child: Text('System Default ⚙️')),
                           ],
                           onChanged: (newMode) async {
                             if (newMode != null) {
@@ -746,7 +833,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                 // Apply Website Custom Theme Toggle
                 ValueListenableBuilder<bool>(
-                  valueListenable: widget.apiService.useServerCustomThemeNotifier,
+                  valueListenable:
+                      widget.apiService.useServerCustomThemeNotifier,
                   builder: (context, useServerTheme, _) {
                     return Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -755,11 +843,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Apply Website Custom Theme', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: primaryTextColor)),
+                              Text('Apply Website Custom Theme',
+                                  style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: primaryTextColor)),
                               const SizedBox(height: 2),
                               Text(
                                 'Synchronize visual branding, accent colors, gradients, and button shapes configured on the team website.',
-                                style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                                style: TextStyle(
+                                    fontSize: 12, color: secondaryTextColor),
                               ),
                             ],
                           ),
@@ -767,29 +860,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const SizedBox(width: 12),
                         Switch(
                           value: useServerTheme,
-                          activeTrackColor: ObsidianUITheme.getPrimaryAccent(context),
+                          activeTrackColor:
+                              ObsidianUITheme.getPrimaryAccent(context),
                           activeThumbColor: Colors.white,
                           onChanged: (val) async {
-                            await widget.apiService.setUseServerCustomTheme(val);
+                            await widget.apiService
+                                .setUseServerCustomTheme(val);
                           },
                         ),
                       ],
                     );
                   },
                 ),
-                if (widget.apiService.isAdmin && widget.onNavigateThemeEditor != null) ...[
+                if (widget.apiService.isAdmin &&
+                    widget.onNavigateThemeEditor != null) ...[
                   Divider(color: borderColor, height: 24),
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: ObsidianUITheme.getPrimaryAccent(context),
-                        side: BorderSide(color: ObsidianUITheme.getPrimaryAccent(context).withValues(alpha: 0.5)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                        foregroundColor:
+                            ObsidianUITheme.getPrimaryAccent(context),
+                        side: BorderSide(
+                            color: ObsidianUITheme.getPrimaryAccent(context)
+                                .withValues(alpha: 0.5)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 12, horizontal: 16),
                       ),
                       icon: const Icon(Icons.palette_outlined, size: 20),
-                      label: const Text('Open Team Theme Customizer', style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: const Text('Open Team Theme Customizer',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                       onPressed: widget.onNavigateThemeEditor,
                     ),
                   ),
@@ -806,11 +908,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.language_rounded, color: ObsidianUITheme.primaryAccent),
+                    Icon(Icons.language_rounded,
+                        color: ObsidianUITheme.primaryAccent),
                     const SizedBox(width: 8),
                     Text(
                       context.tr('settings.language'),
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: primaryTextColor),
                     ),
                   ],
                 ),
@@ -822,20 +928,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(context.tr('settings.language_subtitle'), style: TextStyle(fontSize: 12, color: secondaryTextColor)),
+                          Text(context.tr('settings.language_subtitle'),
+                              style: TextStyle(
+                                  fontSize: 12, color: secondaryTextColor)),
                         ],
                       ),
                     ),
                     DropdownButton<String>(
                       value: widget.apiService.currentLocale.languageCode,
                       dropdownColor: ObsidianUITheme.getSurfaceColor(context),
-                      style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.bold),
-                      underline: Container(height: 2, color: ObsidianUITheme.primaryAccent),
+                      style: TextStyle(
+                          color: primaryTextColor, fontWeight: FontWeight.bold),
+                      underline: Container(
+                          height: 2, color: ObsidianUITheme.primaryAccent),
                       items: const [
-                        DropdownMenuItem(value: 'en', child: Text('English 🇺🇸')),
-                        DropdownMenuItem(value: 'es', child: Text('Español 🇪🇸')),
-                        DropdownMenuItem(value: 'he', child: Text('עברית 🇮🇱')),
-                        DropdownMenuItem(value: 'tr', child: Text('Türkçe 🇹🇷')),
+                        DropdownMenuItem(
+                            value: 'en', child: Text('English 🇺🇸')),
+                        DropdownMenuItem(
+                            value: 'es', child: Text('Español 🇪🇸')),
+                        DropdownMenuItem(
+                            value: 'he', child: Text('עברית 🇮🇱')),
+                        DropdownMenuItem(
+                            value: 'tr', child: Text('Türkçe 🇹🇷')),
                       ],
                       onChanged: (newLang) {
                         if (newLang != null) {
@@ -857,11 +971,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.devices_rounded, color: ObsidianUITheme.primaryAccent),
+                    Icon(Icons.devices_rounded,
+                        color: ObsidianUITheme.primaryAccent),
                     const SizedBox(width: 8),
                     Text(
                       'Interface & Layout Mode',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: primaryTextColor),
                     ),
                   ],
                 ),
@@ -873,11 +991,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Layout Experience', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: primaryTextColor)),
+                          Text('Layout Experience',
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: primaryTextColor)),
                           const SizedBox(height: 2),
                           Text(
                             'Choose between compact data-focused PC layout and large-button touch UI.',
-                            style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                            style: TextStyle(
+                                fontSize: 12, color: secondaryTextColor),
                           ),
                         ],
                       ),
@@ -888,13 +1011,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       builder: (context, currentMode, _) {
                         return DropdownButton<String>(
                           value: currentMode,
-                          dropdownColor: ObsidianUITheme.getSurfaceColor(context),
-                          style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.bold),
-                          underline: Container(height: 2, color: ObsidianUITheme.primaryAccent),
+                          dropdownColor:
+                              ObsidianUITheme.getSurfaceColor(context),
+                          style: TextStyle(
+                              color: primaryTextColor,
+                              fontWeight: FontWeight.bold),
+                          underline: Container(
+                              height: 2, color: ObsidianUITheme.primaryAccent),
                           items: const [
-                            DropdownMenuItem(value: 'auto', child: Text('Auto (Window Width)')),
-                            DropdownMenuItem(value: 'mobile', child: Text('Mobile Touch UI')),
-                            DropdownMenuItem(value: 'desktop', child: Text('PC Desktop Data-Dense')),
+                            DropdownMenuItem(
+                                value: 'auto',
+                                child: Text('Auto (Window Width)')),
+                            DropdownMenuItem(
+                                value: 'mobile',
+                                child: Text('Mobile Touch UI')),
+                            DropdownMenuItem(
+                                value: 'desktop',
+                                child: Text('PC Desktop Data-Dense')),
                           ],
                           onChanged: (newMode) async {
                             if (newMode != null) {
@@ -902,8 +1035,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text('Interface layout set to: ${newMode.toUpperCase()}'),
-                                    backgroundColor: ObsidianUITheme.primaryAccent,
+                                    content: Text(
+                                        'Interface layout set to: ${newMode.toUpperCase()}'),
+                                    backgroundColor:
+                                        ObsidianUITheme.primaryAccent,
                                     duration: const Duration(seconds: 2),
                                     behavior: SnackBarBehavior.floating,
                                   ),
@@ -924,11 +1059,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Desktop Multi-Tab Workspace', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: primaryTextColor)),
+                          Text('Desktop Multi-Tab Workspace',
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: primaryTextColor)),
                           const SizedBox(height: 2),
                           Text(
                             'Enable browser-style tabs on desktop for multitasking across scouting, analytics, and chat.',
-                            style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                            style: TextStyle(
+                                fontSize: 12, color: secondaryTextColor),
                           ),
                         ],
                       ),
@@ -942,7 +1082,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           activeTrackColor: ObsidianUITheme.primaryAccent,
                           activeThumbColor: Colors.white,
                           onChanged: (value) async {
-                            await widget.apiService.setDesktopTabsEnabled(value);
+                            await widget.apiService
+                                .setDesktopTabsEnabled(value);
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
@@ -951,7 +1092,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                         ? 'Desktop tabs enabled'
                                         : 'Desktop tabs disabled (reverted to classic view)',
                                   ),
-                                  backgroundColor: ObsidianUITheme.primaryAccent,
+                                  backgroundColor:
+                                      ObsidianUITheme.primaryAccent,
                                   duration: const Duration(seconds: 2),
                                   behavior: SnackBarBehavior.floating,
                                 ),
@@ -972,8 +1114,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            context.tr('settings.keep_screen_on', 'Keep Screen On While Scouting'),
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: primaryTextColor),
+                            context.tr('settings.keep_screen_on',
+                                'Keep Screen On While Scouting'),
+                            style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: primaryTextColor),
                           ),
                           const SizedBox(height: 2),
                           Text(
@@ -981,20 +1127,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               'settings.keep_screen_on_desc',
                               'Stops the screen from dimming or locking while a match, pit, qualitative or prescouting form is open.',
                             ),
-                            style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                            style: TextStyle(
+                                fontSize: 12, color: secondaryTextColor),
                           ),
                         ],
                       ),
                     ),
                     const SizedBox(width: 12),
                     ValueListenableBuilder<bool>(
-                      valueListenable: widget.apiService.keepScreenOnWhileScoutingNotifier,
+                      valueListenable:
+                          widget.apiService.keepScreenOnWhileScoutingNotifier,
                       builder: (context, keepOn, _) {
                         return Switch(
                           value: keepOn,
                           activeTrackColor: ObsidianUITheme.primaryAccent,
                           activeThumbColor: Colors.white,
-                          onChanged: (value) => widget.apiService.setKeepScreenOnWhileScouting(value),
+                          onChanged: (value) => widget.apiService
+                              .setKeepScreenOnWhileScouting(value),
                         );
                       },
                     ),
@@ -1011,8 +1160,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            context.tr('settings.review_before_submit', 'Review Before Submitting'),
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: primaryTextColor),
+                            context.tr('settings.review_before_submit',
+                                'Review Before Submitting'),
+                            style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: primaryTextColor),
                           ),
                           const SizedBox(height: 2),
                           Text(
@@ -1020,20 +1173,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               'settings.review_before_submit_desc',
                               'Shows an overview of the entry so you can check it before it is saved.',
                             ),
-                            style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                            style: TextStyle(
+                                fontSize: 12, color: secondaryTextColor),
                           ),
                         ],
                       ),
                     ),
                     const SizedBox(width: 12),
                     ValueListenableBuilder<bool>(
-                      valueListenable: widget.apiService.reviewBeforeSubmitNotifier,
+                      valueListenable:
+                          widget.apiService.reviewBeforeSubmitNotifier,
                       builder: (context, reviewOn, _) {
                         return Switch(
                           value: reviewOn,
                           activeTrackColor: ObsidianUITheme.primaryAccent,
                           activeThumbColor: Colors.white,
-                          onChanged: (value) => widget.apiService.setReviewBeforeSubmit(value),
+                          onChanged: (value) =>
+                              widget.apiService.setReviewBeforeSubmit(value),
                         );
                       },
                     ),
@@ -1051,12 +1207,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.handyman_rounded, color: ObsidianUITheme.primaryAccent),
+                    Icon(Icons.handyman_rounded,
+                        color: ObsidianUITheme.primaryAccent),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        context.tr('settings.non_scouting_tools', 'Non-Scouting Tools'),
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
+                        context.tr('settings.non_scouting_tools',
+                            'Non-Scouting Tools'),
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: primaryTextColor),
                       ),
                     ),
                   ],
@@ -1073,8 +1234,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                context.tr('settings.non_scouting_tools_toggle', 'Show non-scouting tools'),
-                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: primaryTextColor),
+                                context.tr('settings.non_scouting_tools_toggle',
+                                    'Show non-scouting tools'),
+                                style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: primaryTextColor),
                               ),
                               const SizedBox(height: 2),
                               Text(
@@ -1082,19 +1247,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   'settings.non_scouting_tools_desc',
                                   'Adds a Non-Scouting Tools section to the menu with drive-team tools such as the Match Checklist for pre-match and on-the-field checks.',
                                 ),
-                                style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                                style: TextStyle(
+                                    fontSize: 12, color: secondaryTextColor),
                               ),
                             ],
                           ),
                         ),
                         const SizedBox(width: 12),
                         _savingNonScoutingTools
-                            ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2))
                             : Switch(
                                 value: enabled,
                                 activeTrackColor: ObsidianUITheme.primaryAccent,
                                 activeThumbColor: Colors.white,
-                                onChanged: (value) => _setNonScoutingTools(value),
+                                onChanged: (value) =>
+                                    _setNonScoutingTools(value),
                               ),
                       ],
                     );
@@ -1119,20 +1290,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.sports_esports_rounded, color: ObsidianUITheme.primaryAccent),
+                        Icon(Icons.sports_esports_rounded,
+                            color: ObsidianUITheme.primaryAccent),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'Gamepad & Controller Setup',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
+                            style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: primaryTextColor),
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: (devices.isNotEmpty && isEnabled)
-                                ? ObsidianUITheme.successGreen.withValues(alpha: 0.15)
-                                : ObsidianUITheme.warningOrange.withValues(alpha: 0.15),
+                                ? ObsidianUITheme.successGreen
+                                    .withValues(alpha: 0.15)
+                                : ObsidianUITheme.warningOrange
+                                    .withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
@@ -1176,14 +1354,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             children: [
                               Text(
                                 'PS4 / Xbox / Gamepad Scouting',
-                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: primaryTextColor),
+                                style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: primaryTextColor),
                               ),
                               const SizedBox(height: 2),
                               Text(
                                 activeProfile != null
                                     ? 'Active Profile: ${activeProfile.name} (${activeProfile.bindings.length} bindings, ${activeProfile.controllerType.toUpperCase()})'
                                     : 'Bind buttons & analog triggers to scouting fields with repeat-on-hold.',
-                                style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                                style: TextStyle(
+                                    fontSize: 12, color: secondaryTextColor),
                               ),
                             ],
                           ),
@@ -1197,10 +1379,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: ObsidianUITheme.primaryAccent,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 12, horizontal: 16),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
                         ),
-                        icon: const Icon(Icons.settings_input_component_rounded, size: 20),
+                        icon: const Icon(Icons.settings_input_component_rounded,
+                            size: 20),
                         label: const Text(
                           'Configure Controller Mappings & Triggers',
                           style: TextStyle(fontWeight: FontWeight.bold),
@@ -1208,7 +1393,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         onPressed: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (ctx) => GamepadSettingsScreen(apiService: widget.apiService),
+                              builder: (ctx) => GamepadSettingsScreen(
+                                  apiService: widget.apiService),
                             ),
                           );
                         },
@@ -1228,11 +1414,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.timer_outlined, color: ObsidianUITheme.primaryAccent),
+                    Icon(Icons.timer_outlined,
+                        color: ObsidianUITheme.primaryAccent),
                     const SizedBox(width: 8),
                     Text(
                       'Network Request Timeout',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: primaryTextColor),
                     ),
                   ],
                 ),
@@ -1244,11 +1434,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('HTTP & Sync Timeout', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: primaryTextColor)),
+                          Text('HTTP & Sync Timeout',
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: primaryTextColor)),
                           const SizedBox(height: 2),
                           Text(
                             'Duration before requests abort and fall back to offline cache.',
-                            style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                            style: TextStyle(
+                                fontSize: 12, color: secondaryTextColor),
                           ),
                         ],
                       ),
@@ -1258,29 +1453,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       valueListenable: widget.apiService.timeoutNotifier,
                       builder: (context, currentTimeout, _) {
                         final allowedTimeouts = [3, 6, 10, 15, 20, 30];
-                        final effectiveValue = allowedTimeouts.contains(currentTimeout) ? currentTimeout : 6;
+                        final effectiveValue =
+                            allowedTimeouts.contains(currentTimeout)
+                                ? currentTimeout
+                                : 6;
 
                         return DropdownButton<int>(
                           value: effectiveValue,
-                          dropdownColor: ObsidianUITheme.getSurfaceColor(context),
-                          style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.bold),
-                          underline: Container(height: 2, color: ObsidianUITheme.primaryAccent),
+                          dropdownColor:
+                              ObsidianUITheme.getSurfaceColor(context),
+                          style: TextStyle(
+                              color: primaryTextColor,
+                              fontWeight: FontWeight.bold),
+                          underline: Container(
+                              height: 2, color: ObsidianUITheme.primaryAccent),
                           items: const [
-                            DropdownMenuItem(value: 3, child: Text('3s (Fast / Local)')),
-                            DropdownMenuItem(value: 6, child: Text('6s (Standard)')),
-                            DropdownMenuItem(value: 10, child: Text('10s (Crowded Wi-Fi)')),
-                            DropdownMenuItem(value: 15, child: Text('15s (Slow Arena LTE)')),
-                            DropdownMenuItem(value: 20, child: Text('20s (High Latency)')),
-                            DropdownMenuItem(value: 30, child: Text('30s (Maximum)')),
+                            DropdownMenuItem(
+                                value: 3, child: Text('3s (Fast / Local)')),
+                            DropdownMenuItem(
+                                value: 6, child: Text('6s (Standard)')),
+                            DropdownMenuItem(
+                                value: 10, child: Text('10s (Crowded Wi-Fi)')),
+                            DropdownMenuItem(
+                                value: 15, child: Text('15s (Slow Arena LTE)')),
+                            DropdownMenuItem(
+                                value: 20, child: Text('20s (High Latency)')),
+                            DropdownMenuItem(
+                                value: 30, child: Text('30s (Maximum)')),
                           ],
                           onChanged: (newTimeout) async {
                             if (newTimeout != null) {
-                              await widget.apiService.setRequestTimeoutSeconds(newTimeout);
+                              await widget.apiService
+                                  .setRequestTimeoutSeconds(newTimeout);
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text('Request timeout set to ${newTimeout}s'),
-                                    backgroundColor: ObsidianUITheme.primaryAccent,
+                                    content: Text(
+                                        'Request timeout set to ${newTimeout}s'),
+                                    backgroundColor:
+                                        ObsidianUITheme.primaryAccent,
                                     duration: const Duration(seconds: 2),
                                     behavior: SnackBarBehavior.floating,
                                   ),
@@ -1298,8 +1509,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   valueListenable: LinkQuality.instance.statsVersion,
                   builder: (context, _, __) {
                     final stats = LinkQuality.instance.stats;
-                    final speed = stats.kbps != null ? 'about ${stats.kbps} kbps' : 'not measured yet';
-                    final latency = stats.rttMs != null ? ', ${stats.rttMs} ms response time' : '';
+                    final speed = stats.kbps != null
+                        ? 'about ${stats.kbps} kbps'
+                        : 'not measured yet';
+                    final latency = stats.rttMs != null
+                        ? ', ${stats.rttMs} ms response time'
+                        : '';
                     return Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -1307,12 +1522,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Slow Connection Mode', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: primaryTextColor)),
+                              Text('Slow Connection Mode',
+                                  style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: primaryTextColor)),
                               const SizedBox(height: 2),
                               Text(
                                 'Uploads first, bulk data later, analytics computed on this device. '
                                 '${stats.low ? 'On' : 'Off'} right now. Connection: $speed$latency.',
-                                style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                                style: TextStyle(
+                                    fontSize: 12, color: secondaryTextColor),
                               ),
                             ],
                           ),
@@ -1320,16 +1540,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const SizedBox(width: 12),
                         DropdownButton<LowBandwidthMode>(
                           value: stats.mode,
-                          dropdownColor: ObsidianUITheme.getSurfaceColor(context),
-                          style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.bold),
-                          underline: Container(height: 2, color: ObsidianUITheme.primaryAccent),
+                          dropdownColor:
+                              ObsidianUITheme.getSurfaceColor(context),
+                          style: TextStyle(
+                              color: primaryTextColor,
+                              fontWeight: FontWeight.bold),
+                          underline: Container(
+                              height: 2, color: ObsidianUITheme.primaryAccent),
                           items: const [
-                            DropdownMenuItem(value: LowBandwidthMode.auto, child: Text('Automatic')),
-                            DropdownMenuItem(value: LowBandwidthMode.on, child: Text('Always on')),
-                            DropdownMenuItem(value: LowBandwidthMode.off, child: Text('Off')),
+                            DropdownMenuItem(
+                                value: LowBandwidthMode.auto,
+                                child: Text('Automatic')),
+                            DropdownMenuItem(
+                                value: LowBandwidthMode.on,
+                                child: Text('Always on')),
+                            DropdownMenuItem(
+                                value: LowBandwidthMode.off,
+                                child: Text('Off')),
                           ],
                           onChanged: (mode) {
-                            if (mode != null) LinkQuality.instance.setMode(mode);
+                            if (mode != null)
+                              LinkQuality.instance.setMode(mode);
                           },
                         ),
                       ],
@@ -1342,7 +1573,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 16),
 
           // Form Configuration Editor Card (Admin / Config Editor page access)
-          if (widget.apiService.hasPageAccess('admin-settings') || widget.apiService.hasPageAccess('config-editor')) ...[
+          if (widget.apiService.hasPageAccess('admin-settings') ||
+              widget.apiService.hasPageAccess('config-editor')) ...[
             ObsidianGlassCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1353,12 +1585,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Expanded(
                         child: Row(
                           children: [
-                            Icon(Icons.tune_rounded, color: ObsidianUITheme.primaryAccent),
+                            Icon(Icons.tune_rounded,
+                                color: ObsidianUITheme.primaryAccent),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 'Scouting Forms Editor',
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
+                                style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: primaryTextColor),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
@@ -1370,11 +1606,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: ObsidianUITheme.primaryAccent,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
                           ),
-                          icon: const Icon(Icons.edit_note_rounded, color: Colors.white, size: 18),
-                          label: const Text('Open Editor', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                          icon: const Icon(Icons.edit_note_rounded,
+                              color: Colors.white, size: 18),
+                          label: const Text('Open Editor',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12)),
                           onPressed: widget.onNavigateConfigEditor,
                         ),
                     ],
@@ -1392,10 +1635,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(color: borderColor),
                             padding: const EdgeInsets.symmetric(vertical: 8),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
                           ),
                           onPressed: widget.onNavigateConfigEditor,
-                          child: Text('Match Form', style: TextStyle(color: primaryTextColor, fontSize: 12, fontWeight: FontWeight.w600)),
+                          child: Text('Match Form',
+                              style: TextStyle(
+                                  color: primaryTextColor,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600)),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -1404,10 +1652,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(color: borderColor),
                             padding: const EdgeInsets.symmetric(vertical: 8),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
                           ),
                           onPressed: widget.onNavigateConfigEditor,
-                          child: Text('Pit Form', style: TextStyle(color: primaryTextColor, fontSize: 12, fontWeight: FontWeight.w600)),
+                          child: Text('Pit Form',
+                              style: TextStyle(
+                                  color: primaryTextColor,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600)),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -1416,10 +1669,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(color: borderColor),
                             padding: const EdgeInsets.symmetric(vertical: 8),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
                           ),
                           onPressed: widget.onNavigateConfigEditor,
-                          child: Text('Qual Form', style: TextStyle(color: primaryTextColor, fontSize: 12, fontWeight: FontWeight.w600)),
+                          child: Text('Qual Form',
+                              style: TextStyle(
+                                  color: primaryTextColor,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600)),
                         ),
                       ),
                     ],
@@ -1432,10 +1690,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(color: borderColor),
                             padding: const EdgeInsets.symmetric(vertical: 8),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
                           ),
-                          icon: Icon(Icons.history_rounded, size: 14, color: ObsidianUITheme.primaryAccent),
-                          label: Text('Schema History', style: TextStyle(color: ObsidianUITheme.primaryAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                          icon: Icon(Icons.history_rounded,
+                              size: 14, color: ObsidianUITheme.primaryAccent),
+                          label: Text('Schema History',
+                              style: TextStyle(
+                                  color: ObsidianUITheme.primaryAccent,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold)),
                           onPressed: widget.onNavigateConfigEditor,
                         ),
                       ),
@@ -1445,10 +1709,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(color: borderColor),
                             padding: const EdgeInsets.symmetric(vertical: 8),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
                           ),
-                          icon: const Icon(Icons.transform_rounded, size: 14, color: Colors.cyanAccent),
-                          label: const Text('Data Migration', style: TextStyle(color: Colors.cyanAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                          icon: const Icon(Icons.transform_rounded,
+                              size: 14, color: Colors.cyanAccent),
+                          label: const Text('Data Migration',
+                              style: TextStyle(
+                                  color: Colors.cyanAccent,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold)),
                           onPressed: widget.onNavigateConfigEditor,
                         ),
                       ),
@@ -1472,12 +1742,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Expanded(
                         child: Row(
                           children: [
-                            Icon(Icons.manage_accounts_rounded, color: ObsidianUITheme.primaryAccent),
+                            Icon(Icons.manage_accounts_rounded,
+                                color: ObsidianUITheme.primaryAccent),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 context.tr('users.title', 'User Management'),
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
+                                style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: primaryTextColor),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
@@ -1489,11 +1763,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: ObsidianUITheme.primaryAccent,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
                           ),
-                          icon: const Icon(Icons.people_alt_rounded, color: Colors.white, size: 18),
-                          label: Text(context.tr('users.manage_users', 'Manage Users'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                          icon: const Icon(Icons.people_alt_rounded,
+                              color: Colors.white, size: 18),
+                          label: Text(
+                              context.tr('users.manage_users', 'Manage Users'),
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12)),
                           onPressed: widget.onNavigateUsers,
                         ),
                     ],
@@ -1501,6 +1783,69 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Divider(color: borderColor, height: 24),
                   Text(
                     'Create scout accounts, manage role permissions (Scout, Analytics, Admin), reset passwords, and update profiles.',
+                    style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // Load Profiler Card (Superadmin access)
+          if (widget.apiService.hasPageAccess('load-profiler')) ...[
+            ObsidianGlassCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            const Icon(Icons.speed_rounded,
+                                color: Color(0xFFF97316)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                context.tr(
+                                    'nav.load-profiler',
+                                    context.tr(
+                                        'nav.load_profiler', 'Load Profiler')),
+                                style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: primaryTextColor),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      if (widget.onNavigateLoadProfiler != null)
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFF97316),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                          icon: const Icon(Icons.analytics_rounded,
+                              color: Colors.white, size: 18),
+                          label: const Text('Open Profiler',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12)),
+                          onPressed: widget.onNavigateLoadProfiler,
+                        ),
+                    ],
+                  ),
+                  Divider(color: borderColor, height: 24),
+                  Text(
+                    'Analyze real server load, request rates, response times, and split live refresh traffic across cluster nodes.',
                     style: TextStyle(fontSize: 12, color: secondaryTextColor),
                   ),
                 ],
@@ -1521,12 +1866,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Expanded(
                         child: Row(
                           children: [
-                            const Icon(Icons.bug_report_rounded, color: Color(0xFFF87171)),
+                            const Icon(Icons.bug_report_rounded,
+                                color: Color(0xFFF87171)),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                context.tr('nav.error_reports', 'Error Reports'),
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
+                                context.tr(
+                                    'nav.error_reports', 'Error Reports'),
+                                style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: primaryTextColor),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
@@ -1538,11 +1888,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFEF4444),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
                           ),
-                          icon: const Icon(Icons.troubleshoot_rounded, color: Colors.white, size: 18),
-                          label: const Text('View Reports', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                          icon: const Icon(Icons.troubleshoot_rounded,
+                              color: Colors.white, size: 18),
+                          label: const Text('View Reports',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12)),
                           onPressed: widget.onNavigateErrorReports,
                         ),
                     ],
@@ -1569,12 +1926,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Expanded(
                       child: Row(
                         children: [
-                          Icon(Icons.folder_zip_rounded, color: ObsidianUITheme.primaryAccent),
+                          Icon(Icons.folder_zip_rounded,
+                              color: ObsidianUITheme.primaryAccent),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               context.tr('settings.offline_cache'),
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
+                              style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: primaryTextColor),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -1585,7 +1946,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Flexible(
                       child: Text(
                         '${(_totalBytes / 1024).toStringAsFixed(1)} KB ${context.tr("dashboard.total")}',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ObsidianUITheme.primaryAccent),
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: ObsidianUITheme.primaryAccent),
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.end,
                       ),
@@ -1593,13 +1957,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ],
                 ),
                 Divider(color: borderColor, height: 24),
-
                 if (_isLoadingCache)
-                  Center(child: Padding(padding: EdgeInsets.all(16.0), child: CircularProgressIndicator(color: ObsidianUITheme.primaryAccent)))
+                  Center(
+                      child: Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: CircularProgressIndicator(
+                              color: ObsidianUITheme.primaryAccent)))
                 else if (_cacheSummary.isEmpty)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 12.0),
-                    child: Text(context.tr('settings.no_cache'), style: TextStyle(color: tertiaryTextColor, fontSize: 13)),
+                    child: Text(context.tr('settings.no_cache'),
+                        style:
+                            TextStyle(color: tertiaryTextColor, fontSize: 13)),
                   )
                 else
                   Column(
@@ -1614,12 +1983,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             Expanded(
                               child: Row(
                                 children: [
-                                  const Icon(Icons.check_circle_outline_rounded, color: Colors.greenAccent, size: 16),
+                                  const Icon(Icons.check_circle_outline_rounded,
+                                      color: Colors.greenAccent, size: 16),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
                                       name,
-                                      style: TextStyle(color: primaryTextColor, fontSize: 13),
+                                      style: TextStyle(
+                                          color: primaryTextColor,
+                                          fontSize: 13),
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
@@ -1627,13 +1999,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            Text('$kb KB', style: TextStyle(color: tertiaryTextColor, fontSize: 12, fontFamily: 'monospace')),
+                            Text('$kb KB',
+                                style: TextStyle(
+                                    color: tertiaryTextColor,
+                                    fontSize: 12,
+                                    fontFamily: 'monospace')),
                           ],
                         ),
                       );
                     }).toList(),
                   ),
-
                 const SizedBox(height: 16),
                 Row(
                   children: [
@@ -1642,15 +2017,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: ObsidianUITheme.primaryAccent,
                           padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
                         ),
                         onPressed: _isSyncing ? null : _handleSyncNow,
                         icon: _isSyncing
-                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                            : const Icon(Icons.sync_rounded, color: Colors.white, size: 20),
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                    color: Colors.white, strokeWidth: 2))
+                            : const Icon(Icons.sync_rounded,
+                                color: Colors.white, size: 20),
                         label: Text(
-                          _isSyncing ? context.tr('dashboard.quick_sync') : context.tr('settings.sync_now'),
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          _isSyncing
+                              ? context.tr('dashboard.quick_sync')
+                              : context.tr('settings.sync_now'),
+                          style: const TextStyle(
+                              color: Colors.white, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
@@ -1658,12 +2042,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: ObsidianUITheme.errorRed),
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 12, horizontal: 16),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
                       onPressed: _handleClearCache,
-                      icon: const Icon(Icons.delete_sweep_rounded, color: ObsidianUITheme.errorRed, size: 20),
-                      label: Text(context.tr('graphs.clear_all'), style: const TextStyle(color: ObsidianUITheme.errorRed, fontWeight: FontWeight.bold)),
+                      icon: const Icon(Icons.delete_sweep_rounded,
+                          color: ObsidianUITheme.errorRed, size: 20),
+                      label: Text(context.tr('graphs.clear_all'),
+                          style: const TextStyle(
+                              color: ObsidianUITheme.errorRed,
+                              fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
@@ -1679,11 +2069,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.dns_rounded, color: ObsidianUITheme.primaryAccent),
+                    Icon(Icons.dns_rounded,
+                        color: ObsidianUITheme.primaryAccent),
                     const SizedBox(width: 8),
                     Text(
                       context.tr('login.server_url'),
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: primaryTextColor),
                     ),
                   ],
                 ),
@@ -1695,17 +2089,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(context.tr('settings.active_server'), style: TextStyle(fontSize: 12, color: secondaryTextColor)),
+                          Text(context.tr('settings.active_server'),
+                              style: TextStyle(
+                                  fontSize: 12, color: secondaryTextColor)),
                           const SizedBox(height: 2),
                           Text(
                             widget.apiService.serverUrl,
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: primaryTextColor, fontFamily: 'monospace'),
+                            style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: primaryTextColor,
+                                fontFamily: 'monospace'),
                           ),
                         ],
                       ),
                     ),
                     IconButton(
-                      icon: Icon(Icons.edit_rounded, color: ObsidianUITheme.primaryAccent),
+                      icon: Icon(Icons.edit_rounded,
+                          color: ObsidianUITheme.primaryAccent),
                       onPressed: _showEditServerUrlDialog,
                     ),
                   ],
@@ -1723,11 +2124,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.fingerprint_rounded, color: ObsidianUITheme.primaryAccent),
+                      Icon(Icons.fingerprint_rounded,
+                          color: ObsidianUITheme.primaryAccent),
                       const SizedBox(width: 8),
                       Text(
                         'Passkey & Biometric Security',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: primaryTextColor),
                       ),
                     ],
                   ),
@@ -1741,12 +2146,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           children: [
                             Text(
                               'Biometric Sign-In',
-                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: primaryTextColor),
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: primaryTextColor),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               'Use Fingerprint, Face ID, or Windows Hello to sign in without typing your password.',
-                              style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                              style: TextStyle(
+                                  fontSize: 12, color: secondaryTextColor),
                             ),
                           ],
                         ),
@@ -1770,12 +2179,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             children: [
                               Text(
                                 'Require Passkey on Launch',
-                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: primaryTextColor),
+                                style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: primaryTextColor),
                               ),
                               const SizedBox(height: 2),
                               Text(
                                 'Lock the app and require biometric authentication immediately when ObsidianScout opens.',
-                                style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                                style: TextStyle(
+                                    fontSize: 12, color: secondaryTextColor),
                               ),
                             ],
                           ),
@@ -1806,12 +2219,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Expanded(
                       child: Row(
                         children: [
-                          Icon(Icons.devices_rounded, color: ObsidianUITheme.primaryAccent),
+                          Icon(Icons.devices_rounded,
+                              color: ObsidianUITheme.primaryAccent),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               'Active Sessions',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
+                              style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: primaryTextColor),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -1821,8 +2238,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(width: 8),
                     IconButton(
                       icon: _isLoadingSessions
-                          ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianUITheme.primaryAccent))
-                          : Icon(Icons.refresh_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
+                          ? SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: ObsidianUITheme.primaryAccent))
+                          : Icon(Icons.refresh_rounded,
+                              color: ObsidianUITheme.primaryAccent, size: 20),
                       tooltip: 'Refresh Sessions',
                       onPressed: _isLoadingSessions ? null : _loadSessions,
                     ),
@@ -1838,7 +2261,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Center(
                     child: Padding(
                       padding: EdgeInsets.all(16.0),
-                      child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianUITheme.primaryAccent),
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: ObsidianUITheme.primaryAccent),
                     ),
                   )
                 else if (_sessions.isEmpty)
@@ -1846,7 +2270,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 8.0),
                     child: Text(
                       'No active sessions found.',
-                      style: TextStyle(fontSize: 13, color: secondaryTextColor, fontStyle: FontStyle.italic),
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: secondaryTextColor,
+                          fontStyle: FontStyle.italic),
                     ),
                   )
                 else ...[
@@ -1858,22 +2285,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     itemBuilder: (context, index) {
                       final session = _sessions[index];
                       final isCurrent = session['isCurrent'] == true;
-                      final clientType = session['clientType']?.toString() ?? 'web';
-                      final deviceName = session['deviceName']?.toString() ?? 'Unknown Device';
-                      final ipAddress = session['ipAddress']?.toString() ?? 'Unknown IP';
+                      final clientType =
+                          session['clientType']?.toString() ?? 'web';
+                      final deviceName =
+                          session['deviceName']?.toString() ?? 'Unknown Device';
+                      final ipAddress =
+                          session['ipAddress']?.toString() ?? 'Unknown IP';
                       final lastActiveAt = session['lastActiveAt']?.toString();
                       final sessionId = session['id']?.toString() ?? '';
 
                       return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
                         decoration: BoxDecoration(
                           color: isCurrent
-                              ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.08)
-                              : ObsidianUITheme.getSurfaceColor(context).withValues(alpha: 0.5),
+                              ? ObsidianUITheme.primaryAccent
+                                  .withValues(alpha: 0.08)
+                              : ObsidianUITheme.getSurfaceColor(context)
+                                  .withValues(alpha: 0.5),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: isCurrent
-                                ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.4)
+                                ? ObsidianUITheme.primaryAccent
+                                    .withValues(alpha: 0.4)
                                 : borderColor,
                           ),
                         ),
@@ -1883,13 +2317,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
                                 color: isCurrent
-                                    ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.2)
+                                    ? ObsidianUITheme.primaryAccent
+                                        .withValues(alpha: 0.2)
                                     : Colors.white.withValues(alpha: 0.05),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Icon(
                                 _getDeviceIcon(clientType, deviceName),
-                                color: isCurrent ? ObsidianUITheme.primaryAccent : secondaryTextColor,
+                                color: isCurrent
+                                    ? ObsidianUITheme.primaryAccent
+                                    : secondaryTextColor,
                                 size: 20,
                               ),
                             ),
@@ -1915,11 +2352,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       if (isCurrent) ...[
                                         const SizedBox(width: 6),
                                         Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 6, vertical: 2),
                                           decoration: BoxDecoration(
-                                            color: Colors.greenAccent.withValues(alpha: 0.2),
-                                            borderRadius: BorderRadius.circular(6),
-                                            border: Border.all(color: Colors.greenAccent.withValues(alpha: 0.4)),
+                                            color: Colors.greenAccent
+                                                .withValues(alpha: 0.2),
+                                            borderRadius:
+                                                BorderRadius.circular(6),
+                                            border: Border.all(
+                                                color: Colors.greenAccent
+                                                    .withValues(alpha: 0.4)),
                                           ),
                                           child: const Text(
                                             'This Device',
@@ -1936,16 +2378,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   const SizedBox(height: 3),
                                   Text(
                                     '$ipAddress • Last active ${_formatSessionTime(lastActiveAt)}',
-                                    style: TextStyle(fontSize: 11, color: secondaryTextColor),
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        color: secondaryTextColor),
                                   ),
                                 ],
                               ),
                             ),
                             if (!isCurrent && sessionId.isNotEmpty)
                               IconButton(
-                                icon: const Icon(Icons.logout_rounded, color: ObsidianUITheme.errorRed, size: 20),
+                                icon: const Icon(Icons.logout_rounded,
+                                    color: ObsidianUITheme.errorRed, size: 20),
                                 tooltip: 'Revoke this session',
-                                onPressed: _isRevokingSession ? null : () => _revokeSession(sessionId, deviceName),
+                                onPressed: _isRevokingSession
+                                    ? null
+                                    : () =>
+                                        _revokeSession(sessionId, deviceName),
                               ),
                           ],
                         ),
@@ -1958,15 +2406,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       width: double.infinity,
                       child: OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: ObsidianUITheme.errorRed),
-                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          side:
+                              const BorderSide(color: ObsidianUITheme.errorRed),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 10, horizontal: 16),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
                         ),
-                        onPressed: _isRevokingSession ? null : _revokeAllOtherSessions,
-                        icon: const Icon(Icons.phonelink_erase_rounded, color: ObsidianUITheme.errorRed, size: 18),
+                        onPressed:
+                            _isRevokingSession ? null : _revokeAllOtherSessions,
+                        icon: const Icon(Icons.phonelink_erase_rounded,
+                            color: ObsidianUITheme.errorRed, size: 18),
                         label: const Text(
                           'Revoke All Other Sessions',
-                          style: TextStyle(color: ObsidianUITheme.errorRed, fontWeight: FontWeight.bold, fontSize: 13),
+                          style: TextStyle(
+                              color: ObsidianUITheme.errorRed,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13),
                         ),
                       ),
                     ),
@@ -1984,11 +2440,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.person_pin_rounded, color: ObsidianUITheme.primaryAccent),
+                    Icon(Icons.person_pin_rounded,
+                        color: ObsidianUITheme.primaryAccent),
                     const SizedBox(width: 8),
                     Text(
                       context.tr('settings.account_session'),
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor),
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: primaryTextColor),
                     ),
                   ],
                 ),
@@ -2000,8 +2460,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: Row(
                         children: [
                           ObsidianUserAvatar(
-                            profilePicture: widget.apiService.currentUser?.profilePicture,
-                            username: widget.apiService.savedUsername.isNotEmpty ? widget.apiService.savedUsername : (widget.apiService.currentUser?.username ?? 'Operator'),
+                            profilePicture:
+                                widget.apiService.currentUser?.profilePicture,
+                            username: widget.apiService.savedUsername.isNotEmpty
+                                ? widget.apiService.savedUsername
+                                : (widget.apiService.currentUser?.username ??
+                                    'Operator'),
                             size: 42,
                             serverUrl: widget.apiService.currentServerUrl,
                           ),
@@ -2011,11 +2475,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  widget.apiService.savedUsername.isNotEmpty ? widget.apiService.savedUsername : (widget.apiService.currentUser?.username ?? 'Operator'),
-                                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primaryTextColor),
+                                  widget.apiService.savedUsername.isNotEmpty
+                                      ? widget.apiService.savedUsername
+                                      : (widget.apiService.currentUser
+                                              ?.username ??
+                                          'Operator'),
+                                  style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: primaryTextColor),
                                 ),
                                 const SizedBox(height: 2),
-                                Text('Session: ${context.tr("connection.online")}', style: const TextStyle(fontSize: 12, color: Colors.greenAccent)),
+                                Text(
+                                    'Session: ${context.tr("connection.online")}',
+                                    style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.greenAccent)),
                               ],
                             ),
                           ),
@@ -2025,12 +2500,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(width: 8),
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: ObsidianUITheme.errorRed.withValues(alpha: 0.8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        backgroundColor:
+                            ObsidianUITheme.errorRed.withValues(alpha: 0.8),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
                       onPressed: widget.onLogout,
-                      icon: const Icon(Icons.logout_rounded, color: Colors.white, size: 18),
-                      label: Text(context.tr('settings.logout'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      icon: const Icon(Icons.logout_rounded,
+                          color: Colors.white, size: 18),
+                      label: Text(context.tr('settings.logout'),
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),

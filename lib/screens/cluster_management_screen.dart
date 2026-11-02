@@ -16,6 +16,7 @@ class ClusterManagementScreen extends StatefulWidget {
   final bool isVisible;
   final bool isBarsVisible;
   final VoidCallback? onNavigateErrorReports;
+  final VoidCallback? onNavigateLoadProfiler;
 
   const ClusterManagementScreen({
     super.key,
@@ -23,6 +24,7 @@ class ClusterManagementScreen extends StatefulWidget {
     this.isVisible = true,
     this.isBarsVisible = true,
     this.onNavigateErrorReports,
+    this.onNavigateLoadProfiler,
   });
 
   @override
@@ -118,14 +120,20 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
   // ─── Data Loaders ─────────────────────────────────────────────────────────
 
   Future<void> _loadNodes() async {
-    if (_nodesLoading || widget.apiService.currentUser?.isSuperAdmin != true) return;
+    if (_nodesLoading || widget.apiService.currentUser?.isSuperAdmin != true)
+      return;
     setState(() => _nodesLoading = true);
     final result = await widget.apiService.fetchClusterNodes();
-    if (mounted) setState(() { _nodesResponse = result; _nodesLoading = false; });
+    if (mounted)
+      setState(() {
+        _nodesResponse = result;
+        _nodesLoading = false;
+      });
   }
 
   Future<void> _loadLogs() async {
-    if (_logsLoading || widget.apiService.currentUser?.isSuperAdmin != true) return;
+    if (_logsLoading || widget.apiService.currentUser?.isSuperAdmin != true)
+      return;
     setState(() => _logsLoading = true);
     final filter = _logFilterController.text.trim();
     List<ServerLogEntry> result;
@@ -136,11 +144,16 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
       result = await widget.apiService.fetchNodeLogs(_selectedLogNodeIp,
           limit: _logLimit, filter: filter.isEmpty ? null : filter);
     }
-    if (mounted) setState(() { _logs = result; _logsLoading = false; });
+    if (mounted)
+      setState(() {
+        _logs = result;
+        _logsLoading = false;
+      });
   }
 
   Future<void> _loadLbStatus() async {
-    if (_lbLoading || widget.apiService.currentUser?.isSuperAdmin != true) return;
+    if (_lbLoading || widget.apiService.currentUser?.isSuperAdmin != true)
+      return;
     setState(() => _lbLoading = true);
     final result = await widget.apiService.fetchLoadBalancerStatus();
     final stress = await widget.apiService.fetchStressTestStatus();
@@ -171,25 +184,41 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
   }
 
   Future<void> _loadAlerts() async {
-    if (_alertsLoading || widget.apiService.currentUser?.isSuperAdmin != true) return;
+    if (_alertsLoading || widget.apiService.currentUser?.isSuperAdmin != true)
+      return;
     setState(() => _alertsLoading = true);
     final r1 = await widget.apiService.fetchNodeAlertsEnrollment();
     final r2 = await widget.apiService.fetchErrorAlertSettings();
-    if (mounted) setState(() { _nodeAlerts = r1; _errorAlerts = r2; _alertsLoading = false; });
+    if (mounted)
+      setState(() {
+        _nodeAlerts = r1;
+        _errorAlerts = r2;
+        _alertsLoading = false;
+      });
   }
 
   Future<void> _loadQfStatus() async {
-    if (_qfLoading || widget.apiService.currentUser?.isSuperAdmin != true) return;
+    if (_qfLoading || widget.apiService.currentUser?.isSuperAdmin != true)
+      return;
     setState(() => _qfLoading = true);
     final result = await widget.apiService.fetchQuorumFallbackStatus();
-    if (mounted) setState(() { _qfNodes = result; _qfLoading = false; });
+    if (mounted)
+      setState(() {
+        _qfNodes = result;
+        _qfLoading = false;
+      });
   }
 
   Future<void> _loadBackupStatus() async {
-    if (_backupLoading || widget.apiService.currentUser?.isSuperAdmin != true) return;
+    if (_backupLoading || widget.apiService.currentUser?.isSuperAdmin != true)
+      return;
     setState(() => _backupLoading = true);
     final result = await widget.apiService.fetchAutoBackupStatus();
-    if (mounted) setState(() { _backupCombined = result; _backupLoading = false; });
+    if (mounted)
+      setState(() {
+        _backupCombined = result;
+        _backupLoading = false;
+      });
   }
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -200,7 +229,8 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
-        backgroundColor: isError ? const Color(0xFFB91C1C) : const Color(0xFF065F46),
+        backgroundColor:
+            isError ? const Color(0xFFB91C1C) : const Color(0xFF065F46),
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 4),
       ),
@@ -264,19 +294,25 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel', style: TextStyle(color: Color(0xFF94A3B8)))),
+              child: const Text('Cancel',
+                  style: TextStyle(color: Color(0xFF94A3B8)))),
           ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFDC2626)),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFDC2626)),
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Reboot Now', style: TextStyle(color: Colors.white))),
+              child: const Text('Reboot Now',
+                  style: TextStyle(color: Colors.white))),
         ],
       ),
     );
     if (confirmed == true) {
-      _showSnack(isAll ? 'Dispatching reboot command to ENTIRE cluster…' : 'Initiating reboot for server node $nodeIp…');
+      _showSnack(isAll
+          ? 'Dispatching reboot command to ENTIRE cluster…'
+          : 'Initiating reboot for server node $nodeIp…');
       final result = await widget.apiService.rebootNode(nodeIp);
       _showSnack(result.message, isError: !result.success);
-      if (result.success) Future.delayed(const Duration(seconds: 3), _loadNodes);
+      if (result.success)
+        Future.delayed(const Duration(seconds: 3), _loadNodes);
     }
   }
 
@@ -291,7 +327,8 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
           const Icon(Icons.system_update_rounded, color: Color(0xFFF59E0B)),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(isAll ? 'Confirm Reinstall ALL' : 'Confirm Force Reinstall',
+            child: Text(
+                isAll ? 'Confirm Reinstall ALL' : 'Confirm Force Reinstall',
                 style: const TextStyle(color: Colors.white, fontSize: 17),
                 overflow: TextOverflow.ellipsis),
           ),
@@ -305,16 +342,21 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel', style: TextStyle(color: Color(0xFF94A3B8)))),
+              child: const Text('Cancel',
+                  style: TextStyle(color: Color(0xFF94A3B8)))),
           ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD97706)),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFD97706)),
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Force Reinstall', style: TextStyle(color: Colors.white))),
+              child: const Text('Force Reinstall',
+                  style: TextStyle(color: Colors.white))),
         ],
       ),
     );
     if (confirmed == true) {
-      _showSnack(isAll ? 'Dispatching force reinstall/update to ENTIRE cluster…' : 'Triggering force reinstall/update for node $nodeIp…');
+      _showSnack(isAll
+          ? 'Dispatching force reinstall/update to ENTIRE cluster…'
+          : 'Triggering force reinstall/update for node $nodeIp…');
       final result = await widget.apiService.reinstallNode(nodeIp);
       _showSnack(result.message, isError: !result.success);
     }
@@ -342,11 +384,14 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel', style: TextStyle(color: Color(0xFF94A3B8)))),
+              child: const Text('Cancel',
+                  style: TextStyle(color: Color(0xFF94A3B8)))),
           ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF7C3AED)),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF7C3AED)),
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Regenerate Now', style: TextStyle(color: Colors.white))),
+              child: const Text('Regenerate Now',
+                  style: TextStyle(color: Colors.white))),
         ],
       ),
     );
@@ -368,8 +413,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
     final controller = TextEditingController(
         text: payload.rawJson.isNotEmpty
             ? payload.rawJson
-            : const JsonEncoder.withIndent('  ')
-                .convert(payload.config ?? {}));
+            : const JsonEncoder.withIndent('  ').convert(payload.config ?? {}));
     String? jsonError;
 
     await showDialog<void>(
@@ -377,8 +421,10 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlg) => Dialog(
           backgroundColor: const Color(0xFF0F172A),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          insetPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
           child: Container(
             constraints: BoxConstraints(
               maxWidth: 720,
@@ -388,31 +434,41 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: const BoxDecoration(
                     color: Color(0xFF1E293B),
                     borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(16), topRight: Radius.circular(16)),
+                        topLeft: Radius.circular(16),
+                        topRight: Radius.circular(16)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.settings_rounded, color: Color(0xFFC084FC), size: 20),
+                      const Icon(Icons.settings_rounded,
+                          color: Color(0xFFC084FC), size: 20),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text('Edit app-config.json',
-                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15)),
                             Text('Target node: $nodeIp',
-                                style: const TextStyle(color: Color(0xFFC084FC), fontSize: 11, fontFamily: 'monospace'),
+                                style: const TextStyle(
+                                    color: Color(0xFFC084FC),
+                                    fontSize: 11,
+                                    fontFamily: 'monospace'),
                                 overflow: TextOverflow.ellipsis),
                           ],
                         ),
                       ),
                       IconButton(
                           onPressed: () => Navigator.pop(ctx),
-                          icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B))),
+                          icon: const Icon(Icons.close_rounded,
+                              color: Color(0xFF64748B))),
                     ],
                   ),
                 ),
@@ -425,8 +481,11 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                       maxLines: null,
                       expands: true,
                       style: const TextStyle(
-                          fontFamily: 'monospace', fontSize: 12.0, color: Color(0xFF38BDF8)),
-                      decoration: const InputDecoration(border: InputBorder.none),
+                          fontFamily: 'monospace',
+                          fontSize: 12.0,
+                          color: Color(0xFF38BDF8)),
+                      decoration:
+                          const InputDecoration(border: InputBorder.none),
                       onChanged: (_) {
                         try {
                           jsonDecode(controller.text);
@@ -442,12 +501,15 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                   Container(
                     width: double.infinity,
                     color: const Color(0xFF450A0A),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     child: Text(jsonError!,
-                        style: const TextStyle(color: Color(0xFFFCA5A5), fontSize: 11)),
+                        style: const TextStyle(
+                            color: Color(0xFFFCA5A5), fontSize: 11)),
                   ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   color: const Color(0xFF1E293B),
                   child: Row(
                     children: [
@@ -475,13 +537,17 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                             ? null
                             : () async {
                                 Navigator.pop(ctx);
-                                _showSnack('Saving app-config.json to $nodeIp…');
+                                _showSnack(
+                                    'Saving app-config.json to $nodeIp…');
                                 final r = await widget.apiService
                                     .saveNodeAppConfig(nodeIp, controller.text);
                                 _showSnack(r.message, isError: !r.success);
                               },
-                        icon: const Icon(Icons.save_rounded, size: 14, color: Colors.white),
-                        label: const Text('Save', style: TextStyle(color: Colors.white, fontSize: 12)),
+                        icon: const Icon(Icons.save_rounded,
+                            size: 14, color: Colors.white),
+                        label: const Text('Save',
+                            style:
+                                TextStyle(color: Colors.white, fontSize: 12)),
                       ),
                     ],
                   ),
@@ -504,16 +570,16 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
       return;
     }
 
-    final marginController = TextEditingController(
-        text: settings.localPreferenceMargin.toString());
+    final marginController =
+        TextEditingController(text: settings.localPreferenceMargin.toString());
     final latencyController = TextEditingController(
         text: settings.maxExpectedLatencyMs.round().toString());
-    final probeController = TextEditingController(
-        text: settings.probeIntervalSeconds.toString());
-    final timeoutController = TextEditingController(
-        text: settings.forwardTimeoutSeconds.toString());
-    final excludedController = TextEditingController(
-        text: settings.excludedPathPrefixes.join(', '));
+    final probeController =
+        TextEditingController(text: settings.probeIntervalSeconds.toString());
+    final timeoutController =
+        TextEditingController(text: settings.forwardTimeoutSeconds.toString());
+    final excludedController =
+        TextEditingController(text: settings.excludedPathPrefixes.join(', '));
 
     await showDialog<void>(
       context: context,
@@ -542,32 +608,40 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                   style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
                 ),
                 const SizedBox(height: 14),
-                _buildTextField(marginController, 'Local Preference Margin (Tie Breaker)',
+                _buildTextField(
+                    marginController, 'Local Preference Margin (Tie Breaker)',
                     hint: '0.10',
-                    helper: 'Peers must beat local score by at least this margin to trigger remote forward.'),
+                    helper:
+                        'Peers must beat local score by at least this margin to trigger remote forward.'),
                 const SizedBox(height: 10),
-                _buildTextField(latencyController, 'Max Expected Latency Ceiling (ms)',
+                _buildTextField(
+                    latencyController, 'Max Expected Latency Ceiling (ms)',
                     hint: '150',
-                    helper: 'Latency normalization ceiling for score calculation (default: 150ms).'),
+                    helper:
+                        'Latency normalization ceiling for score calculation (default: 150ms).'),
                 const SizedBox(height: 10),
                 Row(
                   children: [
                     Expanded(
-                      child: _buildTextField(probeController, 'Probe Interval (s)',
+                      child: _buildTextField(
+                          probeController, 'Probe Interval (s)',
                           hint: '15'),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: _buildTextField(timeoutController, 'Forward Timeout (s)',
+                      child: _buildTextField(
+                          timeoutController, 'Forward Timeout (s)',
                           hint: '30'),
                     ),
                   ],
                 ),
                 const SizedBox(height: 10),
-                _buildTextField(excludedController, 'Excluded Path Prefixes (comma-separated)',
+                _buildTextField(excludedController,
+                    'Excluded Path Prefixes (comma-separated)',
                     hint: '/api/admin, /api/cluster',
                     isNumeric: false,
-                    helper: 'Paths that should never be forwarded across nodes.'),
+                    helper:
+                        'Paths that should never be forwarded across nodes.'),
               ],
             ),
           ),
@@ -575,9 +649,11 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel', style: TextStyle(color: Color(0xFF94A3B8)))),
+              child: const Text('Cancel',
+                  style: TextStyle(color: Color(0xFF94A3B8)))),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF059669)),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF059669)),
             onPressed: () async {
               Navigator.pop(ctx);
               final excludedList = excludedController.text
@@ -587,19 +663,24 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                   .toList();
               final updated = LoadBalancerSettings(
                 enabled: _lbStatus?.enabled ?? settings.enabled,
-                localPreferenceMargin: double.tryParse(marginController.text) ?? 0.10,
-                maxExpectedLatencyMs: double.tryParse(latencyController.text) ?? 150.0,
+                localPreferenceMargin:
+                    double.tryParse(marginController.text) ?? 0.10,
+                maxExpectedLatencyMs:
+                    double.tryParse(latencyController.text) ?? 150.0,
                 probeIntervalSeconds: int.tryParse(probeController.text) ?? 15,
-                forwardTimeoutSeconds: int.tryParse(timeoutController.text) ?? 30,
+                forwardTimeoutSeconds:
+                    int.tryParse(timeoutController.text) ?? 30,
                 excludedPathPrefixes: excludedList.isNotEmpty
                     ? excludedList
                     : settings.excludedPathPrefixes,
               );
-              final r = await widget.apiService.saveLoadBalancerSettings(updated);
+              final r =
+                  await widget.apiService.saveLoadBalancerSettings(updated);
               _showSnack(r.message, isError: !r.success);
               if (r.success) _loadLbStatus();
             },
-            child: const Text('Save Settings', style: TextStyle(color: Colors.white)),
+            child: const Text('Save Settings',
+                style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -625,15 +706,15 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
     int retentionDays = cfg.scoutingRetentionDays;
     final intervalController =
         TextEditingController(text: cfg.syncIntervalSeconds.toString());
-    final sqliteController =
-        TextEditingController(text: cfg.sqliteFile);
+    final sqliteController = TextEditingController(text: cfg.sqliteFile);
 
     await showDialog<void>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlg) => AlertDialog(
           backgroundColor: const Color(0xFF1E293B),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Row(children: [
             const Icon(Icons.shield_rounded, color: Color(0xFFF59E0B)),
             const SizedBox(width: 8),
@@ -651,7 +732,8 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Select what datasets this specific node caches locally in SQLite for quorum loss fallback.',
+                  const Text(
+                      'Select what datasets this specific node caches locally in SQLite for quorum loss fallback.',
                       style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
                   const SizedBox(height: 12),
                   // Mode Selection
@@ -668,25 +750,37 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                           borderRadius: BorderRadius.circular(6),
                           onTap: () => setDlg(() => mirrorAll = true),
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 6, horizontal: 8),
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Icon(
-                                  mirrorAll ? Icons.radio_button_checked : Icons.radio_button_off,
-                                  color: mirrorAll ? const Color(0xFF10B981) : const Color(0xFF64748B),
+                                  mirrorAll
+                                      ? Icons.radio_button_checked
+                                      : Icons.radio_button_off,
+                                  color: mirrorAll
+                                      ? const Color(0xFF10B981)
+                                      : const Color(0xFF64748B),
                                   size: 18,
                                 ),
                                 const SizedBox(width: 10),
                                 const Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text('Mirror Everything (Full Replica)',
-                                          style: TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 13)),
+                                          style: TextStyle(
+                                              color: Color(0xFF10B981),
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13)),
                                       SizedBox(height: 2),
-                                      Text('Caches all historical data without date cutoffs.',
-                                          style: TextStyle(color: Color(0xFF64748B), fontSize: 11)),
+                                      Text(
+                                          'Caches all historical data without date cutoffs.',
+                                          style: TextStyle(
+                                              color: Color(0xFF64748B),
+                                              fontSize: 11)),
                                     ],
                                   ),
                                 ),
@@ -699,25 +793,37 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                           borderRadius: BorderRadius.circular(6),
                           onTap: () => setDlg(() => mirrorAll = false),
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 6, horizontal: 8),
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Icon(
-                                  !mirrorAll ? Icons.radio_button_checked : Icons.radio_button_off,
-                                  color: !mirrorAll ? const Color(0xFFF59E0B) : const Color(0xFF64748B),
+                                  !mirrorAll
+                                      ? Icons.radio_button_checked
+                                      : Icons.radio_button_off,
+                                  color: !mirrorAll
+                                      ? const Color(0xFFF59E0B)
+                                      : const Color(0xFF64748B),
                                   size: 18,
                                 ),
                                 const SizedBox(width: 10),
                                 const Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text('Customized Selective Cache',
-                                          style: TextStyle(color: Color(0xFFF59E0B), fontWeight: FontWeight.bold, fontSize: 13)),
+                                          style: TextStyle(
+                                              color: Color(0xFFF59E0B),
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13)),
                                       SizedBox(height: 2),
-                                      Text('Selective data categories & time retention window.',
-                                          style: TextStyle(color: Color(0xFF64748B), fontSize: 11)),
+                                      Text(
+                                          'Selective data categories & time retention window.',
+                                          style: TextStyle(
+                                              color: Color(0xFF64748B),
+                                              fontSize: 11)),
                                     ],
                                   ),
                                 ),
@@ -731,19 +837,29 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                   if (!mirrorAll) ...[
                     const SizedBox(height: 12),
                     const Text('Included Categories',
-                        style: TextStyle(color: Color(0xFFE2E8F0), fontWeight: FontWeight.bold, fontSize: 12)),
+                        style: TextStyle(
+                            color: Color(0xFFE2E8F0),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12)),
                     const SizedBox(height: 6),
                     Wrap(
                       spacing: 8,
                       runSpacing: 4,
                       children: [
-                        _filterChip('Users', users, (v) => setDlg(() => users = v)),
-                        _filterChip('Scouting', scouting, (v) => setDlg(() => scouting = v)),
-                        _filterChip('API Schedule', apiData, (v) => setDlg(() => apiData = v)),
-                        _filterChip('Analytics', analytics, (v) => setDlg(() => analytics = v)),
-                        _filterChip('Alliances', alliances, (v) => setDlg(() => alliances = v)),
-                        _filterChip('Chat', chat, (v) => setDlg(() => chat = v)),
-                        _filterChip('Secrets', secrets, (v) => setDlg(() => secrets = v)),
+                        _filterChip(
+                            'Users', users, (v) => setDlg(() => users = v)),
+                        _filterChip('Scouting', scouting,
+                            (v) => setDlg(() => scouting = v)),
+                        _filterChip('API Schedule', apiData,
+                            (v) => setDlg(() => apiData = v)),
+                        _filterChip('Analytics', analytics,
+                            (v) => setDlg(() => analytics = v)),
+                        _filterChip('Alliances', alliances,
+                            (v) => setDlg(() => alliances = v)),
+                        _filterChip(
+                            'Chat', chat, (v) => setDlg(() => chat = v)),
+                        _filterChip('Secrets', secrets,
+                            (v) => setDlg(() => secrets = v)),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -753,11 +869,18 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                       dropdownColor: const Color(0xFF1E293B),
                       style: const TextStyle(color: Colors.white, fontSize: 13),
                       items: const [
-                        DropdownMenuItem(value: 7, child: Text('±7 Days (1 Week - Recommended)')),
-                        DropdownMenuItem(value: 14, child: Text('±14 Days (2 Weeks)')),
-                        DropdownMenuItem(value: 30, child: Text('±30 Days (1 Month)')),
-                        DropdownMenuItem(value: 90, child: Text('±90 Days (Quarter Season)')),
-                        DropdownMenuItem(value: 365, child: Text('±365 Days (Full Year)')),
+                        DropdownMenuItem(
+                            value: 7,
+                            child: Text('±7 Days (1 Week - Recommended)')),
+                        DropdownMenuItem(
+                            value: 14, child: Text('±14 Days (2 Weeks)')),
+                        DropdownMenuItem(
+                            value: 30, child: Text('±30 Days (1 Month)')),
+                        DropdownMenuItem(
+                            value: 90,
+                            child: Text('±90 Days (Quarter Season)')),
+                        DropdownMenuItem(
+                            value: 365, child: Text('±365 Days (Full Year)')),
                       ],
                       onChanged: (v) => setDlg(() => retentionDays = v ?? 7),
                     ),
@@ -765,9 +888,14 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Expanded(child: _buildTextField(intervalController, 'Sync Interval (s)')),
+                      Expanded(
+                          child: _buildTextField(
+                              intervalController, 'Sync Interval (s)')),
                       const SizedBox(width: 10),
-                      Expanded(child: _buildTextField(sqliteController, 'SQLite File Path', isNumeric: false)),
+                      Expanded(
+                          child: _buildTextField(
+                              sqliteController, 'SQLite File Path',
+                              isNumeric: false)),
                     ],
                   ),
                 ],
@@ -777,9 +905,11 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel', style: TextStyle(color: Color(0xFF94A3B8)))),
+                child: const Text('Cancel',
+                    style: TextStyle(color: Color(0xFF94A3B8)))),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD97706)),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFD97706)),
               onPressed: () async {
                 Navigator.pop(ctx);
                 final updated = QuorumFallbackConfigDetails(
@@ -793,7 +923,8 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                   mirrorChat: chat,
                   mirrorNotificationsSecrets: secrets,
                   scoutingRetentionDays: retentionDays,
-                  syncIntervalSeconds: int.tryParse(intervalController.text) ?? 30,
+                  syncIntervalSeconds:
+                      int.tryParse(intervalController.text) ?? 30,
                   sqliteFile: sqliteController.text.trim().isNotEmpty
                       ? sqliteController.text.trim()
                       : "data/quorum_fallback.db",
@@ -803,7 +934,8 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                 _showSnack(r.message, isError: !r.success);
                 if (r.success) _loadQfStatus();
               },
-              child: const Text('Save Config', style: TextStyle(color: Colors.white)),
+              child: const Text('Save Config',
+                  style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -826,7 +958,8 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
     Navigator.pop(context); // dismiss loading
 
     if (data == null) {
-      _showSnack('Failed to inspect fallback database on $nodeIp', isError: true);
+      _showSnack('Failed to inspect fallback database on $nodeIp',
+          isError: true);
       return;
     }
 
@@ -845,23 +978,30 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
             children: [
               // Header
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: const BoxDecoration(
                   color: Color(0xFF1E293B),
                   borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(16), topRight: Radius.circular(16)),
+                      topLeft: Radius.circular(16),
+                      topRight: Radius.circular(16)),
                 ),
                 child: Row(children: [
-                  const Icon(Icons.search_rounded, color: Color(0xFFF59E0B), size: 20),
+                  const Icon(Icons.search_rounded,
+                      color: Color(0xFFF59E0B), size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text('Fallback SQLite DB: $nodeIp',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15),
                         overflow: TextOverflow.ellipsis),
                   ),
                   IconButton(
                       onPressed: () => Navigator.pop(ctx),
-                      icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B))),
+                      icon: const Icon(Icons.close_rounded,
+                          color: Color(0xFF64748B))),
                 ]),
               ),
               // Body
@@ -871,19 +1011,36 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                   children: [
                     // Top stats row
                     Wrap(spacing: 8, runSpacing: 8, children: [
-                      _statCard('Mirror Status', data.status, const Color(0xFFF59E0B)),
-                      _statCard('DB File Size', _formatBytes(data.databaseSizeBytes), const Color(0xFF38BDF8)),
-                      _statCard('Free Disk', '${_formatBytes(data.freeDiskSpaceBytes)} / ${_formatBytes(data.totalDiskSpaceBytes)}', const Color(0xFF10B981)),
-                      _statCard('Last Synced', data.lastSyncTimestamp != null ? _shortTimestamp(data.lastSyncTimestamp!) : 'Never', const Color(0xFFA855F7)),
+                      _statCard('Mirror Status', data.status,
+                          const Color(0xFFF59E0B)),
+                      _statCard(
+                          'DB File Size',
+                          _formatBytes(data.databaseSizeBytes),
+                          const Color(0xFF38BDF8)),
+                      _statCard(
+                          'Free Disk',
+                          '${_formatBytes(data.freeDiskSpaceBytes)} / ${_formatBytes(data.totalDiskSpaceBytes)}',
+                          const Color(0xFF10B981)),
+                      _statCard(
+                          'Last Synced',
+                          data.lastSyncTimestamp != null
+                              ? _shortTimestamp(data.lastSyncTimestamp!)
+                              : 'Never',
+                          const Color(0xFFA855F7)),
                     ]),
                     const SizedBox(height: 14),
                     // Mirrored events table (Horizontal scroll for mobile safe rendering)
                     const Text('Mirrored Events (±1 Week Competition Window)',
-                        style: TextStyle(color: Color(0xFFF59E0B), fontWeight: FontWeight.bold, fontSize: 13)),
+                        style: TextStyle(
+                            color: Color(0xFFF59E0B),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13)),
                     const SizedBox(height: 6),
                     if (data.activeEvents.isEmpty)
-                      const Text('No active events within ±1 week stored in this snapshot.',
-                          style: TextStyle(color: Color(0xFF64748B), fontSize: 11.5))
+                      const Text(
+                          'No active events within ±1 week stored in this snapshot.',
+                          style: TextStyle(
+                              color: Color(0xFF64748B), fontSize: 11.5))
                     else
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
@@ -904,22 +1061,86 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                             },
                             children: [
                               TableRow(
-                                decoration: const BoxDecoration(color: Color(0x15FFFFFF)),
+                                decoration: const BoxDecoration(
+                                    color: Color(0x15FFFFFF)),
                                 children: const [
-                                  Padding(padding: EdgeInsets.all(6), child: Text('Event', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11, fontWeight: FontWeight.bold))),
-                                  Padding(padding: EdgeInsets.all(6), child: Text('Name', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11, fontWeight: FontWeight.bold))),
-                                  Padding(padding: EdgeInsets.all(6), child: Text('Matches', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11, fontWeight: FontWeight.bold))),
-                                  Padding(padding: EdgeInsets.all(6), child: Text('Teams', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11, fontWeight: FontWeight.bold))),
-                                  Padding(padding: EdgeInsets.all(6), child: Text('Scout', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11, fontWeight: FontWeight.bold))),
+                                  Padding(
+                                      padding: EdgeInsets.all(6),
+                                      child: Text('Event',
+                                          style: TextStyle(
+                                              color: Color(0xFF94A3B8),
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold))),
+                                  Padding(
+                                      padding: EdgeInsets.all(6),
+                                      child: Text('Name',
+                                          style: TextStyle(
+                                              color: Color(0xFF94A3B8),
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold))),
+                                  Padding(
+                                      padding: EdgeInsets.all(6),
+                                      child: Text('Matches',
+                                          style: TextStyle(
+                                              color: Color(0xFF94A3B8),
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold))),
+                                  Padding(
+                                      padding: EdgeInsets.all(6),
+                                      child: Text('Teams',
+                                          style: TextStyle(
+                                              color: Color(0xFF94A3B8),
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold))),
+                                  Padding(
+                                      padding: EdgeInsets.all(6),
+                                      child: Text('Scout',
+                                          style: TextStyle(
+                                              color: Color(0xFF94A3B8),
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold))),
                                 ],
                               ),
                               ...data.activeEvents.map((ev) => TableRow(
                                     children: [
-                                      Padding(padding: const EdgeInsets.all(6), child: Text(ev.eventKey, style: const TextStyle(color: Color(0xFFF59E0B), fontSize: 11, fontFamily: 'monospace', fontWeight: FontWeight.w600))),
-                                      Padding(padding: const EdgeInsets.all(6), child: Text(ev.name, style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                                      Padding(padding: const EdgeInsets.all(6), child: Text(ev.matchCount.toString(), style: const TextStyle(color: Color(0xFF38BDF8), fontSize: 11))),
-                                      Padding(padding: const EdgeInsets.all(6), child: Text(ev.teamCount.toString(), style: const TextStyle(color: Color(0xFF38BDF8), fontSize: 11))),
-                                      Padding(padding: const EdgeInsets.all(6), child: Text(ev.matchScoutingCount.toString(), style: const TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.bold))),
+                                      Padding(
+                                          padding: const EdgeInsets.all(6),
+                                          child: Text(ev.eventKey,
+                                              style: const TextStyle(
+                                                  color: Color(0xFFF59E0B),
+                                                  fontSize: 11,
+                                                  fontFamily: 'monospace',
+                                                  fontWeight:
+                                                      FontWeight.w600))),
+                                      Padding(
+                                          padding: const EdgeInsets.all(6),
+                                          child: Text(ev.name,
+                                              style: const TextStyle(
+                                                  color: Color(0xFFCBD5E1),
+                                                  fontSize: 11),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis)),
+                                      Padding(
+                                          padding: const EdgeInsets.all(6),
+                                          child: Text(ev.matchCount.toString(),
+                                              style: const TextStyle(
+                                                  color: Color(0xFF38BDF8),
+                                                  fontSize: 11))),
+                                      Padding(
+                                          padding: const EdgeInsets.all(6),
+                                          child: Text(ev.teamCount.toString(),
+                                              style: const TextStyle(
+                                                  color: Color(0xFF38BDF8),
+                                                  fontSize: 11))),
+                                      Padding(
+                                          padding: const EdgeInsets.all(6),
+                                          child: Text(
+                                              ev.matchScoutingCount.toString(),
+                                              style: const TextStyle(
+                                                  color: Color(0xFF10B981),
+                                                  fontSize: 11,
+                                                  fontWeight:
+                                                      FontWeight.bold))),
                                     ],
                                   )),
                             ],
@@ -928,32 +1149,45 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                       ),
                     const SizedBox(height: 14),
                     // Table records count
-                    Text('SQLite Table Record Counts (${data.tableCounts.length} tables)',
-                        style: const TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold, fontSize: 13)),
+                    Text(
+                        'SQLite Table Record Counts (${data.tableCounts.length} tables)',
+                        style: const TextStyle(
+                            color: Color(0xFF38BDF8),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13)),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 6,
                       runSpacing: 6,
-                      children: data.tableCounts.entries.map((e) => Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                            decoration: BoxDecoration(
-                              color: const Color(0x0AFFFFFF),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: Colors.white10),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(e.key, style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 10.5, fontFamily: 'monospace')),
-                                const SizedBox(width: 6),
-                                Text(e.value.toString(),
-                                    style: TextStyle(
-                                        color: e.value > 0 ? const Color(0xFF38BDF8) : const Color(0xFF64748B),
-                                        fontSize: 10.5,
-                                        fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                          )).toList(),
+                      children: data.tableCounts.entries
+                          .map((e) => Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: const Color(0x0AFFFFFF),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: Colors.white10),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(e.key,
+                                        style: const TextStyle(
+                                            color: Color(0xFFCBD5E1),
+                                            fontSize: 10.5,
+                                            fontFamily: 'monospace')),
+                                    const SizedBox(width: 6),
+                                    Text(e.value.toString(),
+                                        style: TextStyle(
+                                            color: e.value > 0
+                                                ? const Color(0xFF38BDF8)
+                                                : const Color(0xFF64748B),
+                                            fontSize: 10.5,
+                                            fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
+                              ))
+                          .toList(),
                     ),
                   ],
                 ),
@@ -973,15 +1207,28 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
           border: Border.all(color: color.withValues(alpha: 0.25)),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label, style: TextStyle(color: color, fontSize: 9.5, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+          Text(label,
+              style: TextStyle(
+                  color: color,
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5)),
           const SizedBox(height: 2),
-          Text(value, style: const TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.bold)),
+          Text(value,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.bold)),
         ]),
       );
 
-  Widget _filterChip(String label, bool isSelected, ValueChanged<bool> onSelected) =>
+  Widget _filterChip(
+          String label, bool isSelected, ValueChanged<bool> onSelected) =>
       FilterChip(
-        label: Text(label, style: TextStyle(color: isSelected ? Colors.white : const Color(0xFF94A3B8), fontSize: 11)),
+        label: Text(label,
+            style: TextStyle(
+                color: isSelected ? Colors.white : const Color(0xFF94A3B8),
+                fontSize: 11)),
         selected: isSelected,
         selectedColor: const Color(0xFF7C3AED),
         backgroundColor: const Color(0xFF1E293B),
@@ -1000,7 +1247,8 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
         decoration: _inputDecoration(label, hint: hint, helper: helper),
       );
 
-  InputDecoration _inputDecoration(String label, {String? hint, String? helper}) =>
+  InputDecoration _inputDecoration(String label,
+          {String? hint, String? helper}) =>
       InputDecoration(
         labelText: label,
         hintText: hint,
@@ -1047,10 +1295,14 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.lock_rounded, color: Color(0xFFEF4444), size: 48),
+                  const Icon(Icons.lock_rounded,
+                      color: Color(0xFFEF4444), size: 48),
                   const SizedBox(height: 16),
                   const Text('Access Restricted',
-                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
                   const Text(
                     'Cluster Management is strictly restricted to Superadministrators only.',
@@ -1078,14 +1330,23 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
               tabAlignment: TabAlignment.start,
               indicatorColor: const Color(0xFF7C3AED),
               labelColor: const Color(0xFFC084FC),
-              unselectedLabelColor: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+              unselectedLabelColor:
+                  isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
               tabs: const [
                 Tab(text: 'Servers', icon: Icon(Icons.dns_rounded, size: 18)),
                 Tab(text: 'Logs', icon: Icon(Icons.terminal_rounded, size: 18)),
-                Tab(text: 'Load Balancer', icon: Icon(Icons.bolt_rounded, size: 18)),
-                Tab(text: 'Alerts', icon: Icon(Icons.notifications_rounded, size: 18)),
-                Tab(text: 'Quorum Fallback', icon: Icon(Icons.shield_rounded, size: 18)),
-                Tab(text: 'Auto Backup', icon: Icon(Icons.backup_rounded, size: 18)),
+                Tab(
+                    text: 'Load Balancer',
+                    icon: Icon(Icons.bolt_rounded, size: 18)),
+                Tab(
+                    text: 'Alerts',
+                    icon: Icon(Icons.notifications_rounded, size: 18)),
+                Tab(
+                    text: 'Quorum Fallback',
+                    icon: Icon(Icons.shield_rounded, size: 18)),
+                Tab(
+                    text: 'Auto Backup',
+                    icon: Icon(Icons.backup_rounded, size: 18)),
               ],
             ),
           ),
@@ -1163,7 +1424,6 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
             ),
           ),
           const SizedBox(height: 8),
-
           if (_nodesLoading)
             const Center(
                 child: Padding(
@@ -1192,7 +1452,8 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
               Container(
                 width: 10,
                 height: 10,
-                decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle),
+                decoration:
+                    BoxDecoration(color: statusColor, shape: BoxShape.circle),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -1208,9 +1469,11 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                             color: Colors.white,
                             fontSize: 14)),
                     if (node.isLocal)
-                      _badge('Local', const Color(0xFF7C3AED), const Color(0x337C3AED))
+                      _badge('Local', const Color(0xFF7C3AED),
+                          const Color(0x337C3AED))
                     else
-                      _badge('Peer', const Color(0xFF3B82F6), const Color(0x333B82F6)),
+                      _badge('Peer', const Color(0xFF3B82F6),
+                          const Color(0x333B82F6)),
                     _badge(node.status.toUpperCase(), statusColor,
                         statusColor.withValues(alpha: 0.15)),
                   ],
@@ -1218,7 +1481,8 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
               ),
               PopupMenuButton<String>(
                 color: const Color(0xFF1E293B),
-                icon: const Icon(Icons.more_vert_rounded, color: Color(0xFF64748B)),
+                icon: const Icon(Icons.more_vert_rounded,
+                    color: Color(0xFF64748B)),
                 onSelected: (v) {
                   switch (v) {
                     case 'logs':
@@ -1238,23 +1502,43 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                   }
                 },
                 itemBuilder: (_) => const [
-                  PopupMenuItem(value: 'logs', child: Row(children: [
-                    Icon(Icons.terminal_rounded, color: Color(0xFF94A3B8), size: 16),
-                    SizedBox(width: 8), Text('View Node Logs', style: TextStyle(color: Colors.white)),
-                  ])),
-                  PopupMenuItem(value: 'config', child: Row(children: [
-                    Icon(Icons.settings_rounded, color: Color(0xFF94A3B8), size: 16),
-                    SizedBox(width: 8), Text('Edit app-config.json', style: TextStyle(color: Colors.white)),
-                  ])),
+                  PopupMenuItem(
+                      value: 'logs',
+                      child: Row(children: [
+                        Icon(Icons.terminal_rounded,
+                            color: Color(0xFF94A3B8), size: 16),
+                        SizedBox(width: 8),
+                        Text('View Node Logs',
+                            style: TextStyle(color: Colors.white)),
+                      ])),
+                  PopupMenuItem(
+                      value: 'config',
+                      child: Row(children: [
+                        Icon(Icons.settings_rounded,
+                            color: Color(0xFF94A3B8), size: 16),
+                        SizedBox(width: 8),
+                        Text('Edit app-config.json',
+                            style: TextStyle(color: Colors.white)),
+                      ])),
                   PopupMenuDivider(),
-                  PopupMenuItem(value: 'reboot', child: Row(children: [
-                    Icon(Icons.restart_alt_rounded, color: Color(0xFFEF4444), size: 16),
-                    SizedBox(width: 8), Text('Reboot Server', style: TextStyle(color: Color(0xFFEF4444))),
-                  ])),
-                  PopupMenuItem(value: 'reinstall', child: Row(children: [
-                    Icon(Icons.system_update_rounded, color: Color(0xFFF59E0B), size: 16),
-                    SizedBox(width: 8), Text('Force Reinstall / Update', style: TextStyle(color: Color(0xFFF59E0B))),
-                  ])),
+                  PopupMenuItem(
+                      value: 'reboot',
+                      child: Row(children: [
+                        Icon(Icons.restart_alt_rounded,
+                            color: Color(0xFFEF4444), size: 16),
+                        SizedBox(width: 8),
+                        Text('Reboot Server',
+                            style: TextStyle(color: Color(0xFFEF4444))),
+                      ])),
+                  PopupMenuItem(
+                      value: 'reinstall',
+                      child: Row(children: [
+                        Icon(Icons.system_update_rounded,
+                            color: Color(0xFFF59E0B), size: 16),
+                        SizedBox(width: 8),
+                        Text('Force Reinstall / Update',
+                            style: TextStyle(color: Color(0xFFF59E0B))),
+                      ])),
                 ],
               ),
             ],
@@ -1283,10 +1567,13 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
   Widget _nodeDetail(String label, String value) => Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('$label: ', style: const TextStyle(color: Color(0xFF64748B), fontSize: 11.5)),
+          Text('$label: ',
+              style: const TextStyle(color: Color(0xFF64748B), fontSize: 11.5)),
           Text(value,
               style: const TextStyle(
-                  color: Color(0xFFCBD5E1), fontSize: 11.5, fontFamily: 'monospace')),
+                  color: Color(0xFFCBD5E1),
+                  fontSize: 11.5,
+                  fontFamily: 'monospace')),
         ],
       );
 
@@ -1302,7 +1589,8 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
           foregroundColor: color,
           side: BorderSide(color: color.withValues(alpha: 0.4)),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
         onPressed: onPressed,
         icon: Icon(icon, size: 15, color: color),
@@ -1329,8 +1617,10 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                     child: DropdownButtonFormField<String>(
                       initialValue: _selectedLogNodeIp,
                       items: [
-                        const DropdownMenuItem(value: 'all', child: Text('All Nodes')),
-                        ...(_nodesResponse?.nodes ?? []).map((n) => DropdownMenuItem(
+                        const DropdownMenuItem(
+                            value: 'all', child: Text('All Nodes')),
+                        ...(_nodesResponse?.nodes ?? []).map((n) =>
+                            DropdownMenuItem(
                               value: n.ip,
                               child: Text(n.isLocal ? '${n.ip} (Local)' : n.ip),
                             )),
@@ -1371,7 +1661,8 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                   const SizedBox(width: 4),
                   IconButton(
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    constraints:
+                        const BoxConstraints(minWidth: 32, minHeight: 32),
                     onPressed: _loadLogs,
                     icon: _logsLoading
                         ? const SizedBox(
@@ -1379,13 +1670,17 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                             height: 16,
                             child: CircularProgressIndicator(
                                 strokeWidth: 2, color: Color(0xFF7C3AED)))
-                        : const Icon(Icons.refresh_rounded, color: Color(0xFF7C3AED), size: 20),
+                        : const Icon(Icons.refresh_rounded,
+                            color: Color(0xFF7C3AED), size: 20),
                   ),
                   Tooltip(
-                    message: _logAutoRefresh ? 'Auto-refresh ON' : 'Auto-refresh OFF',
+                    message: _logAutoRefresh
+                        ? 'Auto-refresh ON'
+                        : 'Auto-refresh OFF',
                     child: IconButton(
                       padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                      constraints:
+                          const BoxConstraints(minWidth: 32, minHeight: 32),
                       onPressed: () {
                         setState(() => _logAutoRefresh = !_logAutoRefresh);
                         if (_logAutoRefresh) {
@@ -1413,14 +1708,19 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                 decoration: InputDecoration(
                   hintText: 'Filter logs…',
                   hintStyle: const TextStyle(color: Color(0xFF475569)),
-                  prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF64748B), size: 16),
+                  prefixIcon: const Icon(Icons.search_rounded,
+                      color: Color(0xFF64748B), size: 16),
                   filled: true,
                   fillColor: const Color(0xFF1E293B),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide.none),
                   contentPadding: const EdgeInsets.symmetric(vertical: 8),
                   suffixIcon: TextButton(
                     onPressed: _loadLogs,
-                    child: const Text('Search', style: TextStyle(color: Color(0xFF7C3AED), fontSize: 11)),
+                    child: const Text('Search',
+                        style:
+                            TextStyle(color: Color(0xFF7C3AED), fontSize: 11)),
                   ),
                 ),
                 onSubmitted: (_) => _loadLogs(),
@@ -1430,7 +1730,8 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                 children: [
                   Text(
                     '${_logs.length} entries  •  Node: $_selectedLogNodeIp',
-                    style: const TextStyle(color: Color(0xFF64748B), fontSize: 10.5),
+                    style: const TextStyle(
+                        color: Color(0xFF64748B), fontSize: 10.5),
                   ),
                 ],
               ),
@@ -1439,11 +1740,13 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
         ),
         Expanded(
           child: _logsLoading && _logs.isEmpty
-              ? const Center(child: CircularProgressIndicator(color: Color(0xFF7C3AED)))
+              ? const Center(
+                  child: CircularProgressIndicator(color: Color(0xFF7C3AED)))
               : _logs.isEmpty
                   ? Center(
                       child: Text('No log entries found.',
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.4))))
+                          style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.4))))
                   : Container(
                       color: const Color(0xFF020617),
                       child: ListView.builder(
@@ -1482,7 +1785,9 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
         children: [
           Text(log.timestamp,
               style: const TextStyle(
-                  color: Color(0xFF64748B), fontSize: 10, fontFamily: 'monospace')),
+                  color: Color(0xFF64748B),
+                  fontSize: 10,
+                  fontFamily: 'monospace')),
           const SizedBox(width: 6),
           Container(
             width: 44,
@@ -1492,14 +1797,20 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                 color: levelColor.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(4)),
             child: Text(log.level.toUpperCase().padRight(5).substring(0, 5),
-                style: TextStyle(color: levelColor, fontSize: 9.5, fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+                style: TextStyle(
+                    color: levelColor,
+                    fontSize: 9.5,
+                    fontFamily: 'monospace',
+                    fontWeight: FontWeight.bold)),
           ),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
               '${log.logger != null ? "[${log.logger}] " : ""}${log.message}',
               style: const TextStyle(
-                  color: Color(0xFFE2E8F0), fontSize: 11.5, fontFamily: 'monospace'),
+                  color: Color(0xFFE2E8F0),
+                  fontSize: 11.5,
+                  fontFamily: 'monospace'),
               softWrap: true,
             ),
           ),
@@ -1513,7 +1824,8 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
         filled: true,
         fillColor: const Color(0xFF1E293B),
         border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide.none),
         contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       );
 
@@ -1542,7 +1854,8 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                     const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.bolt_rounded, color: Color(0xFF10B981), size: 20),
+                        Icon(Icons.bolt_rounded,
+                            color: Color(0xFF10B981), size: 20),
                         SizedBox(width: 6),
                         Text('Peer Request Forwarding & Load Balancer',
                             style: TextStyle(
@@ -1573,23 +1886,33 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                           value: _lbStatus?.enabled ?? false,
                           activeThumbColor: const Color(0xFF10B981),
                           onChanged: (v) async {
-                            final current = await widget.apiService.fetchLoadBalancerSettings() ??
+                            final current = await widget.apiService
+                                    .fetchLoadBalancerSettings() ??
                                 const LoadBalancerSettings();
                             final updated = LoadBalancerSettings(
                               enabled: v,
-                              probeIntervalSeconds: current.probeIntervalSeconds,
-                              forwardTimeoutSeconds: current.forwardTimeoutSeconds,
-                              localPreferenceMargin: current.localPreferenceMargin,
-                              maxExpectedLatencyMs: current.maxExpectedLatencyMs,
-                              excludedPathPrefixes: current.excludedPathPrefixes,
+                              probeIntervalSeconds:
+                                  current.probeIntervalSeconds,
+                              forwardTimeoutSeconds:
+                                  current.forwardTimeoutSeconds,
+                              localPreferenceMargin:
+                                  current.localPreferenceMargin,
+                              maxExpectedLatencyMs:
+                                  current.maxExpectedLatencyMs,
+                              excludedPathPrefixes:
+                                  current.excludedPathPrefixes,
                             );
-                            final r = await widget.apiService.saveLoadBalancerSettings(updated);
+                            final r = await widget.apiService
+                                .saveLoadBalancerSettings(updated);
                             _showSnack(r.message, isError: !r.success);
                             _loadLbStatus();
                           },
                         ),
                         const Text('Enable Balancing',
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12.5)),
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12.5)),
                       ],
                     ),
                     _actionButton(
@@ -1609,9 +1932,14 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                 const SizedBox(height: 14),
 
                 if (_lbLoading)
-                  const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator(color: Color(0xFF10B981))))
+                  const Center(
+                      child: Padding(
+                          padding: EdgeInsets.all(20),
+                          child: CircularProgressIndicator(
+                              color: Color(0xFF10B981))))
                 else if (_lbStatus == null)
-                  const Text('Load balancer status unavailable.', style: TextStyle(color: Color(0xFF64748B)))
+                  const Text('Load balancer status unavailable.',
+                      style: TextStyle(color: Color(0xFF64748B)))
                 else ...[
                   // Metrics Grid
                   Wrap(
@@ -1626,7 +1954,9 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                       ),
                       _metricBox(
                         'Selected Target',
-                        _lbStatus!.bestNodeIp.isNotEmpty ? _lbStatus!.bestNodeIp : 'local',
+                        _lbStatus!.bestNodeIp.isNotEmpty
+                            ? _lbStatus!.bestNodeIp
+                            : 'local',
                         'Local Margin: +${_lbStatus!.localPreferenceMargin}',
                         const Color(0xFF60A5FA),
                       ),
@@ -1660,10 +1990,13 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                                 letterSpacing: 0.8)),
                         const SizedBox(height: 8),
                         if (_lbStatus!.peerNodes.isEmpty)
-                          const Text('No active remote peer nodes discovered on the cluster.',
-                              style: TextStyle(color: Color(0xFF64748B), fontSize: 11.5))
+                          const Text(
+                              'No active remote peer nodes discovered on the cluster.',
+                              style: TextStyle(
+                                  color: Color(0xFF64748B), fontSize: 11.5))
                         else
-                          ..._lbStatus!.peerNodes.map((p) => _buildPeerScoreRow(p)),
+                          ..._lbStatus!.peerNodes
+                              .map((p) => _buildPeerScoreRow(p)),
                       ],
                     ),
                   ),
@@ -1687,10 +2020,14 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                     const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.bar_chart_rounded, color: Color(0xFF10B981), size: 16),
+                        Icon(Icons.bar_chart_rounded,
+                            color: Color(0xFF10B981), size: 16),
                         SizedBox(width: 6),
                         Text('Last ~30 Min Activity',
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13.5)),
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13.5)),
                       ],
                     ),
                     if (_lbStatus != null)
@@ -1706,8 +2043,10 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 12),
                     child: Center(
-                      child: Text('No load balancing activity recorded yet in the last 30 minutes.',
-                          style: TextStyle(color: Color(0xFF64748B), fontSize: 11.5)),
+                      child: Text(
+                          'No load balancing activity recorded yet in the last 30 minutes.',
+                          style: TextStyle(
+                              color: Color(0xFF64748B), fontSize: 11.5)),
                     ),
                   )
                 else
@@ -1716,8 +2055,10 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                     child: ListView.builder(
                       itemCount: _lbStatus!.activityHistory.length,
                       itemBuilder: (_, i) {
-                        final item = _lbStatus!.activityHistory.reversed.toList()[i];
-                        final timeStr = DateTime.fromMillisecondsSinceEpoch(item.timestampEpochMs)
+                        final item =
+                            _lbStatus!.activityHistory.reversed.toList()[i];
+                        final timeStr = DateTime.fromMillisecondsSinceEpoch(
+                                item.timestampEpochMs)
                             .toLocal()
                             .toString()
                             .split(' ')[1]
@@ -1725,7 +2066,8 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                         return Container(
                           padding: const EdgeInsets.symmetric(vertical: 4),
                           decoration: const BoxDecoration(
-                              border: Border(bottom: BorderSide(color: Colors.white10))),
+                              border: Border(
+                                  bottom: BorderSide(color: Colors.white10))),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -1733,19 +2075,29 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                                 children: [
                                   Text('[$timeStr]',
                                       style: const TextStyle(
-                                          color: Color(0xFF64748B), fontSize: 10.5, fontFamily: 'monospace')),
+                                          color: Color(0xFF64748B),
+                                          fontSize: 10.5,
+                                          fontFamily: 'monospace')),
                                   const SizedBox(width: 6),
                                   _badge(
-                                    item.isForwarded ? 'Forwarded -> ${item.targetIp}' : 'Served Locally',
-                                    item.isForwarded ? const Color(0xFF10B981) : const Color(0xFF60A5FA),
-                                    (item.isForwarded ? const Color(0xFF10B981) : const Color(0xFF60A5FA))
+                                    item.isForwarded
+                                        ? 'Forwarded -> ${item.targetIp}'
+                                        : 'Served Locally',
+                                    item.isForwarded
+                                        ? const Color(0xFF10B981)
+                                        : const Color(0xFF60A5FA),
+                                    (item.isForwarded
+                                            ? const Color(0xFF10B981)
+                                            : const Color(0xFF60A5FA))
                                         .withValues(alpha: 0.15),
                                   ),
                                   if (item.note.isNotEmpty) ...[
                                     const SizedBox(width: 6),
                                     Expanded(
                                       child: Text(item.note,
-                                          style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 11),
+                                          style: const TextStyle(
+                                              color: Color(0xFFCBD5E1),
+                                              fontSize: 11),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis),
                                     ),
@@ -1755,7 +2107,8 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                               const SizedBox(height: 2),
                               Text(
                                 '+${item.requestsForwarded} fwd / +${item.requestsServedLocally} loc  •  Heap: ${item.localHeapFreeMb}MB  •  CPU: ${item.localCpuPercent}%',
-                                style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 10),
+                                style: const TextStyle(
+                                    color: Color(0xFF94A3B8), fontSize: 10),
                               ),
                             ],
                           ),
@@ -1776,17 +2129,22 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.local_fire_department_rounded, color: Color(0xFFEF4444), size: 18),
+                    const Icon(Icons.local_fire_department_rounded,
+                        color: Color(0xFFEF4444), size: 18),
                     const SizedBox(width: 6),
                     const Expanded(
                       child: Text('Overload Simulation',
-                          style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.bold, fontSize: 14),
+                          style: TextStyle(
+                              color: Color(0xFFEF4444),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14),
                           overflow: TextOverflow.ellipsis),
                     ),
                     _stressStatus?.isRunning == true
                         ? _badge('Active (${_stressStatus!.remainingSeconds}s)',
                             const Color(0xFFEF4444), const Color(0x33EF4444))
-                        : _badge('Idle', const Color(0xFF94A3B8), const Color(0x2294A3B8)),
+                        : _badge('Idle', const Color(0xFF94A3B8),
+                            const Color(0x2294A3B8)),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -1797,27 +2155,37 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                 const SizedBox(height: 10),
                 _stressStatus?.isRunning == true
                     ? ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF475569)),
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF475569)),
                         onPressed: () async {
                           final r = await widget.apiService.stopStressTest();
                           _showSnack(r.message, isError: !r.success);
                           _loadLbStatus();
                         },
-                        icon: const Icon(Icons.stop_rounded, color: Colors.white, size: 15),
-                        label: const Text('Stop Overload', style: TextStyle(color: Colors.white, fontSize: 12)),
+                        icon: const Icon(Icons.stop_rounded,
+                            color: Colors.white, size: 15),
+                        label: const Text('Stop Overload',
+                            style:
+                                TextStyle(color: Colors.white, fontSize: 12)),
                       )
                     : ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFDC2626)),
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFDC2626)),
                         onPressed: () async {
                           final r = await widget.apiService.startStressTest();
                           _showSnack(r.message, isError: !r.success);
                           if (r.success) {
-                            setState(() => _stressStatus = const StressTestStatus(isRunning: true, remainingSeconds: 60));
+                            setState(() => _stressStatus =
+                                const StressTestStatus(
+                                    isRunning: true, remainingSeconds: 60));
                             _startStressPolling();
                           }
                         },
-                        icon: const Icon(Icons.bolt_rounded, color: Colors.white, size: 15),
-                        label: const Text('Simulate Overload (60s)', style: TextStyle(color: Colors.white, fontSize: 12)),
+                        icon: const Icon(Icons.bolt_rounded,
+                            color: Colors.white, size: 15),
+                        label: const Text('Simulate Overload (60s)',
+                            style:
+                                TextStyle(color: Colors.white, fontSize: 12)),
                       ),
               ],
             ),
@@ -1829,16 +2197,19 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
 
   Widget _buildLbStatusPill() {
     if (_lbStatus == null || !_lbStatus!.enabled) {
-      return _badge('Disabled', const Color(0xFF94A3B8), const Color(0x2294A3B8));
+      return _badge(
+          'Disabled', const Color(0xFF94A3B8), const Color(0x2294A3B8));
     }
     if (_lbStatus!.isForwardingActive) {
       return _badge('Forwarding Active -> ${_lbStatus!.bestNodeIp}',
           const Color(0xFF10B981), const Color(0x3310B981));
     }
-    return _badge('Active (Serving Locally)', const Color(0xFF60A5FA), const Color(0x3360A5FA));
+    return _badge('Active (Serving Locally)', const Color(0xFF60A5FA),
+        const Color(0x3360A5FA));
   }
 
-  Widget _metricBox(String title, String val, String sub, Color color) => Container(
+  Widget _metricBox(String title, String val, String sub, Color color) =>
+      Container(
         constraints: const BoxConstraints(minWidth: 140),
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
@@ -1850,12 +2221,21 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(title.toUpperCase(),
-                style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 9.5, fontWeight: FontWeight.bold)),
+                style: const TextStyle(
+                    color: Color(0xFF94A3B8),
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.bold)),
             const SizedBox(height: 3),
             Text(val,
-                style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
+                style: TextStyle(
+                    color: color,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'monospace')),
             const SizedBox(height: 2),
-            Text(sub, style: const TextStyle(color: Color(0xFF64748B), fontSize: 10.5)),
+            Text(sub,
+                style:
+                    const TextStyle(color: Color(0xFF64748B), fontSize: 10.5)),
           ],
         ),
       );
@@ -1868,7 +2248,10 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
       decoration: BoxDecoration(
         color: const Color(0x0AFFFFFF),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: isWinner ? const Color(0xFF10B981).withValues(alpha: 0.5) : Colors.white10),
+        border: Border.all(
+            color: isWinner
+                ? const Color(0xFF10B981).withValues(alpha: 0.5)
+                : Colors.white10),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1880,18 +2263,24 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                       fontFamily: 'monospace',
                       fontWeight: FontWeight.bold,
                       fontSize: 12.5,
-                      color: isWinner ? const Color(0xFF10B981) : Colors.white)),
+                      color:
+                          isWinner ? const Color(0xFF10B981) : Colors.white)),
               if (isWinner) ...[
                 const SizedBox(width: 6),
-                _badge('Top Route', const Color(0xFF10B981), const Color(0x3310B981)),
+                _badge('Top Route', const Color(0xFF10B981),
+                    const Color(0x3310B981)),
               ],
               const Spacer(),
               Text('${(peer.score * 100).toStringAsFixed(1)}%',
-                  style: const TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold, fontSize: 12.5)),
+                  style: const TextStyle(
+                      color: Color(0xFF38BDF8),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12.5)),
             ],
           ),
           const SizedBox(height: 2),
-          Text('Latency: ${peer.latencyMs}ms  •  Heap: ${peer.availableHeapMb}MB  •  CPU: ${(peer.cpuLoad * 100).round()}%',
+          Text(
+              'Latency: ${peer.latencyMs}ms  •  Heap: ${peer.availableHeapMb}MB  •  CPU: ${(peer.cpuLoad * 100).round()}%',
               style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 10.5)),
         ],
       ),
@@ -1914,30 +2303,44 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Row(children: [
-                  Icon(Icons.notifications_active_rounded, color: Color(0xFF10B981), size: 18),
+                  Icon(Icons.notifications_active_rounded,
+                      color: Color(0xFF10B981), size: 18),
                   SizedBox(width: 8),
                   Text('Node Down Alerts',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15)),
                 ]),
                 const SizedBox(height: 4),
-                const Text('Receive email and push notifications when any cluster node goes offline.',
+                const Text(
+                    'Receive email and push notifications when any cluster node goes offline.',
                     style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
                 if (_alertsLoading)
-                  const Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator(color: Color(0xFF10B981)))
+                  const Padding(
+                      padding: EdgeInsets.all(16),
+                      child:
+                          CircularProgressIndicator(color: Color(0xFF10B981)))
                 else if (_nodeAlerts != null) ...[
                   const SizedBox(height: 10),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
                     title: Text(
-                        _nodeAlerts!.enrolled ? 'Enrolled — receiving alerts' : 'Not enrolled',
-                        style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 13.5)),
+                        _nodeAlerts!.enrolled
+                            ? 'Enrolled — receiving alerts'
+                            : 'Not enrolled',
+                        style: const TextStyle(
+                            color: Color(0xFFE2E8F0), fontSize: 13.5)),
                     subtitle: _nodeAlerts!.email != null
-                        ? Text(_nodeAlerts!.email!, style: const TextStyle(color: Color(0xFF64748B), fontSize: 11.5))
+                        ? Text(_nodeAlerts!.email!,
+                            style: const TextStyle(
+                                color: Color(0xFF64748B), fontSize: 11.5))
                         : null,
                     value: _nodeAlerts!.enrolled,
                     activeThumbColor: const Color(0xFF10B981),
                     onChanged: (v) async {
-                      final r = await widget.apiService.toggleNodeAlertsEnrollment(v);
+                      final r =
+                          await widget.apiService.toggleNodeAlertsEnrollment(v);
                       _showSnack(r.message, isError: !r.success);
                       if (r.success) _loadAlerts();
                     },
@@ -1964,21 +2367,31 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Row(children: [
-                  Icon(Icons.error_outline_rounded, color: Color(0xFFF59E0B), size: 18),
+                  Icon(Icons.error_outline_rounded,
+                      color: Color(0xFFF59E0B), size: 18),
                   SizedBox(width: 8),
                   Text('Server Error Alerts',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15)),
                 ]),
                 const SizedBox(height: 4),
-                const Text('Receive email notifications for unhandled 500 server errors across the cluster.',
+                const Text(
+                    'Receive email notifications for unhandled 500 server errors across the cluster.',
                     style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
                 if (_alertsLoading)
-                  const Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator(color: Color(0xFFF59E0B)))
+                  const Padding(
+                      padding: EdgeInsets.all(16),
+                      child:
+                          CircularProgressIndicator(color: Color(0xFFF59E0B)))
                 else if (_errorAlerts != null) ...[
                   const SizedBox(height: 10),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Enable Error Alerts', style: TextStyle(color: Color(0xFFE2E8F0), fontSize: 13.5)),
+                    title: const Text('Enable Error Alerts',
+                        style: TextStyle(
+                            color: Color(0xFFE2E8F0), fontSize: 13.5)),
                     value: _errorAlerts!.enabled,
                     activeThumbColor: const Color(0xFFF59E0B),
                     onChanged: (v) async {
@@ -1986,7 +2399,8 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                         enabled: v,
                         additionalEmails: _errorAlerts!.additionalEmails,
                       );
-                      final r = await widget.apiService.saveErrorAlertSettings(updated);
+                      final r = await widget.apiService
+                          .saveErrorAlertSettings(updated);
                       _showSnack(r.message, isError: !r.success);
                       if (r.success) _loadAlerts();
                     },
@@ -1994,8 +2408,10 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                   if (_errorAlerts!.enrolledSuperadmins.isNotEmpty) ...[
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: Text('Enrolled Admins: ${_errorAlerts!.enrolledSuperadmins.join(", ")}',
-                          style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11.5)),
+                      child: Text(
+                          'Enrolled Admins: ${_errorAlerts!.enrolledSuperadmins.join(", ")}',
+                          style: const TextStyle(
+                              color: Color(0xFF94A3B8), fontSize: 11.5)),
                     ),
                   ],
                   const SizedBox(height: 8),
@@ -2021,10 +2437,14 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Row(children: [
-                  Icon(Icons.bug_report_rounded, color: Color(0xFFEF4444), size: 18),
+                  Icon(Icons.bug_report_rounded,
+                      color: Color(0xFFEF4444), size: 18),
                   SizedBox(width: 8),
                   Text('Cluster Error Reports',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15)),
                 ]),
                 const SizedBox(height: 4),
                 const Text(
@@ -2032,13 +2452,26 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                   style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
                 ),
                 const SizedBox(height: 12),
-                if (widget.onNavigateErrorReports != null)
-                  _actionButton(
-                    icon: Icons.troubleshoot_rounded,
-                    label: 'View Error Reports',
-                    color: const Color(0xFFEF4444),
-                    onPressed: widget.onNavigateErrorReports!,
-                  ),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    if (widget.onNavigateLoadProfiler != null)
+                      _actionButton(
+                        icon: Icons.speed_rounded,
+                        label: 'Load Profiler',
+                        color: const Color(0xFFF97316),
+                        onPressed: widget.onNavigateLoadProfiler!,
+                      ),
+                    if (widget.onNavigateErrorReports != null)
+                      _actionButton(
+                        icon: Icons.troubleshoot_rounded,
+                        label: 'View Error Reports',
+                        color: const Color(0xFFEF4444),
+                        onPressed: widget.onNavigateErrorReports!,
+                      ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -2073,18 +2506,25 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                     const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.shield_rounded, color: Color(0xFFF59E0B), size: 18),
+                        Icon(Icons.shield_rounded,
+                            color: Color(0xFFF59E0B), size: 18),
                         SizedBox(width: 6),
                         Text('Quorum Loss Fallback Mirror Manager',
-                            style: TextStyle(color: Color(0xFFF59E0B), fontWeight: FontWeight.bold, fontSize: 15)),
+                            style: TextStyle(
+                                color: Color(0xFFF59E0B),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15)),
                       ],
                     ),
                     if (anyActive)
-                      _badge('Active (Quorum Lost)', const Color(0xFFEF4444), const Color(0x33EF4444))
+                      _badge('Active (Quorum Lost)', const Color(0xFFEF4444),
+                          const Color(0x33EF4444))
                     else if (allEnabled)
-                      _badge('Active Mirroring (Ready)', const Color(0xFF10B981), const Color(0x3310B981))
+                      _badge('Active Mirroring (Ready)',
+                          const Color(0xFF10B981), const Color(0x3310B981))
                     else
-                      _badge('Partial Mirroring', const Color(0xFFF59E0B), const Color(0x33F59E0B)),
+                      _badge('Partial Mirroring', const Color(0xFFF59E0B),
+                          const Color(0x33F59E0B)),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -2100,11 +2540,15 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                   onPressed: _loadQfStatus,
                 ),
                 const SizedBox(height: 14),
-
                 if (_qfLoading)
-                  const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator(color: Color(0xFFF59E0B))))
+                  const Center(
+                      child: Padding(
+                          padding: EdgeInsets.all(20),
+                          child: CircularProgressIndicator(
+                              color: Color(0xFFF59E0B))))
                 else if (_qfNodes.isEmpty)
-                  const Text('No quorum fallback nodes found.', style: TextStyle(color: Color(0xFF64748B)))
+                  const Text('No quorum fallback nodes found.',
+                      style: TextStyle(color: Color(0xFF64748B)))
                 else
                   ..._qfNodes.map(_buildQfNodeCard),
               ],
@@ -2135,7 +2579,11 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
         children: [
           Row(
             children: [
-              Container(width: 8, height: 8, decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle)),
+              Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                      color: statusColor, shape: BoxShape.circle)),
               const SizedBox(width: 6),
               Expanded(
                 child: Wrap(
@@ -2144,12 +2592,19 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text(node.nodeIp,
-                        style: const TextStyle(color: Colors.white, fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 13.5)),
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontFamily: 'monospace',
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13.5)),
                     if (node.isLocal)
-                      _badge('Local', const Color(0xFF7C3AED), const Color(0x337C3AED))
+                      _badge('Local', const Color(0xFF7C3AED),
+                          const Color(0x337C3AED))
                     else
-                      _badge('Remote', const Color(0xFF3B82F6), const Color(0x333B82F6)),
-                    _badge(node.status, statusColor, statusColor.withValues(alpha: 0.15)),
+                      _badge('Remote', const Color(0xFF3B82F6),
+                          const Color(0x333B82F6)),
+                    _badge(node.status, statusColor,
+                        statusColor.withValues(alpha: 0.15)),
                   ],
                 ),
               ),
@@ -2157,7 +2612,8 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                 value: node.enabled,
                 activeThumbColor: const Color(0xFF10B981),
                 onChanged: (v) async {
-                  final r = await widget.apiService.toggleQuorumFallback(node.nodeIp, v);
+                  final r = await widget.apiService
+                      .toggleQuorumFallback(node.nodeIp, v);
                   _showSnack(r.message, isError: !r.success);
                   if (r.success) _loadQfStatus();
                 },
@@ -2168,9 +2624,11 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
           Wrap(spacing: 12, runSpacing: 4, children: [
             _nodeDetail('DB Size', _formatBytes(node.databaseSizeBytes)),
             if (node.totalDiskSpaceBytes > 0)
-              _nodeDetail('Free Disk', '${_formatBytes(node.freeDiskSpaceBytes)} (${(node.freeDiskSpaceBytes / node.totalDiskSpaceBytes * 100).round()}% free)'),
+              _nodeDetail('Free Disk',
+                  '${_formatBytes(node.freeDiskSpaceBytes)} (${(node.freeDiskSpaceBytes / node.totalDiskSpaceBytes * 100).round()}% free)'),
             if (node.lastSyncTimestamp != null)
-              _nodeDetail('Last Synced', _shortTimestamp(node.lastSyncTimestamp!)),
+              _nodeDetail(
+                  'Last Synced', _shortTimestamp(node.lastSyncTimestamp!)),
           ]),
           const SizedBox(height: 8),
           Wrap(spacing: 6, runSpacing: 6, children: [
@@ -2191,7 +2649,8 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
               label: 'Sync Now',
               color: const Color(0xFF3B82F6),
               onPressed: () async {
-                final r = await widget.apiService.syncQuorumFallback(node.nodeIp);
+                final r =
+                    await widget.apiService.syncQuorumFallback(node.nodeIp);
                 _showSnack(r.message, isError: !r.success);
                 if (r.success) _loadQfStatus();
               },
@@ -2205,20 +2664,27 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                   context: context,
                   builder: (ctx) => AlertDialog(
                     backgroundColor: const Color(0xFF1E293B),
-                    title: const Text('Purge Quorum Storage', style: TextStyle(color: Colors.white)),
-                    content: Text('Purge local fallback SQLite database on node ${node.nodeIp} to reclaim disk space?'),
+                    title: const Text('Purge Quorum Storage',
+                        style: TextStyle(color: Colors.white)),
+                    content: Text(
+                        'Purge local fallback SQLite database on node ${node.nodeIp} to reclaim disk space?'),
                     actions: [
-                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                      TextButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: const Text('Cancel')),
                       ElevatedButton(
-                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFDC2626)),
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFDC2626)),
                         onPressed: () => Navigator.pop(ctx, true),
-                        child: const Text('Purge', style: TextStyle(color: Colors.white)),
+                        child: const Text('Purge',
+                            style: TextStyle(color: Colors.white)),
                       ),
                     ],
                   ),
                 );
                 if (confirmed == true) {
-                  final r = await widget.apiService.purgeQuorumFallback(node.nodeIp);
+                  final r =
+                      await widget.apiService.purgeQuorumFallback(node.nodeIp);
                   _showSnack(r.message, isError: !r.success);
                   if (r.success) _loadQfStatus();
                 }
@@ -2236,7 +2702,8 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
 
   Widget _buildAutoBackupTab() {
     final local = _backupCombined?.localNodeStatus ??
-        const AutoBackupNodeStatus(nodeIp: 'local', isLocal: true, enabled: false);
+        const AutoBackupNodeStatus(
+            nodeIp: 'local', isLocal: true, enabled: false);
     final clusterNodes = _backupCombined?.clusterNodes ?? [];
 
     return RefreshIndicator(
@@ -2258,15 +2725,21 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                     const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.shield_rounded, color: Color(0xFFF59E0B), size: 18),
+                        Icon(Icons.shield_rounded,
+                            color: Color(0xFFF59E0B), size: 18),
                         SizedBox(width: 6),
                         Text('Database Snapshots & System Recovery',
-                            style: TextStyle(color: Color(0xFFF59E0B), fontWeight: FontWeight.bold, fontSize: 15)),
+                            style: TextStyle(
+                                color: Color(0xFFF59E0B),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15)),
                       ],
                     ),
                     local.enabled
-                        ? _badge('Daily Active (02:54 UTC)', const Color(0xFF10B981), const Color(0x3310B981))
-                        : _badge('Auto-Backup Disabled', const Color(0xFF94A3B8), const Color(0x2294A3B8)),
+                        ? _badge('Daily Active (02:54 UTC)',
+                            const Color(0xFF10B981), const Color(0x3310B981))
+                        : _badge('Auto-Backup Disabled',
+                            const Color(0xFF94A3B8), const Color(0x2294A3B8)),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -2312,18 +2785,27 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text('Auto-Backup Settings (This Server)',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13.5)),
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13.5)),
                       const SizedBox(height: 8),
                       SwitchListTile(
                         contentPadding: EdgeInsets.zero,
                         title: const Text('Enable Daily Auto-Backup',
-                            style: TextStyle(color: Color(0xFFE2E8F0), fontSize: 13, fontWeight: FontWeight.w600)),
-                        subtitle: const Text('Trigger daily full snapshot at 02:54 UTC on this node.',
-                            style: TextStyle(color: Color(0xFF64748B), fontSize: 11)),
+                            style: TextStyle(
+                                color: Color(0xFFE2E8F0),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600)),
+                        subtitle: const Text(
+                            'Trigger daily full snapshot at 02:54 UTC on this node.',
+                            style: TextStyle(
+                                color: Color(0xFF64748B), fontSize: 11)),
                         value: local.enabled,
                         activeThumbColor: const Color(0xFF10B981),
                         onChanged: (v) async {
-                          final r = await widget.apiService.saveLocalBackupConfig(v, local.retentionDays);
+                          final r = await widget.apiService
+                              .saveLocalBackupConfig(v, local.retentionDays);
                           _showSnack(r.message, isError: !r.success);
                           _loadBackupStatus();
                         },
@@ -2338,19 +2820,23 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                             local.enabled && local.nextScheduledRunUtc != null
                                 ? 'Next Run: ${local.nextScheduledRunUtc} UTC'
                                 : 'Retention: ${local.retentionDays} days',
-                            style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11.5),
+                            style: const TextStyle(
+                                color: Color(0xFF94A3B8), fontSize: 11.5),
                           ),
                           _smallButton(
                             icon: Icons.tune_rounded,
                             label: 'Change (${local.retentionDays}d)',
                             color: const Color(0xFF38BDF8),
                             onPressed: () async {
-                              final ctrl = TextEditingController(text: local.retentionDays.toString());
+                              final ctrl = TextEditingController(
+                                  text: local.retentionDays.toString());
                               final days = await showDialog<int>(
                                 context: context,
                                 builder: (ctx) => AlertDialog(
                                   backgroundColor: const Color(0xFF1E293B),
-                                  title: const Text('Auto-Deletion Retention (Days)', style: TextStyle(color: Colors.white)),
+                                  title: const Text(
+                                      'Auto-Deletion Retention (Days)',
+                                      style: TextStyle(color: Colors.white)),
                                   content: TextField(
                                     controller: ctrl,
                                     keyboardType: TextInputType.number,
@@ -2358,16 +2844,22 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                                     decoration: _inputDecoration('Days'),
                                   ),
                                   actions: [
-                                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                                    TextButton(
+                                        onPressed: () => Navigator.pop(ctx),
+                                        child: const Text('Cancel')),
                                     ElevatedButton(
-                                      onPressed: () => Navigator.pop(ctx, int.tryParse(ctrl.text) ?? local.retentionDays),
+                                      onPressed: () => Navigator.pop(
+                                          ctx,
+                                          int.tryParse(ctrl.text) ??
+                                              local.retentionDays),
                                       child: const Text('Save'),
                                     ),
                                   ],
                                 ),
                               );
                               if (days != null) {
-                                final r = await widget.apiService.saveLocalBackupConfig(local.enabled, days);
+                                final r = await widget.apiService
+                                    .saveLocalBackupConfig(local.enabled, days);
                                 _showSnack(r.message, isError: !r.success);
                                 _loadBackupStatus();
                               }
@@ -2393,21 +2885,30 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                   children: [
                     const Expanded(
                       child: Text('Stored Database Snapshots (Local)',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14.5),
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14.5),
                           overflow: TextOverflow.ellipsis),
                     ),
-                    _badge('${local.snapshots.length} files', const Color(0xFF38BDF8), const Color(0x2238BDF8)),
+                    _badge('${local.snapshots.length} files',
+                        const Color(0xFF38BDF8), const Color(0x2238BDF8)),
                   ],
                 ),
                 const SizedBox(height: 10),
                 if (_backupLoading)
-                  const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator(color: Color(0xFF22D3EE))))
+                  const Center(
+                      child: Padding(
+                          padding: EdgeInsets.all(16),
+                          child: CircularProgressIndicator(
+                              color: Color(0xFF22D3EE))))
                 else if (local.snapshots.isEmpty)
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 14),
                     child: Center(
                       child: Text('No local SQLite snapshots created yet.',
-                          style: TextStyle(color: Color(0xFF64748B), fontSize: 11.5)),
+                          style: TextStyle(
+                              color: Color(0xFF64748B), fontSize: 11.5)),
                     ),
                   )
                 else
@@ -2424,13 +2925,21 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('Cluster Nodes Backup Status (Per-Server)',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14.5)),
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14.5)),
                 const SizedBox(height: 10),
                 if (_backupLoading && clusterNodes.isEmpty)
-                  const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator(color: Color(0xFF22D3EE))))
+                  const Center(
+                      child: Padding(
+                          padding: EdgeInsets.all(16),
+                          child: CircularProgressIndicator(
+                              color: Color(0xFF22D3EE))))
                 else if (clusterNodes.isEmpty)
                   const Text('No remote cluster backup nodes discovered.',
-                      style: TextStyle(color: Color(0xFF64748B), fontSize: 11.5))
+                      style:
+                          TextStyle(color: Color(0xFF64748B), fontSize: 11.5))
                 else
                   ...clusterNodes.map((cn) => _buildClusterNodeBackupCard(cn)),
               ],
@@ -2458,7 +2967,10 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
               children: [
                 Text(s.fileName,
                     style: const TextStyle(
-                        color: Colors.white, fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 12.0),
+                        color: Colors.white,
+                        fontFamily: 'monospace',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12.0),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 2),
@@ -2466,13 +2978,22 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                   spacing: 6,
                   runSpacing: 2,
                   children: [
-                    Text(s.createdAtUtc.isNotEmpty ? s.createdAtUtc : _shortTimestampFromMs(s.createdAtEpochMs),
-                        style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 10.5)),
+                    Text(
+                        s.createdAtUtc.isNotEmpty
+                            ? s.createdAtUtc
+                            : _shortTimestampFromMs(s.createdAtEpochMs),
+                        style: const TextStyle(
+                            color: Color(0xFF94A3B8), fontSize: 10.5)),
                     Text(_formatBytes(s.sizeBytes),
-                        style: const TextStyle(color: Color(0xFF38BDF8), fontSize: 10.5, fontWeight: FontWeight.w600)),
+                        style: const TextStyle(
+                            color: Color(0xFF38BDF8),
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w600)),
                     s.isAutoBackup
-                        ? _badge('Auto', const Color(0xFF3B82F6), const Color(0x223B82F6))
-                        : _badge('Manual', const Color(0xFF94A3B8), const Color(0x2294A3B8)),
+                        ? _badge('Auto', const Color(0xFF3B82F6),
+                            const Color(0x223B82F6))
+                        : _badge('Manual', const Color(0xFF94A3B8),
+                            const Color(0x2294A3B8)),
                   ],
                 ),
               ],
@@ -2490,21 +3011,28 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                     context: context,
                     builder: (ctx) => AlertDialog(
                       backgroundColor: const Color(0xFF1E293B),
-                      title: const Text('Restore Database from Snapshot', style: TextStyle(color: Color(0xFFEF4444))),
-                      content: Text('Are you sure you want to restore the ENTIRE database from snapshot "${s.fileName}"?\n\nThis will replace current database tables with data from this snapshot.'),
+                      title: const Text('Restore Database from Snapshot',
+                          style: TextStyle(color: Color(0xFFEF4444))),
+                      content: Text(
+                          'Are you sure you want to restore the ENTIRE database from snapshot "${s.fileName}"?\n\nThis will replace current database tables with data from this snapshot.'),
                       actions: [
-                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                        TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text('Cancel')),
                         ElevatedButton(
-                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFDC2626)),
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFDC2626)),
                           onPressed: () => Navigator.pop(ctx, true),
-                          child: const Text('Restore Database', style: TextStyle(color: Colors.white)),
+                          child: const Text('Restore Database',
+                              style: TextStyle(color: Colors.white)),
                         ),
                       ],
                     ),
                   );
                   if (confirmed == true) {
                     _showSnack('Restoring database from ${s.fileName}…');
-                    final r = await widget.apiService.restoreSnapshot(s.fileName);
+                    final r =
+                        await widget.apiService.restoreSnapshot(s.fileName);
                     _showSnack(r.message, isError: !r.success);
                   }
                 },
@@ -2518,20 +3046,26 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                     context: context,
                     builder: (ctx) => AlertDialog(
                       backgroundColor: const Color(0xFF1E293B),
-                      title: const Text('Delete Snapshot', style: TextStyle(color: Colors.white)),
+                      title: const Text('Delete Snapshot',
+                          style: TextStyle(color: Colors.white)),
                       content: Text('Delete snapshot "${s.fileName}"?'),
                       actions: [
-                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                        TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text('Cancel')),
                         ElevatedButton(
-                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFDC2626)),
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFDC2626)),
                           onPressed: () => Navigator.pop(ctx, true),
-                          child: const Text('Delete', style: TextStyle(color: Colors.white)),
+                          child: const Text('Delete',
+                              style: TextStyle(color: Colors.white)),
                         ),
                       ],
                     ),
                   );
                   if (confirmed == true) {
-                    final r = await widget.apiService.deleteSnapshot(s.fileName);
+                    final r =
+                        await widget.apiService.deleteSnapshot(s.fileName);
                     _showSnack(r.message, isError: !r.success);
                     _loadBackupStatus();
                   }
@@ -2566,11 +3100,16 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                   children: [
                     Text(node.nodeIp,
                         style: const TextStyle(
-                            color: Colors.white, fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 13)),
+                            color: Colors.white,
+                            fontFamily: 'monospace',
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13)),
                     if (node.isLocal)
-                      _badge('Local', const Color(0xFF7C3AED), const Color(0x337C3AED))
+                      _badge('Local', const Color(0xFF7C3AED),
+                          const Color(0x337C3AED))
                     else
-                      _badge('Peer', const Color(0xFF3B82F6), const Color(0x333B82F6)),
+                      _badge('Peer', const Color(0xFF3B82F6),
+                          const Color(0x333B82F6)),
                   ],
                 ),
               ),
@@ -2578,7 +3117,8 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                 value: node.enabled,
                 activeThumbColor: const Color(0xFF22D3EE),
                 onChanged: (v) async {
-                  final r = await widget.apiService.toggleNodeAutoBackup(node.nodeIp, v);
+                  final r = await widget.apiService
+                      .toggleNodeAutoBackup(node.nodeIp, v);
                   _showSnack(r.message, isError: !r.success);
                   _loadBackupStatus();
                 },
@@ -2593,8 +3133,12 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
               _nodeDetail('Retention', '${node.retentionDays}d'),
               _nodeDetail('Snapshots', node.snapshotCount.toString()),
               _nodeDetail('Storage', _formatBytes(node.totalStorageBytes)),
-              if (node.lastBackupTimeUtc != null || node.lastBackupTimestamp != null)
-                _nodeDetail('Last Backup', node.lastBackupTimeUtc ?? _shortTimestamp(node.lastBackupTimestamp!)),
+              if (node.lastBackupTimeUtc != null ||
+                  node.lastBackupTimestamp != null)
+                _nodeDetail(
+                    'Last Backup',
+                    node.lastBackupTimeUtc ??
+                        _shortTimestamp(node.lastBackupTimestamp!)),
             ],
           ),
           const SizedBox(height: 6),
@@ -2607,7 +3151,8 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                 color: const Color(0xFF22D3EE),
                 onPressed: () async {
                   _showSnack('Triggering snapshot on ${node.nodeIp}…');
-                  final r = await widget.apiService.createNodeSnapshot(node.nodeIp);
+                  final r =
+                      await widget.apiService.createNodeSnapshot(node.nodeIp);
                   _showSnack(r.message, isError: !r.success);
                   _loadBackupStatus();
                 },
@@ -2623,9 +3168,11 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
 
   Widget _badge(String label, Color text, Color bg) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(16)),
+        decoration:
+            BoxDecoration(color: bg, borderRadius: BorderRadius.circular(16)),
         child: Text(label,
-            style: TextStyle(color: text, fontSize: 9.5, fontWeight: FontWeight.w600)),
+            style: TextStyle(
+                color: text, fontSize: 9.5, fontWeight: FontWeight.w600)),
       );
 
   Widget _smallButton({
@@ -2638,7 +3185,8 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
         style: ElevatedButton.styleFrom(
           backgroundColor: color.withValues(alpha: 0.12),
           foregroundColor: color,
-          padding: EdgeInsets.symmetric(horizontal: label.isNotEmpty ? 8 : 6, vertical: 5),
+          padding: EdgeInsets.symmetric(
+              horizontal: label.isNotEmpty ? 8 : 6, vertical: 5),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           minimumSize: Size.zero,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -2646,7 +3194,9 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
         onPressed: onPressed,
         icon: Icon(icon, size: 13, color: color),
         label: label.isNotEmpty
-            ? Text(label, style: TextStyle(color: color, fontSize: 10.5, fontWeight: FontWeight.w600))
+            ? Text(label,
+                style: TextStyle(
+                    color: color, fontSize: 10.5, fontWeight: FontWeight.w600))
             : const SizedBox.shrink(),
       );
 
@@ -2656,7 +3206,8 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
             padding: const EdgeInsets.all(28),
             child: Text(msg,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 13)),
+                style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.4), fontSize: 13)),
           ),
         ),
       );
