@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'cached_server_image.dart';
 
 /// A robust circular user avatar widget that supports:
 /// - Base64 Data URIs (e.g. data:image/png;base64,...)
@@ -126,12 +127,12 @@ class ObsidianUserAvatar extends StatelessWidget {
     } else {
       final resolvedUrl = _resolveUrl(pic);
       if (resolvedUrl != null) {
-        content = Image.network(
-          resolvedUrl,
+        content = CachedServerImage(
+          url: resolvedUrl,
           width: size,
           height: size,
           fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => _buildInitialsFallback(),
+          errorBuilder: (context) => _buildInitialsFallback(),
         );
       } else {
         content = _buildInitialsFallback();
