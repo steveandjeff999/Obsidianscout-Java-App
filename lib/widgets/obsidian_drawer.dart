@@ -11,6 +11,7 @@ class ObsidianNavigationDrawer extends StatefulWidget {
   final Function(int) onSelectScreen;
   final VoidCallback onOpenQrScanner;
   final VoidCallback onLogout;
+
   /// Opens the account switcher; the header is tappable when set.
   final VoidCallback? onOpenAccounts;
 
@@ -25,7 +26,8 @@ class ObsidianNavigationDrawer extends StatefulWidget {
   });
 
   @override
-  State<ObsidianNavigationDrawer> createState() => _ObsidianNavigationDrawerState();
+  State<ObsidianNavigationDrawer> createState() =>
+      _ObsidianNavigationDrawerState();
 }
 
 class _ObsidianNavigationDrawerState extends State<ObsidianNavigationDrawer> {
@@ -67,13 +69,17 @@ class _ObsidianNavigationDrawerState extends State<ObsidianNavigationDrawer> {
     final headerTextColor = ObsidianUITheme.getPrimaryTextColor(context);
     final sectionLabelColor = ObsidianUITheme.getSecondaryTextColor(context);
     final primaryAccent = ObsidianUITheme.getPrimaryAccent(context);
-    final itemRadius = ObsidianUITheme.getButtonRadius(context, fallback: 12.0).clamp(4.0, 18.0);
+    final itemRadius = ObsidianUITheme.getButtonRadius(context, fallback: 12.0)
+        .clamp(4.0, 18.0);
 
     final user = apiService.currentUser;
     final username = user?.username.isNotEmpty == true
         ? user!.username
-        : (apiService.savedUsername.isNotEmpty ? apiService.savedUsername : 'Scout Operator');
-    final roleLabel = user?.roleDisplayLabel ?? (apiService.currentUserRole == 'SUPERADMIN' ? 'Site Admin' : 'Scout');
+        : (apiService.savedUsername.isNotEmpty
+            ? apiService.savedUsername
+            : 'Scout Operator');
+    final roleLabel = user?.roleDisplayLabel ??
+        (apiService.currentUserRole == 'SUPERADMIN' ? 'Site Admin' : 'Scout');
     final program = apiService.currentProgram;
     final avatarBgColor = ObsidianUserAvatar.getAvatarBgColor(username);
 
@@ -447,6 +453,13 @@ class _ObsidianNavigationDrawerState extends State<ObsidianNavigationDrawer> {
             'subKey': 'subtitle.cluster_management',
           },
           {
+            'pageId': 'load-profiler',
+            'index': 52,
+            'icon': Icons.speed_rounded,
+            'labelKey': 'nav.load_profiler',
+            'subKey': 'subtitle.load_profiler',
+          },
+          {
             'pageId': 'settings',
             'index': 5,
             'icon': Icons.settings_suggest_rounded,
@@ -497,210 +510,143 @@ class _ObsidianNavigationDrawerState extends State<ObsidianNavigationDrawer> {
             })
         .where((section) => (section['items'] as List).isNotEmpty)
         .toList();
-    final matches = visibleSections.expand((s) => s['items'] as List<Map<String, dynamic>>).toList();
+    final matches = visibleSections
+        .expand((s) => s['items'] as List<Map<String, dynamic>>)
+        .toList();
 
     return Drawer(
       backgroundColor: drawerBg,
       child: Column(
-              children: [
-                // Drawer Header (tap to switch or add accounts)
-                InkWell(
-                  onTap: onOpenAccounts,
-                  child: Container(
-                    padding: const EdgeInsets.fromLTRB(20.0, 56.0, 20.0, 20.0),
-                    decoration: BoxDecoration(
-                      border: Border(bottom: BorderSide(color: borderColor)),
-                    ),
-                    child: Row(
+        children: [
+          // Drawer Header (tap to switch or add accounts)
+          InkWell(
+            onTap: onOpenAccounts,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(20.0, 56.0, 20.0, 20.0),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: borderColor)),
+              ),
+              child: Row(
+                children: [
+                  // User Avatar with deterministic color or profile picture
+                  ObsidianUserAvatar(
+                    profilePicture: user?.profilePicture,
+                    username: username,
+                    size: 48,
+                    serverUrl: apiService.currentServerUrl,
+                    boxShadow: [
+                      BoxShadow(
+                        color: avatarBgColor.withValues(alpha: 0.4),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // User Avatar with deterministic color or profile picture
-                        ObsidianUserAvatar(
-                          profilePicture: user?.profilePicture,
-                          username: username,
-                          size: 48,
-                          serverUrl: apiService.currentServerUrl,
-                          boxShadow: [
-                            BoxShadow(
-                              color: avatarBgColor.withValues(alpha: 0.4),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
+                        Text(
+                          program.isNotEmpty
+                              ? 'ObsidianScout $program'
+                              : 'ObsidianScout',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: headerTextColor,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                username,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: isDark
+                                      ? Colors.white70
+                                      : const Color(0xFF475569),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: primaryAccent.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: primaryAccent.withValues(alpha: 0.4),
+                                  width: 0.8,
+                                ),
+                              ),
+                              child: Text(
+                                roleLabel,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: primaryAccent,
+                                ),
+                              ),
                             ),
                           ],
                         ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                program.isNotEmpty ? 'ObsidianScout $program' : 'ObsidianScout',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: headerTextColor,
-                                  letterSpacing: 0.3,
-                                ),
-                              ),
-                              const SizedBox(height: 3),
-                              Row(
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      username,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: isDark ? Colors.white70 : const Color(0xFF475569),
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: primaryAccent.withValues(alpha: 0.2),
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(
-                                        color: primaryAccent.withValues(alpha: 0.4),
-                                        width: 0.8,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      roleLabel,
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w700,
-                                        color: primaryAccent,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (onOpenAccounts != null)
-                          Icon(Icons.unfold_more_rounded, size: 20, color: sectionLabelColor),
                       ],
                     ),
                   ),
-                ),
+                  if (onOpenAccounts != null)
+                    Icon(Icons.unfold_more_rounded,
+                        size: 20, color: sectionLabelColor),
+                ],
+              ),
+            ),
+          ),
 
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12.0, 12.0, 12.0, 0.0),
-                  child: ObsidianNavSearchField(
-                    controller: _searchController,
-                    focusNode: _searchFocus,
-                    onChanged: (value) => setState(() => _query = value),
-                    onSubmitted: () {
-                      if (matches.isNotEmpty) _openItem(matches.first);
-                    },
-                  ),
-                ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12.0, 12.0, 12.0, 0.0),
+            child: ObsidianNavSearchField(
+              controller: _searchController,
+              focusNode: _searchFocus,
+              onChanged: (value) => setState(() => _query = value),
+              onSubmitted: () {
+                if (matches.isNotEmpty) _openItem(matches.first);
+              },
+            ),
+          ),
 
-                // Menu Items List
-                Expanded(
-                  child: ListView(
-                    physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
-                    padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 12.0),
-                    children: [
-                      if (isSearching && matches.isEmpty) const ObsidianNavSearchEmpty(),
-                      ...visibleSections.expand((section) {
-                        final visibleItems = section['items'] as List<Map<String, dynamic>>;
-                        final titleKey = section['titleKey'] as String?;
+          // Menu Items List
+          Expanded(
+            child: ListView(
+              physics: const BouncingScrollPhysics(
+                  parent: AlwaysScrollableScrollPhysics()),
+              padding:
+                  const EdgeInsets.symmetric(vertical: 12.0, horizontal: 12.0),
+              children: [
+                if (isSearching && matches.isEmpty)
+                  const ObsidianNavSearchEmpty(),
+                ...visibleSections.expand((section) {
+                  final visibleItems =
+                      section['items'] as List<Map<String, dynamic>>;
+                  final titleKey = section['titleKey'] as String?;
 
-                        return [
-                          if (titleKey != null) ...[
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8.0),
-                              child: Divider(color: borderColor),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.only(left: 12.0, bottom: 6.0, top: 4.0),
-                              child: Text(
-                                context.tr(titleKey).toUpperCase(),
-                                style: TextStyle(
-                                  color: sectionLabelColor,
-                                  fontSize: 10.0,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 1.2,
-                                ),
-                              ),
-                            ),
-                          ],
-                          ...visibleItems.map((item) {
-                            final isAction = item['isAction'] == true;
-                            final idx = item['index'] as int?;
-                            final isSelected = !isAction && idx == currentIndex;
-                            final unselectedItemColor =
-                                isDark ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF334155);
-                            final unselectedIconColor = isDark ? Colors.white70 : const Color(0xFF64748B);
-
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 2.5),
-                              child: Material(
-                                color: isSelected
-                                    ? primaryAccent.withValues(alpha: 0.2)
-                                    : Colors.transparent,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(itemRadius),
-                                  side: isSelected
-                                      ? BorderSide(
-                                          color: primaryAccent.withValues(alpha: 0.5),
-                                          width: 1.2,
-                                        )
-                                      : BorderSide.none,
-                                ),
-                                clipBehavior: Clip.antiAlias,
-                                child: ListTile(
-                                dense: true,
-                                leading: Icon(
-                                  item['icon'] as IconData,
-                                  color: isSelected ? primaryAccent : unselectedIconColor,
-                                  size: 22.0,
-                                ),
-                                title: Text(
-                                  context.tr(item['labelKey'] as String),
-                                  style: TextStyle(
-                                    color: isSelected
-                                        ? (isDark ? Colors.white : primaryAccent)
-                                        : unselectedItemColor,
-                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                    fontSize: 13.5,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  context.tr(item['subKey'] as String),
-                                  style: TextStyle(color: sectionLabelColor, fontSize: 11.0),
-                                ),
-                                trailing: isSelected
-                                    ? Container(
-                                        width: 6,
-                                        height: 6,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: primaryAccent,
-                                        ),
-                                      )
-                                    : null,
-                                onTap: () => _openItem(item),
-                              ),
-                            ),
-                          );
-                          }),
-                        ];
-                      }),
-                      if (!isSearching) ...[
+                  return [
+                    if (titleKey != null) ...[
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8.0),
                         child: Divider(color: borderColor),
                       ),
                       Padding(
-                        padding: const EdgeInsets.only(left: 12.0, bottom: 8.0),
+                        padding: const EdgeInsets.only(
+                            left: 12.0, bottom: 6.0, top: 4.0),
                         child: Text(
-                          'PREFERENCES',
+                          context.tr(titleKey).toUpperCase(),
                           style: TextStyle(
                             color: sectionLabelColor,
                             fontSize: 10.0,
@@ -709,72 +655,170 @@ class _ObsidianNavigationDrawerState extends State<ObsidianNavigationDrawer> {
                           ),
                         ),
                       ),
-                      ListTile(
-                        dense: true,
-                        leading: Icon(
-                          apiService.themeMode == ThemeMode.light
-                              ? Icons.dark_mode_rounded
-                              : Icons.light_mode_rounded,
-                          color: apiService.themeMode == ThemeMode.light
-                              ? const Color(0xFF4F46E5)
-                              : const Color(0xFFFFB703),
-                          size: 22,
-                        ),
-                        title: Text(
-                          apiService.themeMode == ThemeMode.light ? 'Light Mode Active' : 'Dark Mode Active',
-                          style: TextStyle(
-                            color: isDark ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF334155),
-                            fontSize: 13.5,
+                    ],
+                    ...visibleItems.map((item) {
+                      final isAction = item['isAction'] == true;
+                      final idx = item['index'] as int?;
+                      final isSelected = !isAction && idx == currentIndex;
+                      final unselectedItemColor = isDark
+                          ? Colors.white.withValues(alpha: 0.9)
+                          : const Color(0xFF334155);
+                      final unselectedIconColor =
+                          isDark ? Colors.white70 : const Color(0xFF64748B);
+
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2.5),
+                        child: Material(
+                          color: isSelected
+                              ? primaryAccent.withValues(alpha: 0.2)
+                              : Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(itemRadius),
+                            side: isSelected
+                                ? BorderSide(
+                                    color: primaryAccent.withValues(alpha: 0.5),
+                                    width: 1.2,
+                                  )
+                                : BorderSide.none,
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: ListTile(
+                            dense: true,
+                            leading: Icon(
+                              item['icon'] as IconData,
+                              color: isSelected
+                                  ? primaryAccent
+                                  : unselectedIconColor,
+                              size: 22.0,
+                            ),
+                            title: Text(
+                              context.tr(item['labelKey'] as String),
+                              style: TextStyle(
+                                color: isSelected
+                                    ? (isDark ? Colors.white : primaryAccent)
+                                    : unselectedItemColor,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.w500,
+                                fontSize: 13.5,
+                              ),
+                            ),
+                            subtitle: Text(
+                              context.tr(item['subKey'] as String),
+                              style: TextStyle(
+                                  color: sectionLabelColor, fontSize: 11.0),
+                            ),
+                            trailing: isSelected
+                                ? Container(
+                                    width: 6,
+                                    height: 6,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: primaryAccent,
+                                    ),
+                                  )
+                                : null,
+                            onTap: () => _openItem(item),
                           ),
                         ),
-                        subtitle: Text(
-                          apiService.themeMode == ThemeMode.light ? 'Toggle dark mode' : 'Toggle light mode',
-                          style: TextStyle(color: sectionLabelColor, fontSize: 11),
-                        ),
-                        trailing: Switch.adaptive(
-                          value: apiService.themeMode == ThemeMode.light,
-                          activeThumbColor: const Color(0xFF4F46E5),
-                          onChanged: (value) {
-                            apiService.setThemeMode(value ? ThemeMode.light : ThemeMode.dark);
-                          },
-                        ),
-                        onTap: () {
-                          final nextMode = apiService.themeMode == ThemeMode.light
-                              ? ThemeMode.dark
-                              : ThemeMode.light;
-                          apiService.setThemeMode(nextMode);
-                        },
+                      );
+                    }),
+                  ];
+                }),
+                if (!isSearching) ...[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Divider(color: borderColor),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 12.0, bottom: 8.0),
+                    child: Text(
+                      'PREFERENCES',
+                      style: TextStyle(
+                        color: sectionLabelColor,
+                        fontSize: 10.0,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.2,
                       ),
-                      ],
-                    ],
-                  ),
-                ),
-
-                // Footer Sign Out & Server info
-                Container(
-                  padding: const EdgeInsets.all(14.0),
-                  decoration: BoxDecoration(
-                    border: Border(top: BorderSide(color: borderColor)),
-                  ),
-                  child: ListTile(
-                    dense: true,
-                    leading: const Icon(Icons.logout_rounded, color: ObsidianUITheme.errorRed),
-                    title: const Text(
-                      'Sign Out',
-                      style: TextStyle(color: ObsidianUITheme.errorRed, fontWeight: FontWeight.bold, fontSize: 14),
                     ),
-                    trailing: Text(
-                      'ObsidianScout Mobile',
-                      style: TextStyle(color: sectionLabelColor, fontSize: 10),
+                  ),
+                  ListTile(
+                    dense: true,
+                    leading: Icon(
+                      apiService.themeMode == ThemeMode.light
+                          ? Icons.dark_mode_rounded
+                          : Icons.light_mode_rounded,
+                      color: apiService.themeMode == ThemeMode.light
+                          ? const Color(0xFF4F46E5)
+                          : const Color(0xFFFFB703),
+                      size: 22,
+                    ),
+                    title: Text(
+                      apiService.themeMode == ThemeMode.light
+                          ? 'Light Mode Active'
+                          : 'Dark Mode Active',
+                      style: TextStyle(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.9)
+                            : const Color(0xFF334155),
+                        fontSize: 13.5,
+                      ),
+                    ),
+                    subtitle: Text(
+                      apiService.themeMode == ThemeMode.light
+                          ? 'Toggle dark mode'
+                          : 'Toggle light mode',
+                      style: TextStyle(color: sectionLabelColor, fontSize: 11),
+                    ),
+                    trailing: Switch.adaptive(
+                      value: apiService.themeMode == ThemeMode.light,
+                      activeThumbColor: const Color(0xFF4F46E5),
+                      onChanged: (value) {
+                        apiService.setThemeMode(
+                            value ? ThemeMode.light : ThemeMode.dark);
+                      },
                     ),
                     onTap: () {
-                      Navigator.of(context).pop();
-                      onLogout();
+                      final nextMode = apiService.themeMode == ThemeMode.light
+                          ? ThemeMode.dark
+                          : ThemeMode.light;
+                      apiService.setThemeMode(nextMode);
                     },
                   ),
-                ),
+                ],
               ],
             ),
+          ),
+
+          // Footer Sign Out & Server info
+          Container(
+            padding: const EdgeInsets.all(14.0),
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: borderColor)),
+            ),
+            child: ListTile(
+              dense: true,
+              leading: const Icon(Icons.logout_rounded,
+                  color: ObsidianUITheme.errorRed),
+              title: const Text(
+                'Sign Out',
+                style: TextStyle(
+                    color: ObsidianUITheme.errorRed,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14),
+              ),
+              trailing: Text(
+                'ObsidianScout Mobile',
+                style: TextStyle(color: sectionLabelColor, fontSize: 10),
+              ),
+              onTap: () {
+                Navigator.of(context).pop();
+                onLogout();
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

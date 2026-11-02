@@ -38,13 +38,17 @@ class ApiService {
   static const String keyKeepMeLoggedIn = "obsidianscout_keep_me_logged_in";
   static const String keySavedUsername = "obsidianscout_saved_username";
   static const String keyThemeMode = "obsidianscout_theme_mode";
-  static const String keyUseServerCustomTheme = "obsidianscout_use_server_custom_theme";
+  static const String keyUseServerCustomTheme =
+      "obsidianscout_use_server_custom_theme";
   static const String keyUiMode = "obsidianscout_ui_mode";
   static const String keyDesktopTabs = "obsidianscout_desktop_tabs_enabled";
-  static const String keyKeepScreenOnWhileScouting = "obsidianscout_keep_screen_on_scouting";
-  static const String keyReviewBeforeSubmit = "obsidianscout_review_before_submit";
+  static const String keyKeepScreenOnWhileScouting =
+      "obsidianscout_keep_screen_on_scouting";
+  static const String keyReviewBeforeSubmit =
+      "obsidianscout_review_before_submit";
   static const String keyLocale = "obsidianscout_locale";
-  static const String keyRequestTimeoutSeconds = "obsidianscout_request_timeout_seconds";
+  static const String keyRequestTimeoutSeconds =
+      "obsidianscout_request_timeout_seconds";
   static const String keyDeviceId = "obsidianscout_device_id";
   static const int defaultRequestTimeoutSeconds = 6;
   static const String defaultUrl = "https://kotlin.obsidianscout.com";
@@ -61,7 +65,8 @@ class ApiService {
   final Map<String, dynamic> _memoryCache = {};
   final Map<String, DateTime> _cacheTimestamps = {};
 
-  bool isCacheFresh(String key, {Duration maxAge = const Duration(seconds: 30)}) {
+  bool isCacheFresh(String key,
+      {Duration maxAge = const Duration(seconds: 30)}) {
     final timestamp = _cacheTimestamps[key];
     if (timestamp == null) return false;
     return DateTime.now().difference(timestamp) < maxAge;
@@ -96,37 +101,54 @@ class ApiService {
   AppSettingsModel? _currentSettings;
 
   /// Every account signed in on this device, most recently used first (see the account switcher).
-  final ValueNotifier<List<SavedAccount>> savedAccountsNotifier = ValueNotifier<List<SavedAccount>>(const []);
+  final ValueNotifier<List<SavedAccount>> savedAccountsNotifier =
+      ValueNotifier<List<SavedAccount>>(const []);
+
   /// Session cookies of accounts signed in without "keep me logged in"; they last until the app closes.
   final Map<String, String> _volatileCookies = {};
+
   /// The signed-in session put aside while another account signs in (see [beginAddAccount]).
   _ParkedSession? _parkedSession;
   Future<void> _accountsWrite = Future.value();
   final ValueNotifier<int> permissionsNotifier = ValueNotifier<int>(0);
+
   /// Bumped after each background sync and whenever the user saves something that changes what the
   /// home-screen widgets show (a scouting entry, an assignment status), so they refresh right away.
   final ValueNotifier<int> dataSyncedNotifier = ValueNotifier<int>(0);
+
   /// Fires whenever [_currentSettings] is updated from the server.
   /// Use this to reactively refresh UI that depends on [currentSettings].
-  final ValueNotifier<AppSettingsModel?> settingsNotifier = ValueNotifier<AppSettingsModel?>(null);
+  final ValueNotifier<AppSettingsModel?> settingsNotifier =
+      ValueNotifier<AppSettingsModel?>(null);
 
-  final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier<ThemeMode>(ThemeMode.dark);
-  final ValueNotifier<bool> useServerCustomThemeNotifier = ValueNotifier<bool>(true);
-  final ValueNotifier<ThemePresetModel?> customThemeNotifier = ValueNotifier<ThemePresetModel?>(null);
-  final ValueNotifier<String> uiModeNotifier = ValueNotifier<String>('auto'); // 'auto', 'mobile', 'desktop'
+  final ValueNotifier<ThemeMode> themeNotifier =
+      ValueNotifier<ThemeMode>(ThemeMode.dark);
+  final ValueNotifier<bool> useServerCustomThemeNotifier =
+      ValueNotifier<bool>(true);
+  final ValueNotifier<ThemePresetModel?> customThemeNotifier =
+      ValueNotifier<ThemePresetModel?>(null);
+  final ValueNotifier<String> uiModeNotifier =
+      ValueNotifier<String>('auto'); // 'auto', 'mobile', 'desktop'
   final ValueNotifier<bool> desktopTabsNotifier = ValueNotifier<bool>(true);
-  final ValueNotifier<bool> keepScreenOnWhileScoutingNotifier = ValueNotifier<bool>(true);
-  final ValueNotifier<bool> reviewBeforeSubmitNotifier = ValueNotifier<bool>(true);
-  final ValueNotifier<Locale> localeNotifier = ValueNotifier<Locale>(const Locale('en'));
-  final ValueNotifier<int> timeoutNotifier = ValueNotifier<int>(defaultRequestTimeoutSeconds);
+  final ValueNotifier<bool> keepScreenOnWhileScoutingNotifier =
+      ValueNotifier<bool>(true);
+  final ValueNotifier<bool> reviewBeforeSubmitNotifier =
+      ValueNotifier<bool>(true);
+  final ValueNotifier<Locale> localeNotifier =
+      ValueNotifier<Locale>(const Locale('en'));
+  final ValueNotifier<int> timeoutNotifier =
+      ValueNotifier<int>(defaultRequestTimeoutSeconds);
 
   bool _isOnline = true;
   bool _handlingRevocation = false;
   Timer? _healthCheckTimer;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
-  final StreamController<bool> _onlineStreamController = StreamController<bool>.broadcast();
-  final StreamController<int> _serverErrorController = StreamController<int>.broadcast();
-  final StreamController<String> _sessionRevokedController = StreamController<String>.broadcast();
+  final StreamController<bool> _onlineStreamController =
+      StreamController<bool>.broadcast();
+  final StreamController<int> _serverErrorController =
+      StreamController<int>.broadcast();
+  final StreamController<String> _sessionRevokedController =
+      StreamController<String>.broadcast();
 
   String get serverUrl => _currentServerUrl;
   String get currentServerUrl => _currentServerUrl;
@@ -164,9 +186,14 @@ class ApiService {
     if (!isLoggedIn) return null;
     return _currentUser?.id;
   }
+
   AppSettingsModel? get currentSettings => _currentSettings;
-  bool get isSuperAdmin => _currentUser?.isSuperAdmin ?? (currentUserRole.toUpperCase() == 'SUPERADMIN');
-  bool get isAdmin => _currentUser?.isAdmin ?? (currentUserRole.toUpperCase() == 'ADMIN' || isSuperAdmin);
+  bool get isSuperAdmin =>
+      _currentUser?.isSuperAdmin ??
+      (currentUserRole.toUpperCase() == 'SUPERADMIN');
+  bool get isAdmin =>
+      _currentUser?.isAdmin ??
+      (currentUserRole.toUpperCase() == 'ADMIN' || isSuperAdmin);
 
   /// Whether the user may use the team admin page [page] (website id: 'users', 'banners', 'admin-settings',
   /// 'assignments', 'scouter-report'): admins always, a CUSTOM user when an admin picked it for them.
@@ -176,21 +203,35 @@ class ApiService {
     if (role != 'CUSTOM' || !customRoleAdminPages.contains(page)) return false;
     return _currentSettings?.customPages?.contains(page) ?? false;
   }
+
   String get currentUserRole => _currentUser?.role ?? 'SCOUT';
-  String get currentProgram => _currentUser?.program ?? _currentSettings?.program ?? 'FRC';
+  String get currentProgram =>
+      _currentUser?.program ?? _currentSettings?.program ?? 'FRC';
   bool get isOnline => _isOnline;
   Stream<bool> get onOnlineStatusChanged => _onlineStreamController.stream;
 
-  final StreamController<LiveDataChange> _dataChangedController = StreamController<LiveDataChange>.broadcast();
+  final StreamController<LiveDataChange> _dataChangedController =
+      StreamController<LiveDataChange>.broadcast();
 
   /// Data on the server changed; screens listen through the [LiveRefresh] mixin.
   Stream<LiveDataChange> get onDataChanged => _dataChangedController.stream;
 
   static const Map<String, List<String>> _topicCaches = {
-    'scouting': ['cache_scouting', 'cache_prescout_scouting', 'cache_analytics', 'cache_validation_', 'cache_predict_'],
+    'scouting': [
+      'cache_scouting',
+      'cache_prescout_scouting',
+      'cache_analytics',
+      'cache_validation_',
+      'cache_predict_'
+    ],
     'pit-scouting': ['cache_pit_scouting', 'cache_prescout_pit_scouting'],
     'qual-scouting': ['cache_qual_scouting', 'cache_prescout_qual_scouting'],
-    'schedule': ['cache_matches_', 'cache_teams_', 'cache_predict_', 'cache_validation_'],
+    'schedule': [
+      'cache_matches_',
+      'cache_teams_',
+      'cache_predict_',
+      'cache_validation_'
+    ],
     'rankings': ['cache_teams_', 'cache_stats_history_', 'cache_predict_'],
     'assignments': ['cache_my_assignments_'],
   };
@@ -208,6 +249,7 @@ class ApiService {
     }
     _dataChangedController.add(change);
   }
+
   Stream<int> get onServerError => _serverErrorController.stream;
   Stream<String> get onSessionRevoked => _sessionRevokedController.stream;
   ThemeMode get themeMode => themeNotifier.value;
@@ -220,7 +262,8 @@ class ApiService {
   Locale get currentLocale => localeNotifier.value;
   int get requestTimeoutSeconds => _requestTimeoutSeconds;
   Duration get requestTimeout => Duration(seconds: _requestTimeoutSeconds);
-  Duration get heavyRequestTimeout => Duration(seconds: (_requestTimeoutSeconds * 2).clamp(8, 60));
+  Duration get heavyRequestTimeout =>
+      Duration(seconds: (_requestTimeoutSeconds * 2).clamp(8, 60));
 
   Future<void> setThemeMode(ThemeMode mode) async {
     themeNotifier.value = mode;
@@ -247,10 +290,12 @@ class ApiService {
         );
       }
       customThemeNotifier.value = active;
-      ObsidianUITheme.setCustomTheme(active, enabled: useServerCustomThemeNotifier.value);
+      ObsidianUITheme.setCustomTheme(active,
+          enabled: useServerCustomThemeNotifier.value);
     } else {
       customThemeNotifier.value = null;
-      ObsidianUITheme.setCustomTheme(null, enabled: useServerCustomThemeNotifier.value);
+      ObsidianUITheme.setCustomTheme(null,
+          enabled: useServerCustomThemeNotifier.value);
     }
   }
 
@@ -316,7 +361,9 @@ class ApiService {
     http.NetClient.lastDataAt.addListener(() {
       final at = http.NetClient.lastDataAt.value;
       final previous = _lastDataAtSaved;
-      if (at == null || (previous != null && at.difference(previous) < _lastDataAtSaveEvery)) return;
+      if (at == null ||
+          (previous != null && at.difference(previous) < _lastDataAtSaveEvery))
+        return;
       _lastDataAtSaved = at;
       prefs.setString(_lastDataAtKey, at.toIso8601String());
     });
@@ -345,13 +392,15 @@ class ApiService {
     }
 
     final savedLocaleStr = prefs.getString(keyLocale);
-    if (savedLocaleStr != null && ['en', 'es', 'he', 'tr'].contains(savedLocaleStr)) {
+    if (savedLocaleStr != null &&
+        ['en', 'es', 'he', 'tr'].contains(savedLocaleStr)) {
       localeNotifier.value = Locale(savedLocaleStr);
     } else {
       localeNotifier.value = const Locale('en');
     }
 
-    final savedUseServerCustomTheme = prefs.getBool(keyUseServerCustomTheme) ?? true;
+    final savedUseServerCustomTheme =
+        prefs.getBool(keyUseServerCustomTheme) ?? true;
     useServerCustomThemeNotifier.value = savedUseServerCustomTheme;
 
     final savedUiMode = prefs.getString(keyUiMode) ?? 'auto';
@@ -360,10 +409,13 @@ class ApiService {
     final savedDesktopTabs = prefs.getBool(keyDesktopTabs) ?? true;
     desktopTabsNotifier.value = savedDesktopTabs;
 
-    keepScreenOnWhileScoutingNotifier.value = prefs.getBool(keyKeepScreenOnWhileScouting) ?? true;
-    reviewBeforeSubmitNotifier.value = prefs.getBool(keyReviewBeforeSubmit) ?? true;
+    keepScreenOnWhileScoutingNotifier.value =
+        prefs.getBool(keyKeepScreenOnWhileScouting) ?? true;
+    reviewBeforeSubmitNotifier.value =
+        prefs.getBool(keyReviewBeforeSubmit) ?? true;
 
-    _requestTimeoutSeconds = prefs.getInt(keyRequestTimeoutSeconds) ?? defaultRequestTimeoutSeconds;
+    _requestTimeoutSeconds =
+        prefs.getInt(keyRequestTimeoutSeconds) ?? defaultRequestTimeoutSeconds;
     timeoutNotifier.value = _requestTimeoutSeconds;
 
     // Restore cached user and settings
@@ -371,7 +423,9 @@ class ApiService {
     if (cachedUser != null && cachedUser.isNotEmpty) {
       try {
         final jsonMap = jsonDecode(cachedUser);
-        final userObj = jsonMap['user'] is Map ? (jsonMap['user'] as Map<String, dynamic>) : jsonMap;
+        final userObj = jsonMap['user'] is Map
+            ? (jsonMap['user'] as Map<String, dynamic>)
+            : jsonMap;
         _currentUser = UserModel.fromJson(userObj);
       } catch (_) {}
     }
@@ -418,21 +472,27 @@ class ApiService {
     final net = http.NetClient.instance;
     net.connectTimeout = () => requestTimeout;
     String etagCacheKey(String url) {
-      final userScope = _currentUser?.id ?? (_savedUsername.isNotEmpty ? _savedUsername : 'anon');
+      final userScope = _currentUser?.id ??
+          (_savedUsername.isNotEmpty ? _savedUsername : 'anon');
       final teamScope = _currentUser?.teamNumber ?? 0;
       return 'cache_etag:${userScope}_$teamScope:$url';
     }
+
     net.readEtag = (url) async {
       final raw = await _getCache(etagCacheKey(url));
       if (raw == null || raw.isEmpty) return null;
       try {
         final decoded = jsonDecode(raw) as Map<String, dynamic>;
-        return (etag: decoded['etag'] as String, body: decoded['body'] as String);
+        return (
+          etag: decoded['etag'] as String,
+          body: decoded['body'] as String
+        );
       } catch (_) {
         return null;
       }
     };
-    net.writeEtag = (url, record) => _setCache(etagCacheKey(url), jsonEncode({'etag': record.etag, 'body': record.body}));
+    net.writeEtag = (url, record) => _setCache(etagCacheKey(url),
+        jsonEncode({'etag': record.etag, 'body': record.body}));
     // Going slow or fast changes how often the background sync runs.
     LinkQuality.instance.lowBandwidth.removeListener(_onLinkQualityChanged);
     LinkQuality.instance.lowBandwidth.addListener(_onLinkQualityChanged);
@@ -480,8 +540,9 @@ class ApiService {
   Future<bool> checkServerHealth() async {
     var online = false;
     try {
-      final response = await http
-          .get(Uri.parse('$_currentServerUrl/api/auth/status'), headers: _headers);
+      final response = await http.get(
+          Uri.parse('$_currentServerUrl/api/auth/status'),
+          headers: _headers);
       online = response.statusCode == 200 || response.statusCode == 401;
     } catch (_) {}
     if (online) {
@@ -493,7 +554,8 @@ class ApiService {
     _healthFailures++;
     if (_isOnline && _healthFailures < 2) {
       _healthRecheckTimer?.cancel();
-      _healthRecheckTimer = Timer(const Duration(seconds: 5), checkServerHealth);
+      _healthRecheckTimer =
+          Timer(const Duration(seconds: 5), checkServerHealth);
       return false;
     }
     _updateOnlineState(false);
@@ -522,7 +584,9 @@ class ApiService {
       }
     });
     if (outboxCount.value > 0) _scheduleOutboxRetry();
-    final interval = LinkQuality.instance.isLowBandwidth ? lowBandwidthSyncInterval : normalSyncInterval;
+    final interval = LinkQuality.instance.isLowBandwidth
+        ? lowBandwidthSyncInterval
+        : normalSyncInterval;
     _syncTimer = Timer.periodic(interval, (_) {
       syncAllServerDataInBackground();
     });
@@ -536,8 +600,11 @@ class ApiService {
   static Duration _deadline(Duration normal) {
     if (!LinkQuality.instance.isLowBandwidth) return normal;
     final slow = normal * 5;
-    return slow < const Duration(seconds: 60) ? const Duration(seconds: 60) : slow;
+    return slow < const Duration(seconds: 60)
+        ? const Duration(seconds: 60)
+        : slow;
   }
+
   static const Duration lowBandwidthSyncInterval = Duration(minutes: 10);
 
   /// On a slow link, configs, the team list, banners and the field image info are checked this often instead of
@@ -548,7 +615,8 @@ class ApiService {
   bool get _staticRefreshDue =>
       !LinkQuality.instance.isLowBandwidth ||
       _lastStaticRefresh == null ||
-      DateTime.now().difference(_lastStaticRefresh!) > lowBandwidthStaticInterval;
+      DateTime.now().difference(_lastStaticRefresh!) >
+          lowBandwidthStaticInterval;
 
   Future<void> syncAllServerDataInBackground() async {
     if (!isLoggedIn || !_isOnline || _isSyncing) return;
@@ -568,11 +636,15 @@ class ApiService {
         if (refreshStatic) fetchMatchConfig().catchError((_) => null),
         if (refreshStatic) fetchPitConfig().catchError((_) => null),
         if (refreshStatic) fetchQualConfig().catchError((_) => null),
-        if (refreshStatic) fetchTeams(eventKey).catchError((_) => <TeamModel>[]),
+        if (refreshStatic)
+          fetchTeams(eventKey).catchError((_) => <TeamModel>[]),
         fetchMatches(eventKey).catchError((_) => <MatchModel>[]),
-        if (refreshStatic) fetchBanners().catchError((_) => <Map<String, dynamic>>[]),
+        if (refreshStatic)
+          fetchBanners().catchError((_) => <Map<String, dynamic>>[]),
         fetchMyAssignments(eventKey).catchError((_) => <ScoutingAssignment>[]),
-        if (isAdmin) fetchAllAssignments(eventKey).catchError((_) => <ScoutingAssignment>[]),
+        if (isAdmin)
+          fetchAllAssignments(eventKey)
+              .catchError((_) => <ScoutingAssignment>[]),
       ]);
       if (refreshStatic) _lastStaticRefresh = DateTime.now();
       // Secondary background data. Entries come through the delta sync; prescout lists are derived from them.
@@ -582,9 +654,11 @@ class ApiService {
         fetchPrescoutPitScoutingEntries().catchError((_) => <dynamic>[]),
         fetchPrescoutQualScoutingEntries().catchError((_) => <dynamic>[]),
         // Computed on the device on a slow link instead of downloaded.
-        if (!lowBandwidth) fetchAnalyticsWidgets().catchError((_) => <AnalyticsWidgetModel>[]),
+        if (!lowBandwidth)
+          fetchAnalyticsWidgets().catchError((_) => <AnalyticsWidgetModel>[]),
         syncPendingMatchPlans().catchError((_) => 0),
-        fetchFieldImageBytes(_currentSettings?.year ?? DateTime.now().year).catchError((_) => null),
+        fetchFieldImageBytes(_currentSettings?.year ?? DateTime.now().year)
+            .catchError((_) => null),
       ]);
     } catch (_) {
     } finally {
@@ -650,7 +724,8 @@ class ApiService {
     final cached = await _getCache("cache_config");
     if (cached != null && cached.isNotEmpty) {
       try {
-        final config = ScoutingConfigModel.fromJson(await _decodeCached(cached));
+        final config =
+            ScoutingConfigModel.fromJson(await _decodeCached(cached));
         setMemoryCache("cache_config", config);
         return config;
       } catch (_) {}
@@ -664,7 +739,8 @@ class ApiService {
     final cached = await _getCache("cache_pit_config");
     if (cached != null && cached.isNotEmpty) {
       try {
-        final config = ScoutingConfigModel.fromJson(await _decodeCached(cached));
+        final config =
+            ScoutingConfigModel.fromJson(await _decodeCached(cached));
         setMemoryCache("cache_pit_config", config);
         return config;
       } catch (_) {}
@@ -678,7 +754,8 @@ class ApiService {
     final cached = await _getCache("cache_qual_config");
     if (cached != null && cached.isNotEmpty) {
       try {
-        final config = ScoutingConfigModel.fromJson(await _decodeCached(cached));
+        final config =
+            ScoutingConfigModel.fromJson(await _decodeCached(cached));
         setMemoryCache("cache_qual_config", config);
         return config;
       } catch (_) {}
@@ -704,7 +781,9 @@ class ApiService {
           final decoded = await _decodeCached(cached);
           final List list = decoded is List
               ? decoded
-              : (decoded is Map && decoded['teams'] is List ? decoded['teams'] as List : []);
+              : (decoded is Map && decoded['teams'] is List
+                  ? decoded['teams'] as List
+                  : []);
           if (list.isNotEmpty) {
             final Map<int, TeamModel> teamMap = {};
             for (var item in list) {
@@ -712,7 +791,8 @@ class ApiService {
               teamMap[t.teamNumber] = t;
             }
             if (teamMap.isNotEmpty) {
-              final res = teamMap.values.toList()..sort((a, b) => a.teamNumber.compareTo(b.teamNumber));
+              final res = teamMap.values.toList()
+                ..sort((a, b) => a.teamNumber.compareTo(b.teamNumber));
               setMemoryCache(memKey, res);
               setMemoryCache("mem_teams_all", res);
               return res;
@@ -742,7 +822,9 @@ class ApiService {
           final decoded = await _decodeCached(cached);
           final List list = decoded is List
               ? decoded
-              : (decoded is Map && decoded['matches'] is List ? decoded['matches'] as List : []);
+              : (decoded is Map && decoded['matches'] is List
+                  ? decoded['matches'] as List
+                  : []);
           if (list.isNotEmpty) {
             final Map<String, MatchModel> matchMap = {};
             for (var item in list) {
@@ -752,7 +834,8 @@ class ApiService {
               }
             }
             if (matchMap.isNotEmpty) {
-              final res = matchMap.values.toList()..sort(MatchModel.compareMatches);
+              final res = matchMap.values.toList()
+                ..sort(MatchModel.compareMatches);
               setMemoryCache(memKey, res);
               setMemoryCache("mem_matches_all", res);
               return res;
@@ -764,7 +847,8 @@ class ApiService {
     return [];
   }
 
-  Future<List<dynamic>> _mergePendingOutboxEntries(List<dynamic> baseList, Set<String> kinds) async {
+  Future<List<dynamic>> _mergePendingOutboxEntries(
+      List<dynamic> baseList, Set<String> kinds) async {
     try {
       final outboxItems = await _store.outbox();
       if (outboxItems.isEmpty) return baseList;
@@ -772,21 +856,37 @@ class ApiService {
       bool sameEntry(Map a, Map b) {
         final aData = a['data'] is Map ? a['data'] as Map : a;
         final bData = b['data'] is Map ? b['data'] as Map : b;
-        if (a['id'] != null && b['id'] != null && a['id'].toString() == b['id'].toString()) return true;
-        if (a['clientId'] != null && b['clientId'] != null && a['clientId'].toString() == b['clientId'].toString()) return true;
+        if (a['id'] != null &&
+            b['id'] != null &&
+            a['id'].toString() == b['id'].toString()) return true;
+        if (a['clientId'] != null &&
+            b['clientId'] != null &&
+            a['clientId'].toString() == b['clientId'].toString()) return true;
         final aTeam = a['targetTeamNumber'] ?? aData['targetTeamNumber'];
         final bTeam = b['targetTeamNumber'] ?? bData['targetTeamNumber'];
         final aEvent = a['eventKey'] ?? aData['eventKey'];
         final bEvent = b['eventKey'] ?? bData['eventKey'];
-        final aMatch = a['matchKey'] ?? aData['matchKey'] ?? a['matchNumber'] ?? aData['matchNumber'];
-        final bMatch = b['matchKey'] ?? bData['matchKey'] ?? b['matchNumber'] ?? bData['matchNumber'];
-        return aTeam != null && aTeam == bTeam && aEvent == bEvent && aMatch == bMatch;
+        final aMatch = a['matchKey'] ??
+            aData['matchKey'] ??
+            a['matchNumber'] ??
+            aData['matchNumber'];
+        final bMatch = b['matchKey'] ??
+            bData['matchKey'] ??
+            b['matchNumber'] ??
+            bData['matchNumber'];
+        return aTeam != null &&
+            aTeam == bTeam &&
+            aEvent == bEvent &&
+            aMatch == bMatch;
       }
 
       for (final item in outboxItems) {
         if (!kinds.contains(item.kind)) continue;
         final List<Map<String, dynamic>> candidates = item.kind == 'qual_batch'
-            ? ((item.payload['entries'] as List?) ?? const []).whereType<Map>().map((m) => Map<String, dynamic>.from(m)).toList()
+            ? ((item.payload['entries'] as List?) ?? const [])
+                .whereType<Map>()
+                .map((m) => Map<String, dynamic>.from(m))
+                .toList()
             : [
                 if (item.payload['data'] is Map)
                   Map<String, dynamic>.from(item.payload['data'] as Map)
@@ -799,7 +899,8 @@ class ApiService {
             if (item.kind.startsWith('prescout_')) 'isPrescout': true,
             if (!c.containsKey('data')) 'data': Map<String, dynamic>.from(c),
           };
-          final exists = merged.any((existing) => existing is Map && sameEntry(existing, entryWithMeta));
+          final exists = merged.any((existing) =>
+              existing is Map && sameEntry(existing, entryWithMeta));
           if (!exists) {
             merged.add(entryWithMeta);
           }
@@ -813,7 +914,9 @@ class ApiService {
 
   Future<List<dynamic>> getCachedScoutingEntries() async {
     final inMem = getFromMemoryCache<List<dynamic>>("cache_scouting");
-    if (inMem != null) return _mergePendingOutboxEntries(inMem, const {'match', 'prescout_match'});
+    if (inMem != null)
+      return _mergePendingOutboxEntries(
+          inMem, const {'match', 'prescout_match'});
     final cached = await _getCache("cache_scouting");
     List<dynamic> list = [];
     if (cached != null && cached.isNotEmpty) {
@@ -821,17 +924,21 @@ class ApiService {
         final decoded = await _decodeCached(cached);
         list = decoded is List
             ? decoded
-            : (decoded is Map && decoded['entries'] is List ? decoded['entries'] as List : []);
+            : (decoded is Map && decoded['entries'] is List
+                ? decoded['entries'] as List
+                : []);
       } catch (_) {}
     }
-    list = await _mergePendingOutboxEntries(list, const {'match', 'prescout_match'});
+    list = await _mergePendingOutboxEntries(
+        list, const {'match', 'prescout_match'});
     if (list.isNotEmpty) setMemoryCache("cache_scouting", list);
     return list;
   }
 
   Future<List<dynamic>> getCachedPitScoutingEntries() async {
     final inMem = getFromMemoryCache<List<dynamic>>("cache_pit_scouting");
-    if (inMem != null) return _mergePendingOutboxEntries(inMem, const {'pit', 'prescout_pit'});
+    if (inMem != null)
+      return _mergePendingOutboxEntries(inMem, const {'pit', 'prescout_pit'});
     final cached = await _getCache("cache_pit_scouting");
     List<dynamic> list = [];
     if (cached != null && cached.isNotEmpty) {
@@ -839,17 +946,22 @@ class ApiService {
         final decoded = await _decodeCached(cached);
         list = decoded is List
             ? decoded
-            : (decoded is Map && decoded['entries'] is List ? decoded['entries'] as List : []);
+            : (decoded is Map && decoded['entries'] is List
+                ? decoded['entries'] as List
+                : []);
       } catch (_) {}
     }
-    list = await _mergePendingOutboxEntries(list, const {'pit', 'prescout_pit'});
+    list =
+        await _mergePendingOutboxEntries(list, const {'pit', 'prescout_pit'});
     if (list.isNotEmpty) setMemoryCache("cache_pit_scouting", list);
     return list;
   }
 
   Future<List<dynamic>> getCachedQualScoutingEntries() async {
     final inMem = getFromMemoryCache<List<dynamic>>("cache_qual_scouting");
-    if (inMem != null) return _mergePendingOutboxEntries(inMem, const {'qual', 'qual_batch', 'prescout_qual'});
+    if (inMem != null)
+      return _mergePendingOutboxEntries(
+          inMem, const {'qual', 'qual_batch', 'prescout_qual'});
     final cached = await _getCache("cache_qual_scouting");
     List<dynamic> list = [];
     if (cached != null && cached.isNotEmpty) {
@@ -857,17 +969,21 @@ class ApiService {
         final decoded = await _decodeCached(cached);
         list = decoded is List
             ? decoded
-            : (decoded is Map && decoded['entries'] is List ? decoded['entries'] as List : []);
+            : (decoded is Map && decoded['entries'] is List
+                ? decoded['entries'] as List
+                : []);
       } catch (_) {}
     }
-    list = await _mergePendingOutboxEntries(list, const {'qual', 'qual_batch', 'prescout_qual'});
+    list = await _mergePendingOutboxEntries(
+        list, const {'qual', 'qual_batch', 'prescout_qual'});
     if (list.isNotEmpty) setMemoryCache("cache_qual_scouting", list);
     return list;
   }
 
   Future<List<dynamic>> getCachedPrescoutScoutingEntries() async {
     final inMem = getFromMemoryCache<List<dynamic>>("cache_prescout_scouting");
-    if (inMem != null) return _mergePendingOutboxEntries(inMem, const {'prescout_match'});
+    if (inMem != null)
+      return _mergePendingOutboxEntries(inMem, const {'prescout_match'});
     final cached = await _getCache("cache_prescout_scouting");
     List<dynamic> list = [];
     if (cached != null && cached.isNotEmpty) {
@@ -875,7 +991,9 @@ class ApiService {
         final decoded = await _decodeCached(cached);
         list = decoded is List
             ? decoded
-            : (decoded is Map && decoded['entries'] is List ? decoded['entries'] as List : []);
+            : (decoded is Map && decoded['entries'] is List
+                ? decoded['entries'] as List
+                : []);
       } catch (_) {}
     }
     list = await _mergePendingOutboxEntries(list, const {'prescout_match'});
@@ -884,8 +1002,10 @@ class ApiService {
   }
 
   Future<List<dynamic>> getCachedPrescoutPitScoutingEntries() async {
-    final inMem = getFromMemoryCache<List<dynamic>>("cache_prescout_pit_scouting");
-    if (inMem != null) return _mergePendingOutboxEntries(inMem, const {'prescout_pit'});
+    final inMem =
+        getFromMemoryCache<List<dynamic>>("cache_prescout_pit_scouting");
+    if (inMem != null)
+      return _mergePendingOutboxEntries(inMem, const {'prescout_pit'});
     final cached = await _getCache("cache_prescout_pit_scouting");
     List<dynamic> list = [];
     if (cached != null && cached.isNotEmpty) {
@@ -893,7 +1013,9 @@ class ApiService {
         final decoded = await _decodeCached(cached);
         list = decoded is List
             ? decoded
-            : (decoded is Map && decoded['entries'] is List ? decoded['entries'] as List : []);
+            : (decoded is Map && decoded['entries'] is List
+                ? decoded['entries'] as List
+                : []);
       } catch (_) {}
     }
     list = await _mergePendingOutboxEntries(list, const {'prescout_pit'});
@@ -902,8 +1024,10 @@ class ApiService {
   }
 
   Future<List<dynamic>> getCachedPrescoutQualScoutingEntries() async {
-    final inMem = getFromMemoryCache<List<dynamic>>("cache_prescout_qual_scouting");
-    if (inMem != null) return _mergePendingOutboxEntries(inMem, const {'prescout_qual'});
+    final inMem =
+        getFromMemoryCache<List<dynamic>>("cache_prescout_qual_scouting");
+    if (inMem != null)
+      return _mergePendingOutboxEntries(inMem, const {'prescout_qual'});
     final cached = await _getCache("cache_prescout_qual_scouting");
     List<dynamic> list = [];
     if (cached != null && cached.isNotEmpty) {
@@ -911,7 +1035,9 @@ class ApiService {
         final decoded = await _decodeCached(cached);
         list = decoded is List
             ? decoded
-            : (decoded is Map && decoded['entries'] is List ? decoded['entries'] as List : []);
+            : (decoded is Map && decoded['entries'] is List
+                ? decoded['entries'] as List
+                : []);
       } catch (_) {}
     }
     list = await _mergePendingOutboxEntries(list, const {'prescout_qual'});
@@ -929,7 +1055,9 @@ class ApiService {
     if (cached != null && cached.isNotEmpty) {
       try {
         final List list = await _decodeCached(cached);
-        final res = list.map((item) => EventModel.fromJson(item as Map<String, dynamic>)).toList();
+        final res = list
+            .map((item) => EventModel.fromJson(item as Map<String, dynamic>))
+            .toList();
         setMemoryCache(memKey, res);
         return res;
       } catch (_) {}
@@ -966,11 +1094,10 @@ class ApiService {
 
   Future<bool> _verifySession() async {
     try {
-      final response = await http
-          .get(
-            Uri.parse('$_currentServerUrl/api/auth/status'),
-            headers: _headers,
-          );
+      final response = await http.get(
+        Uri.parse('$_currentServerUrl/api/auth/status'),
+        headers: _headers,
+      );
       if (response.statusCode == 200) {
         _updateCookiesFromResponse(response);
         try {
@@ -990,10 +1117,14 @@ class ApiService {
 
   Future<void> setServerUrl(String url) async {
     String cleanUrl = url.trim();
-    if (cleanUrl.isNotEmpty && !cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+    if (cleanUrl.isNotEmpty &&
+        !cleanUrl.startsWith('http://') &&
+        !cleanUrl.startsWith('https://')) {
       cleanUrl = 'https://$cleanUrl';
     }
-    _currentServerUrl = cleanUrl.endsWith('/') ? cleanUrl.substring(0, cleanUrl.length - 1) : cleanUrl;
+    _currentServerUrl = cleanUrl.endsWith('/')
+        ? cleanUrl.substring(0, cleanUrl.length - 1)
+        : cleanUrl;
     _outboxBatchSupported = true;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(keyServerUrl, _currentServerUrl);
@@ -1003,16 +1134,19 @@ class ApiService {
         'Content-Type': 'application/json',
         'X-Requested-With': 'XMLHttpRequest',
         'X-Mobile-App': 'true',
-        if (_deviceId != null && _deviceId!.isNotEmpty) 'X-Device-Id': _deviceId!,
+        if (_deviceId != null && _deviceId!.isNotEmpty)
+          'X-Device-Id': _deviceId!,
         'X-Device-Name': _getDeviceName(),
         ...?_sessionCookie == null ? null : {'Cookie': _sessionCookie!},
       };
 
   /// Headers for the live config-editing WebSocket; the session cookie authenticates it.
-  Map<String, String> get webSocketHeaders => Map<String, String>.of(_headers)..remove('Content-Type');
+  Map<String, String> get webSocketHeaders =>
+      Map<String, String>.of(_headers)..remove('Content-Type');
 
   /// Headers for loading a server file straight into a widget (Event Info images); the session cookie authenticates it.
-  Map<String, String> get fileHeaders => Map<String, String>.of(_headers)..remove('Content-Type');
+  Map<String, String> get fileHeaders =>
+      Map<String, String>.of(_headers)..remove('Content-Type');
 
   void _handleUnauthorized([
     String reason = 'Your session has expired. Please log in again.',
@@ -1022,7 +1156,9 @@ class ApiService {
     if (_handlingRevocation || !isLoggedIn) return;
     // Guard against race conditions from old in-flight requests made before latest login
     if (epoch != null && epoch != _authEpoch) return;
-    if (requestCookie != null && _sessionCookie != null && requestCookie != _sessionCookie) return;
+    if (requestCookie != null &&
+        _sessionCookie != null &&
+        requestCookie != _sessionCookie) return;
 
     _handlingRevocation = true;
     _syncTimer?.cancel();
@@ -1044,12 +1180,16 @@ class ApiService {
     _sessionRevokedController.add(reason);
   }
 
-  void _checkResponse(http.Response response, {int? epoch, String? requestCookie}) {
+  void _checkResponse(http.Response response,
+      {int? epoch, String? requestCookie}) {
     if (response.statusCode == 401) {
-      String reason = 'Your session has expired or was revoked. Please log in again.';
+      String reason =
+          'Your session has expired or was revoked. Please log in again.';
       try {
         final body = jsonDecode(response.body);
-        if (body is Map && body['error'] is String && (body['error'] as String).isNotEmpty) {
+        if (body is Map &&
+            body['error'] is String &&
+            (body['error'] as String).isNotEmpty) {
           reason = body['error'] as String;
         }
       } catch (_) {}
@@ -1059,7 +1199,8 @@ class ApiService {
     }
   }
 
-  void _checkResponseForServerError(http.Response response, {int? epoch, String? requestCookie}) {
+  void _checkResponseForServerError(http.Response response,
+      {int? epoch, String? requestCookie}) {
     _checkResponse(response, epoch: epoch, requestCookie: requestCookie);
   }
 
@@ -1096,7 +1237,8 @@ class ApiService {
     }
 
     if (cookieMap.isNotEmpty) {
-      _sessionCookie = cookieMap.entries.map((e) => '${e.key}=${e.value}').join('; ');
+      _sessionCookie =
+          cookieMap.entries.map((e) => '${e.key}=${e.value}').join('; ');
     } else {
       _sessionCookie = null;
     }
@@ -1128,7 +1270,8 @@ class ApiService {
           try {
             final decoded = jsonDecode(response.body);
             if (decoded is Map) {
-              if (decoded['error'] != null && decoded['error'].toString().isNotEmpty) {
+              if (decoded['error'] != null &&
+                  decoded['error'].toString().isNotEmpty) {
                 return false;
               }
               if (decoded['success'] == false || decoded['loggedIn'] == false) {
@@ -1173,7 +1316,8 @@ class ApiService {
             fetchSettings().catchError((_) => null),
           ]).timeout(const Duration(seconds: 3));
         } catch (_) {}
-        await _rememberActiveAccount(username: username, teamNumber: teamNumber, program: program);
+        await _rememberActiveAccount(
+            username: username, teamNumber: teamNumber, program: program);
         return true;
       }
       lastLoginError = _extractServerError(response);
@@ -1192,10 +1336,12 @@ class ApiService {
       final decoded = jsonDecode(response.body);
       if (decoded is Map) {
         final message = decoded['error'] ?? decoded['message'];
-        if (message != null && message.toString().trim().isNotEmpty) return message.toString();
+        if (message != null && message.toString().trim().isNotEmpty)
+          return message.toString();
       }
     } catch (_) {}
-    if (response.statusCode == 429) return 'Too many failed attempts. Please wait 60 seconds.';
+    if (response.statusCode == 429)
+      return 'Too many failed attempts. Please wait 60 seconds.';
     return null;
   }
 
@@ -1218,17 +1364,24 @@ class ApiService {
           'program': program,
           'password': password,
           'role': role,
-          'email': (email != null && email.trim().isNotEmpty) ? email.trim() : null,
+          'email':
+              (email != null && email.trim().isNotEmpty) ? email.trim() : null,
           'keepMeLoggedIn': keepMeLoggedIn,
         }),
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 302) {
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 302) {
         if (response.body.isNotEmpty) {
           try {
             final decoded = jsonDecode(response.body);
-            if (decoded is Map && decoded['error'] != null && decoded['error'].toString().isNotEmpty) {
-              return ApiResponse.error(message: decoded['error'].toString(), statusCode: response.statusCode);
+            if (decoded is Map &&
+                decoded['error'] != null &&
+                decoded['error'].toString().isNotEmpty) {
+              return ApiResponse.error(
+                  message: decoded['error'].toString(),
+                  statusCode: response.statusCode);
             }
           } catch (_) {}
         }
@@ -1257,14 +1410,16 @@ class ApiService {
           await prefs.remove(keySessionCookie);
         }
         _startBackgroundSync();
-        await _rememberActiveAccount(username: username, teamNumber: teamNumber, program: program);
+        await _rememberActiveAccount(
+            username: username, teamNumber: teamNumber, program: program);
         unawaited(fetchCurrentUser().catchError((_) => null));
         unawaited(fetchSettings().catchError((_) => null));
         return const ApiResponse.success(null);
       }
       return ApiResponse.fromHttpResponse(
         response,
-        defaultErrorMessage: 'Registration failed. Please check your information and try again.',
+        defaultErrorMessage:
+            'Registration failed. Please check your information and try again.',
       );
     } catch (e) {
       return ApiResponse.error(message: e.toString());
@@ -1308,7 +1463,10 @@ class ApiService {
     if (username == null || username.isEmpty) return null;
     final team = _currentUser?.teamNumber ?? 0;
     for (final a in savedAccountsNotifier.value) {
-      if (a.isSameAccount(username: username, teamNumber: team, serverUrl: _currentServerUrl)) return a;
+      if (a.isSameAccount(
+          username: username,
+          teamNumber: team,
+          serverUrl: _currentServerUrl)) return a;
     }
     return null;
   }
@@ -1316,7 +1474,9 @@ class ApiService {
   /// Saved accounts other than the signed-in one.
   List<SavedAccount> get otherSavedAccounts {
     final active = activeSavedAccount;
-    return savedAccountsNotifier.value.where((a) => active == null || a.id != active.id).toList();
+    return savedAccountsNotifier.value
+        .where((a) => active == null || a.id != active.id)
+        .toList();
   }
 
   Future<void> _writeAccounts(List<SavedAccount> accounts) {
@@ -1331,13 +1491,20 @@ class ApiService {
   }
 
   /// Adds or refreshes the signed-in account in the saved list, with its current session.
-  Future<void> _rememberActiveAccount({String? username, int? teamNumber, String? program}) async {
+  Future<void> _rememberActiveAccount(
+      {String? username, int? teamNumber, String? program}) async {
     if (!isLoggedIn) return;
-    final name = (_currentUser?.username.isNotEmpty == true ? _currentUser!.username : username ?? _savedUsername).trim();
+    final name = (_currentUser?.username.isNotEmpty == true
+            ? _currentUser!.username
+            : username ?? _savedUsername)
+        .trim();
     if (name.isEmpty) return;
-    final team = (_currentUser?.teamNumber ?? 0) > 0 ? _currentUser!.teamNumber : (teamNumber ?? 0);
+    final team = (_currentUser?.teamNumber ?? 0) > 0
+        ? _currentUser!.teamNumber
+        : (teamNumber ?? 0);
     final accounts = [...savedAccountsNotifier.value];
-    final index = accounts.indexWhere((a) => a.isSameAccount(username: name, teamNumber: team, serverUrl: _currentServerUrl));
+    final index = accounts.indexWhere((a) => a.isSameAccount(
+        username: name, teamNumber: team, serverUrl: _currentServerUrl));
     final existing = index >= 0 ? accounts.removeAt(index) : null;
     final updated = SavedAccount(
       username: name,
@@ -1366,7 +1533,10 @@ class ApiService {
     final username = _currentUser?.username ?? _savedUsername;
     if (username.isEmpty) return;
     final accounts = savedAccountsNotifier.value.map((a) {
-      if (!a.isSameAccount(username: username, teamNumber: _currentUser?.teamNumber ?? 0, serverUrl: _currentServerUrl)) return a;
+      if (!a.isSameAccount(
+          username: username,
+          teamNumber: _currentUser?.teamNumber ?? 0,
+          serverUrl: _currentServerUrl)) return a;
       _volatileCookies.remove(a.id);
       return a.copyWith(clearSessionCookie: true);
     }).toList();
@@ -1376,13 +1546,16 @@ class ApiService {
   Future<void> _removeSavedAccount(SavedAccount? account) async {
     if (account == null) return;
     _volatileCookies.remove(account.id);
-    await _writeAccounts(savedAccountsNotifier.value.where((a) => a.id != account.id).toList());
+    await _writeAccounts(
+        savedAccountsNotifier.value.where((a) => a.id != account.id).toList());
   }
 
-  String? _cookieFor(SavedAccount account) => account.sessionCookie ?? _volatileCookies[account.id];
+  String? _cookieFor(SavedAccount account) =>
+      account.sessionCookie ?? _volatileCookies[account.id];
 
   /// Whether [account] can be switched to without typing its password.
-  bool hasActiveSession(SavedAccount account) => _cookieFor(account)?.isNotEmpty == true;
+  bool hasActiveSession(SavedAccount account) =>
+      _cookieFor(account)?.isNotEmpty == true;
 
   /// Asks the account's server whether its saved session is still signed in.
   /// Offline counts as signed in, like the launch check does.
@@ -1391,8 +1564,10 @@ class ApiService {
     if (cookie == null || cookie.isEmpty) return false;
     try {
       final response = await http
-          .get(Uri.parse('${account.serverUrl}/api/auth/status'), headers: {..._headers, 'Cookie': cookie})
-          .timeout(_deadline(const Duration(seconds: 8)));
+          .get(Uri.parse('${account.serverUrl}/api/auth/status'), headers: {
+        ..._headers,
+        'Cookie': cookie
+      }).timeout(_deadline(const Duration(seconds: 8)));
       if (response.statusCode != 200) return false;
       final decoded = jsonDecode(response.body);
       return decoded is Map && decoded['loggedIn'] == true;
@@ -1440,17 +1615,20 @@ class ApiService {
   /// Switches the app to [account] using its saved session.
   Future<AccountSwitchResult> switchToAccount(SavedAccount account) async {
     final active = activeSavedAccount;
-    if (active != null && active.id == account.id) return AccountSwitchResult.switched;
+    if (active != null && active.id == account.id)
+      return AccountSwitchResult.switched;
 
     if (!hasActiveSession(account) || !await _probeSession(account)) {
       final accounts = savedAccountsNotifier.value
-          .map((a) => a.id == account.id ? a.copyWith(clearSessionCookie: true) : a)
+          .map((a) =>
+              a.id == account.id ? a.copyWith(clearSessionCookie: true) : a)
           .toList();
       _volatileCookies.remove(account.id);
       await _writeAccounts(accounts);
       return AccountSwitchResult.needsSignIn;
     }
-    if (await _flushOutboxBeforeAccountChange() > 0) return AccountSwitchResult.unsyncedChanges;
+    if (await _flushOutboxBeforeAccountChange() > 0)
+      return AccountSwitchResult.unsyncedChanges;
 
     final cookie = _cookieFor(account)!;
     await _rememberActiveAccount();
@@ -1468,7 +1646,10 @@ class ApiService {
         fetchSettings().catchError((_) => null),
       ]).timeout(const Duration(seconds: 5));
     } catch (_) {}
-    await _rememberActiveAccount(username: account.username, teamNumber: account.teamNumber, program: account.program);
+    await _rememberActiveAccount(
+        username: account.username,
+        teamNumber: account.teamNumber,
+        program: account.program);
     permissionsNotifier.value++;
     return AccountSwitchResult.switched;
   }
@@ -1504,7 +1685,8 @@ class ApiService {
     _parkedSession = null;
     _authEpoch++;
     _handlingRevocation = false;
-    if (parked.serverUrl != _currentServerUrl) await setServerUrl(parked.serverUrl);
+    if (parked.serverUrl != _currentServerUrl)
+      await setServerUrl(parked.serverUrl);
     _sessionCookie = parked.cookie;
     _keepMeLoggedIn = parked.keepMeLoggedIn;
     _savedUsername = parked.savedUsername;
@@ -1524,19 +1706,23 @@ class ApiService {
 
   /// Signs out of a saved account that is not the active one. [fcmToken] is this device's
   /// push token, so the account stops sending notifications here.
-  Future<void> removeSavedAccount(SavedAccount account, {String? fcmToken}) async {
+  Future<void> removeSavedAccount(SavedAccount account,
+      {String? fcmToken}) async {
     final cookie = _cookieFor(account);
     if (cookie != null && cookie.isNotEmpty) {
       try {
         if (fcmToken != null && fcmToken.isNotEmpty) {
           await http
               .delete(Uri.parse('${account.serverUrl}/api/fcm/token'),
-                  headers: {..._headers, 'Cookie': cookie}, body: jsonEncode({'deviceToken': fcmToken}))
+                  headers: {..._headers, 'Cookie': cookie},
+                  body: jsonEncode({'deviceToken': fcmToken}))
               .timeout(_deadline(const Duration(seconds: 8)));
         }
-        await http
-            .post(Uri.parse('${account.serverUrl}/api/auth/logout'), headers: {..._headers, 'Cookie': cookie})
-            .timeout(_deadline(const Duration(seconds: 8)));
+        await http.post(Uri.parse('${account.serverUrl}/api/auth/logout'),
+            headers: {
+              ..._headers,
+              'Cookie': cookie
+            }).timeout(_deadline(const Duration(seconds: 8)));
       } catch (_) {}
     }
     await _removeSavedAccount(account);
@@ -1561,7 +1747,8 @@ class ApiService {
       await setServerUrl(creds.serverUrl);
     }
 
-    if ((_sessionCookie == null || _sessionCookie!.isEmpty) && creds.jwt.isNotEmpty) {
+    if ((_sessionCookie == null || _sessionCookie!.isEmpty) &&
+        creds.jwt.isNotEmpty) {
       _sessionCookie = creds.jwt;
     }
 
@@ -1579,7 +1766,8 @@ class ApiService {
         await prefs.setBool(keyKeepMeLoggedIn, true);
         _startBackgroundSync();
         try {
-          await Future.wait([fetchCurrentUser(), fetchSettings()]).timeout(const Duration(seconds: 3));
+          await Future.wait([fetchCurrentUser(), fetchSettings()])
+              .timeout(const Duration(seconds: 3));
         } catch (_) {}
         return true;
       }
@@ -1648,17 +1836,19 @@ class ApiService {
     try {
       final teamNum = _currentUser?.teamNumber ?? 0;
       final program = _currentUser?.program ?? 'FRC';
-      final response = await http.post(
-        Uri.parse('$_currentServerUrl/api/auth/login'),
-        headers: _headers,
-        body: jsonEncode({
-          'username': username,
-          'teamNumber': teamNum,
-          'program': program,
-          'password': password,
-          'keepMeLoggedIn': _keepMeLoggedIn,
-        }),
-      ).timeout(_deadline(const Duration(seconds: 15)));
+      final response = await http
+          .post(
+            Uri.parse('$_currentServerUrl/api/auth/login'),
+            headers: _headers,
+            body: jsonEncode({
+              'username': username,
+              'teamNumber': teamNum,
+              'program': program,
+              'password': password,
+              'keepMeLoggedIn': _keepMeLoggedIn,
+            }),
+          )
+          .timeout(_deadline(const Duration(seconds: 15)));
 
       if (response.statusCode == 200 || response.statusCode == 302) {
         _sessionPassword = password;
@@ -1694,16 +1884,16 @@ class ApiService {
         }
       }
 
-      final response = await http
-          .post(
-            Uri.parse('$_currentServerUrl/api/auth/forgot-password'),
-            headers: _headers,
-            body: jsonEncode(body),
-          );
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/auth/forgot-password'),
+        headers: _headers,
+        body: jsonEncode(body),
+      );
 
       return ApiResponse.fromHttpResponse(
         response,
-        parser: (json) => (json is Map<String, dynamic>) ? json : <String, dynamic>{},
+        parser: (json) =>
+            (json is Map<String, dynamic>) ? json : <String, dynamic>{},
         defaultErrorMessage: 'Failed to request password reset',
       );
     } catch (e) {
@@ -1714,17 +1904,19 @@ class ApiService {
     }
   }
 
-  Future<ApiResponse<Map<String, dynamic>>> verifyResetToken(String token) async {
+  Future<ApiResponse<Map<String, dynamic>>> verifyResetToken(
+      String token) async {
     try {
-      final response = await http
-          .get(
-            Uri.parse('$_currentServerUrl/api/auth/verify-reset-token?token=${Uri.encodeComponent(token)}'),
-            headers: _headers,
-          );
+      final response = await http.get(
+        Uri.parse(
+            '$_currentServerUrl/api/auth/verify-reset-token?token=${Uri.encodeComponent(token)}'),
+        headers: _headers,
+      );
 
       return ApiResponse.fromHttpResponse(
         response,
-        parser: (json) => (json is Map<String, dynamic>) ? json : <String, dynamic>{},
+        parser: (json) =>
+            (json is Map<String, dynamic>) ? json : <String, dynamic>{},
         defaultErrorMessage: 'Invalid or expired reset token',
       );
     } catch (e) {
@@ -1742,21 +1934,22 @@ class ApiService {
     required String newPassword,
   }) async {
     try {
-      final response = await http
-          .post(
-            Uri.parse('$_currentServerUrl/api/auth/reset-password'),
-            headers: _headers,
-            body: jsonEncode({
-              'token': token,
-              if (userId != null && userId.isNotEmpty) 'userId': userId,
-              if (newUsername != null && newUsername.isNotEmpty) 'newUsername': newUsername,
-              'newPassword': newPassword,
-            }),
-          );
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/auth/reset-password'),
+        headers: _headers,
+        body: jsonEncode({
+          'token': token,
+          if (userId != null && userId.isNotEmpty) 'userId': userId,
+          if (newUsername != null && newUsername.isNotEmpty)
+            'newUsername': newUsername,
+          'newPassword': newPassword,
+        }),
+      );
 
       return ApiResponse.fromHttpResponse(
         response,
-        parser: (json) => (json is Map<String, dynamic>) ? json : <String, dynamic>{},
+        parser: (json) =>
+            (json is Map<String, dynamic>) ? json : <String, dynamic>{},
         defaultErrorMessage: 'Failed to reset credentials',
       );
     } catch (e) {
@@ -1770,35 +1963,42 @@ class ApiService {
   // Non-Scouting Tools
 
   /// Pages shown only when the user turns on Non-Scouting Tools.
-  static const List<String> nonScoutingToolPages = ['match-checklist', 'battery-tracker'];
+  static const List<String> nonScoutingToolPages = [
+    'match-checklist',
+    'battery-tracker'
+  ];
 
-  bool get nonScoutingToolsEnabled => _currentUser?.nonScoutingToolsEnabled ?? false;
+  bool get nonScoutingToolsEnabled =>
+      _currentUser?.nonScoutingToolsEnabled ?? false;
 
   /// Saves the Non-Scouting Tools preference to the user's account (it follows them across devices).
-  Future<ApiResponse<UserModel>> setNonScoutingToolsEnabled(bool enabled) async {
+  Future<ApiResponse<UserModel>> setNonScoutingToolsEnabled(
+      bool enabled) async {
     if (!_isOnline) {
       return ApiResponse.error(message: 'offline');
     }
     try {
-      final response = await http
-          .put(
-            Uri.parse('$_currentServerUrl/api/user'),
-            headers: _headers,
-            body: jsonEncode({'nonScoutingToolsEnabled': enabled}),
-          );
+      final response = await http.put(
+        Uri.parse('$_currentServerUrl/api/user'),
+        headers: _headers,
+        body: jsonEncode({'nonScoutingToolsEnabled': enabled}),
+      );
       _checkResponse(response);
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final decoded = jsonDecode(response.body);
         final current = _currentUser;
         final updated = decoded is Map<String, dynamic> && decoded['id'] != null
             ? UserModel.fromJson({...?current?.toJson(), ...decoded})
-            : UserModel.fromJson({...?current?.toJson(), 'nonScoutingToolsEnabled': enabled});
+            : UserModel.fromJson(
+                {...?current?.toJson(), 'nonScoutingToolsEnabled': enabled});
         _currentUser = updated;
-        await _setCache('cache_auth_me', jsonEncode({'user': updated.toJson()}));
+        await _setCache(
+            'cache_auth_me', jsonEncode({'user': updated.toJson()}));
         permissionsNotifier.value++;
         return ApiResponse.success(updated, statusCode: response.statusCode);
       }
-      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to update setting');
+      return ApiResponse.fromHttpResponse(response,
+          defaultErrorMessage: 'Failed to update setting');
     } catch (e) {
       return ApiResponse.error(message: e.toString());
     }
@@ -1814,7 +2014,9 @@ class ApiService {
       host: server.host,
       port: server.hasPort ? server.port : null,
       path: '/api/match-checklist/collab',
-      queryParameters: eventKey == null ? {'template': '1'} : {'eventKey': eventKey, 'matchKey': matchKey ?? ''},
+      queryParameters: eventKey == null
+          ? {'template': '1'}
+          : {'eventKey': eventKey, 'matchKey': matchKey ?? ''},
     );
   }
 
@@ -1829,7 +2031,8 @@ class ApiService {
   }
 
   /// Loads a checklist document, cached for offline use. Null when nothing could be loaded.
-  Future<Map<String, dynamic>?> _fetchChecklistDoc(Uri uri, String cacheKey) async {
+  Future<Map<String, dynamic>?> _fetchChecklistDoc(
+      Uri uri, String cacheKey) async {
     final cached = await _getCache(cacheKey);
     if (!_isOnline) return cached == null ? null : _decodeChecklistDoc(cached);
     try {
@@ -1847,9 +2050,11 @@ class ApiService {
     return cached == null ? null : _decodeChecklistDoc(cached);
   }
 
-  Future<bool> _putChecklistDoc(Uri uri, Map<String, dynamic> body, String cacheKey, String dataJson) async {
+  Future<bool> _putChecklistDoc(Uri uri, Map<String, dynamic> body,
+      String cacheKey, String dataJson) async {
     try {
-      final response = await http.put(uri, headers: _headers, body: jsonEncode(body));
+      final response =
+          await http.put(uri, headers: _headers, body: jsonEncode(body));
       _checkResponse(response);
       if (response.statusCode >= 200 && response.statusCode < 300) {
         await _setCache(cacheKey, dataJson);
@@ -1859,7 +2064,8 @@ class ApiService {
     return false;
   }
 
-  Future<Map<String, dynamic>?> fetchMatchChecklistTemplate() => _fetchChecklistDoc(
+  Future<Map<String, dynamic>?> fetchMatchChecklistTemplate() =>
+      _fetchChecklistDoc(
         Uri.parse('$_currentServerUrl/api/match-checklist/template'),
         'cache_match_checklist_template',
       );
@@ -1874,12 +2080,16 @@ class ApiService {
     );
   }
 
-  Future<Map<String, dynamic>?> fetchMatchChecklist(String eventKey, String matchKey) => _fetchChecklistDoc(
-        Uri.parse('$_currentServerUrl/api/match-checklist').replace(queryParameters: {'eventKey': eventKey, 'matchKey': matchKey}),
+  Future<Map<String, dynamic>?> fetchMatchChecklist(
+          String eventKey, String matchKey) =>
+      _fetchChecklistDoc(
+        Uri.parse('$_currentServerUrl/api/match-checklist').replace(
+            queryParameters: {'eventKey': eventKey, 'matchKey': matchKey}),
         'cache_match_checklist_${eventKey}_$matchKey',
       );
 
-  Future<bool> saveMatchChecklist(String eventKey, String matchKey, Map<String, dynamic> doc) {
+  Future<bool> saveMatchChecklist(
+      String eventKey, String matchKey, Map<String, dynamic> doc) {
     final dataJson = jsonEncode(doc);
     return _putChecklistDoc(
       Uri.parse('$_currentServerUrl/api/match-checklist'),
@@ -1899,7 +2109,9 @@ class ApiService {
       host: server.host,
       port: server.hasPort ? server.port : null,
       path: '/api/battery-tracker/collab',
-      queryParameters: eventKey == null || eventKey.isEmpty ? {'inventory': '1'} : {'eventKey': eventKey},
+      queryParameters: eventKey == null || eventKey.isEmpty
+          ? {'inventory': '1'}
+          : {'eventKey': eventKey},
     );
   }
 
@@ -1918,8 +2130,10 @@ class ApiService {
     );
   }
 
-  Future<Map<String, dynamic>?> fetchBatteryPlan(String eventKey) => _fetchChecklistDoc(
-        Uri.parse('$_currentServerUrl/api/battery-tracker/event').replace(queryParameters: {'eventKey': eventKey}),
+  Future<Map<String, dynamic>?> fetchBatteryPlan(String eventKey) =>
+      _fetchChecklistDoc(
+        Uri.parse('$_currentServerUrl/api/battery-tracker/event')
+            .replace(queryParameters: {'eventKey': eventKey}),
         'cache_battery_plan_$eventKey',
       );
 
@@ -1938,7 +2152,8 @@ class ApiService {
   static const String matchPredictionsPage = 'match-predictions';
   static const String _pendingPicksKey = 'pending_match_predictions';
 
-  bool get matchPredictionsEnabled => _currentSettings?.matchPredictionsEnabled == true;
+  bool get matchPredictionsEnabled =>
+      _currentSettings?.matchPredictionsEnabled == true;
 
   /// Picks made offline, keyed by match key: {eventKey, matchKey, predictedWinner}.
   Future<Map<String, Map<String, dynamic>>> _readPendingPicks() async {
@@ -1947,7 +2162,8 @@ class ApiService {
     try {
       final decoded = jsonDecode(raw);
       if (decoded is! Map) return {};
-      return decoded.map((k, v) => MapEntry(k.toString(), Map<String, dynamic>.from(v as Map)));
+      return decoded.map((k, v) =>
+          MapEntry(k.toString(), Map<String, dynamic>.from(v as Map)));
     } catch (_) {
       return {};
     }
@@ -1963,10 +2179,13 @@ class ApiService {
     final cacheKey = 'cache_match_picks_$eventKey';
     Map<String, MatchPickStatus> parse(String body) {
       final decoded = jsonDecode(body);
-      final list = decoded is Map && decoded['matches'] is List ? decoded['matches'] as List : const [];
+      final list = decoded is Map && decoded['matches'] is List
+          ? decoded['matches'] as List
+          : const [];
       return {
         for (final m in list.whereType<Map>())
-          m['matchKey'].toString(): MatchPickStatus.fromJson(Map<String, dynamic>.from(m)),
+          m['matchKey'].toString():
+              MatchPickStatus.fromJson(Map<String, dynamic>.from(m)),
       };
     }
 
@@ -1974,7 +2193,9 @@ class ApiService {
     if (_isOnline) {
       try {
         final response = await http
-            .get(Uri.parse('$_currentServerUrl/api/match-predictions').replace(queryParameters: {'eventKey': eventKey}),
+            .get(
+                Uri.parse('$_currentServerUrl/api/match-predictions')
+                    .replace(queryParameters: {'eventKey': eventKey}),
                 headers: _headers)
             .timeout(_deadline(const Duration(seconds: 12)));
         _checkResponse(response);
@@ -1997,30 +2218,37 @@ class ApiService {
     final pending = await _readPendingPicks();
     for (final p in pending.values) {
       final key = p['matchKey']?.toString() ?? '';
-      if (key.isEmpty || (p['eventKey']?.toString() ?? '') != eventKey) continue;
+      if (key.isEmpty || (p['eventKey']?.toString() ?? '') != eventKey)
+        continue;
       final current = picks[key] ?? MatchPickStatus(matchKey: key);
       if (current.locked) continue;
-      picks[key] = current.withPick(p['predictedWinner']?.toString(), pendingSync: true);
+      picks[key] =
+          current.withPick(p['predictedWinner']?.toString(), pendingSync: true);
     }
     return picks;
   }
 
-  Future<void> _updateCachedPick(String eventKey, String matchKey, String winner) async {
+  Future<void> _updateCachedPick(
+      String eventKey, String matchKey, String winner) async {
     final cacheKey = 'cache_match_picks_$eventKey';
     final cached = await _getCache(cacheKey);
     Map<String, dynamic> doc;
     if (cached != null && cached.isNotEmpty) {
       try {
         final decoded = jsonDecode(cached);
-        doc = decoded is Map<String, dynamic> ? decoded : {'matches': <dynamic>[]};
+        doc = decoded is Map<String, dynamic>
+            ? decoded
+            : {'matches': <dynamic>[]};
       } catch (_) {
         doc = {'matches': <dynamic>[]};
       }
     } else {
       doc = {'matches': <dynamic>[]};
     }
-    final list = (doc['matches'] is List ? doc['matches'] as List : <dynamic>[]).toList();
-    final idx = list.indexWhere((m) => m is Map && m['matchKey']?.toString() == matchKey);
+    final list = (doc['matches'] is List ? doc['matches'] as List : <dynamic>[])
+        .toList();
+    final idx = list
+        .indexWhere((m) => m is Map && m['matchKey']?.toString() == matchKey);
     final nowIso = DateTime.now().toUtc().toIso8601String();
     final winnerVal = winner.isEmpty ? null : winner;
     if (idx >= 0) {
@@ -2042,10 +2270,15 @@ class ApiService {
   }
 
   /// Saves a pick ("red", "blue", or "" to clear). Offline, it waits on this device and uploads later.
-  Future<MatchPickSaveResult> saveMatchPick(String eventKey, String matchKey, String winner) async {
+  Future<MatchPickSaveResult> saveMatchPick(
+      String eventKey, String matchKey, String winner) async {
     Future<MatchPickSaveResult> queue() async {
       final pending = await _readPendingPicks();
-      pending[matchKey] = {'eventKey': eventKey, 'matchKey': matchKey, 'predictedWinner': winner};
+      pending[matchKey] = {
+        'eventKey': eventKey,
+        'matchKey': matchKey,
+        'predictedWinner': winner
+      };
       await _writePendingPicks(pending);
       return MatchPickSaveResult.queued;
     }
@@ -2056,7 +2289,11 @@ class ApiService {
           .put(
             Uri.parse('$_currentServerUrl/api/match-predictions'),
             headers: _headers,
-            body: jsonEncode({'eventKey': eventKey, 'matchKey': matchKey, 'predictedWinner': winner}),
+            body: jsonEncode({
+              'eventKey': eventKey,
+              'matchKey': matchKey,
+              'predictedWinner': winner
+            }),
           )
           .timeout(_deadline(const Duration(seconds: 12)));
       _checkResponse(response);
@@ -2086,7 +2323,8 @@ class ApiService {
       for (final entry in pending.entries.toList()) {
         try {
           final response = await http
-              .put(Uri.parse('$_currentServerUrl/api/match-predictions'), headers: _headers, body: jsonEncode(entry.value))
+              .put(Uri.parse('$_currentServerUrl/api/match-predictions'),
+                  headers: _headers, body: jsonEncode(entry.value))
               .timeout(_deadline(const Duration(seconds: 12)));
           if (response.statusCode == 401) {
             _checkResponse(response);
@@ -2096,7 +2334,10 @@ class ApiService {
           final eventKey = entry.value['eventKey']?.toString() ?? '';
           final matchKey = entry.value['matchKey']?.toString() ?? '';
           final winner = entry.value['predictedWinner']?.toString() ?? '';
-          if (response.statusCode >= 200 && response.statusCode < 300 && eventKey.isNotEmpty && matchKey.isNotEmpty) {
+          if (response.statusCode >= 200 &&
+              response.statusCode < 300 &&
+              eventKey.isNotEmpty &&
+              matchKey.isNotEmpty) {
             await _updateCachedPick(eventKey, matchKey, winner);
           }
           pending.remove(entry.key);
@@ -2111,22 +2352,29 @@ class ApiService {
   }
 
   /// Scouts ranked by pick accuracy for one event ([eventKey]) or a whole season ([year]).
-  Future<PickLeaderboard?> fetchPickLeaderboard({String? eventKey, int? year}) async {
+  Future<PickLeaderboard?> fetchPickLeaderboard(
+      {String? eventKey, int? year}) async {
     final params = <String, String>{
       if (eventKey != null && eventKey.isNotEmpty) 'eventKey': eventKey,
-      if ((eventKey == null || eventKey.isEmpty) && year != null) 'year': '$year',
+      if ((eventKey == null || eventKey.isEmpty) && year != null)
+        'year': '$year',
     };
-    final cacheKey = 'cache_pick_leaderboard_${params['eventKey'] ?? 'y${params['year'] ?? ''}'}';
+    final cacheKey =
+        'cache_pick_leaderboard_${params['eventKey'] ?? 'y${params['year'] ?? ''}'}';
     if (_isOnline) {
       try {
         final response = await http
-            .get(Uri.parse('$_currentServerUrl/api/match-predictions/leaderboard').replace(queryParameters: params),
+            .get(
+                Uri.parse(
+                        '$_currentServerUrl/api/match-predictions/leaderboard')
+                    .replace(queryParameters: params),
                 headers: _headers)
             .timeout(_deadline(const Duration(seconds: 15)));
         _checkResponse(response);
         if (response.statusCode == 200) {
           await _setCache(cacheKey, response.body);
-          return PickLeaderboard.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+          return PickLeaderboard.fromJson(
+              jsonDecode(response.body) as Map<String, dynamic>);
         }
         if (response.statusCode == 403) return null;
       } catch (_) {}
@@ -2134,7 +2382,8 @@ class ApiService {
     final cached = await _getCache(cacheKey);
     if (cached == null || cached.isEmpty) return null;
     try {
-      return PickLeaderboard.fromJson(jsonDecode(cached) as Map<String, dynamic>);
+      return PickLeaderboard.fromJson(
+          jsonDecode(cached) as Map<String, dynamic>);
     } catch (_) {
       return null;
     }
@@ -2145,26 +2394,32 @@ class ApiService {
     if (_isOnline) {
       try {
         final response = await http
-            .get(Uri.parse('$_currentServerUrl/api/match-predictions/leaderboard/options'), headers: _headers)
+            .get(
+                Uri.parse(
+                    '$_currentServerUrl/api/match-predictions/leaderboard/options'),
+                headers: _headers)
             .timeout(_deadline(const Duration(seconds: 12)));
         _checkResponse(response);
         if (response.statusCode == 200) {
           await _setCache(cacheKey, response.body);
-          return PickLeaderboardOptions.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+          return PickLeaderboardOptions.fromJson(
+              jsonDecode(response.body) as Map<String, dynamic>);
         }
       } catch (_) {}
     }
     final cached = await _getCache(cacheKey);
     if (cached == null || cached.isEmpty) return const PickLeaderboardOptions();
     try {
-      return PickLeaderboardOptions.fromJson(jsonDecode(cached) as Map<String, dynamic>);
+      return PickLeaderboardOptions.fromJson(
+          jsonDecode(cached) as Map<String, dynamic>);
     } catch (_) {
       return const PickLeaderboardOptions();
     }
   }
 
   /// Every filled-out checklist for an event, keyed by match key (for per-match progress).
-  Future<Map<String, Map<String, dynamic>>> fetchMatchChecklistsForEvent(String eventKey) async {
+  Future<Map<String, Map<String, dynamic>>> fetchMatchChecklistsForEvent(
+      String eventKey) async {
     final cacheKey = 'cache_match_checklists_$eventKey';
     Map<String, Map<String, dynamic>> parse(String raw) {
       final out = <String, Map<String, dynamic>>{};
@@ -2173,7 +2428,8 @@ class ApiService {
         if (decoded is List) {
           for (final row in decoded) {
             if (row is Map && row['matchKey'] != null) {
-              out[row['matchKey'].toString()] = _decodeChecklistDoc(row['dataJson']?.toString());
+              out[row['matchKey'].toString()] =
+                  _decodeChecklistDoc(row['dataJson']?.toString());
             }
           }
         }
@@ -2184,7 +2440,8 @@ class ApiService {
     final cached = await _getCache(cacheKey);
     if (!_isOnline) return cached == null ? {} : parse(cached);
     try {
-      final uri = Uri.parse('$_currentServerUrl/api/match-checklist/event').replace(queryParameters: {'eventKey': eventKey});
+      final uri = Uri.parse('$_currentServerUrl/api/match-checklist/event')
+          .replace(queryParameters: {'eventKey': eventKey});
       final response = await http.get(uri, headers: _headers);
       _checkResponse(response);
       if (response.statusCode == 200) {
@@ -2202,7 +2459,11 @@ class ApiService {
       try {
         final jsonMap = await _decodeCached(cached);
         if (jsonMap is Map) {
-          final userObj = jsonMap['user'] is Map ? (jsonMap['user'] as Map<String, dynamic>) : (jsonMap is Map<String, dynamic> ? jsonMap : <String, dynamic>{});
+          final userObj = jsonMap['user'] is Map
+              ? (jsonMap['user'] as Map<String, dynamic>)
+              : (jsonMap is Map<String, dynamic>
+                  ? jsonMap
+                  : <String, dynamic>{});
           if (userObj.isNotEmpty) {
             _currentUser = UserModel.fromJson(userObj);
           }
@@ -2221,7 +2482,11 @@ class ApiService {
           final jsonMap = jsonDecode(response.body);
           if (jsonMap is Map) {
             await _setCache("cache_auth_me", response.body);
-            final userObj = jsonMap['user'] is Map ? (jsonMap['user'] as Map<String, dynamic>) : (jsonMap is Map<String, dynamic> ? jsonMap : <String, dynamic>{});
+            final userObj = jsonMap['user'] is Map
+                ? (jsonMap['user'] as Map<String, dynamic>)
+                : (jsonMap is Map<String, dynamic>
+                    ? jsonMap
+                    : <String, dynamic>{});
             if (userObj.isNotEmpty) {
               _currentUser = UserModel.fromJson(userObj);
               permissionsNotifier.value++;
@@ -2276,8 +2541,8 @@ class ApiService {
     return _currentSettings;
   }
 
-
-  Future<ApiResponse<AppSettingsModel>> updateSettings(AppSettingsModel settings) async {
+  Future<ApiResponse<AppSettingsModel>> updateSettings(
+      AppSettingsModel settings) async {
     final payload = settings.toJson();
     final jsonStr = jsonEncode(payload);
     await _setCache("cache_settings", jsonStr);
@@ -2287,7 +2552,9 @@ class ApiService {
     settingsNotifier.value = settings; // optimistic update for badge/UI
 
     if (!_isOnline) {
-      return const ApiResponse.error(isOffline: true, message: 'Saved to offline cache. Will synchronize when online.');
+      return const ApiResponse.error(
+          isOffline: true,
+          message: 'Saved to offline cache. Will synchronize when online.');
     }
 
     try {
@@ -2310,7 +2577,8 @@ class ApiService {
           message: 'API settings saved successfully',
         );
       }
-      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to update settings');
+      return ApiResponse.fromHttpResponse(response,
+          defaultErrorMessage: 'Failed to update settings');
     } catch (e) {
       return ApiResponse.error(message: e.toString());
     }
@@ -2319,9 +2587,12 @@ class ApiService {
   // ---- Slack integration (/api/slack) ----
 
   /// Calls a Slack route; `data` is the decoded JSON body. Slack settings are never cached: they need the server.
-  Future<ApiResponse<dynamic>> slackRequest(String method, String path, {Object? body}) async {
+  Future<ApiResponse<dynamic>> slackRequest(String method, String path,
+      {Object? body}) async {
     if (!_isOnline) {
-      return const ApiResponse.error(isOffline: true, message: 'Slack settings need a connection to the server.');
+      return const ApiResponse.error(
+          isOffline: true,
+          message: 'Slack settings need a connection to the server.');
     }
     try {
       final uri = Uri.parse('$_currentServerUrl/api/slack$path');
@@ -2329,10 +2600,12 @@ class ApiService {
       final http.Response response;
       switch (method) {
         case 'POST':
-          response = await http.post(uri, headers: _headers, body: encoded ?? '{}');
+          response =
+              await http.post(uri, headers: _headers, body: encoded ?? '{}');
           break;
         case 'PUT':
-          response = await http.put(uri, headers: _headers, body: encoded ?? '{}');
+          response =
+              await http.put(uri, headers: _headers, body: encoded ?? '{}');
           break;
         case 'DELETE':
           response = await http.delete(uri, headers: _headers);
@@ -2347,15 +2620,18 @@ class ApiService {
           statusCode: response.statusCode,
         );
       }
-      return ApiResponse<dynamic>.fromHttpResponse(response, defaultErrorMessage: 'Slack request failed');
+      return ApiResponse<dynamic>.fromHttpResponse(response,
+          defaultErrorMessage: 'Slack request failed');
     } catch (e) {
       return ApiResponse.error(message: e.toString());
     }
   }
 
   /// Slack banners missed while the notification socket was down (the server keeps 10 minutes).
-  Future<List<Map<String, dynamic>>> fetchMissedSlackNotifications(DateTime since) async {
-    final res = await slackRequest('GET', '/notifications?since=${Uri.encodeQueryComponent(since.toUtc().toIso8601String())}');
+  Future<List<Map<String, dynamic>>> fetchMissedSlackNotifications(
+      DateTime since) async {
+    final res = await slackRequest('GET',
+        '/notifications?since=${Uri.encodeQueryComponent(since.toUtc().toIso8601String())}');
     final data = res.data;
     if (!res.success || data is! List) return const [];
     return data.whereType<Map<String, dynamic>>().toList();
@@ -2392,7 +2668,8 @@ class ApiService {
     String? match13Key,
   }) async {
     if (!_isOnline) {
-      return const ApiResponse.error(isOffline: true, message: 'Cannot test API while offline');
+      return const ApiResponse.error(
+          isOffline: true, message: 'Cannot test API while offline');
     }
 
     try {
@@ -2400,7 +2677,8 @@ class ApiService {
       if (tbaKey != null) body['tbaKey'] = tbaKey;
       if (firstUsername != null) body['firstUsername'] = firstUsername;
       if (firstKey != null) body['firstKey'] = firstKey;
-      if (statboticsBaseUrl != null) body['statboticsBaseUrl'] = statboticsBaseUrl;
+      if (statboticsBaseUrl != null)
+        body['statboticsBaseUrl'] = statboticsBaseUrl;
       if (match13BaseUrl != null) body['match13BaseUrl'] = match13BaseUrl;
       if (match13Key != null) body['match13Key'] = match13Key;
 
@@ -2415,15 +2693,19 @@ class ApiService {
         final decoded = jsonDecode(response.body);
         if (decoded is Map<String, dynamic>) {
           final isSuccess = decoded['success'] == true;
-          final msg = decoded['message']?.toString() ?? (isSuccess ? 'API test succeeded' : 'API test failed');
+          final msg = decoded['message']?.toString() ??
+              (isSuccess ? 'API test succeeded' : 'API test failed');
           if (isSuccess) {
-            return ApiResponse.success(decoded, statusCode: response.statusCode, message: msg);
+            return ApiResponse.success(decoded,
+                statusCode: response.statusCode, message: msg);
           } else {
-            return ApiResponse.error(statusCode: response.statusCode, message: msg);
+            return ApiResponse.error(
+                statusCode: response.statusCode, message: msg);
           }
         }
       }
-      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'API test failed');
+      return ApiResponse.fromHttpResponse(response,
+          defaultErrorMessage: 'API test failed');
     } catch (e) {
       return ApiResponse.error(message: e.toString());
     }
@@ -2444,11 +2726,14 @@ class ApiService {
       if (cached != null && cached.isNotEmpty) {
         try {
           final List decoded = await _decodeCached(cached);
-          final users = decoded.map((e) => UserModel.fromJson(e as Map<String, dynamic>)).toList();
+          final users = decoded
+              .map((e) => UserModel.fromJson(e as Map<String, dynamic>))
+              .toList();
           return ApiResponse.success(users);
         } catch (_) {}
       }
-      return const ApiResponse.error(isOffline: true, message: 'Offline and no cached users');
+      return const ApiResponse.error(
+          isOffline: true, message: 'Offline and no cached users');
     }
 
     try {
@@ -2458,12 +2743,16 @@ class ApiService {
       };
       if (q != null && q.trim().isNotEmpty) params['q'] = q.trim();
       if (teamNumber != null) params['teamNumber'] = teamNumber.toString();
-      if (program != null && program.trim().isNotEmpty) params['program'] = program.trim();
+      if (program != null && program.trim().isNotEmpty)
+        params['program'] = program.trim();
       if (role != null && role.trim().isNotEmpty) params['role'] = role.trim();
-      if (sortBy != null && sortBy.trim().isNotEmpty) params['sortBy'] = sortBy.trim();
-      if (sortDir != null && sortDir.trim().isNotEmpty) params['sortDir'] = sortDir.trim();
+      if (sortBy != null && sortBy.trim().isNotEmpty)
+        params['sortBy'] = sortBy.trim();
+      if (sortDir != null && sortDir.trim().isNotEmpty)
+        params['sortDir'] = sortDir.trim();
 
-      final uri = Uri.parse('$_currentServerUrl/api/admin/users').replace(queryParameters: params);
+      final uri = Uri.parse('$_currentServerUrl/api/admin/users')
+          .replace(queryParameters: params);
       final response = await http.get(uri, headers: _headers);
       _checkResponse(response);
 
@@ -2478,28 +2767,37 @@ class ApiService {
             .whereType<Map<String, dynamic>>()
             .map((e) => UserModel.fromJson(e))
             .toList();
-        if (offset == 0 && (q == null || q.isEmpty) && teamNumber == null && (role == null || role.isEmpty)) {
-          await _setCache("cache_admin_users", jsonEncode(users.map((u) => u.toJson()).toList()));
+        if (offset == 0 &&
+            (q == null || q.isEmpty) &&
+            teamNumber == null &&
+            (role == null || role.isEmpty)) {
+          await _setCache("cache_admin_users",
+              jsonEncode(users.map((u) => u.toJson()).toList()));
         }
         return ApiResponse.success(users, statusCode: response.statusCode);
       }
-      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to fetch users');
+      return ApiResponse.fromHttpResponse(response,
+          defaultErrorMessage: 'Failed to fetch users');
     } catch (e) {
       return ApiResponse.error(message: e.toString());
     }
   }
 
-  Future<List<UserModel>> fetchTeamMembers({int? teamNumber, String? program}) async {
+  Future<List<UserModel>> fetchTeamMembers(
+      {int? teamNumber, String? program}) async {
     final activeTeam = teamNumber ?? _currentUser?.teamNumber ?? 0;
     final activeProgram = program ?? currentProgram;
     final cacheKey = "cache_team_members_${activeTeam}_$activeProgram";
 
     if (!_isOnline) {
-      final cached = await _getCache(cacheKey) ?? await _getCache("cache_admin_users");
+      final cached =
+          await _getCache(cacheKey) ?? await _getCache("cache_admin_users");
       if (cached != null && cached.isNotEmpty) {
         try {
           final List decoded = await _decodeCached(cached);
-          return decoded.map((e) => UserModel.fromJson(e as Map<String, dynamic>)).toList();
+          return decoded
+              .map((e) => UserModel.fromJson(e as Map<String, dynamic>))
+              .toList();
         } catch (_) {}
       }
       return [];
@@ -2515,15 +2813,20 @@ class ApiService {
       if (adminRes.data != null && adminRes.data!.isNotEmpty) {
         var list = adminRes.data!;
         if (activeTeam > 0) {
-          list = list.where((u) => u.teamNumber == activeTeam || u.teamNumber == 0).toList();
+          list = list
+              .where((u) => u.teamNumber == activeTeam || u.teamNumber == 0)
+              .toList();
         }
         if (activeProgram.isNotEmpty) {
           list = list
-              .where((u) => u.program.isEmpty || u.program.toUpperCase() == activeProgram.toUpperCase())
+              .where((u) =>
+                  u.program.isEmpty ||
+                  u.program.toUpperCase() == activeProgram.toUpperCase())
               .toList();
         }
         if (list.isNotEmpty) {
-          await _setCache(cacheKey, jsonEncode(list.map((u) => u.toJson()).toList()));
+          await _setCache(
+              cacheKey, jsonEncode(list.map((u) => u.toJson()).toList()));
           return list;
         }
       }
@@ -2536,7 +2839,9 @@ class ApiService {
         final rawList = decoded is List
             ? decoded
             : (decoded is Map<String, dynamic>
-                ? (decoded['members'] as List? ?? decoded['users'] as List? ?? [])
+                ? (decoded['members'] as List? ??
+                    decoded['users'] as List? ??
+                    [])
                 : []);
         final users = rawList
             .whereType<Map<String, dynamic>>()
@@ -2547,7 +2852,8 @@ class ApiService {
                 }))
             .toList();
         if (users.isNotEmpty) {
-          await _setCache(cacheKey, jsonEncode(users.map((u) => u.toJson()).toList()));
+          await _setCache(
+              cacheKey, jsonEncode(users.map((u) => u.toJson()).toList()));
           return users;
         }
       }
@@ -2556,11 +2862,14 @@ class ApiService {
     }
 
     // Return cached if network attempts failed
-    final cached = await _getCache(cacheKey) ?? await _getCache("cache_admin_users");
+    final cached =
+        await _getCache(cacheKey) ?? await _getCache("cache_admin_users");
     if (cached != null && cached.isNotEmpty) {
       try {
         final List decoded = await _decodeCached(cached);
-        return decoded.map((e) => UserModel.fromJson(e as Map<String, dynamic>)).toList();
+        return decoded
+            .map((e) => UserModel.fromJson(e as Map<String, dynamic>))
+            .toList();
       } catch (_) {}
     }
     return [];
@@ -2576,7 +2885,8 @@ class ApiService {
     List<String>? customPages,
   }) async {
     if (!_isOnline) {
-      return const ApiResponse.error(isOffline: true, message: 'Cannot create user while offline');
+      return const ApiResponse.error(
+          isOffline: true, message: 'Cannot create user while offline');
     }
 
     try {
@@ -2586,9 +2896,12 @@ class ApiService {
         'password': password,
         'role': role.toUpperCase(),
       };
-      if (email != null && email.trim().isNotEmpty) body['email'] = email.trim();
-      if (program != null && program.trim().isNotEmpty) body['program'] = program.trim();
-      if (customPages != null && role.toUpperCase() == 'CUSTOM') body['customPages'] = customPages;
+      if (email != null && email.trim().isNotEmpty)
+        body['email'] = email.trim();
+      if (program != null && program.trim().isNotEmpty)
+        body['program'] = program.trim();
+      if (customPages != null && role.toUpperCase() == 'CUSTOM')
+        body['customPages'] = customPages;
 
       final response = await http.post(
         Uri.parse('$_currentServerUrl/api/admin/users'),
@@ -2600,9 +2913,12 @@ class ApiService {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final decoded = jsonDecode(response.body);
         final user = UserModel.fromJson(decoded as Map<String, dynamic>);
-        return ApiResponse.success(user, statusCode: response.statusCode, message: 'User created successfully');
+        return ApiResponse.success(user,
+            statusCode: response.statusCode,
+            message: 'User created successfully');
       }
-      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to create user');
+      return ApiResponse.fromHttpResponse(response,
+          defaultErrorMessage: 'Failed to create user');
     } catch (e) {
       return ApiResponse.error(message: e.toString());
     }
@@ -2619,12 +2935,14 @@ class ApiService {
     List<String>? customPages,
   }) async {
     if (!_isOnline) {
-      return const ApiResponse.error(isOffline: true, message: 'Cannot update user while offline');
+      return const ApiResponse.error(
+          isOffline: true, message: 'Cannot update user while offline');
     }
 
     try {
       final body = <String, dynamic>{};
-      if (username != null && username.trim().isNotEmpty) body['username'] = username.trim();
+      if (username != null && username.trim().isNotEmpty)
+        body['username'] = username.trim();
       if (password != null && password.isNotEmpty) body['password'] = password;
       if (role != null && role.isNotEmpty) body['role'] = role.toUpperCase();
       if (email != null) body['email'] = email.trim();
@@ -2650,9 +2968,12 @@ class ApiService {
           await _setCache("cache_auth_me", response.body);
           permissionsNotifier.value++;
         }
-        return ApiResponse.success(user, statusCode: response.statusCode, message: 'User updated successfully');
+        return ApiResponse.success(user,
+            statusCode: response.statusCode,
+            message: 'User updated successfully');
       }
-      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to update user');
+      return ApiResponse.fromHttpResponse(response,
+          defaultErrorMessage: 'Failed to update user');
     } catch (e) {
       return ApiResponse.error(message: e.toString());
     }
@@ -2660,7 +2981,8 @@ class ApiService {
 
   Future<ApiResponse<bool>> deleteAdminUser(String userId) async {
     if (!_isOnline) {
-      return const ApiResponse.error(isOffline: true, message: 'Cannot delete user while offline');
+      return const ApiResponse.error(
+          isOffline: true, message: 'Cannot delete user while offline');
     }
 
     try {
@@ -2671,9 +2993,12 @@ class ApiService {
       _checkResponse(response);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        return ApiResponse.success(true, statusCode: response.statusCode, message: 'User deleted successfully');
+        return ApiResponse.success(true,
+            statusCode: response.statusCode,
+            message: 'User deleted successfully');
       }
-      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to delete user');
+      return ApiResponse.fromHttpResponse(response,
+          defaultErrorMessage: 'Failed to delete user');
     } catch (e) {
       return ApiResponse.error(message: e.toString());
     }
@@ -2711,12 +3036,16 @@ class ApiService {
     // Admins always get these, matching the web (assignments is a bypass page for admins there, and the
     // server always adds admin-settings to adminPages). The app's 'scout-assignments' is the web's 'assignments'.
     if (role == 'ADMIN' &&
-        (pageId == 'admin-settings' || pageId == 'scout-assignments' || pageId == 'assignments')) {
+        (pageId == 'admin-settings' ||
+            pageId == 'scout-assignments' ||
+            pageId == 'assignments')) {
       return true;
     }
 
     // Chat toggle check (if chat is disabled for the team, deny SCOUT, ANALYTICS, ADMIN)
-    if (pageId == 'chat' && _currentSettings != null && !_currentSettings!.chatEnabled) {
+    if (pageId == 'chat' &&
+        _currentSettings != null &&
+        !_currentSettings!.chatEnabled) {
       return false;
     }
 
@@ -2752,14 +3081,17 @@ class ApiService {
     }
 
     if (pageId == 'prescout') {
-      candidatePages.addAll(['prescout-scout', 'prescout-pit', 'prescout-qual']);
+      candidatePages
+          .addAll(['prescout-scout', 'prescout-pit', 'prescout-qual']);
     } else if (pageId.startsWith('prescout-')) {
       candidatePages.add('prescout');
     }
 
     if (pageId == 'scout-history') {
       candidatePages.addAll(['history', 'scouting-history', 'cache-manager']);
-    } else if (pageId == 'history' || pageId == 'scouting-history' || pageId == 'cache-manager') {
+    } else if (pageId == 'history' ||
+        pageId == 'scouting-history' ||
+        pageId == 'cache-manager') {
       candidatePages.addAll(['scout-history', 'history', 'cache-manager']);
     }
 
@@ -2774,7 +3106,9 @@ class ApiService {
 
     if (pageId == 'match-planning') {
       candidatePages.addAll(['match-planner', 'matchplanning', 'planning']);
-    } else if (pageId == 'match-planner' || pageId == 'matchplanning' || pageId == 'planning') {
+    } else if (pageId == 'match-planner' ||
+        pageId == 'matchplanning' ||
+        pageId == 'planning') {
       candidatePages.add('match-planning');
     }
 
@@ -2806,7 +3140,8 @@ class ApiService {
       try {
         final jsonMap = await _decodeCached(cached);
         final settings = jsonMap['settings'] ?? jsonMap;
-        cachedEventKey = settings['eventKey']?.toString() ?? settings['eventCode']?.toString();
+        cachedEventKey = settings['eventKey']?.toString() ??
+            settings['eventCode']?.toString();
         if (cachedEventKey != null && cachedEventKey.isNotEmpty) {
           return cachedEventKey;
         }
@@ -2823,7 +3158,8 @@ class ApiService {
         final jsonMap = jsonDecode(response.body);
         _currentSettings = AppSettingsModel.fromJson(jsonMap);
         final settings = jsonMap['settings'] ?? jsonMap;
-        return settings['eventKey']?.toString() ?? settings['eventCode']?.toString();
+        return settings['eventKey']?.toString() ??
+            settings['eventCode']?.toString();
       }
     } catch (_) {}
     return cachedEventKey;
@@ -2889,8 +3225,9 @@ class ApiService {
     if (!_isOnline) return cachedModel;
 
     try {
-      final response = await http
-          .get(Uri.parse('$_currentServerUrl/api/pit-config'), headers: _headers);
+      final response = await http.get(
+          Uri.parse('$_currentServerUrl/api/pit-config'),
+          headers: _headers);
       if (response.statusCode == 200) {
         await _setCache("cache_pit_config", response.body);
         return ScoutingConfigModel.fromJson(jsonDecode(response.body));
@@ -2912,8 +3249,9 @@ class ApiService {
     if (!_isOnline) return cachedModel;
 
     try {
-      final response = await http
-          .get(Uri.parse('$_currentServerUrl/api/qual-config'), headers: _headers);
+      final response = await http.get(
+          Uri.parse('$_currentServerUrl/api/qual-config'),
+          headers: _headers);
       if (response.statusCode == 200) {
         await _setCache("cache_qual_config", response.body);
         return ScoutingConfigModel.fromJson(jsonDecode(response.body));
@@ -2927,7 +3265,9 @@ class ApiService {
   Future<ApiResponse<void>> saveMatchConfig(String rawJson) async {
     await _setCache("cache_config", rawJson);
     if (!_isOnline) {
-      return const ApiResponse.error(isOffline: true, message: 'Saved to offline cache. Will synchronize when online.');
+      return const ApiResponse.error(
+          isOffline: true,
+          message: 'Saved to offline cache. Will synchronize when online.');
     }
     try {
       final response = await http.put(
@@ -2935,7 +3275,8 @@ class ApiService {
         headers: _headers,
         body: jsonEncode({'configJson': rawJson}),
       );
-      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to save match config');
+      return ApiResponse.fromHttpResponse(response,
+          defaultErrorMessage: 'Failed to save match config');
     } catch (e) {
       return ApiResponse.error(message: e.toString());
     }
@@ -2944,7 +3285,9 @@ class ApiService {
   Future<ApiResponse<void>> savePitConfig(String rawJson) async {
     await _setCache("cache_pit_config", rawJson);
     if (!_isOnline) {
-      return const ApiResponse.error(isOffline: true, message: 'Saved to offline cache. Will synchronize when online.');
+      return const ApiResponse.error(
+          isOffline: true,
+          message: 'Saved to offline cache. Will synchronize when online.');
     }
     try {
       final response = await http.put(
@@ -2952,7 +3295,8 @@ class ApiService {
         headers: _headers,
         body: jsonEncode({'configJson': rawJson}),
       );
-      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to save pit config');
+      return ApiResponse.fromHttpResponse(response,
+          defaultErrorMessage: 'Failed to save pit config');
     } catch (e) {
       return ApiResponse.error(message: e.toString());
     }
@@ -2961,7 +3305,9 @@ class ApiService {
   Future<ApiResponse<void>> saveQualConfig(String rawJson) async {
     await _setCache("cache_qual_config", rawJson);
     if (!_isOnline) {
-      return const ApiResponse.error(isOffline: true, message: 'Saved to offline cache. Will synchronize when online.');
+      return const ApiResponse.error(
+          isOffline: true,
+          message: 'Saved to offline cache. Will synchronize when online.');
     }
     try {
       final response = await http.put(
@@ -2969,7 +3315,8 @@ class ApiService {
         headers: _headers,
         body: jsonEncode({'configJson': rawJson}),
       );
-      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to save qual config');
+      return ApiResponse.fromHttpResponse(response,
+          defaultErrorMessage: 'Failed to save qual config');
     } catch (e) {
       return ApiResponse.error(message: e.toString());
     }
@@ -2985,7 +3332,8 @@ class ApiService {
 
     if (_isOnline) {
       try {
-        final response = await http.get(Uri.parse('$_currentServerUrl$apiPath'), headers: _headers);
+        final response = await http.get(Uri.parse('$_currentServerUrl$apiPath'),
+            headers: _headers);
         if (response.statusCode == 200) {
           await _setCache(cacheKey, response.body);
           return response.body;
@@ -2995,23 +3343,35 @@ class ApiService {
     return await _getCache(cacheKey);
   }
 
-  Future<List<DefaultConfigPresetModel>> fetchDefaultPresets(String configType) async {
-    final typeParam = configType == 'game' ? 'match' : (configType == 'qual' ? 'qualitative' : configType);
+  Future<List<DefaultConfigPresetModel>> fetchDefaultPresets(
+      String configType) async {
+    final typeParam = configType == 'game'
+        ? 'match'
+        : (configType == 'qual' ? 'qualitative' : configType);
     if (!_isOnline) return [];
     try {
-      final response = await http
-          .get(Uri.parse('$_currentServerUrl/api/config/defaults?type=$typeParam'), headers: _headers);
+      final response = await http.get(
+          Uri.parse('$_currentServerUrl/api/config/defaults?type=$typeParam'),
+          headers: _headers);
       if (response.statusCode == 200) {
         final List list = jsonDecode(response.body);
-        return list.map((item) => DefaultConfigPresetModel.fromJson(item as Map<String, dynamic>)).toList();
+        return list
+            .map((item) =>
+                DefaultConfigPresetModel.fromJson(item as Map<String, dynamic>))
+            .toList();
       }
     } catch (_) {}
     return [];
   }
 
-  Future<ApiResponse<ScoutingConfigModel>> applyDefaultPreset(String configType, String presetName) async {
-    final typeParam = configType == 'game' ? 'match' : (configType == 'qual' ? 'qualitative' : configType);
-    if (!_isOnline) return const ApiResponse.error(isOffline: true, message: 'Device is offline');
+  Future<ApiResponse<ScoutingConfigModel>> applyDefaultPreset(
+      String configType, String presetName) async {
+    final typeParam = configType == 'game'
+        ? 'match'
+        : (configType == 'qual' ? 'qualitative' : configType);
+    if (!_isOnline)
+      return const ApiResponse.error(
+          isOffline: true, message: 'Device is offline');
     try {
       final response = await http.post(
         Uri.parse('$_currentServerUrl/api/config/apply-default'),
@@ -3024,7 +3384,9 @@ class ApiService {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final cacheKey = configType == 'pit'
             ? 'cache_pit_config'
-            : (configType == 'qual' || configType == 'qualitative' ? 'cache_qual_config' : 'cache_config');
+            : (configType == 'qual' || configType == 'qualitative'
+                ? 'cache_qual_config'
+                : 'cache_config');
         await _setCache(cacheKey, response.body);
         return ApiResponse.success(
           ScoutingConfigModel.fromJson(jsonDecode(response.body)),
@@ -3032,15 +3394,21 @@ class ApiService {
           message: 'Preset applied successfully',
         );
       }
-      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to apply preset');
+      return ApiResponse.fromHttpResponse(response,
+          defaultErrorMessage: 'Failed to apply preset');
     } catch (e) {
       return ApiResponse.error(message: e.toString());
     }
   }
 
-  Future<ApiResponse<ScoutingConfigModel>> resetConfigToDefault(String configType) async {
-    final typeParam = configType == 'game' ? 'match' : (configType == 'qual' ? 'qualitative' : configType);
-    if (!_isOnline) return const ApiResponse.error(isOffline: true, message: 'Device is offline');
+  Future<ApiResponse<ScoutingConfigModel>> resetConfigToDefault(
+      String configType) async {
+    final typeParam = configType == 'game'
+        ? 'match'
+        : (configType == 'qual' ? 'qualitative' : configType);
+    if (!_isOnline)
+      return const ApiResponse.error(
+          isOffline: true, message: 'Device is offline');
     try {
       final response = await http.post(
         Uri.parse('$_currentServerUrl/api/config/reset'),
@@ -3052,7 +3420,9 @@ class ApiService {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final cacheKey = configType == 'pit'
             ? 'cache_pit_config'
-            : (configType == 'qual' || configType == 'qualitative' ? 'cache_qual_config' : 'cache_config');
+            : (configType == 'qual' || configType == 'qualitative'
+                ? 'cache_qual_config'
+                : 'cache_config');
         await _setCache(cacheKey, response.body);
         return ApiResponse.success(
           ScoutingConfigModel.fromJson(jsonDecode(response.body)),
@@ -3060,32 +3430,44 @@ class ApiService {
           message: 'Config reset to default',
         );
       }
-      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to reset config');
+      return ApiResponse.fromHttpResponse(response,
+          defaultErrorMessage: 'Failed to reset config');
     } catch (e) {
       return ApiResponse.error(message: e.toString());
     }
   }
 
   // Schema History API
-  Future<List<ConfigRevisionModel>> fetchConfigHistory(String configKind) async {
-    final kindParam = configKind == 'pit' ? 'pit' : (configKind == 'qual' || configKind == 'qualitative' ? 'qual' : 'game');
+  Future<List<ConfigRevisionModel>> fetchConfigHistory(
+      String configKind) async {
+    final kindParam = configKind == 'pit'
+        ? 'pit'
+        : (configKind == 'qual' || configKind == 'qualitative'
+            ? 'qual'
+            : 'game');
     if (!_isOnline) return [];
     try {
-      final response = await http
-          .get(Uri.parse('$_currentServerUrl/api/config-history?kind=$kindParam'), headers: _headers);
+      final response = await http.get(
+          Uri.parse('$_currentServerUrl/api/config-history?kind=$kindParam'),
+          headers: _headers);
       if (response.statusCode == 200) {
         final List list = jsonDecode(response.body);
-        return list.map((item) => ConfigRevisionModel.fromJson(item as Map<String, dynamic>)).toList();
+        return list
+            .map((item) =>
+                ConfigRevisionModel.fromJson(item as Map<String, dynamic>))
+            .toList();
       }
     } catch (_) {}
     return [];
   }
 
-  Future<ConfigRevisionModel?> fetchConfigRevisionDetail(String revisionId) async {
+  Future<ConfigRevisionModel?> fetchConfigRevisionDetail(
+      String revisionId) async {
     if (!_isOnline) return null;
     try {
-      final response = await http
-          .get(Uri.parse('$_currentServerUrl/api/config-history/$revisionId'), headers: _headers);
+      final response = await http.get(
+          Uri.parse('$_currentServerUrl/api/config-history/$revisionId'),
+          headers: _headers);
       if (response.statusCode == 200) {
         return ConfigRevisionModel.fromJson(jsonDecode(response.body));
       }
@@ -3093,8 +3475,11 @@ class ApiService {
     return null;
   }
 
-  Future<ApiResponse<ScoutingConfigModel>> restoreConfigRevision(String revisionId, String configKind) async {
-    if (!_isOnline) return const ApiResponse.error(isOffline: true, message: 'Device is offline');
+  Future<ApiResponse<ScoutingConfigModel>> restoreConfigRevision(
+      String revisionId, String configKind) async {
+    if (!_isOnline)
+      return const ApiResponse.error(
+          isOffline: true, message: 'Device is offline');
     try {
       final response = await http.post(
         Uri.parse('$_currentServerUrl/api/config-history/$revisionId/restore'),
@@ -3102,11 +3487,14 @@ class ApiService {
       );
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = jsonDecode(response.body);
-        final configJson = data['config'] != null ? jsonEncode(data['config']) : null;
+        final configJson =
+            data['config'] != null ? jsonEncode(data['config']) : null;
         if (configJson != null) {
           final cacheKey = configKind == 'pit'
               ? 'cache_pit_config'
-              : (configKind == 'qual' || configKind == 'qualitative' ? 'cache_qual_config' : 'cache_config');
+              : (configKind == 'qual' || configKind == 'qualitative'
+                  ? 'cache_qual_config'
+                  : 'cache_config');
           await _setCache(cacheKey, configJson);
           return ApiResponse.success(
             ScoutingConfigModel.fromJson(data['config']),
@@ -3116,19 +3504,27 @@ class ApiService {
         }
         return ApiResponse.success(null, statusCode: response.statusCode);
       }
-      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to restore revision');
+      return ApiResponse.fromHttpResponse(response,
+          defaultErrorMessage: 'Failed to restore revision');
     } catch (e) {
       return ApiResponse.error(message: e.toString());
     }
   }
 
   // Config Migration API
-  Future<ConfigSchemaStatusModel?> fetchConfigMigrationStatus(String configKind) async {
-    final kindParam = configKind == 'pit' ? 'pit' : (configKind == 'qual' || configKind == 'qualitative' ? 'qual' : 'game');
+  Future<ConfigSchemaStatusModel?> fetchConfigMigrationStatus(
+      String configKind) async {
+    final kindParam = configKind == 'pit'
+        ? 'pit'
+        : (configKind == 'qual' || configKind == 'qualitative'
+            ? 'qual'
+            : 'game');
     if (!_isOnline) return null;
     try {
-      final response = await http
-          .get(Uri.parse('$_currentServerUrl/api/config-migration/status?kind=$kindParam'), headers: _headers);
+      final response = await http.get(
+          Uri.parse(
+              '$_currentServerUrl/api/config-migration/status?kind=$kindParam'),
+          headers: _headers);
       if (response.statusCode == 200) {
         return ConfigSchemaStatusModel.fromJson(jsonDecode(response.body));
       }
@@ -3141,7 +3537,11 @@ class ApiService {
     List<Map<String, dynamic>> mappings,
     Map<String, dynamic> defaultValues,
   ) async {
-    final kindParam = configKind == 'pit' ? 'pit' : (configKind == 'qual' || configKind == 'qualitative' ? 'qual' : 'game');
+    final kindParam = configKind == 'pit'
+        ? 'pit'
+        : (configKind == 'qual' || configKind == 'qualitative'
+            ? 'qual'
+            : 'game');
     if (!_isOnline) return null;
     try {
       final response = await http.post(
@@ -3165,8 +3565,14 @@ class ApiService {
     List<Map<String, dynamic>> mappings,
     Map<String, dynamic> defaultValues,
   ) async {
-    final kindParam = configKind == 'pit' ? 'pit' : (configKind == 'qual' || configKind == 'qualitative' ? 'qual' : 'game');
-    if (!_isOnline) return const ApiResponse.error(isOffline: true, message: 'Device is offline');
+    final kindParam = configKind == 'pit'
+        ? 'pit'
+        : (configKind == 'qual' || configKind == 'qualitative'
+            ? 'qual'
+            : 'game');
+    if (!_isOnline)
+      return const ApiResponse.error(
+          isOffline: true, message: 'Device is offline');
     try {
       final response = await http.post(
         Uri.parse('$_currentServerUrl/api/config-migration/apply'),
@@ -3192,7 +3598,8 @@ class ApiService {
     final effectiveKey = (eventKey != null && eventKey.isNotEmpty)
         ? eventKey
         : (_currentSettings?.eventKey ?? '');
-    final cacheKey = "cache_teams_${effectiveKey.isNotEmpty ? effectiveKey : 'all'}";
+    final cacheKey =
+        "cache_teams_${effectiveKey.isNotEmpty ? effectiveKey : 'all'}";
     final cachedList = await getCachedTeams(effectiveKey);
 
     if (cachedList.isNotEmpty && isCacheFresh(cacheKey)) {
@@ -3215,15 +3622,20 @@ class ApiService {
         final decoded = jsonDecode(response.body);
         final List list = decoded is List
             ? decoded
-            : (decoded is Map && decoded['teams'] is List ? decoded['teams'] as List : []);
+            : (decoded is Map && decoded['teams'] is List
+                ? decoded['teams'] as List
+                : []);
         final Map<int, TeamModel> teamMap = {};
         for (var item in list) {
           final t = TeamModel.fromJson(item as Map<String, dynamic>);
           teamMap[t.teamNumber] = t;
         }
         if (teamMap.isNotEmpty) {
-          final res = teamMap.values.toList()..sort((a, b) => a.teamNumber.compareTo(b.teamNumber));
-          setMemoryCache("mem_teams_${effectiveKey.isNotEmpty ? effectiveKey : 'all'}", res);
+          final res = teamMap.values.toList()
+            ..sort((a, b) => a.teamNumber.compareTo(b.teamNumber));
+          setMemoryCache(
+              "mem_teams_${effectiveKey.isNotEmpty ? effectiveKey : 'all'}",
+              res);
           setMemoryCache("mem_teams_all", res);
           return res;
         }
@@ -3237,7 +3649,8 @@ class ApiService {
     final effectiveKey = (eventKey != null && eventKey.isNotEmpty)
         ? eventKey
         : (_currentSettings?.eventKey ?? '');
-    final cacheKey = "cache_matches_${effectiveKey.isNotEmpty ? effectiveKey : 'all'}";
+    final cacheKey =
+        "cache_matches_${effectiveKey.isNotEmpty ? effectiveKey : 'all'}";
     final cachedList = await getCachedMatches(effectiveKey);
 
     if (cachedList.isNotEmpty && isCacheFresh(cacheKey)) {
@@ -3260,7 +3673,9 @@ class ApiService {
         final decoded = jsonDecode(response.body);
         final List list = decoded is List
             ? decoded
-            : (decoded is Map && decoded['matches'] is List ? decoded['matches'] as List : []);
+            : (decoded is Map && decoded['matches'] is List
+                ? decoded['matches'] as List
+                : []);
         final Map<String, MatchModel> matchMap = {};
         for (var item in list) {
           final m = MatchModel.fromJson(item as Map<String, dynamic>);
@@ -3269,8 +3684,11 @@ class ApiService {
           }
         }
         if (matchMap.isNotEmpty) {
-          final sorted = matchMap.values.toList()..sort(MatchModel.compareMatches);
-          setMemoryCache("mem_matches_${effectiveKey.isNotEmpty ? effectiveKey : 'all'}", sorted);
+          final sorted = matchMap.values.toList()
+            ..sort(MatchModel.compareMatches);
+          setMemoryCache(
+              "mem_matches_${effectiveKey.isNotEmpty ? effectiveKey : 'all'}",
+              sorted);
           setMemoryCache("mem_matches_all", sorted);
           return sorted;
         }
@@ -3294,7 +3712,8 @@ class ApiService {
     MatchPredictionResponse? cachedPrediction;
     if (cached != null && cached.isNotEmpty) {
       try {
-        cachedPrediction = MatchPredictionResponse.fromJson(await _decodeCached(cached));
+        cachedPrediction =
+            MatchPredictionResponse.fromJson(await _decodeCached(cached));
       } catch (_) {}
     }
 
@@ -3306,7 +3725,8 @@ class ApiService {
         if (effectiveKey.isNotEmpty) 'eventKey': effectiveKey,
         if (usePrescout) 'usePrescout': 'true',
       };
-      final uri = Uri.parse('$_currentServerUrl/api/matches/predict').replace(queryParameters: queryParams);
+      final uri = Uri.parse('$_currentServerUrl/api/matches/predict')
+          .replace(queryParameters: queryParams);
       final response = await http.get(uri, headers: _headers);
       if (response.statusCode == 200) {
         await _setCache(cacheKey, response.body);
@@ -3325,9 +3745,8 @@ class ApiService {
     required String matchKey,
     bool usePrescout = false,
   }) async {
-    final effectiveKey = eventKey.isNotEmpty
-        ? eventKey
-        : (_currentSettings?.eventKey ?? '');
+    final effectiveKey =
+        eventKey.isNotEmpty ? eventKey : (_currentSettings?.eventKey ?? '');
     final cacheKey = "cache_predict_${matchKey}_${effectiveKey}_$usePrescout";
 
     final cached = await _getCache(cacheKey);
@@ -3346,7 +3765,8 @@ class ApiService {
     final effectiveKey = (eventKey != null && eventKey.isNotEmpty)
         ? eventKey
         : (_currentSettings?.eventKey ?? '');
-    final cacheKey = "cache_stats_history_${effectiveKey.isNotEmpty ? effectiveKey : 'all'}";
+    final cacheKey =
+        "cache_stats_history_${effectiveKey.isNotEmpty ? effectiveKey : 'all'}";
     final cached = await getCachedStatsHistory(effectiveKey);
 
     if (!_isOnline) return cached;
@@ -3375,7 +3795,8 @@ class ApiService {
     final effectiveKey = (eventKey != null && eventKey.isNotEmpty)
         ? eventKey
         : (_currentSettings?.eventKey ?? '');
-    final cacheKey = "cache_stats_history_${effectiveKey.isNotEmpty ? effectiveKey : 'all'}";
+    final cacheKey =
+        "cache_stats_history_${effectiveKey.isNotEmpty ? effectiveKey : 'all'}";
 
     final cached = await _getCache(cacheKey);
     if (cached != null && cached.isNotEmpty) {
@@ -3393,9 +3814,8 @@ class ApiService {
     String eventKey, {
     bool usePrescout = false,
   }) async {
-    final effectiveKey = eventKey.isNotEmpty
-        ? eventKey
-        : (_currentSettings?.eventKey ?? '');
+    final effectiveKey =
+        eventKey.isNotEmpty ? eventKey : (_currentSettings?.eventKey ?? '');
     if (effectiveKey.isEmpty) return [];
 
     final cacheKey = "cache_predict_all_${effectiveKey}_$usePrescout";
@@ -3407,7 +3827,8 @@ class ApiService {
         final decoded = await _decodeCached(cached);
         if (decoded is List) {
           cachedPredictions = decoded
-              .map((item) => MatchPredictionResponse.fromJson(item as Map<String, dynamic>))
+              .map((item) => MatchPredictionResponse.fromJson(
+                  item as Map<String, dynamic>))
               .toList();
         }
       } catch (_) {}
@@ -3420,14 +3841,16 @@ class ApiService {
         'eventKey': effectiveKey,
         if (usePrescout) 'usePrescout': 'true',
       };
-      final uri = Uri.parse('$_currentServerUrl/api/matches/predict-all').replace(queryParameters: queryParams);
+      final uri = Uri.parse('$_currentServerUrl/api/matches/predict-all')
+          .replace(queryParameters: queryParams);
       final response = await http.get(uri, headers: _headers);
       if (response.statusCode == 200) {
         await _setCache(cacheKey, response.body);
         final decoded = jsonDecode(response.body);
         if (decoded is List) {
           return decoded
-              .map((item) => MatchPredictionResponse.fromJson(item as Map<String, dynamic>))
+              .map((item) => MatchPredictionResponse.fromJson(
+                  item as Map<String, dynamic>))
               .toList();
         }
       }
@@ -3440,9 +3863,8 @@ class ApiService {
     String eventKey, {
     bool usePrescout = false,
   }) async {
-    final effectiveKey = eventKey.isNotEmpty
-        ? eventKey
-        : (_currentSettings?.eventKey ?? '');
+    final effectiveKey =
+        eventKey.isNotEmpty ? eventKey : (_currentSettings?.eventKey ?? '');
     if (effectiveKey.isEmpty) return [];
 
     final cacheKey = "cache_predict_all_${effectiveKey}_$usePrescout";
@@ -3453,7 +3875,8 @@ class ApiService {
         final decoded = await _decodeCached(cached);
         if (decoded is List) {
           return decoded
-              .map((item) => MatchPredictionResponse.fromJson(item as Map<String, dynamic>))
+              .map((item) => MatchPredictionResponse.fromJson(
+                  item as Map<String, dynamic>))
               .toList();
         }
       } catch (_) {}
@@ -3461,10 +3884,10 @@ class ApiService {
     return [];
   }
 
-  Future<MatchPlanModel?> fetchMatchPlan(String eventKey, String matchKey) async {
-    final effectiveEventKey = eventKey.isNotEmpty
-        ? eventKey
-        : (_currentSettings?.eventKey ?? '');
+  Future<MatchPlanModel?> fetchMatchPlan(
+      String eventKey, String matchKey) async {
+    final effectiveEventKey =
+        eventKey.isNotEmpty ? eventKey : (_currentSettings?.eventKey ?? '');
     if (effectiveEventKey.isEmpty || matchKey.isEmpty) return null;
 
     final cacheKey = "cache_match_plan_${effectiveEventKey}_$matchKey";
@@ -3500,10 +3923,10 @@ class ApiService {
 
   static const String keyPendingMatchPlans = "cache_pending_match_plans";
 
-  Future<int?> saveMatchPlan(String eventKey, String matchKey, String planJson) async {
-    final effectiveEventKey = eventKey.isNotEmpty
-        ? eventKey
-        : (_currentSettings?.eventKey ?? '');
+  Future<int?> saveMatchPlan(
+      String eventKey, String matchKey, String planJson) async {
+    final effectiveEventKey =
+        eventKey.isNotEmpty ? eventKey : (_currentSettings?.eventKey ?? '');
     if (effectiveEventKey.isEmpty || matchKey.isEmpty) return null;
 
     final cacheKey = "cache_match_plan_${effectiveEventKey}_$matchKey";
@@ -3512,7 +3935,8 @@ class ApiService {
     final itemKey = "${effectiveEventKey}_$matchKey";
 
     if (!_isOnline) {
-      await _queuePendingMatchPlan(itemKey, effectiveEventKey, matchKey, planJson);
+      await _queuePendingMatchPlan(
+          itemKey, effectiveEventKey, matchKey, planJson);
       return DateTime.now().millisecondsSinceEpoch;
     }
 
@@ -3528,24 +3952,30 @@ class ApiService {
         await _dequeuePendingMatchPlan(itemKey);
         final decoded = jsonDecode(response.body);
         if (decoded is Map<String, dynamic>) {
-          return (decoded['updatedAt'] as num?)?.toInt() ?? DateTime.now().millisecondsSinceEpoch;
+          return (decoded['updatedAt'] as num?)?.toInt() ??
+              DateTime.now().millisecondsSinceEpoch;
         }
         return DateTime.now().millisecondsSinceEpoch;
       } else {
-        await _queuePendingMatchPlan(itemKey, effectiveEventKey, matchKey, planJson);
+        await _queuePendingMatchPlan(
+            itemKey, effectiveEventKey, matchKey, planJson);
       }
     } catch (_) {
-      await _queuePendingMatchPlan(itemKey, effectiveEventKey, matchKey, planJson);
+      await _queuePendingMatchPlan(
+          itemKey, effectiveEventKey, matchKey, planJson);
       return DateTime.now().millisecondsSinceEpoch;
     }
 
     return null;
   }
 
-  Future<void> _queuePendingMatchPlan(String itemKey, String eventKey, String matchKey, String planJson) async {
+  Future<void> _queuePendingMatchPlan(
+      String itemKey, String eventKey, String matchKey, String planJson) async {
     try {
       final raw = (await _store.getString(keyPendingMatchPlans)) ?? '{}';
-      final Map<String, dynamic> map = jsonDecode(raw) is Map ? Map<String, dynamic>.from(jsonDecode(raw) as Map) : {};
+      final Map<String, dynamic> map = jsonDecode(raw) is Map
+          ? Map<String, dynamic>.from(jsonDecode(raw) as Map)
+          : {};
       map[itemKey] = {
         'eventKey': eventKey,
         'matchKey': matchKey,
@@ -3592,7 +4022,9 @@ class ApiService {
           final matchKey = item['matchKey']?.toString() ?? '';
           final planJson = item['planJson']?.toString() ?? '';
 
-          if (eventKey.isNotEmpty && matchKey.isNotEmpty && planJson.isNotEmpty) {
+          if (eventKey.isNotEmpty &&
+              matchKey.isNotEmpty &&
+              planJson.isNotEmpty) {
             try {
               final uri = Uri.parse('$_currentServerUrl/api/match-planning');
               final payload = jsonEncode({
@@ -3600,7 +4032,8 @@ class ApiService {
                 'matchKey': matchKey,
                 'planJson': planJson,
               });
-              final response = await http.post(uri, headers: _headers, body: payload);
+              final response =
+                  await http.post(uri, headers: _headers, body: payload);
               if (response.statusCode == 200) {
                 syncedCount++;
                 remaining.remove(entry.key);
@@ -3618,7 +4051,8 @@ class ApiService {
 
       await _store.setString(keyPendingMatchPlans, jsonEncode(remaining));
       if (syncedCount > 0) {
-        debugPrint('[ApiService] Successfully synchronized $syncedCount offline match plan(s) with server');
+        debugPrint(
+            '[ApiService] Successfully synchronized $syncedCount offline match plan(s) with server');
       }
       return syncedCount;
     } catch (e) {
@@ -3688,7 +4122,9 @@ class ApiService {
       if (info != null && info.imagePath.isNotEmpty) {
         // The image path carries its version (?v=lastModified); only download a version we don't have.
         final versionKey = "cache_field_image_bytes_${year}_version";
-        if (cachedBytes != null && cachedBytes.isNotEmpty && await _getCache(versionKey) == info.imagePath) {
+        if (cachedBytes != null &&
+            cachedBytes.isNotEmpty &&
+            await _getCache(versionKey) == info.imagePath) {
           return cachedBytes;
         }
         final fullUrl = info.imagePath.startsWith('http')
@@ -3712,7 +4148,9 @@ class ApiService {
 
       for (final url in serverCandidates) {
         try {
-          final res = await http.get(Uri.parse(url), headers: _headers).timeout(_deadline(const Duration(seconds: 15)));
+          final res = await http
+              .get(Uri.parse(url), headers: _headers)
+              .timeout(_deadline(const Duration(seconds: 15)));
           if (res.statusCode == 200 && res.bodyBytes.isNotEmpty) {
             await cacheFieldImageBytes(year, res.bodyBytes);
             return res.bodyBytes;
@@ -3741,7 +4179,8 @@ class ApiService {
   Future<List<dynamic>?> _syncEntries(String kind, {bool force = false}) {
     if (!_entrySyncSupported) return Future.value(null);
     final key = '$kind|$force';
-    return _entrySyncInflight[key] ??= _runEntrySync(kind, force).whenComplete(() => _entrySyncInflight.remove(key));
+    return _entrySyncInflight[key] ??= _runEntrySync(kind, force)
+        .whenComplete(() => _entrySyncInflight.remove(key));
   }
 
   Future<List<dynamic>?> _runEntrySync(String kind, bool force) async {
@@ -3753,16 +4192,20 @@ class ApiService {
     if (!force && current.isNotEmpty) {
       try {
         final raw = await _getCache(cursorKey);
-        final stored = raw == null ? null : jsonDecode(raw) as Map<String, dynamic>;
+        final stored =
+            raw == null ? null : jsonDecode(raw) as Map<String, dynamic>;
         // A cursor is only good for the server and team that issued it.
-        if (stored != null && stored['server'] == _currentServerUrl && stored['team'] == _currentUser?.teamNumber) {
+        if (stored != null &&
+            stored['server'] == _currentServerUrl &&
+            stored['team'] == _currentUser?.teamNumber) {
           cursor = stored['cursor'] as String?;
         }
       } catch (_) {}
     }
 
     try {
-      final uri = Uri.parse('$_currentServerUrl/api/sync/entries').replace(queryParameters: {
+      final uri = Uri.parse('$_currentServerUrl/api/sync/entries')
+          .replace(queryParameters: {
         'kind': kind,
         'format': 'compact',
         if (cursor != null) 'cursor': cursor,
@@ -3780,12 +4223,19 @@ class ApiService {
       }
       final merged = entry_sync.mergeDelta(current, decoded);
       if (!merged.consistent && !force) {
-        debugPrint('[EntrySync] $kind: merged count differs from the server; downloading the full list.');
+        debugPrint(
+            '[EntrySync] $kind: merged count differs from the server; downloading the full list.');
         return await _runEntrySync(kind, true);
       }
       await _setCache(cacheKey, jsonEncode(merged.entries));
       setMemoryCache(cacheKey, merged.entries);
-      await _setCache(cursorKey, jsonEncode({'server': _currentServerUrl, 'team': _currentUser?.teamNumber, 'cursor': decoded['cursor']}));
+      await _setCache(
+          cursorKey,
+          jsonEncode({
+            'server': _currentServerUrl,
+            'team': _currentUser?.teamNumber,
+            'cursor': decoded['cursor']
+          }));
       return merged.entries;
     } catch (e) {
       debugPrint('[EntrySync] $kind sync failed: $e');
@@ -3801,13 +4251,15 @@ class ApiService {
     try {
       final decoded = await _decodeCached(cached);
       if (decoded is List) return decoded;
-      if (decoded is Map && decoded['entries'] is List) return decoded['entries'] as List;
+      if (decoded is Map && decoded['entries'] is List)
+        return decoded['entries'] as List;
     } catch (_) {}
     return const [];
   }
 
   /// [forceRefresh] skips the few-seconds-old copy and asks the server.
-  Future<List<dynamic>> fetchScoutingEntries({bool forceRefresh = false}) async {
+  Future<List<dynamic>> fetchScoutingEntries(
+      {bool forceRefresh = false}) async {
     const cacheKey = "cache_scouting";
     final cachedEntries = await getCachedScoutingEntries();
     if (!forceRefresh && cachedEntries.isNotEmpty && isCacheFresh(cacheKey)) {
@@ -3820,14 +4272,17 @@ class ApiService {
     if (synced != null) return synced;
 
     try {
-      final response = await http
-          .get(Uri.parse('$_currentServerUrl/api/scouting?includePrescout=true&all=true'), headers: _headers);
+      final response = await http.get(
+          Uri.parse(
+              '$_currentServerUrl/api/scouting?includePrescout=true&all=true'),
+          headers: _headers);
       if (response.statusCode == 200) {
         await _setCache(cacheKey, response.body);
         final decoded = jsonDecode(response.body);
         List<dynamic> list = [];
         if (decoded is List) list = decoded;
-        if (decoded is Map && decoded['entries'] is List) list = decoded['entries'] as List;
+        if (decoded is Map && decoded['entries'] is List)
+          list = decoded['entries'] as List;
         setMemoryCache(cacheKey, list);
         return list;
       }
@@ -3837,7 +4292,8 @@ class ApiService {
   }
 
   /// [forceRefresh] skips the few-seconds-old copy and asks the server.
-  Future<List<dynamic>> fetchPitScoutingEntries({bool forceRefresh = false}) async {
+  Future<List<dynamic>> fetchPitScoutingEntries(
+      {bool forceRefresh = false}) async {
     const cacheKey = "cache_pit_scouting";
     final cachedEntries = await getCachedPitScoutingEntries();
     if (!forceRefresh && cachedEntries.isNotEmpty && isCacheFresh(cacheKey)) {
@@ -3850,14 +4306,17 @@ class ApiService {
     if (synced != null) return synced;
 
     try {
-      final response = await http
-          .get(Uri.parse('$_currentServerUrl/api/pit-scouting?includePrescout=true&all=true'), headers: _headers);
+      final response = await http.get(
+          Uri.parse(
+              '$_currentServerUrl/api/pit-scouting?includePrescout=true&all=true'),
+          headers: _headers);
       if (response.statusCode == 200) {
         await _setCache(cacheKey, response.body);
         final decoded = jsonDecode(response.body);
         List<dynamic> list = [];
         if (decoded is List) list = decoded;
-        if (decoded is Map && decoded['entries'] is List) list = decoded['entries'] as List;
+        if (decoded is Map && decoded['entries'] is List)
+          list = decoded['entries'] as List;
         setMemoryCache(cacheKey, list);
         return list;
       }
@@ -3867,7 +4326,8 @@ class ApiService {
   }
 
   /// [forceRefresh] skips the few-seconds-old copy and asks the server.
-  Future<List<dynamic>> fetchQualScoutingEntries({bool forceRefresh = false}) async {
+  Future<List<dynamic>> fetchQualScoutingEntries(
+      {bool forceRefresh = false}) async {
     const cacheKey = "cache_qual_scouting";
     final cachedEntries = await getCachedQualScoutingEntries();
     if (!forceRefresh && cachedEntries.isNotEmpty && isCacheFresh(cacheKey)) {
@@ -3880,14 +4340,17 @@ class ApiService {
     if (synced != null) return synced;
 
     try {
-      final response = await http
-          .get(Uri.parse('$_currentServerUrl/api/qual-scouting?includePrescout=true&all=true'), headers: _headers);
+      final response = await http.get(
+          Uri.parse(
+              '$_currentServerUrl/api/qual-scouting?includePrescout=true&all=true'),
+          headers: _headers);
       if (response.statusCode == 200) {
         await _setCache(cacheKey, response.body);
         final decoded = jsonDecode(response.body);
         List<dynamic> list = [];
         if (decoded is List) list = decoded;
-        if (decoded is Map && decoded['entries'] is List) list = decoded['entries'] as List;
+        if (decoded is Map && decoded['entries'] is List)
+          list = decoded['entries'] as List;
         setMemoryCache(cacheKey, list);
         return list;
       }
@@ -3909,7 +4372,10 @@ class ApiService {
     if (_entrySyncSupported) {
       final all = await fetchScoutingEntries();
       if (_entrySyncSupported) {
-        List<dynamic> list = entry_sync.resolveEntries(all.where((e) => e is Map && e['isPrescout'] == true).toList(), 'match', _currentUser?.teamNumber);
+        List<dynamic> list = entry_sync.resolveEntries(
+            all.where((e) => e is Map && e['isPrescout'] == true).toList(),
+            'match',
+            _currentUser?.teamNumber);
         list = await _mergePendingOutboxEntries(list, const {'prescout_match'});
         await _setCache(cacheKey, jsonEncode(list));
         setMemoryCache(cacheKey, list);
@@ -3918,13 +4384,15 @@ class ApiService {
     }
 
     try {
-      final response = await http
-          .get(Uri.parse('$_currentServerUrl/api/prescout/scouting'), headers: _headers);
+      final response = await http.get(
+          Uri.parse('$_currentServerUrl/api/prescout/scouting'),
+          headers: _headers);
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
         List<dynamic> list = [];
         if (decoded is List) list = decoded;
-        if (decoded is Map && decoded['entries'] is List) list = decoded['entries'] as List;
+        if (decoded is Map && decoded['entries'] is List)
+          list = decoded['entries'] as List;
         list = await _mergePendingOutboxEntries(list, const {'prescout_match'});
         await _setCache(cacheKey, jsonEncode(list));
         setMemoryCache(cacheKey, list);
@@ -3948,7 +4416,10 @@ class ApiService {
     if (_entrySyncSupported) {
       final all = await fetchPitScoutingEntries();
       if (_entrySyncSupported) {
-        List<dynamic> list = entry_sync.resolveEntries(all.where((e) => e is Map && e['isPrescout'] == true).toList(), 'pit', _currentUser?.teamNumber);
+        List<dynamic> list = entry_sync.resolveEntries(
+            all.where((e) => e is Map && e['isPrescout'] == true).toList(),
+            'pit',
+            _currentUser?.teamNumber);
         list = await _mergePendingOutboxEntries(list, const {'prescout_pit'});
         await _setCache(cacheKey, jsonEncode(list));
         setMemoryCache(cacheKey, list);
@@ -3957,13 +4428,15 @@ class ApiService {
     }
 
     try {
-      final response = await http
-          .get(Uri.parse('$_currentServerUrl/api/prescout/pit-scouting'), headers: _headers);
+      final response = await http.get(
+          Uri.parse('$_currentServerUrl/api/prescout/pit-scouting'),
+          headers: _headers);
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
         List<dynamic> list = [];
         if (decoded is List) list = decoded;
-        if (decoded is Map && decoded['entries'] is List) list = decoded['entries'] as List;
+        if (decoded is Map && decoded['entries'] is List)
+          list = decoded['entries'] as List;
         list = await _mergePendingOutboxEntries(list, const {'prescout_pit'});
         await _setCache(cacheKey, jsonEncode(list));
         setMemoryCache(cacheKey, list);
@@ -3987,7 +4460,10 @@ class ApiService {
     if (_entrySyncSupported) {
       final all = await fetchQualScoutingEntries();
       if (_entrySyncSupported) {
-        List<dynamic> list = entry_sync.resolveEntries(all.where((e) => e is Map && e['isPrescout'] == true).toList(), 'qual', _currentUser?.teamNumber);
+        List<dynamic> list = entry_sync.resolveEntries(
+            all.where((e) => e is Map && e['isPrescout'] == true).toList(),
+            'qual',
+            _currentUser?.teamNumber);
         list = await _mergePendingOutboxEntries(list, const {'prescout_qual'});
         await _setCache(cacheKey, jsonEncode(list));
         setMemoryCache(cacheKey, list);
@@ -3996,13 +4472,15 @@ class ApiService {
     }
 
     try {
-      final response = await http
-          .get(Uri.parse('$_currentServerUrl/api/prescout/qual-scouting'), headers: _headers);
+      final response = await http.get(
+          Uri.parse('$_currentServerUrl/api/prescout/qual-scouting'),
+          headers: _headers);
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
         List<dynamic> list = [];
         if (decoded is List) list = decoded;
-        if (decoded is Map && decoded['entries'] is List) list = decoded['entries'] as List;
+        if (decoded is Map && decoded['entries'] is List)
+          list = decoded['entries'] as List;
         list = await _mergePendingOutboxEntries(list, const {'prescout_qual'});
         await _setCache(cacheKey, jsonEncode(list));
         setMemoryCache(cacheKey, list);
@@ -4014,23 +4492,61 @@ class ApiService {
   }
 
   // Data Submissions
-  Future<ApiResponse<void>> submitMatchScouting(Map<String, dynamic> data, {bool forceOffline = false}) =>
-      _submitEntry(kind: 'match', cacheKey: 'cache_scouting', entries: [data], defaultErrorMessage: 'Failed to submit match scouting', forceOffline: forceOffline);
+  Future<ApiResponse<void>> submitMatchScouting(Map<String, dynamic> data,
+          {bool forceOffline = false}) =>
+      _submitEntry(
+          kind: 'match',
+          cacheKey: 'cache_scouting',
+          entries: [data],
+          defaultErrorMessage: 'Failed to submit match scouting',
+          forceOffline: forceOffline);
 
-  Future<ApiResponse<void>> submitPrescoutMatchScouting(Map<String, dynamic> data, {bool forceOffline = false}) =>
-      _submitEntry(kind: 'prescout_match', cacheKey: 'cache_prescout_scouting', entries: [data], defaultErrorMessage: 'Failed to submit match prescout', forceOffline: forceOffline);
+  Future<ApiResponse<void>> submitPrescoutMatchScouting(
+          Map<String, dynamic> data,
+          {bool forceOffline = false}) =>
+      _submitEntry(
+          kind: 'prescout_match',
+          cacheKey: 'cache_prescout_scouting',
+          entries: [data],
+          defaultErrorMessage: 'Failed to submit match prescout',
+          forceOffline: forceOffline);
 
-  Future<ApiResponse<void>> submitPitScouting(Map<String, dynamic> data, {bool forceOffline = false}) =>
-      _submitEntry(kind: 'pit', cacheKey: 'cache_pit_scouting', entries: [data], defaultErrorMessage: 'Failed to submit pit scouting', forceOffline: forceOffline);
+  Future<ApiResponse<void>> submitPitScouting(Map<String, dynamic> data,
+          {bool forceOffline = false}) =>
+      _submitEntry(
+          kind: 'pit',
+          cacheKey: 'cache_pit_scouting',
+          entries: [data],
+          defaultErrorMessage: 'Failed to submit pit scouting',
+          forceOffline: forceOffline);
 
-  Future<ApiResponse<void>> submitPrescoutPitScouting(Map<String, dynamic> data, {bool forceOffline = false}) =>
-      _submitEntry(kind: 'prescout_pit', cacheKey: 'cache_prescout_pit_scouting', entries: [data], defaultErrorMessage: 'Failed to submit pit prescout', forceOffline: forceOffline);
+  Future<ApiResponse<void>> submitPrescoutPitScouting(Map<String, dynamic> data,
+          {bool forceOffline = false}) =>
+      _submitEntry(
+          kind: 'prescout_pit',
+          cacheKey: 'cache_prescout_pit_scouting',
+          entries: [data],
+          defaultErrorMessage: 'Failed to submit pit prescout',
+          forceOffline: forceOffline);
 
-  Future<ApiResponse<void>> submitQualScouting(Map<String, dynamic> data, {bool forceOffline = false}) =>
-      _submitEntry(kind: 'qual', cacheKey: 'cache_qual_scouting', entries: [data], defaultErrorMessage: 'Failed to submit qualitative scouting', forceOffline: forceOffline);
+  Future<ApiResponse<void>> submitQualScouting(Map<String, dynamic> data,
+          {bool forceOffline = false}) =>
+      _submitEntry(
+          kind: 'qual',
+          cacheKey: 'cache_qual_scouting',
+          entries: [data],
+          defaultErrorMessage: 'Failed to submit qualitative scouting',
+          forceOffline: forceOffline);
 
-  Future<ApiResponse<void>> submitBatchQualScouting(List<Map<String, dynamic>> entries, {bool forceOffline = false}) =>
-      _submitEntry(kind: 'qual_batch', cacheKey: 'cache_qual_scouting', entries: entries, defaultErrorMessage: 'Failed to submit batch qualitative scouting', forceOffline: forceOffline);
+  Future<ApiResponse<void>> submitBatchQualScouting(
+          List<Map<String, dynamic>> entries,
+          {bool forceOffline = false}) =>
+      _submitEntry(
+          kind: 'qual_batch',
+          cacheKey: 'cache_qual_scouting',
+          entries: entries,
+          defaultErrorMessage: 'Failed to submit batch qualitative scouting',
+          forceOffline: forceOffline);
 
   // ── Outbox: submissions saved on this device until the server has them ──
 
@@ -4085,12 +4601,15 @@ class ApiService {
           list = List<dynamic>.from(decoded['entries'] as List);
         }
       }
-      final enrichedEntries = entries.map((e) => <String, dynamic>{
-        ...e,
-        if (isPrescout) 'isPrescout': true,
-        if (!e.containsKey('data')) 'data': Map<String, dynamic>.from(e),
-        'clientId': itemId,
-      }).toList();
+      final enrichedEntries = entries
+          .map((e) => <String, dynamic>{
+                ...e,
+                if (isPrescout) 'isPrescout': true,
+                if (!e.containsKey('data'))
+                  'data': Map<String, dynamic>.from(e),
+                'clientId': itemId,
+              })
+          .toList();
       list.addAll(enrichedEntries);
       await _setCache(cacheKey, jsonEncode(list));
       setMemoryCache(cacheKey, list);
@@ -4098,7 +4617,9 @@ class ApiService {
       if (isPrescout) {
         final mainCacheKey = kind == 'prescout_pit'
             ? 'cache_pit_scouting'
-            : (kind == 'prescout_qual' ? 'cache_qual_scouting' : 'cache_scouting');
+            : (kind == 'prescout_qual'
+                ? 'cache_qual_scouting'
+                : 'cache_scouting');
         final mainCached = await _getCache(mainCacheKey);
         List<dynamic> mainList = [];
         if (mainCached != null && mainCached.isNotEmpty) {
@@ -4120,7 +4641,9 @@ class ApiService {
         : <String, dynamic>{'data': entries.first, 'clientId': itemId};
 
     // In the outbox before the upload starts, so closing the app mid-request on a bad link loses nothing.
-    final outboxId = await _enqueueOutbox(kind, body, entries.first['eventKey']?.toString(), 'Uploading', id: itemId);
+    final outboxId = await _enqueueOutbox(
+        kind, body, entries.first['eventKey']?.toString(), 'Uploading',
+        id: itemId);
 
     ApiResponse<void> queued(String reason) {
       _scheduleOutboxRetry();
@@ -4128,23 +4651,35 @@ class ApiService {
     }
 
     if (forceOffline || !_isOnline) {
-      return queued('Saved on this device only. It will upload automatically when the connection returns.');
+      return queued(
+          'Saved on this device only. It will upload automatically when the connection returns.');
     }
     if (LinkQuality.instance.isLowBandwidth && outboxId != null) {
       // Don't hold the scout on a spinner for a slow upload; the outbox sends it in the background.
       _scheduleOutboxRetry(soon: true);
-      return const ApiResponse.error(isOffline: true, message: 'Slow connection: saved on this device and uploading in the background.');
+      return const ApiResponse.error(
+          isOffline: true,
+          message:
+              'Slow connection: saved on this device and uploading in the background.');
     }
     try {
-      final response = await http
-          .post(Uri.parse('$_currentServerUrl${_outboxEndpoints[kind]}'), headers: _headers, body: jsonEncode(body));
-      if (response.statusCode >= 500 || response.statusCode == 408 || response.statusCode == 429) {
-        if (outboxId != null) await _store.recordOutboxFailure(outboxId, 'HTTP ${response.statusCode}');
-        return queued('Server error (${response.statusCode}): saved on this device and will retry automatically.');
+      final response = await http.post(
+          Uri.parse('$_currentServerUrl${_outboxEndpoints[kind]}'),
+          headers: _headers,
+          body: jsonEncode(body));
+      if (response.statusCode >= 500 ||
+          response.statusCode == 408 ||
+          response.statusCode == 429) {
+        if (outboxId != null)
+          await _store.recordOutboxFailure(
+              outboxId, 'HTTP ${response.statusCode}');
+        return queued(
+            'Server error (${response.statusCode}): saved on this device and will retry automatically.');
       }
       // Uploaded or refused for good: either way it no longer belongs in the outbox.
       if (outboxId != null) await _store.removeFromOutbox(outboxId);
-      if (kind == 'qual_batch' && (response.statusCode < 200 || response.statusCode >= 300)) {
+      if (kind == 'qual_batch' &&
+          (response.statusCode < 200 || response.statusCode >= 300)) {
         // Older servers without the batch endpoint: send each entry on its own.
         var anyQueued = false;
         for (final entry in entries) {
@@ -4152,25 +4687,37 @@ class ApiService {
           if (single.isOffline) anyQueued = true;
         }
         return anyQueued
-            ? const ApiResponse.error(isOffline: true, message: 'Some entries were saved on this device and will upload automatically.')
+            ? const ApiResponse.error(
+                isOffline: true,
+                message:
+                    'Some entries were saved on this device and will upload automatically.')
             : const ApiResponse.success(null, statusCode: 200);
       }
       // The server just completed any matching assignment; the widgets should move on now.
-      if (response.statusCode >= 200 && response.statusCode < 300) dataSyncedNotifier.value++;
-      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: defaultErrorMessage);
+      if (response.statusCode >= 200 && response.statusCode < 300)
+        dataSyncedNotifier.value++;
+      return ApiResponse.fromHttpResponse(response,
+          defaultErrorMessage: defaultErrorMessage);
     } catch (e) {
       if (outboxId == null) {
         // Couldn't write the outbox before the upload; try once more now.
-        await _enqueueOutbox(kind, body, entries.first['eventKey']?.toString(), e.toString(), id: itemId);
+        await _enqueueOutbox(
+            kind, body, entries.first['eventKey']?.toString(), e.toString(),
+            id: itemId);
       } else {
-        await _store.recordOutboxFailure(outboxId, e.toString()).catchError((_) {});
+        await _store
+            .recordOutboxFailure(outboxId, e.toString())
+            .catchError((_) {});
       }
-      return queued('Connection error: saved on this device and will upload automatically.');
+      return queued(
+          'Connection error: saved on this device and will upload automatically.');
     }
   }
 
   /// Returns the new item's id, or null when it couldn't be stored.
-  Future<String?> _enqueueOutbox(String kind, Map<String, dynamic> body, String? eventKey, String reason, {String? id}) async {
+  Future<String?> _enqueueOutbox(
+      String kind, Map<String, dynamic> body, String? eventKey, String reason,
+      {String? id}) async {
     try {
       id ??= _generateUuidV4();
       await _store.enqueue(OutboxItem(
@@ -4199,7 +4746,9 @@ class ApiService {
     _outboxRetryTimer?.cancel();
     final delay = soon
         ? const Duration(seconds: 2)
-        : Duration(seconds: _outboxRetrySeconds[min(_outboxRetryStep, _outboxRetrySeconds.length - 1)]);
+        : Duration(
+            seconds: _outboxRetrySeconds[
+                min(_outboxRetryStep, _outboxRetrySeconds.length - 1)]);
     _outboxRetryTimer = Timer(delay, () async {
       if (_isOnline && isLoggedIn) await syncOutbox().catchError((_) => 0);
       if (outboxCount.value == 0) {
@@ -4258,7 +4807,8 @@ class ApiService {
     if (uploaded > 0) {
       _outboxRetryStep = 0;
       invalidateMemoryCache('cache_');
-      debugPrint('[ApiService] Uploaded $uploaded saved submission(s) from the outbox');
+      debugPrint(
+          '[ApiService] Uploaded $uploaded saved submission(s) from the outbox');
     }
     return uploaded;
   }
@@ -4272,22 +4822,29 @@ class ApiService {
   static const int _outboxBatchMaxChars = 256 * 1024;
 
   /// Statuses that mean "try this again later" rather than "the server will never take it".
-  static bool _isRetryableStatus(int code) => code == 401 || code == 403 || code == 408 || code == 429 || code >= 500;
+  static bool _isRetryableStatus(int code) =>
+      code == 401 || code == 403 || code == 408 || code == 429 || code >= 500;
 
   /// A 403 on a delete is the server's permission check saying no, which trying again won't change.
-  static bool _isRetryableDelete(int code) => code != 403 && _isRetryableStatus(code);
+  static bool _isRetryableDelete(int code) =>
+      code != 403 && _isRetryableStatus(code);
 
   /// The item's payload with its outbox id as `clientId`, so the server recognises a retry of an upload whose
   /// response was lost and doesn't store a second copy.
   static Map<String, dynamic> _outboxPayload(OutboxItem item) {
-    if (item.kind == 'assignment_status' || item.kind == 'qual_batch' || item.kind == 'delete_entry' || item.payload['clientId'] != null) return item.payload;
+    if (item.kind == 'assignment_status' ||
+        item.kind == 'qual_batch' ||
+        item.kind == 'delete_entry' ||
+        item.payload['clientId'] != null) return item.payload;
     return {...item.payload, 'clientId': item.id};
   }
 
   List<OutboxItem> _nextOutboxChunk(List<OutboxItem> items, int start) {
     final chunk = <OutboxItem>[];
     var chars = 0;
-    for (var i = start; i < items.length && chunk.length < _outboxBatchMaxItems; i++) {
+    for (var i = start;
+        i < items.length && chunk.length < _outboxBatchMaxItems;
+        i++) {
       if (items[i].kind == 'delete_entry') break;
       final size = jsonEncode(items[i].payload).length;
       if (chunk.isNotEmpty && chars + size > _outboxBatchMaxChars) break;
@@ -4298,7 +4855,8 @@ class ApiService {
   }
 
   /// Uploads [chunk] in one request. Returns null when the server has no batch endpoint.
-  Future<({int uploaded, bool stop})?> _uploadOutboxBatch(List<OutboxItem> chunk) async {
+  Future<({int uploaded, bool stop})?> _uploadOutboxBatch(
+      List<OutboxItem> chunk) async {
     final http.Response response;
     try {
       response = await http.post(
@@ -4306,7 +4864,12 @@ class ApiService {
         headers: _headers,
         body: jsonEncode({
           'items': [
-            for (final item in chunk) {'id': item.id, 'kind': item.kind, 'payload': _outboxPayload(item)},
+            for (final item in chunk)
+              {
+                'id': item.id,
+                'kind': item.kind,
+                'payload': _outboxPayload(item)
+              },
           ],
         }),
       );
@@ -4316,7 +4879,8 @@ class ApiService {
     }
     if (response.statusCode == 404 || response.statusCode == 405) return null;
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      await _store.recordOutboxFailure(chunk.first.id, 'HTTP ${response.statusCode}');
+      await _store.recordOutboxFailure(
+          chunk.first.id, 'HTTP ${response.statusCode}');
       return (uploaded: 0, stop: true);
     }
 
@@ -4341,7 +4905,8 @@ class ApiService {
         uploaded++;
       } else if (_isRetryableStatus(status)) {
         // The server stops at the first retryable failure, so this and everything after it stay queued in order.
-        await _store.recordOutboxFailure(item.id, 'HTTP $status${raw['error'] != null ? ': ${raw['error']}' : ''}');
+        await _store.recordOutboxFailure(item.id,
+            'HTTP $status${raw['error'] != null ? ': ${raw['error']}' : ''}');
         return (uploaded: uploaded, stop: true);
       } else {
         // The server will never accept this as-is (e.g. 400/404/409/422).
@@ -4353,7 +4918,8 @@ class ApiService {
     for (final item in chunk) {
       if (!seenIds.contains(item.id)) {
         anyOmitted = true;
-        await _store.recordOutboxFailure(item.id, 'Omitted from batch response');
+        await _store.recordOutboxFailure(
+            item.id, 'Omitted from batch response');
       }
     }
     return (uploaded: uploaded, stop: anyOmitted);
@@ -4369,12 +4935,15 @@ class ApiService {
           await _store.removeFromOutbox(item.id);
           return _OutboxOutcome.dropped;
         }
-        response = await http.delete(Uri.parse('$_currentServerUrl$endpoint'), headers: _headers);
-        if ((response.statusCode >= 200 && response.statusCode < 300) || response.statusCode == 404) {
+        response = await http.delete(Uri.parse('$_currentServerUrl$endpoint'),
+            headers: _headers);
+        if ((response.statusCode >= 200 && response.statusCode < 300) ||
+            response.statusCode == 404) {
           await _store.removeFromOutbox(item.id);
           return _OutboxOutcome.uploaded;
         } else if (_isRetryableDelete(response.statusCode)) {
-          await _store.recordOutboxFailure(item.id, 'HTTP ${response.statusCode}');
+          await _store.recordOutboxFailure(
+              item.id, 'HTTP ${response.statusCode}');
           return _OutboxOutcome.retryLater;
         } else {
           await _restoreRefusedDelete(item);
@@ -4383,8 +4952,10 @@ class ApiService {
         }
       } else if (item.kind == 'assignment_status') {
         final id = Uri.encodeComponent(item.payload['id'].toString());
-        response = await http.post(Uri.parse('$_currentServerUrl/api/assignments/$id/status'),
-            headers: _headers, body: jsonEncode({'status': item.payload['status']}));
+        response = await http.post(
+            Uri.parse('$_currentServerUrl/api/assignments/$id/status'),
+            headers: _headers,
+            body: jsonEncode({'status': item.payload['status']}));
       } else {
         final endpoint = _outboxEndpoints[item.kind];
         if (endpoint == null) {
@@ -4400,7 +4971,8 @@ class ApiService {
         await _markOutboxHistory(item, 'synced');
         return _OutboxOutcome.uploaded;
       } else if (_isRetryableStatus(response.statusCode)) {
-        await _store.recordOutboxFailure(item.id, 'HTTP ${response.statusCode}');
+        await _store.recordOutboxFailure(
+            item.id, 'HTTP ${response.statusCode}');
         return _OutboxOutcome.retryLater;
       } else {
         // The server will never accept this as-is (e.g. 400/404/409/422).
@@ -4418,61 +4990,94 @@ class ApiService {
     final type = _outboxHistoryTypes[item.kind];
     if (type == null) return;
     final List<Map<String, dynamic>> payloads = item.kind == 'qual_batch'
-        ? ((item.payload['entries'] as List?) ?? const []).whereType<Map>().map((m) => Map<String, dynamic>.from(m)).toList()
-        : [if (item.payload['data'] is Map) Map<String, dynamic>.from(item.payload['data'] as Map)];
+        ? ((item.payload['entries'] as List?) ?? const [])
+            .whereType<Map>()
+            .map((m) => Map<String, dynamic>.from(m))
+            .toList()
+        : [
+            if (item.payload['data'] is Map)
+              Map<String, dynamic>.from(item.payload['data'] as Map)
+          ];
     for (final payload in payloads) {
       await ScoutHistoryService.markMatchingStatus(type, payload, status);
     }
   }
 
   /// Drops outbox items for an entry that was uploaded another way (e.g. Scout History's sync button).
-  Future<void> removeOutboxEntriesMatching(String historyType, Map<String, dynamic> payload) async {
+  Future<void> removeOutboxEntriesMatching(
+      String historyType, Map<String, dynamic> payload) async {
     final items = await _store.outbox();
     for (final item in items) {
       if (_outboxHistoryTypes[item.kind] != historyType) continue;
       final data = item.payload['data'];
-      if (data is Map && ScoutHistoryService.samePayloadTarget(Map<String, dynamic>.from(data), payload)) {
+      if (data is Map &&
+          ScoutHistoryService.samePayloadTarget(
+              Map<String, dynamic>.from(data), payload)) {
         await _store.removeFromOutbox(item.id);
       }
     }
   }
 
-  Future<ApiResponse<void>> submitPrescoutQualScouting(Map<String, dynamic> data, {bool forceOffline = false}) =>
-      _submitEntry(kind: 'prescout_qual', cacheKey: 'cache_prescout_qual_scouting', entries: [data], defaultErrorMessage: 'Failed to submit qualitative prescout', forceOffline: forceOffline);
+  Future<ApiResponse<void>> submitPrescoutQualScouting(
+          Map<String, dynamic> data,
+          {bool forceOffline = false}) =>
+      _submitEntry(
+          kind: 'prescout_qual',
+          cacheKey: 'cache_prescout_qual_scouting',
+          entries: [data],
+          defaultErrorMessage: 'Failed to submit qualitative prescout',
+          forceOffline: forceOffline);
 
-  Future<ApiResponse<void>> submitScannedItem(String type, Map<String, dynamic> data) async {
+  Future<ApiResponse<void>> submitScannedItem(
+      String type, Map<String, dynamic> data) async {
     final lowerType = type.toLowerCase().replaceAll('_', '-');
-    final Map<String, dynamic> innerData = data.containsKey('data') && data['data'] is Map
-        ? Map<String, dynamic>.from(data['data'] as Map)
-        : Map<String, dynamic>.from(data);
+    final Map<String, dynamic> innerData =
+        data.containsKey('data') && data['data'] is Map
+            ? Map<String, dynamic>.from(data['data'] as Map)
+            : Map<String, dynamic>.from(data);
 
     // Ensure normalized top-level identifiers if scanned from a legacy QR wrapper
-    if (!innerData.containsKey('targetTeamNumber') && (data['targetTeamNumber'] ?? data['team_number']) != null) {
-      innerData['targetTeamNumber'] = data['targetTeamNumber'] ?? data['team_number'];
+    if (!innerData.containsKey('targetTeamNumber') &&
+        (data['targetTeamNumber'] ?? data['team_number']) != null) {
+      innerData['targetTeamNumber'] =
+          data['targetTeamNumber'] ?? data['team_number'];
     }
-    if (!innerData.containsKey('eventKey') && (data['eventKey'] ?? data['event_key']) != null) {
+    if (!innerData.containsKey('eventKey') &&
+        (data['eventKey'] ?? data['event_key']) != null) {
       innerData['eventKey'] = data['eventKey'] ?? data['event_key'];
     }
-    if (!innerData.containsKey('matchNumber') && (data['matchNumber'] ?? data['match_number']) != null) {
+    if (!innerData.containsKey('matchNumber') &&
+        (data['matchNumber'] ?? data['match_number']) != null) {
       innerData['matchNumber'] = data['matchNumber'] ?? data['match_number'];
     }
-    if (!innerData.containsKey('compLevel') && (data['compLevel'] ?? data['comp_level']) != null) {
+    if (!innerData.containsKey('compLevel') &&
+        (data['compLevel'] ?? data['comp_level']) != null) {
       innerData['compLevel'] = data['compLevel'] ?? data['comp_level'];
     }
     if (!innerData.containsKey('matchKey')) {
       if (data['matchKey'] != null || data['match_key'] != null) {
         innerData['matchKey'] = data['matchKey'] ?? data['match_key'];
-      } else if (innerData['eventKey'] != null && innerData['matchNumber'] != null) {
+      } else if (innerData['eventKey'] != null &&
+          innerData['matchNumber'] != null) {
         final comp = innerData['compLevel']?.toString() ?? 'qm';
-        innerData['matchKey'] = '${innerData['eventKey']}_$comp${innerData['matchNumber']}';
+        innerData['matchKey'] =
+            '${innerData['eventKey']}_$comp${innerData['matchNumber']}';
       }
     }
 
-    if (lowerType == 'scout' || lowerType == 'match-scout' || lowerType == 'match-scouting' || lowerType == 'match') {
+    if (lowerType == 'scout' ||
+        lowerType == 'match-scout' ||
+        lowerType == 'match-scouting' ||
+        lowerType == 'match') {
       return submitMatchScouting(innerData);
-    } else if (lowerType == 'pit-scout' || lowerType == 'pit-scouting' || lowerType == 'pit') {
+    } else if (lowerType == 'pit-scout' ||
+        lowerType == 'pit-scouting' ||
+        lowerType == 'pit') {
       return submitPitScouting(innerData);
-    } else if (lowerType == 'qual-scout' || lowerType == 'qualitative-scouting' || lowerType == 'qual-scouting' || lowerType == 'qual') {
+    } else if (lowerType == 'qual-scout' ||
+        lowerType == 'qualitative-scouting' ||
+        lowerType == 'qual-scouting' ||
+        lowerType == 'qual') {
       return submitQualScouting(innerData);
     } else if (lowerType == 'prescout-scout' || lowerType == 'prescout-match') {
       return submitPrescoutMatchScouting(innerData);
@@ -4485,7 +5090,8 @@ class ApiService {
     }
   }
 
-  Future<ApiResponse<void>> deleteScoutingEntry(String id, {String type = 'match'}) async {
+  Future<ApiResponse<void>> deleteScoutingEntry(String id,
+      {String type = 'match'}) async {
     String cleanId = id;
     for (final prefix in ['match-', 'pit-', 'qual-', 'qualitative-']) {
       if (cleanId.toLowerCase().startsWith(prefix)) {
@@ -4496,7 +5102,10 @@ class ApiService {
     final lower = type.toLowerCase();
     final endpoint = (lower == 'pit' || id.toLowerCase().startsWith('pit-'))
         ? '/api/pit-scouting/$cleanId'
-        : (lower == 'qual' || lower == 'qualitative' || id.toLowerCase().startsWith('qual-') || id.toLowerCase().startsWith('qualitative-'))
+        : (lower == 'qual' ||
+                lower == 'qualitative' ||
+                id.toLowerCase().startsWith('qual-') ||
+                id.toLowerCase().startsWith('qualitative-'))
             ? '/api/qual-scouting/$cleanId'
             : '/api/scouting/$cleanId';
 
@@ -4510,8 +5119,12 @@ class ApiService {
       final outboxItems = await _store.outbox();
       for (final item in outboxItems) {
         final itemData = item.payload['data'];
-        final dataId = itemData is Map ? (itemData['id']?.toString() ?? itemData['clientId']?.toString()) : null;
-        if (item.id == cleanId || item.payload['clientId']?.toString() == cleanId || dataId == cleanId) {
+        final dataId = itemData is Map
+            ? (itemData['id']?.toString() ?? itemData['clientId']?.toString())
+            : null;
+        if (item.id == cleanId ||
+            item.payload['clientId']?.toString() == cleanId ||
+            dataId == cleanId) {
           await _store.removeFromOutbox(item.id);
         }
       }
@@ -4534,7 +5147,8 @@ class ApiService {
         reason,
       );
       _scheduleOutboxRetry();
-      return const ApiResponse.success(null, message: 'Removed locally and queued for deletion when online.');
+      return const ApiResponse.success(null,
+          message: 'Removed locally and queued for deletion when online.');
     }
 
     if (!_isOnline) {
@@ -4554,8 +5168,10 @@ class ApiService {
         await _removeStoredEntry(cacheKey, cleanId, isPit: isPit);
         return const ApiResponse.success(null);
       }
-      final result = ApiResponse<void>.fromHttpResponse(response, defaultErrorMessage: 'Failed to delete scouting entry');
-      if (result.success) await _removeStoredEntry(cacheKey, cleanId, isPit: isPit);
+      final result = ApiResponse<void>.fromHttpResponse(response,
+          defaultErrorMessage: 'Failed to delete scouting entry');
+      if (result.success)
+        await _removeStoredEntry(cacheKey, cleanId, isPit: isPit);
       return result;
     } catch (e) {
       return await queueOfflineDelete(e.toString());
@@ -4587,7 +5203,8 @@ class ApiService {
 
     String clean(String id) {
       for (final prefix in ['match-', 'pit-', 'qual-', 'qualitative-']) {
-        if (id.toLowerCase().startsWith(prefix)) return id.substring(prefix.length);
+        if (id.toLowerCase().startsWith(prefix))
+          return id.substring(prefix.length);
       }
       return id;
     }
@@ -4596,23 +5213,36 @@ class ApiService {
     final cleanDeleteIds = deleteIds.map(clean).toList();
     final cacheKey = _entryCacheKeyFor(type, keepId);
     final isPit = cacheKey == 'cache_pit_scouting';
-    final collection = isPit ? 'pit-scouting' : (cacheKey == 'cache_qual_scouting' ? 'qual-scouting' : 'scouting');
+    final collection = isPit
+        ? 'pit-scouting'
+        : (cacheKey == 'cache_qual_scouting' ? 'qual-scouting' : 'scouting');
 
     try {
       final response = await http.post(
         Uri.parse('$_currentServerUrl/api/$collection/resolve'),
         headers: _headers,
-        body: jsonEncode({'keepId': cleanKeepId, 'deleteIds': cleanDeleteIds, if (data != null) 'data': data}),
+        body: jsonEncode({
+          'keepId': cleanKeepId,
+          'deleteIds': cleanDeleteIds,
+          if (data != null) 'data': data
+        }),
       );
       // The route answers a missing entry with 409, so these only come from a server without it.
-      if (response.statusCode == 404 || response.statusCode == 405) return await stepByStep();
-      final result = ApiResponse<void>.fromHttpResponse(response, defaultErrorMessage: 'Failed to resolve conflict');
+      if (response.statusCode == 404 || response.statusCode == 405)
+        return await stepByStep();
+      final result = ApiResponse<void>.fromHttpResponse(response,
+          defaultErrorMessage: 'Failed to resolve conflict');
       if (result.success) {
         if (data != null) {
-          await _patchCachedEntries(cacheKey, (list) => [
-                for (final e in list)
-                  if (e is Map && e['id']?.toString() == cleanKeepId) {...e, 'data': data} else e,
-              ]);
+          await _patchCachedEntries(
+              cacheKey,
+              (list) => [
+                    for (final e in list)
+                      if (e is Map && e['id']?.toString() == cleanKeepId)
+                        {...e, 'data': data}
+                      else
+                        e,
+                  ]);
         }
         for (final id in cleanDeleteIds) {
           await _removeStoredEntry(cacheKey, id, isPit: isPit);
@@ -4626,7 +5256,8 @@ class ApiService {
 
   /// Takes an entry out of a stored list. Returns it, and the flags that cleared on the entry it left alone, so the
   /// change can be undone if the delete behind it is refused later.
-  Future<({List<Map> removed, List<Map<String, dynamic>> clearedFlags})> _removeStoredEntry(
+  Future<({List<Map> removed, List<Map<String, dynamic>> clearedFlags})>
+      _removeStoredEntry(
     String cacheKey,
     String cleanId, {
     required bool isPit,
@@ -4634,7 +5265,9 @@ class ApiService {
     List<Map> removed = const [];
     final clearedFlags = <Map<String, dynamic>>[];
     await _patchCachedEntries(cacheKey, (list) {
-      bool matches(Map e) => e['id']?.toString() == cleanId || e['clientId']?.toString() == cleanId;
+      bool matches(Map e) =>
+          e['id']?.toString() == cleanId ||
+          e['clientId']?.toString() == cleanId;
       removed = list.whereType<Map>().where(matches).toList();
       final kept = list.where((e) => !(e is Map && matches(e))).toList();
       for (final r in removed) {
@@ -4656,14 +5289,21 @@ class ApiService {
         if (flag is Map) flag['id']?.toString(): flag,
     };
     await _patchCachedEntries(cacheKey, (list) {
-      final present = list.whereType<Map>().map((e) => e['id']?.toString()).toSet();
+      final present =
+          list.whereType<Map>().map((e) => e['id']?.toString()).toSet();
       return [
         for (final e in list)
           if (e is Map && flags.containsKey(e['id']?.toString()))
-            {...e, 'hasDiscrepancy': true, 'conflictingTeams': flags[e['id']?.toString()]!['conflictingTeams']}
+            {
+              ...e,
+              'hasDiscrepancy': true,
+              'conflictingTeams':
+                  flags[e['id']?.toString()]!['conflictingTeams']
+            }
           else
             e,
-        ...restore.where((e) => e is Map && !present.contains(e['id']?.toString())),
+        ...restore
+            .where((e) => e is Map && !present.contains(e['id']?.toString())),
       ];
     });
   }
@@ -4672,8 +5312,12 @@ class ApiService {
   static String _entryCacheKeyFor(String type, String id) {
     final lower = type.toLowerCase();
     final lowerId = id.toLowerCase();
-    if (lower == 'pit' || lowerId.startsWith('pit-')) return 'cache_pit_scouting';
-    if (lower == 'qual' || lower == 'qualitative' || lowerId.startsWith('qual-') || lowerId.startsWith('qualitative-')) {
+    if (lower == 'pit' || lowerId.startsWith('pit-'))
+      return 'cache_pit_scouting';
+    if (lower == 'qual' ||
+        lower == 'qualitative' ||
+        lowerId.startsWith('qual-') ||
+        lowerId.startsWith('qualitative-')) {
       return 'cache_qual_scouting';
     }
     return 'cache_scouting';
@@ -4682,14 +5326,16 @@ class ApiService {
   /// Applies a change made on this device to a stored entry list (memory and disk), so the data pages can show it
   /// at once instead of downloading every entry again: on a bad connection that download takes minutes. The next
   /// delta sync brings the server's own copy of the change.
-  Future<void> _patchCachedEntries(String cacheKey, List<dynamic> Function(List<dynamic> entries) change) async {
+  Future<void> _patchCachedEntries(String cacheKey,
+      List<dynamic> Function(List<dynamic> entries) change) async {
     try {
       final current = await _getCachedEntryList(cacheKey);
       final updated = change(List<dynamic>.of(current));
       await _setCache(cacheKey, jsonEncode(updated));
       setMemoryCache(cacheKey, updated);
     } catch (e) {
-      debugPrint('[ApiService] Could not update stored entries ($cacheKey): $e');
+      debugPrint(
+          '[ApiService] Could not update stored entries ($cacheKey): $e');
     }
   }
 
@@ -4704,13 +5350,19 @@ class ApiService {
   /// After [removed] is gone, an entry left alone in its group no longer disagrees with anything. Other groups keep
   /// their flags: the delta sync only re-sends entries that changed, so a flag cleared here would stay cleared.
   /// Returns the flags it cleared.
-  static List<Map<String, dynamic>> _clearResolvedDiscrepancy(List<dynamic> entries, Map removed, {required bool isPit}) {
+  static List<Map<String, dynamic>> _clearResolvedDiscrepancy(
+      List<dynamic> entries, Map removed,
+      {required bool isPit}) {
     final group = _discrepancyGroup(removed, isPit: isPit);
-    final same = entries.whereType<Map>().where((e) => _discrepancyGroup(e, isPit: isPit) == group).toList();
+    final same = entries
+        .whereType<Map>()
+        .where((e) => _discrepancyGroup(e, isPit: isPit) == group)
+        .toList();
     if (same.length > 1) return const [];
     final cleared = <Map<String, dynamic>>[
       for (final e in same)
-        if (e['hasDiscrepancy'] == true) {'id': e['id'], 'conflictingTeams': e['conflictingTeams']},
+        if (e['hasDiscrepancy'] == true)
+          {'id': e['id'], 'conflictingTeams': e['conflictingTeams']},
     ];
     for (final e in same) {
       e['hasDiscrepancy'] = false;
@@ -4719,7 +5371,9 @@ class ApiService {
     return cleared;
   }
 
-  Future<ApiResponse<void>> updateScoutingEntry(String id, Map<String, dynamic> data, {String type = 'match'}) async {
+  Future<ApiResponse<void>> updateScoutingEntry(
+      String id, Map<String, dynamic> data,
+      {String type = 'match'}) async {
     String cleanId = id;
     for (final prefix in ['match-', 'pit-', 'qual-', 'qualitative-']) {
       if (cleanId.toLowerCase().startsWith(prefix)) {
@@ -4730,12 +5384,16 @@ class ApiService {
     final lower = type.toLowerCase();
     final endpoint = (lower == 'pit' || id.toLowerCase().startsWith('pit-'))
         ? '/api/pit-scouting/$cleanId'
-        : (lower == 'qual' || lower == 'qualitative' || id.toLowerCase().startsWith('qual-') || id.toLowerCase().startsWith('qualitative-'))
+        : (lower == 'qual' ||
+                lower == 'qualitative' ||
+                id.toLowerCase().startsWith('qual-') ||
+                id.toLowerCase().startsWith('qualitative-'))
             ? '/api/qual-scouting/$cleanId'
             : '/api/scouting/$cleanId';
 
     if (!_isOnline) {
-      return const ApiResponse.error(isOffline: true, message: 'Device is offline');
+      return const ApiResponse.error(
+          isOffline: true, message: 'Device is offline');
     }
 
     try {
@@ -4749,17 +5407,21 @@ class ApiService {
         Map<String, dynamic>? saved;
         try {
           final decoded = jsonDecode(response.body);
-          if (decoded is Map && decoded['id'] != null) saved = Map<String, dynamic>.from(decoded);
+          if (decoded is Map && decoded['id'] != null)
+            saved = Map<String, dynamic>.from(decoded);
         } catch (_) {}
-        await _patchCachedEntries(_entryCacheKeyFor(type, id), (list) => [
-              for (final e in list)
-                if (e is Map && e['id']?.toString() == cleanId)
-                  saved != null ? {...e, ...saved} : {...e, 'data': data}
-                else
-                  e,
-            ]);
+        await _patchCachedEntries(
+            _entryCacheKeyFor(type, id),
+            (list) => [
+                  for (final e in list)
+                    if (e is Map && e['id']?.toString() == cleanId)
+                      saved != null ? {...e, ...saved} : {...e, 'data': data}
+                    else
+                      e,
+                ]);
       }
-      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to update scouting entry');
+      return ApiResponse.fromHttpResponse(response,
+          defaultErrorMessage: 'Failed to update scouting entry');
     } catch (e) {
       return ApiResponse.error(message: e.toString());
     }
@@ -4782,38 +5444,62 @@ class ApiService {
 
   /// `/api/analytics` computed from stored entries and the cached match config (same math as the server).
   /// Null when there's nothing stored to compute from.
-  Future<Map<String, dynamic>?> computeLocalAnalytics({bool usePrescout = false}) async {
+  Future<Map<String, dynamic>?> computeLocalAnalytics(
+      {bool usePrescout = false}) async {
     final config = await _cachedJsonMap("cache_config");
     final all = await getCachedScoutingEntries();
     if (config == null || all.isEmpty) return null;
     final own = _currentUser?.teamNumber;
-    final regular = entry_sync.resolveEntries(all.where((e) => e is Map && e['isPrescout'] != true).toList(), 'match', own);
-    final prescout = entry_sync.resolveEntries(all, 'match', own).where((e) => e['isPrescout'] == true).toList();
-    final merged = local_analytics.mergePrescoutEntries(regular, prescout, _currentSettings?.eventKey ?? '', forceUsePrescout: usePrescout);
+    final regular = entry_sync.resolveEntries(
+        all.where((e) => e is Map && e['isPrescout'] != true).toList(),
+        'match',
+        own);
+    final prescout = entry_sync
+        .resolveEntries(all, 'match', own)
+        .where((e) => e['isPrescout'] == true)
+        .toList();
+    final merged = local_analytics.mergePrescoutEntries(
+        regular, prescout, _currentSettings?.eventKey ?? '',
+        forceUsePrescout: usePrescout);
     return local_analytics.generateAnalytics(config, merged);
   }
 
   /// `/api/custom-analytics/dataset` computed from stored entries, configs and teams.
-  Future<Map<String, dynamic>?> computeLocalDataset({String? eventKey, bool includePrescout = true}) async {
+  Future<Map<String, dynamic>?> computeLocalDataset(
+      {String? eventKey, bool includePrescout = true}) async {
     final matchConfig = await _cachedJsonMap("cache_config");
     final all = await getCachedScoutingEntries();
     if (matchConfig == null || all.isEmpty) return null;
     final own = _currentUser?.teamNumber;
-    List<Map<String, dynamic>> derive(List<dynamic> list, String kind) => entry_sync.resolveEntries(
-        includePrescout ? list : list.where((e) => e is Map && e['isPrescout'] != true).toList(), kind, own);
-    final teamsKey = "cache_teams_${eventKey ?? _currentSettings?.eventKey ?? ''}";
+    List<Map<String, dynamic>> derive(List<dynamic> list, String kind) =>
+        entry_sync.resolveEntries(
+            includePrescout
+                ? list
+                : list
+                    .where((e) => e is Map && e['isPrescout'] != true)
+                    .toList(),
+            kind,
+            own);
+    final teamsKey =
+        "cache_teams_${eventKey ?? _currentSettings?.eventKey ?? ''}";
     List<dynamic> teams = const [];
     try {
       final raw = await _getCache(teamsKey);
       if (raw != null && raw.isNotEmpty) {
         final decoded = await _decodeCached(raw);
-        teams = decoded is List ? decoded : (decoded is Map && decoded['teams'] is List ? decoded['teams'] as List : const []);
+        teams = decoded is List
+            ? decoded
+            : (decoded is Map && decoded['teams'] is List
+                ? decoded['teams'] as List
+                : const []);
       }
     } catch (_) {}
     return local_analytics.buildDataset(
       matchConfig: matchConfig,
-      pitConfig: await _cachedJsonMap("cache_pit_config") ?? const {'fields': []},
-      qualConfig: await _cachedJsonMap("cache_qual_config") ?? const {'fields': []},
+      pitConfig:
+          await _cachedJsonMap("cache_pit_config") ?? const {'fields': []},
+      qualConfig:
+          await _cachedJsonMap("cache_qual_config") ?? const {'fields': []},
       matchEntries: derive(all, 'match'),
       pitEntries: derive(await getCachedPitScoutingEntries(), 'pit'),
       qualEntries: derive(await getCachedQualScoutingEntries(), 'qual'),
@@ -4823,13 +5509,18 @@ class ApiService {
     );
   }
 
-  Future<List<AnalyticsWidgetModel>> fetchAnalyticsWidgets({bool usePrescout = false}) async {
+  Future<List<AnalyticsWidgetModel>> fetchAnalyticsWidgets(
+      {bool usePrescout = false}) async {
     // Prescout widgets come only from the server; they don't replace the cached event copy.
     if (usePrescout) {
-      final res = await requestJson('GET', '/api/analytics', query: {'usePrescout': 'true'});
+      final res = await requestJson('GET', '/api/analytics',
+          query: {'usePrescout': 'true'});
       final data = res.data;
       if (res.success && data is Map && data['widgets'] is List) {
-        return (data['widgets'] as List).map((w) => AnalyticsWidgetModel.fromJson(w as Map<String, dynamic>)).toList();
+        return (data['widgets'] as List)
+            .map(
+                (w) => AnalyticsWidgetModel.fromJson(w as Map<String, dynamic>))
+            .toList();
       }
       return [];
     }
@@ -4840,7 +5531,8 @@ class ApiService {
         final Map<String, dynamic> jsonMap = await _decodeCached(cached);
         if (jsonMap['widgets'] is List) {
           cachedWidgets = (jsonMap['widgets'] as List)
-              .map((w) => AnalyticsWidgetModel.fromJson(w as Map<String, dynamic>))
+              .map((w) =>
+                  AnalyticsWidgetModel.fromJson(w as Map<String, dynamic>))
               .toList();
         }
       } catch (_) {}
@@ -4849,20 +5541,25 @@ class ApiService {
     if (!_isOnline || LinkQuality.instance.isLowBandwidth) {
       final local = await computeLocalAnalytics();
       if (local != null) {
-        return (local['widgets'] as List).map((w) => AnalyticsWidgetModel.fromJson(w as Map<String, dynamic>)).toList();
+        return (local['widgets'] as List)
+            .map(
+                (w) => AnalyticsWidgetModel.fromJson(w as Map<String, dynamic>))
+            .toList();
       }
       if (!_isOnline) return cachedWidgets;
     }
 
     try {
-      final response = await http
-          .get(Uri.parse('$_currentServerUrl/api/analytics'), headers: _headers);
+      final response = await http.get(
+          Uri.parse('$_currentServerUrl/api/analytics'),
+          headers: _headers);
       if (response.statusCode == 200) {
         await _setCache("cache_analytics", response.body);
         final Map<String, dynamic> jsonMap = jsonDecode(response.body);
         if (jsonMap['widgets'] is List) {
           return (jsonMap['widgets'] as List)
-              .map((w) => AnalyticsWidgetModel.fromJson(w as Map<String, dynamic>))
+              .map((w) =>
+                  AnalyticsWidgetModel.fromJson(w as Map<String, dynamic>))
               .toList();
         }
       }
@@ -4872,33 +5569,42 @@ class ApiService {
   }
 
   // Custom Analytics (BI Studio) API Methods
-  Future<List<CustomAnalyticsReportRecord>> fetchCustomAnalyticsReports() async {
+  Future<List<CustomAnalyticsReportRecord>>
+      fetchCustomAnalyticsReports() async {
     final cached = await _getCache("cache_custom_analytics_reports");
     List<CustomAnalyticsReportRecord> cachedReports = [];
     if (cached != null && cached.isNotEmpty) {
       try {
         final List list = await _decodeCached(cached);
-        cachedReports = list.map((e) => CustomAnalyticsReportRecord.fromJson(e as Map<String, dynamic>)).toList();
+        cachedReports = list
+            .map((e) =>
+                CustomAnalyticsReportRecord.fromJson(e as Map<String, dynamic>))
+            .toList();
       } catch (_) {}
     }
 
     if (!_isOnline) return cachedReports;
 
     try {
-      final response = await http
-          .get(Uri.parse('$_currentServerUrl/api/custom-analytics/reports'), headers: _headers);
+      final response = await http.get(
+          Uri.parse('$_currentServerUrl/api/custom-analytics/reports'),
+          headers: _headers);
       _checkResponse(response);
       if (response.statusCode == 200) {
         await _setCache("cache_custom_analytics_reports", response.body);
         final List list = jsonDecode(response.body);
-        return list.map((e) => CustomAnalyticsReportRecord.fromJson(e as Map<String, dynamic>)).toList();
+        return list
+            .map((e) =>
+                CustomAnalyticsReportRecord.fromJson(e as Map<String, dynamic>))
+            .toList();
       }
     } catch (_) {}
 
     return cachedReports;
   }
 
-  Future<CustomAnalyticsReportRecord?> fetchCustomAnalyticsReport(String id) async {
+  Future<CustomAnalyticsReportRecord?> fetchCustomAnalyticsReport(
+      String id) async {
     if (!_isOnline) {
       final reports = await fetchCustomAnalyticsReports();
       try {
@@ -4909,8 +5615,9 @@ class ApiService {
     }
 
     try {
-      final response = await http
-          .get(Uri.parse('$_currentServerUrl/api/custom-analytics/reports/$id'), headers: _headers);
+      final response = await http.get(
+          Uri.parse('$_currentServerUrl/api/custom-analytics/reports/$id'),
+          headers: _headers);
       _checkResponse(response);
       if (response.statusCode == 200) {
         return CustomAnalyticsReportRecord.fromJson(jsonDecode(response.body));
@@ -4944,11 +5651,13 @@ class ApiService {
       );
       _checkResponse(response);
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final created = CustomAnalyticsReportRecord.fromJson(jsonDecode(response.body));
+        final created =
+            CustomAnalyticsReportRecord.fromJson(jsonDecode(response.body));
         // Update local cache
         final reports = await fetchCustomAnalyticsReports();
         reports.insert(0, created);
-        await _setCache("cache_custom_analytics_reports", jsonEncode(reports.map((r) => r.toJson()).toList()));
+        await _setCache("cache_custom_analytics_reports",
+            jsonEncode(reports.map((r) => r.toJson()).toList()));
         return created;
       }
     } catch (_) {}
@@ -4982,7 +5691,8 @@ class ApiService {
       );
       _checkResponse(response);
       if (response.statusCode == 200) {
-        final updated = CustomAnalyticsReportRecord.fromJson(jsonDecode(response.body));
+        final updated =
+            CustomAnalyticsReportRecord.fromJson(jsonDecode(response.body));
         return updated;
       }
     } catch (_) {}
@@ -5005,12 +5715,14 @@ class ApiService {
     }
   }
 
-  Future<CustomAnalyticsReportRecord?> duplicateCustomAnalyticsReport(String id) async {
+  Future<CustomAnalyticsReportRecord?> duplicateCustomAnalyticsReport(
+      String id) async {
     if (!_isOnline) return null;
 
     try {
       final response = await http.post(
-        Uri.parse('$_currentServerUrl/api/custom-analytics/reports/$id/duplicate'),
+        Uri.parse(
+            '$_currentServerUrl/api/custom-analytics/reports/$id/duplicate'),
         headers: _headers,
       );
       _checkResponse(response);
@@ -5025,23 +5737,27 @@ class ApiService {
     String? eventKey,
     bool includePrescout = true,
   }) async {
-    final cacheKey = "cache_custom_analytics_dataset_${eventKey ?? 'all'}_$includePrescout";
+    final cacheKey =
+        "cache_custom_analytics_dataset_${eventKey ?? 'all'}_$includePrescout";
     final cached = await _getCache(cacheKey);
     CustomAnalyticsDataset? cachedDataset;
     if (cached != null && cached.isNotEmpty) {
       try {
-        cachedDataset = CustomAnalyticsDataset.fromJson(await _decodeCached(cached));
+        cachedDataset =
+            CustomAnalyticsDataset.fromJson(await _decodeCached(cached));
       } catch (_) {}
     }
 
     if (!_isOnline || LinkQuality.instance.isLowBandwidth) {
-      final local = await computeLocalDataset(eventKey: eventKey, includePrescout: includePrescout);
+      final local = await computeLocalDataset(
+          eventKey: eventKey, includePrescout: includePrescout);
       if (local != null) return CustomAnalyticsDataset.fromJson(local);
       if (!_isOnline) return cachedDataset;
     }
 
     try {
-      String url = '$_currentServerUrl/api/custom-analytics/dataset?includePrescout=$includePrescout';
+      String url =
+          '$_currentServerUrl/api/custom-analytics/dataset?includePrescout=$includePrescout';
       if (eventKey != null && eventKey.isNotEmpty) {
         url += '&eventKey=${Uri.encodeComponent(eventKey)}';
       }
@@ -5067,8 +5783,9 @@ class ApiService {
     if (!_isOnline) return cached == "true";
 
     try {
-      final response = await http
-          .get(Uri.parse('$_currentServerUrl/api/settings?local=true'), headers: _headers);
+      final response = await http.get(
+          Uri.parse('$_currentServerUrl/api/settings?local=true'),
+          headers: _headers);
       if (response.statusCode == 200) {
         final jsonMap = jsonDecode(response.body);
         final settings = jsonMap['settings'] ?? jsonMap;
@@ -5096,8 +5813,9 @@ class ApiService {
     if (!_isOnline) return cachedGroups;
 
     try {
-      final response = await http
-          .get(Uri.parse('$_currentServerUrl/api/chat/groups'), headers: _headers);
+      final response = await http.get(
+          Uri.parse('$_currentServerUrl/api/chat/groups'),
+          headers: _headers);
       _checkResponseForServerError(response);
       if (response.statusCode == 200) {
         await _setCache("cache_chat_groups", response.body);
@@ -5129,7 +5847,8 @@ class ApiService {
     if (!_isOnline) return false;
     try {
       final response = await http.delete(
-        Uri.parse('$_currentServerUrl/api/chat/groups/${Uri.encodeComponent(groupName)}'),
+        Uri.parse(
+            '$_currentServerUrl/api/chat/groups/${Uri.encodeComponent(groupName)}'),
         headers: _headers,
       );
       return response.statusCode == 200 || response.statusCode == 204;
@@ -5143,7 +5862,8 @@ class ApiService {
     if (!_isOnline) return false;
     try {
       final response = await http.post(
-        Uri.parse('$_currentServerUrl/api/chat/groups/${Uri.encodeComponent(groupName)}/clear'),
+        Uri.parse(
+            '$_currentServerUrl/api/chat/groups/${Uri.encodeComponent(groupName)}/clear'),
         headers: _headers,
       );
       return response.statusCode == 200;
@@ -5157,7 +5877,8 @@ class ApiService {
     if (!_isOnline) return null;
     try {
       final response = await http.get(
-        Uri.parse('$_currentServerUrl/api/chat/groups/${Uri.encodeComponent(groupName)}/details'),
+        Uri.parse(
+            '$_currentServerUrl/api/chat/groups/${Uri.encodeComponent(groupName)}/details'),
         headers: _headers,
       );
       if (response.statusCode == 200) {
@@ -5176,7 +5897,8 @@ class ApiService {
     if (!_isOnline) return false;
     try {
       final response = await http.put(
-        Uri.parse('$_currentServerUrl/api/chat/groups/${Uri.encodeComponent(groupName)}/permissions'),
+        Uri.parse(
+            '$_currentServerUrl/api/chat/groups/${Uri.encodeComponent(groupName)}/permissions'),
         headers: _headers,
         body: jsonEncode({
           'allowedRoles': allowedRoles,
@@ -5200,7 +5922,9 @@ class ApiService {
       );
       if (response.statusCode == 200) {
         final List data = jsonDecode(response.body);
-        return data.map((e) => ChatTeamMemberModel.fromJson(e as Map<String, dynamic>)).toList();
+        return data
+            .map((e) => ChatTeamMemberModel.fromJson(e as Map<String, dynamic>))
+            .toList();
       }
     } catch (_) {}
     return [];
@@ -5219,20 +5943,26 @@ class ApiService {
     if (cached != null && cached.isNotEmpty) {
       try {
         final List list = await _decodeCached(cached);
-        cachedList = list.map((e) => ChatMessageModel.fromJson(e as Map<String, dynamic>)).toList();
+        cachedList = list
+            .map((e) => ChatMessageModel.fromJson(e as Map<String, dynamic>))
+            .toList();
       } catch (_) {}
     }
 
     if (!_isOnline) return cachedList;
 
     try {
-      final response = await http
-          .get(Uri.parse('$_currentServerUrl/api/chat/messages?group=${Uri.encodeComponent(groupName)}'), headers: _headers);
+      final response = await http.get(
+          Uri.parse(
+              '$_currentServerUrl/api/chat/messages?group=${Uri.encodeComponent(groupName)}'),
+          headers: _headers);
       _checkResponseForServerError(response);
       if (response.statusCode == 200) {
         await _setCache(cacheKey, response.body);
         final List list = jsonDecode(response.body);
-        return list.map((e) => ChatMessageModel.fromJson(e as Map<String, dynamic>)).toList();
+        return list
+            .map((e) => ChatMessageModel.fromJson(e as Map<String, dynamic>))
+            .toList();
       }
     } catch (_) {}
 
@@ -5330,12 +6060,16 @@ class ApiService {
     if (!_isOnline) return cachedUsers;
 
     try {
-      final response = await http
-          .get(Uri.parse('$_currentServerUrl/api/chat/team-users'), headers: _headers);
+      final response = await http.get(
+          Uri.parse('$_currentServerUrl/api/chat/team-users'),
+          headers: _headers);
       if (response.statusCode == 200) {
         await _setCache("cache_chat_team_users", response.body);
         final List list = jsonDecode(response.body);
-        final filtered = list.map((e) => e.toString()).where((u) => u.toLowerCase() != "deleted user").toList();
+        final filtered = list
+            .map((e) => e.toString())
+            .where((u) => u.toLowerCase() != "deleted user")
+            .toList();
         final set = <String>{"everyone", "channel", ...filtered};
         return set.toList();
       }
@@ -5347,14 +6081,16 @@ class ApiService {
   Future<Map<String, ChatGroupUnreadModel>> fetchChatUnreadStatus() async {
     if (!_isOnline) return {};
     try {
-      final response = await http
-          .get(Uri.parse('$_currentServerUrl/api/chat/unread-status'), headers: _headers);
+      final response = await http.get(
+          Uri.parse('$_currentServerUrl/api/chat/unread-status'),
+          headers: _headers);
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final Map<String, ChatGroupUnreadModel> result = {};
         if (data['groups'] is List) {
           for (final item in data['groups']) {
-            final model = ChatGroupUnreadModel.fromJson(item as Map<String, dynamic>);
+            final model =
+                ChatGroupUnreadModel.fromJson(item as Map<String, dynamic>);
             result[model.groupName] = model;
           }
         }
@@ -5378,36 +6114,42 @@ class ApiService {
   /// Raw JSON of the widget snapshot (see /api/widgets/snapshot), or null when offline or signed out.
   /// [placed] lists the widget kinds on the home screen so the server only pushes refreshes that matter.
   /// Also returns the response's ETag, which the native widgets reuse for their own "not modified" checks.
-  Future<({String body, String? etag})?> fetchWidgetSnapshot({List<String>? placed}) async {
+  Future<({String body, String? etag})?> fetchWidgetSnapshot(
+      {List<String>? placed}) async {
     if (!_isOnline || !isLoggedIn) return null;
     try {
-      final uri = Uri.parse('$_currentServerUrl/api/widgets/snapshot')
-          .replace(queryParameters: placed == null ? null : {'placed': placed.join(',')});
+      final uri = Uri.parse('$_currentServerUrl/api/widgets/snapshot').replace(
+          queryParameters:
+              placed == null ? null : {'placed': placed.join(',')});
       final response = await http.get(uri, headers: _headers);
       // Widgets refresh quietly: only a signed-out session is acted on, never a server-error banner.
       if (response.statusCode == 401) _checkResponse(response);
-      if (response.statusCode == 200) return (body: response.body, etag: response.headers['etag']);
+      if (response.statusCode == 200)
+        return (body: response.body, etag: response.headers['etag']);
     } catch (_) {}
     return null;
   }
 
   /// A read-only token the phone's widgets use to fetch their snapshot while the app is closed.
   /// It is tied to this login and stops working when the user signs out or the device is revoked.
-  Future<({String token, int expiresAt})?> issueWidgetToken(String platform) async {
+  Future<({String token, int expiresAt})?> issueWidgetToken(
+      String platform) async {
     if (!_isOnline || !isLoggedIn) return null;
     try {
-      final response = await http
-          .post(
-            Uri.parse('$_currentServerUrl/api/widgets/token'),
-            headers: _headers,
-            body: jsonEncode({'platform': platform}),
-          );
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/widgets/token'),
+        headers: _headers,
+        body: jsonEncode({'platform': platform}),
+      );
       // Widgets refresh quietly: only a signed-out session is acted on, never a server-error banner.
       if (response.statusCode == 401) _checkResponse(response);
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
         if (decoded is Map && decoded['token'] is String) {
-          return (token: decoded['token'] as String, expiresAt: (decoded['expiresAt'] as num?)?.toInt() ?? 0);
+          return (
+            token: decoded['token'] as String,
+            expiresAt: (decoded['expiresAt'] as num?)?.toInt() ?? 0
+          );
         }
       }
     } catch (_) {}
@@ -5416,8 +6158,8 @@ class ApiService {
 
   Future<Map<String, dynamic>?> fetchFcmPublicConfig() async {
     try {
-      final response = await http
-          .get(Uri.parse('$_currentServerUrl/api/config/fcm-public'));
+      final response =
+          await http.get(Uri.parse('$_currentServerUrl/api/config/fcm-public'));
       if (response.statusCode == 200) {
         return jsonDecode(response.body) as Map<String, dynamic>;
       }
@@ -5462,8 +6204,10 @@ class ApiService {
 
     if (_isOnline) {
       try {
-        final response = await http
-            .get(Uri.parse('$_currentServerUrl/api/alliance-selection?eventKey=$eventKey'), headers: _headers);
+        final response = await http.get(
+            Uri.parse(
+                '$_currentServerUrl/api/alliance-selection?eventKey=$eventKey'),
+            headers: _headers);
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body) as Map<String, dynamic>;
           await _store.setString(cacheKey, response.body);
@@ -5481,7 +6225,8 @@ class ApiService {
     return null;
   }
 
-  Future<ApiResponse<void>> saveAllianceSelection(String eventKey, String selectionJson) async {
+  Future<ApiResponse<void>> saveAllianceSelection(
+      String eventKey, String selectionJson) async {
     final cacheKey = "cache_alliance_selection_$eventKey";
     await _store.setString(
       cacheKey,
@@ -5492,7 +6237,9 @@ class ApiService {
     );
 
     if (!_isOnline) {
-      return const ApiResponse.error(isOffline: true, message: 'Saved to offline cache. Will synchronize when online.');
+      return const ApiResponse.error(
+          isOffline: true,
+          message: 'Saved to offline cache. Will synchronize when online.');
     }
 
     try {
@@ -5504,7 +6251,8 @@ class ApiService {
           'selectionJson': selectionJson,
         }),
       );
-      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to save alliance selection');
+      return ApiResponse.fromHttpResponse(response,
+          defaultErrorMessage: 'Failed to save alliance selection');
     } catch (e) {
       return ApiResponse.error(message: e.toString());
     }
@@ -5517,11 +6265,14 @@ class ApiService {
 
     if (_isOnline) {
       try {
-        final response = await http
-            .get(Uri.parse('$_currentServerUrl/api/alliance-selection/picklist?eventKey=${Uri.encodeQueryComponent(eventKey)}'), headers: _headers);
+        final response = await http.get(
+            Uri.parse(
+                '$_currentServerUrl/api/alliance-selection/picklist?eventKey=${Uri.encodeQueryComponent(eventKey)}'),
+            headers: _headers);
         if (response.statusCode == 200) {
           await _store.setString(cacheKey, response.body);
-          return PickListBoard.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+          return PickListBoard.fromJson(
+              jsonDecode(response.body) as Map<String, dynamic>);
         }
       } catch (_) {}
     }
@@ -5529,15 +6280,19 @@ class ApiService {
     final cached = await _store.getString(cacheKey);
     if (cached != null && cached.isNotEmpty) {
       try {
-        return PickListBoard.fromJson(await _decodeCached(cached) as Map<String, dynamic>);
+        return PickListBoard.fromJson(
+            await _decodeCached(cached) as Map<String, dynamic>);
       } catch (_) {}
     }
     return null;
   }
 
-  Future<ApiResponse<PickListBoard>> savePickListRanking(String eventKey, List<int> ranking) async {
+  Future<ApiResponse<PickListBoard>> savePickListRanking(
+      String eventKey, List<int> ranking) async {
     if (!_isOnline) {
-      return const ApiResponse.error(isOffline: true, message: 'You are offline. Pick list changes need a connection.');
+      return const ApiResponse.error(
+          isOffline: true,
+          message: 'You are offline. Pick list changes need a connection.');
     }
     try {
       final response = await http.post(
@@ -5550,7 +6305,8 @@ class ApiService {
         parser: (json) => PickListBoard.fromJson(json as Map<String, dynamic>),
         defaultErrorMessage: 'Failed to save pick list',
       );
-      if (result.success) await _store.setString("cache_pick_list_$eventKey", response.body);
+      if (result.success)
+        await _store.setString("cache_pick_list_$eventKey", response.body);
       return result;
     } catch (e) {
       return ApiResponse.error(message: e.toString());
@@ -5558,22 +6314,27 @@ class ApiService {
   }
 
   /// Adds a team to, or removes it from, the Do Not Pick list used by Alliance Selection.
-  Future<ApiResponse<PickListBoard>> setDoNotPick(String eventKey, int teamNumber, bool dnp) async {
+  Future<ApiResponse<PickListBoard>> setDoNotPick(
+      String eventKey, int teamNumber, bool dnp) async {
     if (!_isOnline) {
-      return const ApiResponse.error(isOffline: true, message: 'You are offline. Pick list changes need a connection.');
+      return const ApiResponse.error(
+          isOffline: true,
+          message: 'You are offline. Pick list changes need a connection.');
     }
     try {
       final response = await http.post(
         Uri.parse('$_currentServerUrl/api/alliance-selection/picklist/dnp'),
         headers: _headers,
-        body: jsonEncode({'eventKey': eventKey, 'teamNumber': teamNumber, 'dnp': dnp}),
+        body: jsonEncode(
+            {'eventKey': eventKey, 'teamNumber': teamNumber, 'dnp': dnp}),
       );
       final result = ApiResponse<PickListBoard>.fromHttpResponse(
         response,
         parser: (json) => PickListBoard.fromJson(json as Map<String, dynamic>),
         defaultErrorMessage: 'Failed to update Do Not Pick',
       );
-      if (result.success) await _store.setString("cache_pick_list_$eventKey", response.body);
+      if (result.success)
+        await _store.setString("cache_pick_list_$eventKey", response.body);
       return result;
     } catch (e) {
       return ApiResponse.error(message: e.toString());
@@ -5611,7 +6372,8 @@ class ApiService {
       } catch (_) {}
     }
 
-    final cached = (await _store.getString(cacheKey)) ?? (await _store.getString('cache_events_all'));
+    final cached = (await _store.getString(cacheKey)) ??
+        (await _store.getString('cache_events_all'));
     if (cached != null && cached.isNotEmpty) {
       try {
         final List data = await _decodeCached(cached);
@@ -5623,7 +6385,8 @@ class ApiService {
 
   Future<ApiResponse<String>> syncEvents() async {
     if (!_isOnline) {
-      return const ApiResponse.error(isOffline: true, message: 'Cannot sync events while offline');
+      return const ApiResponse.error(
+          isOffline: true, message: 'Cannot sync events while offline');
     }
 
     try {
@@ -5641,9 +6404,11 @@ class ApiService {
             msg = decoded['message'].toString();
           }
         } catch (_) {}
-        return ApiResponse.success(msg, statusCode: response.statusCode, message: msg);
+        return ApiResponse.success(msg,
+            statusCode: response.statusCode, message: msg);
       }
-      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to sync events');
+      return ApiResponse.fromHttpResponse(response,
+          defaultErrorMessage: 'Failed to sync events');
     } catch (e) {
       return ApiResponse.error(message: e.toString());
     }
@@ -5651,7 +6416,8 @@ class ApiService {
 
   Future<ApiResponse<bool>> createEvent(EventModel event) async {
     if (!_isOnline) {
-      return const ApiResponse.error(isOffline: true, message: 'Cannot create event while offline');
+      return const ApiResponse.error(
+          isOffline: true, message: 'Cannot create event while offline');
     }
 
     try {
@@ -5663,17 +6429,22 @@ class ApiService {
       _checkResponse(response);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        return ApiResponse.success(true, statusCode: response.statusCode, message: 'Event saved successfully');
+        return ApiResponse.success(true,
+            statusCode: response.statusCode,
+            message: 'Event saved successfully');
       }
-      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to create event');
+      return ApiResponse.fromHttpResponse(response,
+          defaultErrorMessage: 'Failed to create event');
     } catch (e) {
       return ApiResponse.error(message: e.toString());
     }
   }
 
-  Future<ApiResponse<bool>> updateEvent({required String oldKey, required EventModel event}) async {
+  Future<ApiResponse<bool>> updateEvent(
+      {required String oldKey, required EventModel event}) async {
     if (!_isOnline) {
-      return const ApiResponse.error(isOffline: true, message: 'Cannot update event while offline');
+      return const ApiResponse.error(
+          isOffline: true, message: 'Cannot update event while offline');
     }
 
     try {
@@ -5688,9 +6459,12 @@ class ApiService {
       _checkResponse(response);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        return ApiResponse.success(true, statusCode: response.statusCode, message: 'Event updated successfully');
+        return ApiResponse.success(true,
+            statusCode: response.statusCode,
+            message: 'Event updated successfully');
       }
-      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to update event');
+      return ApiResponse.fromHttpResponse(response,
+          defaultErrorMessage: 'Failed to update event');
     } catch (e) {
       return ApiResponse.error(message: e.toString());
     }
@@ -5698,7 +6472,8 @@ class ApiService {
 
   Future<ApiResponse<bool>> deleteEvent(String eventKey) async {
     if (!_isOnline) {
-      return const ApiResponse.error(isOffline: true, message: 'Cannot delete event while offline');
+      return const ApiResponse.error(
+          isOffline: true, message: 'Cannot delete event while offline');
     }
 
     try {
@@ -5709,9 +6484,12 @@ class ApiService {
       _checkResponse(response);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        return ApiResponse.success(true, statusCode: response.statusCode, message: 'Event deleted successfully');
+        return ApiResponse.success(true,
+            statusCode: response.statusCode,
+            message: 'Event deleted successfully');
       }
-      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to delete event');
+      return ApiResponse.fromHttpResponse(response,
+          defaultErrorMessage: 'Failed to delete event');
     } catch (e) {
       return ApiResponse.error(message: e.toString());
     }
@@ -5727,7 +6505,8 @@ class ApiService {
         : (await fetchCurrentEventKey() ?? '');
     if (effectiveEventKey.isEmpty) return null;
 
-    final cacheKey = "cache_validation_${effectiveEventKey}_${threshold}_$forcePrescout";
+    final cacheKey =
+        "cache_validation_${effectiveEventKey}_${threshold}_$forcePrescout";
     final fallbackCacheKey = "cache_validation_$effectiveEventKey";
 
     if (_isOnline) {
@@ -5748,7 +6527,8 @@ class ApiService {
       }
     }
 
-    final cached = (await _store.getString(cacheKey)) ?? (await _store.getString(fallbackCacheKey));
+    final cached = (await _store.getString(cacheKey)) ??
+        (await _store.getString(fallbackCacheKey));
     if (cached != null && cached.isNotEmpty) {
       try {
         final jsonMap = await _decodeCached(cached) as Map<String, dynamic>;
@@ -5762,8 +6542,9 @@ class ApiService {
   Future<List<Map<String, dynamic>>> fetchSessions() async {
     if (!_isOnline) return [];
     try {
-      final response = await http
-          .get(Uri.parse('$_currentServerUrl/api/user/sessions'), headers: _headers);
+      final response = await http.get(
+          Uri.parse('$_currentServerUrl/api/user/sessions'),
+          headers: _headers);
       _checkResponse(response);
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
@@ -5776,28 +6557,34 @@ class ApiService {
   }
 
   Future<ApiResponse<void>> revokeSession(String sessionId) async {
-    if (!_isOnline) return const ApiResponse.error(isOffline: true, message: 'Device is offline');
+    if (!_isOnline)
+      return const ApiResponse.error(
+          isOffline: true, message: 'Device is offline');
     try {
       final response = await http.delete(
         Uri.parse('$_currentServerUrl/api/user/sessions/$sessionId'),
         headers: _headers,
       );
       _checkResponse(response);
-      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to revoke session');
+      return ApiResponse.fromHttpResponse(response,
+          defaultErrorMessage: 'Failed to revoke session');
     } catch (e) {
       return ApiResponse.error(message: e.toString());
     }
   }
 
   Future<ApiResponse<void>> revokeAllOtherSessions() async {
-    if (!_isOnline) return const ApiResponse.error(isOffline: true, message: 'Device is offline');
+    if (!_isOnline)
+      return const ApiResponse.error(
+          isOffline: true, message: 'Device is offline');
     try {
       final response = await http.delete(
         Uri.parse('$_currentServerUrl/api/user/sessions?othersOnly=true'),
         headers: _headers,
       );
       _checkResponse(response);
-      return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Failed to revoke other sessions');
+      return ApiResponse.fromHttpResponse(response,
+          defaultErrorMessage: 'Failed to revoke other sessions');
     } catch (e) {
       return ApiResponse.error(message: e.toString());
     }
@@ -5811,7 +6598,8 @@ class ApiService {
     required String message,
   }) async {
     if (!_isOnline) {
-      return const ApiResponse.error(isOffline: true, message: 'Device is offline');
+      return const ApiResponse.error(
+          isOffline: true, message: 'Device is offline');
     }
     try {
       final response = await http.post(
@@ -5820,7 +6608,9 @@ class ApiService {
         body: jsonEncode({
           'type': type,
           'name': name,
-          'replyToEmail': (replyToEmail != null && replyToEmail.isNotEmpty) ? replyToEmail : null,
+          'replyToEmail': (replyToEmail != null && replyToEmail.isNotEmpty)
+              ? replyToEmail
+              : null,
           'message': message,
         }),
       );
@@ -5841,13 +6631,33 @@ class ApiService {
   Future<ClusterNodesResponse?> fetchClusterNodes() async {
     if (!_isOnline) return null;
     try {
-      final response = await http
-          .get(Uri.parse('$_currentServerUrl/api/admin/cluster/nodes'),
-              headers: _headers);
+      final response = await http.get(
+          Uri.parse('$_currentServerUrl/api/admin/cluster/nodes'),
+          headers: _headers);
       _checkResponse(response);
       if (response.statusCode == 200) {
         final j = jsonDecode(response.body) as Map<String, dynamic>;
         return ClusterNodesResponse.fromJson(j);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<ClusterLoadProfile?> fetchClusterLoadProfile(
+      {int minutes = 15}) async {
+    if (!_isOnline) return null;
+    try {
+      final response = await http.get(
+        Uri.parse(
+            '$_currentServerUrl/api/admin/cluster/load-profile?minutes=$minutes'),
+        headers: _headers,
+      );
+      _checkResponse(response);
+      if (response.statusCode == 200) {
+        final j = jsonDecode(response.body) as Map<String, dynamic>;
+        return ClusterLoadProfile.fromJson(j);
       }
       return null;
     } catch (_) {
@@ -5864,8 +6674,7 @@ class ApiService {
       final uri = Uri.parse(
               '$_currentServerUrl/api/admin/cluster/nodes/${Uri.encodeComponent(nodeIp)}/logs')
           .replace(queryParameters: queryParams);
-      final response =
-          await http.get(uri, headers: _headers);
+      final response = await http.get(uri, headers: _headers);
       _checkResponse(response);
       if (response.statusCode == 200) {
         final j = jsonDecode(response.body) as Map<String, dynamic>;
@@ -5890,8 +6699,7 @@ class ApiService {
           Uri.parse('$_currentServerUrl/api/admin/cluster/logs-all').replace(
         queryParameters: queryParams,
       );
-      final response =
-          await http.get(uri, headers: _headers);
+      final response = await http.get(uri, headers: _headers);
       _checkResponse(response);
       if (response.statusCode == 200) {
         final j = jsonDecode(response.body) as Map<String, dynamic>;
@@ -5909,11 +6717,10 @@ class ApiService {
   Future<AppConfigPayload?> fetchNodeAppConfig(String nodeIp) async {
     if (!_isOnline) return null;
     try {
-      final response = await http
-          .get(
-              Uri.parse(
-                  '$_currentServerUrl/api/admin/cluster/nodes/${Uri.encodeComponent(nodeIp)}/app-config'),
-              headers: _headers);
+      final response = await http.get(
+          Uri.parse(
+              '$_currentServerUrl/api/admin/cluster/nodes/${Uri.encodeComponent(nodeIp)}/app-config'),
+          headers: _headers);
       _checkResponse(response);
       if (response.statusCode == 200) {
         return AppConfigPayload.fromJson(
@@ -5932,12 +6739,11 @@ class ApiService {
           success: false, message: 'Device is offline');
     }
     try {
-      final response = await http
-          .put(
-              Uri.parse(
-                  '$_currentServerUrl/api/admin/cluster/nodes/${Uri.encodeComponent(nodeIp)}/app-config'),
-              headers: _headers,
-              body: rawJson);
+      final response = await http.put(
+          Uri.parse(
+              '$_currentServerUrl/api/admin/cluster/nodes/${Uri.encodeComponent(nodeIp)}/app-config'),
+          headers: _headers,
+          body: rawJson);
       _checkResponse(response);
       return ActionResultResponse.fromJson(
           jsonDecode(response.body) as Map<String, dynamic>);
@@ -5955,8 +6761,7 @@ class ApiService {
       final url = nodeIp == 'all'
           ? '$_currentServerUrl/api/admin/cluster/reboot-all'
           : '$_currentServerUrl/api/admin/cluster/nodes/${Uri.encodeComponent(nodeIp)}/reboot';
-      final response = await http
-          .post(Uri.parse(url), headers: _headers);
+      final response = await http.post(Uri.parse(url), headers: _headers);
       _checkResponse(response);
       return ActionResultResponse.fromJson(
           jsonDecode(response.body) as Map<String, dynamic>);
@@ -5974,8 +6779,7 @@ class ApiService {
       final url = nodeIp == 'all'
           ? '$_currentServerUrl/api/admin/cluster/reinstall-update-all'
           : '$_currentServerUrl/api/admin/cluster/nodes/${Uri.encodeComponent(nodeIp)}/reinstall-update';
-      final response = await http
-          .post(Uri.parse(url), headers: _headers);
+      final response = await http.post(Uri.parse(url), headers: _headers);
       _checkResponse(response);
       return ActionResultResponse.fromJson(
           jsonDecode(response.body) as Map<String, dynamic>);
@@ -5990,10 +6794,9 @@ class ApiService {
           success: false, message: 'Device is offline');
     }
     try {
-      final response = await http
-          .post(
-              Uri.parse('$_currentServerUrl/api/admin/cluster/regenerate-keys'),
-              headers: _headers);
+      final response = await http.post(
+          Uri.parse('$_currentServerUrl/api/admin/cluster/regenerate-keys'),
+          headers: _headers);
       _checkResponse(response);
       return ActionResultResponse.fromJson(
           jsonDecode(response.body) as Map<String, dynamic>);
@@ -6006,11 +6809,10 @@ class ApiService {
   Future<LoadBalancerStatus?> fetchLoadBalancerStatus() async {
     if (!_isOnline) return null;
     try {
-      final response = await http
-          .get(
-              Uri.parse(
-                  '$_currentServerUrl/api/admin/cluster/load-balancer/status'),
-              headers: _headers);
+      final response = await http.get(
+          Uri.parse(
+              '$_currentServerUrl/api/admin/cluster/load-balancer/status'),
+          headers: _headers);
       _checkResponse(response);
       if (response.statusCode == 200) {
         return LoadBalancerStatus.fromJson(
@@ -6025,11 +6827,10 @@ class ApiService {
   Future<LoadBalancerSettings?> fetchLoadBalancerSettings() async {
     if (!_isOnline) return null;
     try {
-      final response = await http
-          .get(
-              Uri.parse(
-                  '$_currentServerUrl/api/admin/cluster/load-balancer/settings'),
-              headers: _headers);
+      final response = await http.get(
+          Uri.parse(
+              '$_currentServerUrl/api/admin/cluster/load-balancer/settings'),
+          headers: _headers);
       _checkResponse(response);
       if (response.statusCode == 200) {
         return LoadBalancerSettings.fromJson(
@@ -6048,12 +6849,11 @@ class ApiService {
           success: false, message: 'Device is offline');
     }
     try {
-      final response = await http
-          .put(
-              Uri.parse(
-                  '$_currentServerUrl/api/admin/cluster/load-balancer/settings'),
-              headers: _headers,
-              body: jsonEncode(settings.toJson()));
+      final response = await http.put(
+          Uri.parse(
+              '$_currentServerUrl/api/admin/cluster/load-balancer/settings'),
+          headers: _headers,
+          body: jsonEncode(settings.toJson()));
       _checkResponse(response);
       return ActionResultResponse.fromJson(
           jsonDecode(response.body) as Map<String, dynamic>);
@@ -6069,10 +6869,9 @@ class ApiService {
           success: false, message: 'Device is offline');
     }
     try {
-      final response = await http
-          .post(
-              Uri.parse('$_currentServerUrl/api/admin/cluster/stress/start'),
-              headers: _headers);
+      final response = await http.post(
+          Uri.parse('$_currentServerUrl/api/admin/cluster/stress/start'),
+          headers: _headers);
       _checkResponse(response);
       return ActionResultResponse.fromJson(
           jsonDecode(response.body) as Map<String, dynamic>);
@@ -6087,9 +6886,9 @@ class ApiService {
           success: false, message: 'Device is offline');
     }
     try {
-      final response = await http
-          .post(Uri.parse('$_currentServerUrl/api/admin/cluster/stress/stop'),
-              headers: _headers);
+      final response = await http.post(
+          Uri.parse('$_currentServerUrl/api/admin/cluster/stress/stop'),
+          headers: _headers);
       _checkResponse(response);
       return ActionResultResponse.fromJson(
           jsonDecode(response.body) as Map<String, dynamic>);
@@ -6101,10 +6900,9 @@ class ApiService {
   Future<StressTestStatus?> fetchStressTestStatus() async {
     if (!_isOnline) return null;
     try {
-      final response = await http
-          .get(
-              Uri.parse('$_currentServerUrl/api/admin/cluster/stress/status'),
-              headers: _headers);
+      final response = await http.get(
+          Uri.parse('$_currentServerUrl/api/admin/cluster/stress/status'),
+          headers: _headers);
       _checkResponse(response);
       if (response.statusCode == 200) {
         return StressTestStatus.fromJson(
@@ -6120,11 +6918,10 @@ class ApiService {
   Future<NodeAlertsEnrollment?> fetchNodeAlertsEnrollment() async {
     if (!_isOnline) return null;
     try {
-      final response = await http
-          .get(
-              Uri.parse(
-                  '$_currentServerUrl/api/admin/cluster/notifications/enrollment'),
-              headers: _headers);
+      final response = await http.get(
+          Uri.parse(
+              '$_currentServerUrl/api/admin/cluster/notifications/enrollment'),
+          headers: _headers);
       _checkResponse(response);
       if (response.statusCode == 200) {
         return NodeAlertsEnrollment.fromJson(
@@ -6136,19 +6933,17 @@ class ApiService {
     }
   }
 
-  Future<ActionResultResponse> toggleNodeAlertsEnrollment(
-      bool enrolled) async {
+  Future<ActionResultResponse> toggleNodeAlertsEnrollment(bool enrolled) async {
     if (!_isOnline) {
       return const ActionResultResponse(
           success: false, message: 'Device is offline');
     }
     try {
-      final response = await http
-          .put(
-              Uri.parse(
-                  '$_currentServerUrl/api/admin/cluster/notifications/enrollment'),
-              headers: _headers,
-              body: jsonEncode({'enrolled': enrolled}));
+      final response = await http.put(
+          Uri.parse(
+              '$_currentServerUrl/api/admin/cluster/notifications/enrollment'),
+          headers: _headers,
+          body: jsonEncode({'enrolled': enrolled}));
       _checkResponse(response);
       return ActionResultResponse.fromJson(
           jsonDecode(response.body) as Map<String, dynamic>);
@@ -6163,11 +6958,9 @@ class ApiService {
           success: false, message: 'Device is offline');
     }
     try {
-      final response = await http
-          .post(
-              Uri.parse(
-                  '$_currentServerUrl/api/admin/cluster/notifications/test'),
-              headers: _headers);
+      final response = await http.post(
+          Uri.parse('$_currentServerUrl/api/admin/cluster/notifications/test'),
+          headers: _headers);
       _checkResponse(response);
       return ActionResultResponse.fromJson(
           jsonDecode(response.body) as Map<String, dynamic>);
@@ -6180,11 +6973,9 @@ class ApiService {
   Future<ServerErrorAlertsSettings?> fetchErrorAlertSettings() async {
     if (!_isOnline) return null;
     try {
-      final response = await http
-          .get(
-              Uri.parse(
-                  '$_currentServerUrl/api/admin/cluster/error-alerts'),
-              headers: _headers);
+      final response = await http.get(
+          Uri.parse('$_currentServerUrl/api/admin/cluster/error-alerts'),
+          headers: _headers);
       _checkResponse(response);
       if (response.statusCode == 200) {
         return ServerErrorAlertsSettings.fromJson(
@@ -6203,12 +6994,10 @@ class ApiService {
           success: false, message: 'Device is offline');
     }
     try {
-      final response = await http
-          .put(
-              Uri.parse(
-                  '$_currentServerUrl/api/admin/cluster/error-alerts'),
-              headers: _headers,
-              body: jsonEncode(settings.toJson()));
+      final response = await http.put(
+          Uri.parse('$_currentServerUrl/api/admin/cluster/error-alerts'),
+          headers: _headers,
+          body: jsonEncode(settings.toJson()));
       _checkResponse(response);
       return ActionResultResponse.fromJson(
           jsonDecode(response.body) as Map<String, dynamic>);
@@ -6223,11 +7012,9 @@ class ApiService {
           success: false, message: 'Device is offline');
     }
     try {
-      final response = await http
-          .post(
-              Uri.parse(
-                  '$_currentServerUrl/api/admin/cluster/error-alerts/test'),
-              headers: _headers);
+      final response = await http.post(
+          Uri.parse('$_currentServerUrl/api/admin/cluster/error-alerts/test'),
+          headers: _headers);
       _checkResponse(response);
       return ActionResultResponse.fromJson(
           jsonDecode(response.body) as Map<String, dynamic>);
@@ -6240,18 +7027,16 @@ class ApiService {
   Future<List<QuorumFallbackNodeStatus>> fetchQuorumFallbackStatus() async {
     if (!_isOnline) return [];
     try {
-      final response = await http
-          .get(
-              Uri.parse(
-                  '$_currentServerUrl/api/admin/cluster/quorum-fallback'),
-              headers: _headers);
+      final response = await http.get(
+          Uri.parse('$_currentServerUrl/api/admin/cluster/quorum-fallback'),
+          headers: _headers);
       _checkResponse(response);
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         final list = body is List ? body : (body['nodes'] as List? ?? []);
         return list
-            .map((e) => QuorumFallbackNodeStatus.fromJson(
-                e as Map<String, dynamic>))
+            .map((e) =>
+                QuorumFallbackNodeStatus.fromJson(e as Map<String, dynamic>))
             .toList();
       }
       return [];
@@ -6267,12 +7052,11 @@ class ApiService {
           success: false, message: 'Device is offline');
     }
     try {
-      final response = await http
-          .post(
-              Uri.parse(
-                  '$_currentServerUrl/api/admin/cluster/quorum-fallback/toggle'),
-              headers: _headers,
-              body: jsonEncode({'targetIp': nodeIp, 'enabled': enabled}));
+      final response = await http.post(
+          Uri.parse(
+              '$_currentServerUrl/api/admin/cluster/quorum-fallback/toggle'),
+          headers: _headers,
+          body: jsonEncode({'targetIp': nodeIp, 'enabled': enabled}));
       _checkResponse(response);
       return ActionResultResponse.fromJson(
           jsonDecode(response.body) as Map<String, dynamic>);
@@ -6287,12 +7071,11 @@ class ApiService {
           success: false, message: 'Device is offline');
     }
     try {
-      final response = await http
-          .post(
-              Uri.parse(
-                  '$_currentServerUrl/api/admin/cluster/quorum-fallback/purge'),
-              headers: _headers,
-              body: jsonEncode({'targetIp': nodeIp}));
+      final response = await http.post(
+          Uri.parse(
+              '$_currentServerUrl/api/admin/cluster/quorum-fallback/purge'),
+          headers: _headers,
+          body: jsonEncode({'targetIp': nodeIp}));
       _checkResponse(response);
       return ActionResultResponse.fromJson(
           jsonDecode(response.body) as Map<String, dynamic>);
@@ -6307,12 +7090,11 @@ class ApiService {
           success: false, message: 'Device is offline');
     }
     try {
-      final response = await http
-          .post(
-              Uri.parse(
-                  '$_currentServerUrl/api/admin/cluster/quorum-fallback/sync'),
-              headers: _headers,
-              body: jsonEncode({'targetIp': nodeIp}));
+      final response = await http.post(
+          Uri.parse(
+              '$_currentServerUrl/api/admin/cluster/quorum-fallback/sync'),
+          headers: _headers,
+          body: jsonEncode({'targetIp': nodeIp}));
       _checkResponse(response);
       return ActionResultResponse.fromJson(
           jsonDecode(response.body) as Map<String, dynamic>);
@@ -6327,8 +7109,7 @@ class ApiService {
       final uri = Uri.parse(
               '$_currentServerUrl/api/admin/cluster/quorum-fallback/inspect')
           .replace(queryParameters: {'targetIp': nodeIp});
-      final response =
-          await http.get(uri, headers: _headers);
+      final response = await http.get(uri, headers: _headers);
       _checkResponse(response);
       if (response.statusCode == 200) {
         return QuorumFallbackInspection.fromJson(
@@ -6347,12 +7128,11 @@ class ApiService {
           success: false, message: 'Device is offline');
     }
     try {
-      final response = await http
-          .put(
-              Uri.parse(
-                  '$_currentServerUrl/api/admin/cluster/quorum-fallback/config'),
-              headers: _headers,
-              body: jsonEncode(config.toJson(targetIp: targetIp)));
+      final response = await http.put(
+          Uri.parse(
+              '$_currentServerUrl/api/admin/cluster/quorum-fallback/config'),
+          headers: _headers,
+          body: jsonEncode(config.toJson(targetIp: targetIp)));
       _checkResponse(response);
       return ActionResultResponse.fromJson(
           jsonDecode(response.body) as Map<String, dynamic>);
@@ -6368,9 +7148,9 @@ class ApiService {
       // 1. Fetch local node snapshots & settings
       AutoBackupNodeStatus? localStatus;
       try {
-        final localResp = await http
-            .get(Uri.parse('$_currentServerUrl/api/admin/snapshots'),
-                headers: _headers);
+        final localResp = await http.get(
+            Uri.parse('$_currentServerUrl/api/admin/snapshots'),
+            headers: _headers);
         _checkResponse(localResp);
         if (localResp.statusCode == 200) {
           localStatus = AutoBackupNodeStatus.fromJson(
@@ -6381,9 +7161,9 @@ class ApiService {
       // 2. Fetch cluster-wide auto backup nodes status
       List<AutoBackupNodeStatus> clusterNodes = [];
       try {
-        final clusterResp = await http
-            .get(Uri.parse('$_currentServerUrl/api/admin/cluster/auto-backup'),
-                headers: _headers);
+        final clusterResp = await http.get(
+            Uri.parse('$_currentServerUrl/api/admin/cluster/auto-backup'),
+            headers: _headers);
         _checkResponse(clusterResp);
         if (clusterResp.statusCode == 200) {
           final decoded = jsonDecode(clusterResp.body);
@@ -6400,7 +7180,8 @@ class ApiService {
       } catch (_) {}
 
       final fallbackLocal = localStatus ??
-          const AutoBackupNodeStatus(nodeIp: 'local', isLocal: true, enabled: false);
+          const AutoBackupNodeStatus(
+              nodeIp: 'local', isLocal: true, enabled: false);
 
       return AutoBackupCombinedStatus(
         localNodeStatus: fallbackLocal,
@@ -6418,14 +7199,13 @@ class ApiService {
           success: false, message: 'Device is offline');
     }
     try {
-      final response = await http
-          .put(
-              Uri.parse('$_currentServerUrl/api/admin/snapshots/config'),
-              headers: _headers,
-              body: jsonEncode({
-                'enabled': enabled,
-                'retentionDays': retentionDays,
-              }));
+      final response = await http.put(
+          Uri.parse('$_currentServerUrl/api/admin/snapshots/config'),
+          headers: _headers,
+          body: jsonEncode({
+            'enabled': enabled,
+            'retentionDays': retentionDays,
+          }));
       _checkResponse(response);
       if (response.statusCode == 200) {
         return const ActionResultResponse(
@@ -6444,9 +7224,9 @@ class ApiService {
           success: false, message: 'Device is offline');
     }
     try {
-      final response = await http
-          .post(Uri.parse('$_currentServerUrl/api/admin/snapshots/create'),
-              headers: _headers);
+      final response = await http.post(
+          Uri.parse('$_currentServerUrl/api/admin/snapshots/create'),
+          headers: _headers);
       _checkResponse(response);
       if (response.statusCode == 200) {
         final j = jsonDecode(response.body) as Map<String, dynamic>;
@@ -6467,11 +7247,10 @@ class ApiService {
           success: false, message: 'Device is offline');
     }
     try {
-      final response = await http
-          .delete(
-              Uri.parse(
-                  '$_currentServerUrl/api/admin/snapshots/${Uri.encodeComponent(fileName)}'),
-              headers: _headers);
+      final response = await http.delete(
+          Uri.parse(
+              '$_currentServerUrl/api/admin/snapshots/${Uri.encodeComponent(fileName)}'),
+          headers: _headers);
       _checkResponse(response);
       if (response.statusCode == 200) {
         return const ActionResultResponse(
@@ -6490,18 +7269,18 @@ class ApiService {
           success: false, message: 'Device is offline');
     }
     try {
-      final response = await http
-          .post(
-              Uri.parse(
-                  '$_currentServerUrl/api/admin/snapshots/restore/${Uri.encodeComponent(fileName)}'),
-              headers: _headers);
+      final response = await http.post(
+          Uri.parse(
+              '$_currentServerUrl/api/admin/snapshots/restore/${Uri.encodeComponent(fileName)}'),
+          headers: _headers);
       _checkResponse(response);
       if (response.statusCode == 200) {
         final j = jsonDecode(response.body) as Map<String, dynamic>;
         final count = j['totalRecordsRestored'] ?? 0;
         return ActionResultResponse(
             success: true,
-            message: 'Database restored successfully ($count records restored).');
+            message:
+                'Database restored successfully ($count records restored).');
       }
       return const ActionResultResponse(
           success: false, message: 'Failed to restore database.');
@@ -6517,12 +7296,10 @@ class ApiService {
           success: false, message: 'Device is offline');
     }
     try {
-      final response = await http
-          .post(
-              Uri.parse(
-                  '$_currentServerUrl/api/admin/cluster/auto-backup/toggle'),
-              headers: _headers,
-              body: jsonEncode({'targetIp': nodeIp, 'enabled': enabled}));
+      final response = await http.post(
+          Uri.parse('$_currentServerUrl/api/admin/cluster/auto-backup/toggle'),
+          headers: _headers,
+          body: jsonEncode({'targetIp': nodeIp, 'enabled': enabled}));
       _checkResponse(response);
       return ActionResultResponse.fromJson(
           jsonDecode(response.body) as Map<String, dynamic>);
@@ -6532,22 +7309,21 @@ class ApiService {
   }
 
   Future<ActionResultResponse> saveNodeAutoBackupConfig(
-      String nodeIp, int retentionDays, {bool? enabled}) async {
+      String nodeIp, int retentionDays,
+      {bool? enabled}) async {
     if (!_isOnline) {
       return const ActionResultResponse(
           success: false, message: 'Device is offline');
     }
     try {
-      final response = await http
-          .put(
-              Uri.parse(
-                  '$_currentServerUrl/api/admin/cluster/auto-backup/config'),
-              headers: _headers,
-              body: jsonEncode({
-                'targetIp': nodeIp,
-                'retentionDays': retentionDays,
-                if (enabled != null) 'enabled': enabled,
-              }));
+      final response = await http.put(
+          Uri.parse('$_currentServerUrl/api/admin/cluster/auto-backup/config'),
+          headers: _headers,
+          body: jsonEncode({
+            'targetIp': nodeIp,
+            'retentionDays': retentionDays,
+            if (enabled != null) 'enabled': enabled,
+          }));
       _checkResponse(response);
       return ActionResultResponse.fromJson(
           jsonDecode(response.body) as Map<String, dynamic>);
@@ -6562,12 +7338,10 @@ class ApiService {
           success: false, message: 'Device is offline');
     }
     try {
-      final response = await http
-          .post(
-              Uri.parse(
-                  '$_currentServerUrl/api/admin/cluster/auto-backup/create'),
-              headers: _headers,
-              body: jsonEncode({'targetIp': nodeIp}));
+      final response = await http.post(
+          Uri.parse('$_currentServerUrl/api/admin/cluster/auto-backup/create'),
+          headers: _headers,
+          body: jsonEncode({'targetIp': nodeIp}));
       _checkResponse(response);
       return ActionResultResponse.fromJson(
           jsonDecode(response.body) as Map<String, dynamic>);
@@ -6640,13 +7414,13 @@ class ApiService {
   Future<bool> updateReportedErrorStatus(String id, String newStatus) async {
     if (!_isOnline) return false;
     try {
-      final uri = Uri.parse('$_currentServerUrl/api/admin/errors/${Uri.encodeComponent(id)}/status');
-      final response = await http
-          .post(
-            uri,
-            headers: _headers,
-            body: jsonEncode({'status': newStatus}),
-          );
+      final uri = Uri.parse(
+          '$_currentServerUrl/api/admin/errors/${Uri.encodeComponent(id)}/status');
+      final response = await http.post(
+        uri,
+        headers: _headers,
+        body: jsonEncode({'status': newStatus}),
+      );
       _checkResponse(response);
       return response.statusCode >= 200 && response.statusCode < 300;
     } catch (e) {
@@ -6658,7 +7432,8 @@ class ApiService {
   Future<bool> deleteReportedError(String id) async {
     if (!_isOnline) return false;
     try {
-      final uri = Uri.parse('$_currentServerUrl/api/admin/errors/${Uri.encodeComponent(id)}');
+      final uri = Uri.parse(
+          '$_currentServerUrl/api/admin/errors/${Uri.encodeComponent(id)}');
       final response = await http.delete(uri, headers: _headers);
       _checkResponse(response);
       return response.statusCode >= 200 && response.statusCode < 300;
@@ -6668,16 +7443,16 @@ class ApiService {
     }
   }
 
-  Future<int> updateReportedErrorGroupStatus(List<String> errorIds, String newStatus) async {
+  Future<int> updateReportedErrorGroupStatus(
+      List<String> errorIds, String newStatus) async {
     if (!_isOnline || errorIds.isEmpty) return 0;
     try {
       final uri = Uri.parse('$_currentServerUrl/api/admin/errors/group/status');
-      final response = await http
-          .post(
-            uri,
-            headers: _headers,
-            body: jsonEncode({'errorIds': errorIds, 'status': newStatus}),
-          );
+      final response = await http.post(
+        uri,
+        headers: _headers,
+        body: jsonEncode({'errorIds': errorIds, 'status': newStatus}),
+      );
       _checkResponse(response);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -6695,12 +7470,11 @@ class ApiService {
     if (!_isOnline || errorIds.isEmpty) return 0;
     try {
       final uri = Uri.parse('$_currentServerUrl/api/admin/errors/group/delete');
-      final response = await http
-          .post(
-            uri,
-            headers: _headers,
-            body: jsonEncode({'errorIds': errorIds}),
-          );
+      final response = await http.post(
+        uri,
+        headers: _headers,
+        body: jsonEncode({'errorIds': errorIds}),
+      );
       _checkResponse(response);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -6718,12 +7492,11 @@ class ApiService {
     if (!_isOnline) return null;
     try {
       final uri = Uri.parse('$_currentServerUrl/api/admin/errors/clear');
-      final response = await http
-          .post(
-            uri,
-            headers: _headers,
-            body: jsonEncode({'statusFilter': statusFilter}),
-          );
+      final response = await http.post(
+        uri,
+        headers: _headers,
+        body: jsonEncode({'statusFilter': statusFilter}),
+      );
       _checkResponse(response);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -6744,29 +7517,36 @@ class ApiService {
   // Assignments are scoped to one event: each event has its own cache entry, nothing falls back to another
   // event's list, and any row from a different event is dropped.
 
-  String _assignmentEventKey(String? eventKey) => ((eventKey != null && eventKey.isNotEmpty)
-          ? eventKey
-          : (_currentSettings?.eventKey ?? ''))
-      .trim()
-      .toLowerCase();
+  String _assignmentEventKey(String? eventKey) =>
+      ((eventKey != null && eventKey.isNotEmpty)
+              ? eventKey
+              : (_currentSettings?.eventKey ?? ''))
+          .trim()
+          .toLowerCase();
 
-  List<ScoutingAssignment> _parseEventAssignments(dynamic decoded, String eventKey) {
+  List<ScoutingAssignment> _parseEventAssignments(
+      dynamic decoded, String eventKey) {
     final List list = decoded is List
         ? decoded
-        : (decoded is Map && decoded['assignments'] is List ? decoded['assignments'] as List : []);
+        : (decoded is Map && decoded['assignments'] is List
+            ? decoded['assignments'] as List
+            : []);
     return list
         .map((e) => ScoutingAssignment.fromJson(e as Map<String, dynamic>))
         .where((a) => a.eventKey.trim().toLowerCase() == eventKey)
         .toList();
   }
 
-  Future<List<ScoutingAssignment>> _getCachedEventAssignments(String cachePrefix, String eventKey) async {
+  Future<List<ScoutingAssignment>> _getCachedEventAssignments(
+      String cachePrefix, String eventKey) async {
     if (eventKey.isEmpty) return [];
     final cached = await _getCache('$cachePrefix$eventKey');
     if (cached == null || cached.isEmpty) return [];
     try {
-      final parsed = _parseEventAssignments(await _decodeCached(cached), eventKey);
-      return await ScoutHistoryService.applyLocalScoutStatus(parsed, eventKey: eventKey);
+      final parsed =
+          _parseEventAssignments(await _decodeCached(cached), eventKey);
+      return await ScoutHistoryService.applyLocalScoutStatus(parsed,
+          eventKey: eventKey);
     } catch (_) {
       return [];
     }
@@ -6779,14 +7559,17 @@ class ApiService {
     if (!_isOnline) return cachedList;
 
     try {
-      final url = '$_currentServerUrl$path?eventKey=${Uri.encodeQueryComponent(eventKey)}';
+      final url =
+          '$_currentServerUrl$path?eventKey=${Uri.encodeQueryComponent(eventKey)}';
       final response = await http.get(Uri.parse(url), headers: _headers);
       _checkResponse(response);
 
       if (response.statusCode == 200) {
         await _setCache('$cachePrefix$eventKey', response.body);
-        final parsed = _parseEventAssignments(jsonDecode(response.body), eventKey);
-        return await ScoutHistoryService.applyLocalScoutStatus(parsed, eventKey: eventKey);
+        final parsed =
+            _parseEventAssignments(jsonDecode(response.body), eventKey);
+        return await ScoutHistoryService.applyLocalScoutStatus(parsed,
+            eventKey: eventKey);
       }
     } catch (e) {
       debugPrint('[ApiService] $label error: $e');
@@ -6795,18 +7578,23 @@ class ApiService {
   }
 
   Future<List<ScoutingAssignment>> getCachedMyAssignments(String? eventKey) =>
-      _getCachedEventAssignments('cache_my_assignments_', _assignmentEventKey(eventKey));
+      _getCachedEventAssignments(
+          'cache_my_assignments_', _assignmentEventKey(eventKey));
 
-  Future<List<ScoutingAssignment>> fetchMyAssignments(String? eventKey) => _fetchEventAssignments(
-      '/api/assignments/my', 'cache_my_assignments_', _assignmentEventKey(eventKey), 'fetchMyAssignments');
+  Future<List<ScoutingAssignment>> fetchMyAssignments(String? eventKey) =>
+      _fetchEventAssignments('/api/assignments/my', 'cache_my_assignments_',
+          _assignmentEventKey(eventKey), 'fetchMyAssignments');
 
   Future<List<ScoutingAssignment>> getCachedAllAssignments(String? eventKey) =>
-      _getCachedEventAssignments('cache_all_assignments_', _assignmentEventKey(eventKey));
+      _getCachedEventAssignments(
+          'cache_all_assignments_', _assignmentEventKey(eventKey));
 
-  Future<List<ScoutingAssignment>> fetchAllAssignments(String? eventKey) => _fetchEventAssignments(
-      '/api/assignments', 'cache_all_assignments_', _assignmentEventKey(eventKey), 'fetchAllAssignments');
+  Future<List<ScoutingAssignment>> fetchAllAssignments(String? eventKey) =>
+      _fetchEventAssignments('/api/assignments', 'cache_all_assignments_',
+          _assignmentEventKey(eventKey), 'fetchAllAssignments');
 
-  Future<List<ConflictItemDto>> fetchAssignmentConflicts(String? eventKey) async {
+  Future<List<ConflictItemDto>> fetchAssignmentConflicts(
+      String? eventKey) async {
     final effectiveKey = (eventKey != null && eventKey.isNotEmpty)
         ? eventKey
         : (_currentSettings?.eventKey ?? '');
@@ -6837,16 +7625,16 @@ class ApiService {
     return [];
   }
 
-  Future<ScoutingAssignment?> createAssignment(CreateAssignmentRequest req) async {
+  Future<ScoutingAssignment?> createAssignment(
+      CreateAssignmentRequest req) async {
     if (!_isOnline) throw Exception('Cannot create assignment while offline.');
     try {
       final uri = Uri.parse('$_currentServerUrl/api/assignments');
-      final response = await http
-          .post(
-            uri,
-            headers: _headers,
-            body: jsonEncode(req.toJson()),
-          );
+      final response = await http.post(
+        uri,
+        headers: _headers,
+        body: jsonEncode(req.toJson()),
+      );
       _checkResponse(response);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -6868,7 +7656,8 @@ class ApiService {
     }
   }
 
-  Future<List<ScoutingAssignment>> bulkCreateAssignments(BulkCreateAssignmentsRequest req) async {
+  Future<List<ScoutingAssignment>> bulkCreateAssignments(
+      BulkCreateAssignmentsRequest req) async {
     if (!_isOnline) throw Exception('Cannot create assignments while offline.');
     try {
       final uri = Uri.parse('$_currentServerUrl/api/assignments/bulk');
@@ -6904,8 +7693,10 @@ class ApiService {
     }
   }
 
-  Future<AutoGenerateAssignmentsResponse> autoGenerateAssignments(AutoGenerateAssignmentsRequest req) async {
-    if (!_isOnline) throw Exception('Cannot generate assignments while offline.');
+  Future<AutoGenerateAssignmentsResponse> autoGenerateAssignments(
+      AutoGenerateAssignmentsRequest req) async {
+    if (!_isOnline)
+      throw Exception('Cannot generate assignments while offline.');
     try {
       final uri = Uri.parse('$_currentServerUrl/api/assignments/auto-generate');
       final response = await http
@@ -6950,7 +7741,9 @@ class ApiService {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final j = jsonDecode(response.body);
         if (j is List) {
-          return j.map((e) => PitScoutGroup.fromJson(e as Map<String, dynamic>)).toList();
+          return j
+              .map((e) => PitScoutGroup.fromJson(e as Map<String, dynamic>))
+              .toList();
         }
       }
     } catch (e) {
@@ -6959,21 +7752,23 @@ class ApiService {
     return [];
   }
 
-  Future<List<PitScoutGroup>> savePitScoutGroups(List<PitScoutGroup> groups) async {
+  Future<List<PitScoutGroup>> savePitScoutGroups(
+      List<PitScoutGroup> groups) async {
     if (!_isOnline) throw Exception('Cannot save pit groups while offline.');
     try {
       final uri = Uri.parse('$_currentServerUrl/api/assignments/pit-groups');
-      final response = await http
-          .put(
-            uri,
-            headers: _headers,
-            body: jsonEncode({'groups': groups.map((g) => g.toJson()).toList()}),
-          );
+      final response = await http.put(
+        uri,
+        headers: _headers,
+        body: jsonEncode({'groups': groups.map((g) => g.toJson()).toList()}),
+      );
       _checkResponse(response);
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final j = jsonDecode(response.body);
         if (j is List) {
-          return j.map((e) => PitScoutGroup.fromJson(e as Map<String, dynamic>)).toList();
+          return j
+              .map((e) => PitScoutGroup.fromJson(e as Map<String, dynamic>))
+              .toList();
         }
         return groups;
       }
@@ -6989,7 +7784,8 @@ class ApiService {
     }
   }
 
-  Future<AssignmentShiftsResponse> fetchAssignmentShifts(String eventKey) async {
+  Future<AssignmentShiftsResponse> fetchAssignmentShifts(
+      String eventKey) async {
     if (!_isOnline) return AssignmentShiftsResponse();
     try {
       final uri = Uri.parse('$_currentServerUrl/api/assignments/shifts')
@@ -6998,7 +7794,8 @@ class ApiService {
       _checkResponse(response);
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final j = jsonDecode(response.body);
-        if (j is Map<String, dynamic>) return AssignmentShiftsResponse.fromJson(j);
+        if (j is Map<String, dynamic>)
+          return AssignmentShiftsResponse.fromJson(j);
       }
     } catch (e) {
       debugPrint('[ApiService] fetchAssignmentShifts error: $e');
@@ -7007,7 +7804,8 @@ class ApiService {
   }
 
   /// Creates or updates a shift. The server applies it right away to matches already synced.
-  Future<AssignmentShiftsResponse> saveAssignmentShift(AssignmentShift shift) async {
+  Future<AssignmentShiftsResponse> saveAssignmentShift(
+      AssignmentShift shift) async {
     if (!_isOnline) throw Exception('Cannot save shifts while offline.');
     try {
       final uri = Uri.parse('$_currentServerUrl/api/assignments/shifts');
@@ -7017,7 +7815,8 @@ class ApiService {
       _checkResponse(response);
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final j = jsonDecode(response.body);
-        if (j is Map<String, dynamic>) return AssignmentShiftsResponse.fromJson(j);
+        if (j is Map<String, dynamic>)
+          return AssignmentShiftsResponse.fromJson(j);
         return AssignmentShiftsResponse();
       }
       throw Exception(_shiftError(response, 'Failed to save shift'));
@@ -7030,7 +7829,8 @@ class ApiService {
   Future<void> deleteAssignmentShift(String id) async {
     if (!_isOnline) throw Exception('Cannot delete shifts while offline.');
     try {
-      final uri = Uri.parse('$_currentServerUrl/api/assignments/shifts/${Uri.encodeComponent(id)}');
+      final uri = Uri.parse(
+          '$_currentServerUrl/api/assignments/shifts/${Uri.encodeComponent(id)}');
       final response = await http.delete(uri, headers: _headers);
       _checkResponse(response);
       if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -7050,10 +7850,12 @@ class ApiService {
     return '$fallback (${response.statusCode})';
   }
 
-  Future<AutoResolveConflictsResponse> autoResolveConflicts(String eventKey) async {
+  Future<AutoResolveConflictsResponse> autoResolveConflicts(
+      String eventKey) async {
     if (!_isOnline) throw Exception('Cannot resolve conflicts while offline.');
     try {
-      final uri = Uri.parse('$_currentServerUrl/api/assignments/auto-resolve-conflicts');
+      final uri = Uri.parse(
+          '$_currentServerUrl/api/assignments/auto-resolve-conflicts');
       final response = await http
           .post(
             uri,
@@ -7087,16 +7889,16 @@ class ApiService {
     }
   }
 
-  Future<ScoutingAssignment?> updateAssignment(String id, UpdateAssignmentRequest req) async {
+  Future<ScoutingAssignment?> updateAssignment(
+      String id, UpdateAssignmentRequest req) async {
     if (!_isOnline) throw Exception('Cannot update assignment while offline.');
     try {
       final uri = Uri.parse('$_currentServerUrl/api/assignments/$id');
-      final response = await http
-          .put(
-            uri,
-            headers: _headers,
-            body: jsonEncode(req.toJson()),
-          );
+      final response = await http.put(
+        uri,
+        headers: _headers,
+        body: jsonEncode(req.toJson()),
+      );
       _checkResponse(response);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -7120,26 +7922,29 @@ class ApiService {
 
   Future<bool> updateAssignmentStatus(String id, String status) async {
     if (!_isOnline) {
-      await _enqueueOutbox('assignment_status', {'id': id, 'status': status}, null, 'Offline');
+      await _enqueueOutbox(
+          'assignment_status', {'id': id, 'status': status}, null, 'Offline');
       _scheduleOutboxRetry();
       return false;
     }
     try {
       final uri = Uri.parse('$_currentServerUrl/api/assignments/$id/status');
-      final response = await http
-          .post(
-            uri,
-            headers: _headers,
-            body: jsonEncode({'status': status}),
-          );
+      final response = await http.post(
+        uri,
+        headers: _headers,
+        body: jsonEncode({'status': status}),
+      );
       _checkResponse(response);
       final ok = response.statusCode >= 200 && response.statusCode < 300;
       if (ok) dataSyncedNotifier.value++;
       return ok;
     } catch (e) {
       debugPrint('[ApiService] updateAssignmentStatus error: $e');
-      if (e is TimeoutException || e.toString().contains('SocketException') || e.toString().contains('ClientException')) {
-        await _enqueueOutbox('assignment_status', {'id': id, 'status': status}, null, e.toString());
+      if (e is TimeoutException ||
+          e.toString().contains('SocketException') ||
+          e.toString().contains('ClientException')) {
+        await _enqueueOutbox('assignment_status', {'id': id, 'status': status},
+            null, e.toString());
         _scheduleOutboxRetry();
       }
       return false;
@@ -7173,16 +7978,19 @@ class ApiService {
     }
   }
 
-  Future<bool> deleteAllAssignments(String eventKey, {List<String>? specificIds}) async {
+  Future<bool> deleteAllAssignments(String eventKey,
+      {List<String>? specificIds}) async {
     if (!_isOnline) throw Exception('Cannot delete assignments while offline.');
     try {
       if (specificIds != null && specificIds.isNotEmpty) {
         final uniqueIds = specificIds.toSet().toList();
-        final results = await Future.wait(uniqueIds.map((id) => deleteAssignment(id)));
+        final results =
+            await Future.wait(uniqueIds.map((id) => deleteAssignment(id)));
         return results.any((r) => r);
       }
       final cleanKey = Uri.encodeQueryComponent(eventKey.trim());
-      final uri = Uri.parse('$_currentServerUrl/api/assignments?eventKey=$cleanKey');
+      final uri =
+          Uri.parse('$_currentServerUrl/api/assignments?eventKey=$cleanKey');
       final headers = Map<String, String>.from(_headers);
       headers['Accept'] = 'application/json, text/plain, */*';
       final response = await http.delete(uri, headers: headers);
@@ -7222,7 +8030,8 @@ class ApiService {
   // GAMEPAD & CONTROLLER CONFIGURATIONS
   // ==========================================
 
-  Future<List<GamepadProfile>?> fetchGamepadProfiles({bool forceRefresh = false}) async {
+  Future<List<GamepadProfile>?> fetchGamepadProfiles(
+      {bool forceRefresh = false}) async {
     const memKey = "cache_gamepad_profiles";
     if (!forceRefresh) {
       final inMem = getFromMemoryCache<List<GamepadProfile>>(memKey);
@@ -7235,7 +8044,9 @@ class ApiService {
         if (cached != null && cached.isNotEmpty) {
           try {
             final List list = await _decodeCached(cached);
-            final res = list.map((e) => GamepadProfile.fromJson(e as Map<String, dynamic>)).toList();
+            final res = list
+                .map((e) => GamepadProfile.fromJson(e as Map<String, dynamic>))
+                .toList();
             setMemoryCache(memKey, res);
             return res;
           } catch (_) {}
@@ -7249,16 +8060,21 @@ class ApiService {
       final response = await http.get(uri, headers: _headers);
       _checkResponse(response);
 
-      if (response.statusCode >= 200 && response.statusCode < 300 && response.body.isNotEmpty) {
+      if (response.statusCode >= 200 &&
+          response.statusCode < 300 &&
+          response.body.isNotEmpty) {
         try {
           final decoded = jsonDecode(response.body);
-          final rawList = (decoded is Map ? decoded['profiles'] : decoded) as List<dynamic>? ?? [];
+          final rawList = (decoded is Map ? decoded['profiles'] : decoded)
+                  as List<dynamic>? ??
+              [];
           final profiles = rawList
               .whereType<Map<String, dynamic>>()
               .map((e) => GamepadProfile.fromJson(e))
               .toList();
 
-          await _setCache(memKey, jsonEncode(profiles.map((p) => p.toJson()).toList()));
+          await _setCache(
+              memKey, jsonEncode(profiles.map((p) => p.toJson()).toList()));
           setMemoryCache(memKey, profiles);
           return profiles;
         } catch (_) {}
@@ -7273,7 +8089,9 @@ class ApiService {
       if (cached != null && cached.isNotEmpty) {
         try {
           final List list = await _decodeCached(cached);
-          final res = list.map((e) => GamepadProfile.fromJson(e as Map<String, dynamic>)).toList();
+          final res = list
+              .map((e) => GamepadProfile.fromJson(e as Map<String, dynamic>))
+              .toList();
           setMemoryCache(memKey, res);
           return res;
         } catch (_) {}
@@ -7293,10 +8111,14 @@ class ApiService {
       );
       _checkResponse(response);
 
-      if (response.statusCode >= 200 && response.statusCode < 300 && response.body.isNotEmpty) {
+      if (response.statusCode >= 200 &&
+          response.statusCode < 300 &&
+          response.body.isNotEmpty) {
         try {
           final decoded = jsonDecode(response.body);
-          final data = decoded is Map && decoded['profile'] != null ? decoded['profile'] : decoded;
+          final data = decoded is Map && decoded['profile'] != null
+              ? decoded['profile']
+              : decoded;
           if (data is Map<String, dynamic>) {
             final saved = GamepadProfile.fromJson(data);
             invalidateMemoryCache("cache_gamepad_profiles");
@@ -7354,10 +8176,13 @@ class ApiService {
     return null;
   }
 
-  Future<List<ShareLinkModel>> getTeamSharedLinks({String? statusFilter}) async {
+  Future<List<ShareLinkModel>> getTeamSharedLinks(
+      {String? statusFilter}) async {
     if (!_isOnline) return [];
     try {
-      final query = statusFilter != null && statusFilter.isNotEmpty ? '?status=${Uri.encodeComponent(statusFilter)}' : '';
+      final query = statusFilter != null && statusFilter.isNotEmpty
+          ? '?status=${Uri.encodeComponent(statusFilter)}'
+          : '';
       final uri = Uri.parse('$_currentServerUrl/api/shares/team$query');
       final response = await http.get(uri, headers: _headers);
       _checkResponse(response);
@@ -7365,7 +8190,10 @@ class ApiService {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final decoded = jsonDecode(response.body);
         if (decoded is List) {
-          return decoded.map((item) => ShareLinkModel.fromJson(item as Map<String, dynamic>)).toList();
+          return decoded
+              .map((item) =>
+                  ShareLinkModel.fromJson(item as Map<String, dynamic>))
+              .toList();
         }
       }
     } catch (e) {
@@ -7374,10 +8202,14 @@ class ApiService {
     return [];
   }
 
-  Future<ResolvedSharePayload?> resolveSharedLink(String token, {String? pin}) async {
+  Future<ResolvedSharePayload?> resolveSharedLink(String token,
+      {String? pin}) async {
     try {
-      final query = pin != null && pin.isNotEmpty ? '?pin=${Uri.encodeComponent(pin)}' : '';
-      final uri = Uri.parse('$_currentServerUrl/api/shares/resolve/${Uri.encodeComponent(token)}$query');
+      final query = pin != null && pin.isNotEmpty
+          ? '?pin=${Uri.encodeComponent(pin)}'
+          : '';
+      final uri = Uri.parse(
+          '$_currentServerUrl/api/shares/resolve/${Uri.encodeComponent(token)}$query');
       final response = await http.get(uri, headers: _headers);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -7399,9 +8231,11 @@ class ApiService {
     return null;
   }
 
-  Future<ResolvedSharePayload?> verifySharedPin(String token, String pin) async {
+  Future<ResolvedSharePayload?> verifySharedPin(
+      String token, String pin) async {
     try {
-      final uri = Uri.parse('$_currentServerUrl/api/shares/verify-pin/${Uri.encodeComponent(token)}');
+      final uri = Uri.parse(
+          '$_currentServerUrl/api/shares/verify-pin/${Uri.encodeComponent(token)}');
       final response = await http.post(
         uri,
         headers: _headers,
@@ -7423,7 +8257,8 @@ class ApiService {
   Future<bool> revokeSharedLink(String token) async {
     if (!_isOnline) return false;
     try {
-      final uri = Uri.parse('$_currentServerUrl/api/shares/${Uri.encodeComponent(token)}/revoke');
+      final uri = Uri.parse(
+          '$_currentServerUrl/api/shares/${Uri.encodeComponent(token)}/revoke');
       final response = await http.post(uri, headers: _headers);
       _checkResponse(response);
       invalidateMemoryCache("cache_team_shares");
@@ -7437,7 +8272,8 @@ class ApiService {
   Future<bool> deleteSharedLink(String token) async {
     if (!_isOnline) return false;
     try {
-      final uri = Uri.parse('$_currentServerUrl/api/shares/${Uri.encodeComponent(token)}');
+      final uri = Uri.parse(
+          '$_currentServerUrl/api/shares/${Uri.encodeComponent(token)}');
       final response = await http.delete(uri, headers: _headers);
       _checkResponse(response);
       invalidateMemoryCache("cache_team_shares");
@@ -7458,19 +8294,22 @@ class ApiService {
     Object? body,
     String? cacheKey,
   }) async {
-    Future<ApiResponse<dynamic>> fromCache(ApiResponse<dynamic> fallback) async {
+    Future<ApiResponse<dynamic>> fromCache(
+        ApiResponse<dynamic> fallback) async {
       if (cacheKey == null) return fallback;
       final cached = await _getCache(cacheKey);
       if (cached == null || cached.isEmpty) return fallback;
       try {
-        return ApiResponse.success(await _decodeCached(cached), message: 'cached');
+        return ApiResponse.success(await _decodeCached(cached),
+            message: 'cached');
       } catch (_) {
         return fallback;
       }
     }
 
     if (!_isOnline) {
-      return fromCache(const ApiResponse.error(isOffline: true, message: 'You are offline.'));
+      return fromCache(const ApiResponse.error(
+          isOffline: true, message: 'You are offline.'));
     }
     try {
       var uri = Uri.parse('$_currentServerUrl$path');
@@ -7496,11 +8335,13 @@ class ApiService {
           response = await http.get(uri, headers: _headers);
       }
       _checkResponse(response);
-      final result = ApiResponse<dynamic>.fromHttpResponse(response, parser: (json) => json);
+      final result = ApiResponse<dynamic>.fromHttpResponse(response,
+          parser: (json) => json);
       if (result.success && cacheKey != null && response.body.isNotEmpty) {
         await _setCache(cacheKey, response.body);
       }
-      if (!result.success && method.toUpperCase() == 'GET') return await fromCache(result);
+      if (!result.success && method.toUpperCase() == 'GET')
+        return await fromCache(result);
       return result;
     } catch (e) {
       return fromCache(ApiResponse.error(message: e.toString()));
@@ -7509,19 +8350,26 @@ class ApiService {
 
   /// Downloads a file the website links to directly (CSV reports, backups). [ApiResponse.message] holds the
   /// server's file name from Content-Disposition when it sends one.
-  Future<ApiResponse<Uint8List>> requestBytes(String path, {Map<String, String>? query}) async {
-    if (!_isOnline) return const ApiResponse.error(isOffline: true, message: 'You are offline.');
+  Future<ApiResponse<Uint8List>> requestBytes(String path,
+      {Map<String, String>? query}) async {
+    if (!_isOnline)
+      return const ApiResponse.error(
+          isOffline: true, message: 'You are offline.');
     try {
       var uri = Uri.parse('$_currentServerUrl$path');
-      if (query != null && query.isNotEmpty) uri = uri.replace(queryParameters: {...uri.queryParameters, ...query});
+      if (query != null && query.isNotEmpty)
+        uri = uri.replace(queryParameters: {...uri.queryParameters, ...query});
       final response = await http.get(uri, headers: _headers);
       _checkResponse(response);
       if (response.statusCode < 200 || response.statusCode >= 300) {
-        return ApiResponse.fromHttpResponse(response, defaultErrorMessage: 'Download failed');
+        return ApiResponse.fromHttpResponse(response,
+            defaultErrorMessage: 'Download failed');
       }
       final disposition = response.headers['content-disposition'] ?? '';
-      final name = RegExp(r'filename="?([^";]+)"?').firstMatch(disposition)?.group(1);
-      return ApiResponse.success(response.bodyBytes, statusCode: response.statusCode, message: name);
+      final name =
+          RegExp(r'filename="?([^";]+)"?').firstMatch(disposition)?.group(1);
+      return ApiResponse.success(response.bodyBytes,
+          statusCode: response.statusCode, message: name);
     } catch (e) {
       return ApiResponse.error(message: e.toString());
     }
@@ -7535,11 +8383,15 @@ class ApiService {
     String field = 'file',
     Map<String, String>? query,
   }) async {
-    if (!_isOnline) return const ApiResponse.error(isOffline: true, message: 'You are offline.');
+    if (!_isOnline)
+      return const ApiResponse.error(
+          isOffline: true, message: 'You are offline.');
     try {
       var uri = Uri.parse('$_currentServerUrl$path');
-      if (query != null && query.isNotEmpty) uri = uri.replace(queryParameters: {...uri.queryParameters, ...query});
-      final boundary = '----obsidianscout${DateTime.now().microsecondsSinceEpoch}';
+      if (query != null && query.isNotEmpty)
+        uri = uri.replace(queryParameters: {...uri.queryParameters, ...query});
+      final boundary =
+          '----obsidianscout${DateTime.now().microsecondsSinceEpoch}';
       final safeName = filename.replaceAll('"', '');
       final body = <int>[
         ...utf8.encode('--$boundary\r\n'
@@ -7548,10 +8400,12 @@ class ApiService {
         ...bytes,
         ...utf8.encode('\r\n--$boundary--\r\n'),
       ];
-      final headers = Map<String, String>.of(_headers)..['Content-Type'] = 'multipart/form-data; boundary=$boundary';
+      final headers = Map<String, String>.of(_headers)
+        ..['Content-Type'] = 'multipart/form-data; boundary=$boundary';
       final response = await http.post(uri, headers: headers, body: body);
       _checkResponse(response);
-      return ApiResponse<dynamic>.fromHttpResponse(response, parser: (json) => json, defaultErrorMessage: 'Upload failed');
+      return ApiResponse<dynamic>.fromHttpResponse(response,
+          parser: (json) => json, defaultErrorMessage: 'Upload failed');
     } catch (e) {
       return ApiResponse.error(message: e.toString());
     }

@@ -17,7 +17,8 @@ class ObsidianPagesModal extends StatelessWidget {
     required this.onOpenQrScanner,
   });
 
-  static void show(BuildContext context, {
+  static void show(
+    BuildContext context, {
     ApiService? apiService,
     required int currentIndex,
     required Function(int) onSelectScreen,
@@ -108,7 +109,8 @@ class ObsidianPagesModal extends StatelessWidget {
         'index': 36,
         'icon': Icons.emoji_events_rounded,
         'name': context.tr('nav.match_predictions', 'Match Predictions'),
-        'desc': context.tr('pages.match_predictions_desc', 'Pick each match winner and climb the accuracy leaderboard'),
+        'desc': context.tr('pages.match_predictions_desc',
+            'Pick each match winner and climb the accuracy leaderboard'),
         'tag': context.tr('pages.tag_game', 'Game'),
         'color': const Color(0xFFF5C542),
       },
@@ -116,7 +118,8 @@ class ObsidianPagesModal extends StatelessWidget {
         'pageId': 'prediction-leaderboard',
         'index': 50,
         'icon': Icons.emoji_events_outlined,
-        'name': context.tr('nav.prediction_leaderboard', 'Prediction Leaderboard'),
+        'name':
+            context.tr('nav.prediction_leaderboard', 'Prediction Leaderboard'),
         'desc': 'Scouts ranked by how often they picked the winner',
         'tag': 'Game',
         'color': ObsidianUITheme.primaryAccent,
@@ -306,7 +309,8 @@ class ObsidianPagesModal extends StatelessWidget {
         'index': 31,
         'icon': Icons.draw_rounded,
         'name': context.tr('nav.match_planning', 'Match Planning'),
-        'desc': 'Interactive field whiteboard, robot placement, & alliance stats',
+        'desc':
+            'Interactive field whiteboard, robot placement, & alliance stats',
         'tag': 'Strategy',
         'color': Colors.indigoAccent,
       },
@@ -316,7 +320,8 @@ class ObsidianPagesModal extends StatelessWidget {
         'index': 33,
         'icon': Icons.checklist_rounded,
         'name': context.tr('nav.match_checklist', 'Match Checklist'),
-        'desc': context.tr('pages.match_checklist_desc', 'Pre-match & on-the-field drive team checklists'),
+        'desc': context.tr('pages.match_checklist_desc',
+            'Pre-match & on-the-field drive team checklists'),
         'tag': context.tr('pages.tag_non_scouting', 'Drive Team'),
         'color': Colors.lightGreenAccent,
       },
@@ -325,7 +330,8 @@ class ObsidianPagesModal extends StatelessWidget {
         'index': 34,
         'icon': Icons.battery_charging_full_rounded,
         'name': context.tr('nav.battery_tracker', 'Battery Tracker'),
-        'desc': context.tr('pages.battery_tracker_desc', 'Battery rotation for each match; pit batteries stay out'),
+        'desc': context.tr('pages.battery_tracker_desc',
+            'Battery rotation for each match; pit batteries stay out'),
         'tag': context.tr('pages.tag_non_scouting', 'Drive Team'),
         'color': Colors.lightGreenAccent,
       },
@@ -411,6 +417,16 @@ class ObsidianPagesModal extends StatelessWidget {
         'color': Colors.redAccent,
       },
       {
+        'pageId': 'load-profiler',
+        'index': 52,
+        'icon': Icons.speed_rounded,
+        'name': context.tr('nav.load-profiler',
+            context.tr('nav.load_profiler', 'Load Profiler')),
+        'desc': 'Cluster load, requests/sec, live refresh and server times',
+        'tag': 'Admin',
+        'color': const Color(0xFFF97316),
+      },
+      {
         'pageId': 'storage-manager',
         'index': 48,
         'icon': Icons.storage_rounded,
@@ -486,86 +502,98 @@ class ObsidianPagesModal extends StatelessWidget {
       color: const Color(0xF00C0F14),
       borderRadius: const BorderRadius.vertical(top: Radius.circular(28.0)),
       child: Container(
-        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.82),
+        constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.82),
         decoration: BoxDecoration(
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28.0)),
-          border: Border.all(color: ObsidianUITheme.glassBorderLight, width: 1.2),
+          border:
+              Border.all(color: ObsidianUITheme.glassBorderLight, width: 1.2),
         ),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20.0, 12.0, 20.0, 24.0),
           child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Modal Handle Bar
-                Center(
-                  child: Container(
-                    width: 48,
-                    height: 5,
-                    margin: const EdgeInsets.only(bottom: 16.0),
-                    decoration: BoxDecoration(
-                      color: Colors.white24,
-                      borderRadius: BorderRadius.circular(3),
-                    ),
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Modal Handle Bar
+              Center(
+                child: Container(
+                  width: 48,
+                  height: 5,
+                  margin: const EdgeInsets.only(bottom: 16.0),
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(3),
                   ),
                 ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.widgets_rounded, color: ObsidianUITheme.primaryAccent, size: 26),
-                        const SizedBox(width: 10),
-                        const Text(
-                          'All App Pages Directory',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                        ),
-                      ],
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded, color: Colors.white54),
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Select any page to navigate instantly',
-                  style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.6)),
-                ),
-                const SizedBox(height: 16),
-
-                // List of Pages
-                Expanded(
-                  child: ListView(
-                    physics: const BouncingScrollPhysics(),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
                     children: [
-                      ...allPages.map((page) {
-                        final idx = page['index'] as int;
-                        final isSelected = idx == currentIndex;
-                        final color = page['color'] as Color;
+                      Icon(Icons.widgets_rounded,
+                          color: ObsidianUITheme.primaryAccent, size: 26),
+                      const SizedBox(width: 10),
+                      const Text(
+                        'All App Pages Directory',
+                        style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon:
+                        const Icon(Icons.close_rounded, color: Colors.white54),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Select any page to navigate instantly',
+                style: TextStyle(
+                    fontSize: 12, color: Colors.white.withValues(alpha: 0.6)),
+              ),
+              const SizedBox(height: 16),
 
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 10.0),
-                          child: Material(
-                            color: isSelected ? color.withValues(alpha: 0.15) : const Color(0x15FFFFFF),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16.0),
-                              side: BorderSide(
-                                color: isSelected ? color : Colors.white10,
-                                width: isSelected ? 1.5 : 1.0,
-                              ),
+              // List of Pages
+              Expanded(
+                child: ListView(
+                  physics: const BouncingScrollPhysics(),
+                  children: [
+                    ...allPages.map((page) {
+                      final idx = page['index'] as int;
+                      final isSelected = idx == currentIndex;
+                      final color = page['color'] as Color;
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 10.0),
+                        child: Material(
+                          color: isSelected
+                              ? color.withValues(alpha: 0.15)
+                              : const Color(0x15FFFFFF),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16.0),
+                            side: BorderSide(
+                              color: isSelected ? color : Colors.white10,
+                              width: isSelected ? 1.5 : 1.0,
                             ),
-                            clipBehavior: Clip.antiAlias,
-                            child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16.0, vertical: 4.0),
                             leading: Container(
                               padding: const EdgeInsets.all(10.0),
                               decoration: BoxDecoration(
                                 color: color.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(12.0),
                               ),
-                              child: Icon(page['icon'] as IconData, color: color, size: 22.0),
+                              child: Icon(page['icon'] as IconData,
+                                  color: color, size: 22.0),
                             ),
                             title: Row(
                               children: [
@@ -573,21 +601,29 @@ class ObsidianPagesModal extends StatelessWidget {
                                   child: Text(
                                     page['name'] as String,
                                     style: TextStyle(
-                                      color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.9),
-                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                                      color: isSelected
+                                          ? Colors.white
+                                          : Colors.white.withValues(alpha: 0.9),
+                                      fontWeight: isSelected
+                                          ? FontWeight.bold
+                                          : FontWeight.w600,
                                       fontSize: 15.0,
                                     ),
                                   ),
                                 ),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
                                     color: Colors.white10,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
                                     page['tag'] as String,
-                                    style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
+                                    style: TextStyle(
+                                        color: color,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold),
                                   ),
                                 ),
                               ],
@@ -596,12 +632,16 @@ class ObsidianPagesModal extends StatelessWidget {
                               padding: const EdgeInsets.only(top: 4.0),
                               child: Text(
                                 page['desc'] as String,
-                                style: const TextStyle(color: Colors.white54, fontSize: 12.0),
+                                style: const TextStyle(
+                                    color: Colors.white54, fontSize: 12.0),
                               ),
                             ),
                             trailing: isSelected
-                                ? Icon(Icons.check_circle_rounded, color: ObsidianUITheme.primaryAccent, size: 20)
-                                : const Icon(Icons.chevron_right_rounded, color: Colors.white30, size: 20),
+                                ? Icon(Icons.check_circle_rounded,
+                                    color: ObsidianUITheme.primaryAccent,
+                                    size: 20)
+                                : const Icon(Icons.chevron_right_rounded,
+                                    color: Colors.white30, size: 20),
                             onTap: () {
                               Navigator.of(context).pop();
                               onSelectScreen(idx);
@@ -609,53 +649,60 @@ class ObsidianPagesModal extends StatelessWidget {
                           ),
                         ),
                       );
-                      }),
-                      if (canAccessQr) ...[
-                        const SizedBox(height: 8),
+                    }),
+                    if (canAccessQr) ...[
+                      const SizedBox(height: 8),
 
-                        // Tool: QR Scanner
-                        Material(
-                          color: Colors.cyanAccent.withValues(alpha: 0.1),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16.0),
-                            side: BorderSide(color: Colors.cyanAccent.withValues(alpha: 0.3), width: 1.0),
-                          ),
-                          clipBehavior: Clip.antiAlias,
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-                            leading: Container(
-                              padding: const EdgeInsets.all(10.0),
-                              decoration: BoxDecoration(
-                                color: Colors.cyanAccent.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(12.0),
-                              ),
-                              child: const Icon(Icons.qr_code_scanner_rounded, color: Colors.cyanAccent, size: 22.0),
-                            ),
-                            title: const Text(
-                              'QR & Barcode Scanner',
-                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15.0),
-                            ),
-                            subtitle: const Text(
-                              'Multi-code camera scanner & clipboard payload sync',
-                              style: TextStyle(color: Colors.white54, fontSize: 12.0),
-                            ),
-                            trailing: const Icon(Icons.open_in_new_rounded, color: Colors.cyanAccent, size: 20),
-                            onTap: () {
-                              Navigator.of(context).pop();
-                              onOpenQrScanner();
-                            },
-                          ),
+                      // Tool: QR Scanner
+                      Material(
+                        color: Colors.cyanAccent.withValues(alpha: 0.1),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16.0),
+                          side: BorderSide(
+                              color: Colors.cyanAccent.withValues(alpha: 0.3),
+                              width: 1.0),
                         ),
-                      ],
+                        clipBehavior: Clip.antiAlias,
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16.0, vertical: 4.0),
+                          leading: Container(
+                            padding: const EdgeInsets.all(10.0),
+                            decoration: BoxDecoration(
+                              color: Colors.cyanAccent.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(12.0),
+                            ),
+                            child: const Icon(Icons.qr_code_scanner_rounded,
+                                color: Colors.cyanAccent, size: 22.0),
+                          ),
+                          title: const Text(
+                            'QR & Barcode Scanner',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15.0),
+                          ),
+                          subtitle: const Text(
+                            'Multi-code camera scanner & clipboard payload sync',
+                            style: TextStyle(
+                                color: Colors.white54, fontSize: 12.0),
+                          ),
+                          trailing: const Icon(Icons.open_in_new_rounded,
+                              color: Colors.cyanAccent, size: 20),
+                          onTap: () {
+                            Navigator.of(context).pop();
+                            onOpenQrScanner();
+                          },
+                        ),
+                      ),
                     ],
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
-      );
+      ),
+    );
   }
 }
-
-

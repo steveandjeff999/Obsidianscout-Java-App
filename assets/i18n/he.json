@@ -2417,5 +2417,8 @@
   "slack.pref_mentions": "רק כשמאזכרים אותי",
   "slack.pref_none": "כבוי",
   "slack.personal_pref_desc": "התראות קופצות מערוצי Slack שהמנהלים בחרו.",
-  "slack.retry": "ניסיון חוזר"
+  "slack.retry": "ניסיון חוזר",
+  "nav.load_profiler": "מדידת עומס",
+  "nav.load-profiler": "מדידת עומס",
+  "subtitle.load_profiler": "מדדי עומס ובקשות שרת בזמן אמת"
 }

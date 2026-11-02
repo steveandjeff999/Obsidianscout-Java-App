@@ -70,20 +70,24 @@ void main() {
     });
 
     test('Bypass pages are accessible to any user', () {
-      apiService.setCachedUserForTesting(UserModel(id: '1', username: 'test_scout', teamNumber: 1234, role: 'SCOUT'));
-      
+      apiService.setCachedUserForTesting(UserModel(
+          id: '1', username: 'test_scout', teamNumber: 1234, role: 'SCOUT'));
+
       expect(apiService.hasPageAccess('dashboard'), isTrue);
       expect(apiService.hasPageAccess('settings'), isTrue);
       expect(apiService.hasPageAccess('login'), isTrue);
       expect(apiService.hasPageAccess('theme-editor'), isTrue);
     });
 
-    test('Prescout, docs, contact, and scout-history are configurable and respect role permissions', () {
-      apiService.setCachedUserForTesting(UserModel(id: '1b', username: 'test_scout', teamNumber: 1234, role: 'SCOUT'));
+    test(
+        'Prescout, docs, contact, and scout-history are configurable and respect role permissions',
+        () {
+      apiService.setCachedUserForTesting(UserModel(
+          id: '1b', username: 'test_scout', teamNumber: 1234, role: 'SCOUT'));
       apiService.setCachedSettingsForTesting(AppSettingsModel(
         scoutPages: ['scout'], // docs, contact, prescout, scout-history omitted
       ));
-      
+
       expect(apiService.hasPageAccess('scout'), isTrue);
       expect(apiService.hasPageAccess('docs'), isFalse);
       expect(apiService.hasPageAccess('contact'), isFalse);
@@ -92,20 +96,25 @@ void main() {
     });
 
     test('Page aliases resolve correctly in hasPageAccess', () {
-      apiService.setCachedUserForTesting(UserModel(id: '1c', username: 'test_scout', teamNumber: 1234, role: 'SCOUT'));
+      apiService.setCachedUserForTesting(UserModel(
+          id: '1c', username: 'test_scout', teamNumber: 1234, role: 'SCOUT'));
       apiService.setCachedSettingsForTesting(AppSettingsModel(
         scoutPages: ['analytics', 'match-scout', 'all-data', 'history'],
       ));
 
       // Aliases mapped
       expect(apiService.hasPageAccess('graphs'), isTrue); // mapped to analytics
-      expect(apiService.hasPageAccess('scout'), isTrue); // mapped to match-scout
-      expect(apiService.hasPageAccess('match-data'), isTrue); // mapped to all-data
-      expect(apiService.hasPageAccess('scout-history'), isTrue); // mapped to history
+      expect(
+          apiService.hasPageAccess('scout'), isTrue); // mapped to match-scout
+      expect(
+          apiService.hasPageAccess('match-data'), isTrue); // mapped to all-data
+      expect(apiService.hasPageAccess('scout-history'),
+          isTrue); // mapped to history
     });
 
     test('CUSTOM users follow their own page list, never admin pages', () {
-      apiService.setCachedUserForTesting(UserModel(id: '1d', username: 'custom', teamNumber: 1234, role: 'CUSTOM'));
+      apiService.setCachedUserForTesting(UserModel(
+          id: '1d', username: 'custom', teamNumber: 1234, role: 'CUSTOM'));
       apiService.setCachedSettingsForTesting(AppSettingsModel(
         scoutPages: ['scout', 'chat'],
         customPages: ['dashboard', 'my-assignments', 'matches', 'analytics'],
@@ -113,29 +122,45 @@ void main() {
 
       expect(apiService.hasPageAccess('matches'), isTrue);
       expect(apiService.hasPageAccess('graphs'), isTrue); // alias of analytics
-      expect(apiService.hasPageAccess('scout'), isFalse, reason: 'scout role pages do not apply');
+      expect(apiService.hasPageAccess('scout'), isFalse,
+          reason: 'scout role pages do not apply');
       expect(apiService.hasPageAccess('users'), isFalse);
       expect(apiService.hasPageAccess('admin-settings'), isFalse);
     });
 
-    test('CUSTOM users can be given team admin pages, never superadmin pages', () {
-      apiService.setCachedUserForTesting(UserModel(id: '1f', username: 'custom', teamNumber: 1234, role: 'CUSTOM'));
+    test('CUSTOM users can be given team admin pages, never superadmin pages',
+        () {
+      apiService.setCachedUserForTesting(UserModel(
+          id: '1f', username: 'custom', teamNumber: 1234, role: 'CUSTOM'));
       apiService.setCachedSettingsForTesting(AppSettingsModel(
-        customPages: ['dashboard', 'my-assignments', 'users', 'admin-settings', 'assignments', 'logs'],
+        customPages: [
+          'dashboard',
+          'my-assignments',
+          'users',
+          'admin-settings',
+          'assignments',
+          'logs'
+        ],
       ));
 
       expect(apiService.hasPageAccess('users'), isTrue);
-      expect(apiService.hasPageAccess('config-editor'), isTrue); // app id for admin-settings
-      expect(apiService.hasPageAccess('scout-assignments'), isTrue); // app id for assignments
-      expect(apiService.hasPageAccess('banners'), isFalse, reason: 'not picked');
-      expect(apiService.hasPageAccess('logs'), isFalse, reason: 'superadmin-only even if listed');
+      expect(apiService.hasPageAccess('config-editor'),
+          isTrue); // app id for admin-settings
+      expect(apiService.hasPageAccess('scout-assignments'),
+          isTrue); // app id for assignments
+      expect(apiService.hasPageAccess('banners'), isFalse,
+          reason: 'not picked');
+      expect(apiService.hasPageAccess('logs'), isFalse,
+          reason: 'superadmin-only even if listed');
       expect(apiService.canUseAdminPage('users'), isTrue);
       expect(apiService.canUseAdminPage('banners'), isFalse);
     });
 
     test('CUSTOM users without a page list get only the base pages', () {
-      apiService.setCachedUserForTesting(UserModel(id: '1e', username: 'custom', teamNumber: 1234, role: 'CUSTOM'));
-      apiService.setCachedSettingsForTesting(AppSettingsModel(scoutPages: ['scout']));
+      apiService.setCachedUserForTesting(UserModel(
+          id: '1e', username: 'custom', teamNumber: 1234, role: 'CUSTOM'));
+      apiService
+          .setCachedSettingsForTesting(AppSettingsModel(scoutPages: ['scout']));
 
       expect(apiService.hasPageAccess('my-assignments'), isTrue);
       expect(apiService.hasPageAccess('scout'), isFalse);
@@ -143,18 +168,30 @@ void main() {
 
     test('Settings and user models carry custom pages', () {
       final settings = AppSettingsModel.fromJson({
-        'settings': {'customPages': ['dashboard', 'matches']}
+        'settings': {
+          'customPages': ['dashboard', 'matches']
+        }
       });
       expect(settings.customPages, ['dashboard', 'matches']);
-      expect(AppSettingsModel.fromJson({'settings': <String, dynamic>{}}).customPages, isNull);
+      expect(
+          AppSettingsModel.fromJson({'settings': <String, dynamic>{}})
+              .customPages,
+          isNull);
 
-      final user = UserModel.fromJson({'id': 'x', 'username': 'c', 'teamNumber': 1, 'role': 'CUSTOM', 'customPages': ['teams']});
+      final user = UserModel.fromJson({
+        'id': 'x',
+        'username': 'c',
+        'teamNumber': 1,
+        'role': 'CUSTOM',
+        'customPages': ['teams']
+      });
       expect(user.isCustom, isTrue);
       expect(user.customPages, ['teams']);
     });
 
     test('SUPERADMIN has access to all pages unconditionally', () {
-      apiService.setCachedUserForTesting(UserModel(id: '1', username: 'root', teamNumber: 1234, role: 'SUPERADMIN'));
+      apiService.setCachedUserForTesting(UserModel(
+          id: '1', username: 'root', teamNumber: 1234, role: 'SUPERADMIN'));
       apiService.setCachedSettingsForTesting(AppSettingsModel(
         chatEnabled: false,
         scoutPages: [],
@@ -175,9 +212,13 @@ void main() {
       expect(apiService.hasPageAccess('users'), isTrue);
     });
 
-    test('ADMIN has access to admin, analytics, scout, but not superadmin-only pages', () {
-      apiService.setCachedUserForTesting(UserModel(id: '2', username: 'team_admin', teamNumber: 1234, role: 'ADMIN'));
-      apiService.setCachedSettingsForTesting(AppSettingsModel(chatEnabled: true));
+    test(
+        'ADMIN has access to admin, analytics, scout, but not superadmin-only pages',
+        () {
+      apiService.setCachedUserForTesting(UserModel(
+          id: '2', username: 'team_admin', teamNumber: 1234, role: 'ADMIN'));
+      apiService
+          .setCachedSettingsForTesting(AppSettingsModel(chatEnabled: true));
 
       expect(apiService.hasPageAccess('scout'), isTrue);
       expect(apiService.hasPageAccess('graphs'), isTrue);
@@ -194,12 +235,20 @@ void main() {
       // SuperAdmin only pages are denied
       expect(apiService.hasPageAccess('logs'), isFalse);
       expect(apiService.hasPageAccess('cluster-management'), isFalse);
+      expect(apiService.hasPageAccess('load-profiler'), isFalse);
       expect(apiService.hasPageAccess('fcm-settings'), isFalse);
     });
 
-    test('ANALYTICS has access to analytics and scouting pages, but not admin pages', () {
-      apiService.setCachedUserForTesting(UserModel(id: '3', username: 'data_analyst', teamNumber: 1234, role: 'ANALYTICS'));
-      apiService.setCachedSettingsForTesting(AppSettingsModel(chatEnabled: true));
+    test(
+        'ANALYTICS has access to analytics and scouting pages, but not admin pages',
+        () {
+      apiService.setCachedUserForTesting(UserModel(
+          id: '3',
+          username: 'data_analyst',
+          teamNumber: 1234,
+          role: 'ANALYTICS'));
+      apiService
+          .setCachedSettingsForTesting(AppSettingsModel(chatEnabled: true));
 
       expect(apiService.hasPageAccess('dashboard'), isTrue);
       expect(apiService.hasPageAccess('scout'), isTrue);
@@ -219,9 +268,13 @@ void main() {
       expect(apiService.hasPageAccess('backup'), isFalse);
     });
 
-    test('SCOUT default pages allow scouting but deny analytics and admin pages', () {
-      apiService.setCachedUserForTesting(UserModel(id: '4', username: 'scout_member', teamNumber: 1234, role: 'SCOUT'));
-      apiService.setCachedSettingsForTesting(AppSettingsModel(chatEnabled: true));
+    test(
+        'SCOUT default pages allow scouting but deny analytics and admin pages',
+        () {
+      apiService.setCachedUserForTesting(UserModel(
+          id: '4', username: 'scout_member', teamNumber: 1234, role: 'SCOUT'));
+      apiService
+          .setCachedSettingsForTesting(AppSettingsModel(chatEnabled: true));
 
       expect(apiService.hasPageAccess('dashboard'), isTrue);
       expect(apiService.hasPageAccess('scout'), isTrue);
@@ -241,10 +294,17 @@ void main() {
     });
 
     test('Custom team settings restrict SCOUT role to specific scoutPages', () {
-      apiService.setCachedUserForTesting(UserModel(id: '5', username: 'restricted_scout', teamNumber: 1234, role: 'SCOUT'));
+      apiService.setCachedUserForTesting(UserModel(
+          id: '5',
+          username: 'restricted_scout',
+          teamNumber: 1234,
+          role: 'SCOUT'));
       apiService.setCachedSettingsForTesting(AppSettingsModel(
         chatEnabled: false,
-        scoutPages: ['scout', 'qr-scanner'], // pit-scout and qual-scout disabled
+        scoutPages: [
+          'scout',
+          'qr-scanner'
+        ], // pit-scout and qual-scout disabled
       ));
 
       expect(apiService.hasPageAccess('dashboard'), isTrue);
@@ -259,25 +319,35 @@ void main() {
       expect(apiService.hasPageAccess('chat'), isFalse);
     });
 
-    test('Disabling chat in team settings disables chat for SCOUT and ANALYTICS', () {
-      apiService.setCachedSettingsForTesting(AppSettingsModel(chatEnabled: false));
+    test(
+        'Disabling chat in team settings disables chat for SCOUT and ANALYTICS',
+        () {
+      apiService
+          .setCachedSettingsForTesting(AppSettingsModel(chatEnabled: false));
 
-      apiService.setCachedUserForTesting(UserModel(id: '6', username: 'scout_1', teamNumber: 1234, role: 'SCOUT'));
+      apiService.setCachedUserForTesting(UserModel(
+          id: '6', username: 'scout_1', teamNumber: 1234, role: 'SCOUT'));
       expect(apiService.hasPageAccess('chat'), isFalse);
 
-      apiService.setCachedUserForTesting(UserModel(id: '7', username: 'analyst_1', teamNumber: 1234, role: 'ANALYTICS'));
+      apiService.setCachedUserForTesting(UserModel(
+          id: '7', username: 'analyst_1', teamNumber: 1234, role: 'ANALYTICS'));
       expect(apiService.hasPageAccess('chat'), isFalse);
 
-      apiService.setCachedUserForTesting(UserModel(id: '8', username: 'admin_1', teamNumber: 1234, role: 'ADMIN'));
+      apiService.setCachedUserForTesting(UserModel(
+          id: '8', username: 'admin_1', teamNumber: 1234, role: 'ADMIN'));
       expect(apiService.hasPageAccess('chat'), isFalse);
 
       // SuperAdmin still gets chat
-      apiService.setCachedUserForTesting(UserModel(id: '9', username: 'super_1', teamNumber: 1234, role: 'SUPERADMIN'));
+      apiService.setCachedUserForTesting(UserModel(
+          id: '9', username: 'super_1', teamNumber: 1234, role: 'SUPERADMIN'));
       expect(apiService.hasPageAccess('chat'), isTrue);
     });
 
-    test('Disabling qr-scanner in team scoutPages removes access for SCOUT role', () {
-      apiService.setCachedUserForTesting(UserModel(id: '10', username: 'no_qr_scout', teamNumber: 1234, role: 'SCOUT'));
+    test(
+        'Disabling qr-scanner in team scoutPages removes access for SCOUT role',
+        () {
+      apiService.setCachedUserForTesting(UserModel(
+          id: '10', username: 'no_qr_scout', teamNumber: 1234, role: 'SCOUT'));
       apiService.setCachedSettingsForTesting(AppSettingsModel(
         scoutPages: ['scout', 'pit-scout'], // qr-scanner excluded
       ));
@@ -287,7 +357,9 @@ void main() {
       expect(apiService.hasPageAccess('pit-scout'), isTrue);
     });
 
-    test('Disabling scout-history in permissions removes access for all non-superadmin roles', () {
+    test(
+        'Disabling scout-history in permissions removes access for all non-superadmin roles',
+        () {
       final settings = AppSettingsModel(
         scoutPages: ['scout'],
         analyticsPages: ['graphs'],
@@ -295,20 +367,30 @@ void main() {
       );
       apiService.setCachedSettingsForTesting(settings);
 
-      apiService.setCachedUserForTesting(UserModel(id: '11', username: 'scout_user', teamNumber: 1234, role: 'SCOUT'));
+      apiService.setCachedUserForTesting(UserModel(
+          id: '11', username: 'scout_user', teamNumber: 1234, role: 'SCOUT'));
       expect(apiService.hasPageAccess('scout-history'), isFalse);
       expect(apiService.hasPageAccess('cache-manager'), isFalse);
 
-      apiService.setCachedUserForTesting(UserModel(id: '12', username: 'analytics_user', teamNumber: 1234, role: 'ANALYTICS'));
+      apiService.setCachedUserForTesting(UserModel(
+          id: '12',
+          username: 'analytics_user',
+          teamNumber: 1234,
+          role: 'ANALYTICS'));
       expect(apiService.hasPageAccess('scout-history'), isFalse);
       expect(apiService.hasPageAccess('cache-manager'), isFalse);
 
-      apiService.setCachedUserForTesting(UserModel(id: '13', username: 'admin_user', teamNumber: 1234, role: 'ADMIN'));
+      apiService.setCachedUserForTesting(UserModel(
+          id: '13', username: 'admin_user', teamNumber: 1234, role: 'ADMIN'));
       expect(apiService.hasPageAccess('scout-history'), isFalse);
       expect(apiService.hasPageAccess('cache-manager'), isFalse);
 
       // SuperAdmin still has access
-      apiService.setCachedUserForTesting(UserModel(id: '14', username: 'super_user', teamNumber: 1234, role: 'SUPERADMIN'));
+      apiService.setCachedUserForTesting(UserModel(
+          id: '14',
+          username: 'super_user',
+          teamNumber: 1234,
+          role: 'SUPERADMIN'));
       expect(apiService.hasPageAccess('scout-history'), isTrue);
       expect(apiService.hasPageAccess('cache-manager'), isTrue);
     });

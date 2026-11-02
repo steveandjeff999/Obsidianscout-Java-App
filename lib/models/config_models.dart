@@ -4,7 +4,8 @@ class ScoutingFieldModel {
   final String id;
   final String label;
   final String? description;
-  final String type; // e.g. "counter", "number", "slider", "range", "toggle", "boolean", "select", "radio", "multiselect", "rating", "text", "textarea", "section", "checkbox"
+  final String
+      type; // e.g. "counter", "number", "slider", "range", "toggle", "boolean", "select", "radio", "multiselect", "rating", "text", "textarea", "section", "checkbox"
   final bool required;
   final String? phase; // e.g. "auto", "teleop", "endgame"
   final String? placeholder;
@@ -77,16 +78,23 @@ class ScoutingFieldModel {
     // Parse label which may be a raw String or localized JsonObject e.g. {"en": "Label"}
     String parsedLabel = "";
     if (json['label'] is Map) {
-      parsedLabel = (json['label'] as Map)['en']?.toString() ?? json['id'] ?? '';
+      parsedLabel =
+          (json['label'] as Map)['en']?.toString() ?? json['id'] ?? '';
     } else {
-      parsedLabel = json['label']?.toString() ?? json['name']?.toString() ?? json['title']?.toString() ?? json['id'] ?? '';
+      parsedLabel = json['label']?.toString() ??
+          json['name']?.toString() ??
+          json['title']?.toString() ??
+          json['id'] ??
+          '';
     }
 
     String? parsedDesc;
     if (json['description'] is Map) {
       parsedDesc = (json['description'] as Map)['en']?.toString();
     } else {
-      parsedDesc = json['description']?.toString() ?? json['helpText']?.toString() ?? json['subtitle']?.toString();
+      parsedDesc = json['description']?.toString() ??
+          json['helpText']?.toString() ??
+          json['subtitle']?.toString();
     }
 
     List<ScoutingOptionModel> parsedOptions = [];
@@ -97,12 +105,14 @@ class ScoutingFieldModel {
         } else if (opt is Map) {
           return ScoutingOptionModel.fromJson(Map<String, dynamic>.from(opt));
         } else {
-          return ScoutingOptionModel(label: opt.toString(), value: opt.toString());
+          return ScoutingOptionModel(
+              label: opt.toString(), value: opt.toString());
         }
       }).toList();
     }
 
-    final parsedType = json['type']?.toString() ?? json['fieldType']?.toString() ?? 'text';
+    final parsedType =
+        json['type']?.toString() ?? json['fieldType']?.toString() ?? 'text';
     return ScoutingFieldModel(
       id: json['id']?.toString() ?? json['key']?.toString() ?? '',
       label: parsedLabel,
@@ -116,8 +126,10 @@ class ScoutingFieldModel {
       min: (json['min'] as num?)?.toInt(),
       max: (json['max'] as num?)?.toInt(),
       step: (json['step'] as num?)?.toInt(),
-      doubleStep: (json['doubleStep'] as num?)?.toInt() ?? (json['double_step'] as num?)?.toInt(),
-      pointsPer: (json['pointsPer'] as num?)?.toDouble() ?? (json['points_per'] as num?)?.toDouble(),
+      doubleStep: (json['doubleStep'] as num?)?.toInt() ??
+          (json['double_step'] as num?)?.toInt(),
+      pointsPer: (json['pointsPer'] as num?)?.toDouble() ??
+          (json['points_per'] as num?)?.toDouble(),
     );
   }
 
@@ -129,7 +141,10 @@ class ScoutingFieldModel {
     };
 
     if (phase != null && phase!.isNotEmpty) {
-      data['phase'] = (phase!.toLowerCase() == 'general' || phase!.trim().isEmpty) ? 'teleop' : phase;
+      data['phase'] =
+          (phase!.toLowerCase() == 'general' || phase!.trim().isEmpty)
+              ? 'teleop'
+              : phase;
     }
 
     if (type != 'section') {
@@ -191,9 +206,12 @@ class ScoutingOptionModel {
   factory ScoutingOptionModel.fromJson(Map<String, dynamic> json) {
     String parsedLabel = "";
     if (json['label'] is Map) {
-      parsedLabel = (json['label'] as Map)['en']?.toString() ?? json['value']?.toString() ?? '';
+      parsedLabel = (json['label'] as Map)['en']?.toString() ??
+          json['value']?.toString() ??
+          '';
     } else {
-      parsedLabel = json['label']?.toString() ?? json['value']?.toString() ?? '';
+      parsedLabel =
+          json['label']?.toString() ?? json['value']?.toString() ?? '';
     }
 
     return ScoutingOptionModel(
@@ -251,7 +269,8 @@ class ScoutingConfigModel {
       title: title ?? this.title,
       fields: fields ?? this.fields,
       analytics: analytics ?? this.analytics,
-      enableRobotRoleCollection: enableRobotRoleCollection ?? this.enableRobotRoleCollection,
+      enableRobotRoleCollection:
+          enableRobotRoleCollection ?? this.enableRobotRoleCollection,
       tbaKey: tbaKey ?? this.tbaKey,
       firstUsername: firstUsername ?? this.firstUsername,
       firstKey: firstKey ?? this.firstKey,
@@ -279,7 +298,8 @@ class ScoutingConfigModel {
       title: json['title']?.toString() ?? 'ObsidianScout',
       fields: parsedFields,
       analytics: parsedAnalytics,
-      enableRobotRoleCollection: json['enable_robot_role_collection'] == true || json['enableRobotRoleCollection'] == true,
+      enableRobotRoleCollection: json['enable_robot_role_collection'] == true ||
+          json['enableRobotRoleCollection'] == true,
       tbaKey: json['tba_key']?.toString(),
       firstUsername: json['first_username']?.toString(),
       firstKey: json['first_key']?.toString(),
@@ -295,11 +315,13 @@ class ScoutingConfigModel {
     };
 
     if (analytics.isNotEmpty) {
-      data['analytics'] = analytics.map((a) => {
-        'id': a.id,
-        'title': a.title,
-        'type': a.type,
-      }).toList();
+      data['analytics'] = analytics
+          .map((a) => {
+                'id': a.id,
+                'title': a.title,
+                'type': a.type,
+              })
+          .toList();
     }
 
     if (enableRobotRoleCollection) {
@@ -340,10 +362,15 @@ class DefaultConfigPresetModel {
       id: json['id']?.toString(),
       name: json['name']?.toString() ?? '',
       program: json['program']?.toString() ?? 'FRC',
-      configType: json['configType']?.toString() ?? json['config_type']?.toString() ?? 'match',
-      configJson: json['configJson']?.toString() ?? json['config_json']?.toString() ?? '{}',
+      configType: json['configType']?.toString() ??
+          json['config_type']?.toString() ??
+          'match',
+      configJson: json['configJson']?.toString() ??
+          json['config_json']?.toString() ??
+          '{}',
       isDefault: json['isDefault'] == true || json['is_default'] == true,
-      updatedAt: json['updatedAt']?.toString() ?? json['updated_at']?.toString(),
+      updatedAt:
+          json['updatedAt']?.toString() ?? json['updated_at']?.toString(),
     );
   }
 
@@ -379,7 +406,8 @@ class AnalyticsWidgetModel {
     List<AnalyticsSeriesPointModel> parsedSeries = [];
     if (json['series'] is List) {
       parsedSeries = (json['series'] as List)
-          .map((s) => AnalyticsSeriesPointModel.fromJson(s as Map<String, dynamic>))
+          .map((s) =>
+              AnalyticsSeriesPointModel.fromJson(s as Map<String, dynamic>))
           .toList();
     }
 
@@ -414,7 +442,13 @@ class AnalyticsSeriesPointModel {
 const List<String> customRoleBasePages = ['dashboard', 'my-assignments'];
 
 /// Team admin pages a CUSTOM user can be given (matches the server's CUSTOM_ROLE_ADMIN_PAGES).
-const List<String> customRoleAdminPages = ['assignments', 'admin-settings', 'users', 'scouter-report', 'banners'];
+const List<String> customRoleAdminPages = [
+  'assignments',
+  'admin-settings',
+  'users',
+  'scouter-report',
+  'banners'
+];
 
 /// Pages an admin can give a CUSTOM user, with labels. Superadmin pages are never offered (matches the server).
 const List<MapEntry<String, String>> customRoleGrantablePages = [
@@ -456,34 +490,116 @@ const List<MapEntry<String, String>> customRoleGrantablePages = [
 ];
 
 const List<String> defaultScoutPages = [
-  'dashboard', 'event-info', 'chat', 'scout', 'pit-scout', 'qual-scout', 'qr-scanner', 'contact', 'scout-history',
+  'dashboard',
+  'event-info',
+  'chat',
+  'scout',
+  'pit-scout',
+  'qual-scout',
+  'qr-scanner',
+  'contact',
+  'scout-history',
 ];
 
 const List<String> defaultAnalyticsPages = [
-  'dashboard', 'event-info', 'events', 'scout', 'pit-scout', 'qual-scout', 'qr-scanner',
-  'all-data', 'match-data', 'qual-data', 'pit-data', 'analytics', 'custom-analytics', 'graphs', 'data-validation',
-  'teams', 'rankings', 'qual-rankings', 'matches', 'predictor',
-  'event-predictor', 'alliances', 'alliance-selection', 'pick-list', 'match-planning', 'chat', 'backup', 'docs', 'contact', 'scout-history',
+  'dashboard',
+  'event-info',
+  'events',
+  'scout',
+  'pit-scout',
+  'qual-scout',
+  'qr-scanner',
+  'all-data',
+  'match-data',
+  'qual-data',
+  'pit-data',
+  'analytics',
+  'custom-analytics',
+  'graphs',
+  'data-validation',
+  'teams',
+  'rankings',
+  'qual-rankings',
+  'matches',
+  'predictor',
+  'event-predictor',
+  'alliances',
+  'alliance-selection',
+  'pick-list',
+  'match-planning',
+  'chat',
+  'backup',
+  'docs',
+  'contact',
+  'scout-history',
 ];
 
 const List<String> defaultAdminPages = [
-  'dashboard', 'event-info', 'admin-settings', 'default-configs', 'config-editor', 'users', 'banners', 'scout', 'pit-scout', 'qual-scout', 'qr-scanner',
-  'all-data', 'match-data', 'qual-data', 'pit-data', 'analytics', 'custom-analytics', 'graphs', 'data-validation',
-  'events', 'teams', 'rankings', 'qual-rankings', 'matches', 'predictor',
-  'event-predictor', 'alliances', 'alliance-selection', 'pick-list', 'match-planning', 'chat', 'backup', 'docs', 'contact', 'scout-history',
+  'dashboard',
+  'event-info',
+  'admin-settings',
+  'default-configs',
+  'config-editor',
+  'users',
+  'banners',
+  'scout',
+  'pit-scout',
+  'qual-scout',
+  'qr-scanner',
+  'all-data',
+  'match-data',
+  'qual-data',
+  'pit-data',
+  'analytics',
+  'custom-analytics',
+  'graphs',
+  'data-validation',
+  'events',
+  'teams',
+  'rankings',
+  'qual-rankings',
+  'matches',
+  'predictor',
+  'event-predictor',
+  'alliances',
+  'alliance-selection',
+  'pick-list',
+  'match-planning',
+  'chat',
+  'backup',
+  'docs',
+  'contact',
+  'scout-history',
 ];
 
 const List<String> superAdminOnlyPages = [
-  'cluster-management', 'error-reports', 'fcm-settings', 'migration', 'backup', 'logs',
+  'cluster-management',
+  'error-reports',
+  'load-profiler',
+  'fcm-settings',
+  'migration',
+  'backup',
+  'logs',
 ];
 
 const List<String> adminOnlyBasePages = [
-  'users', 'banners', 'admin-settings', 'default-configs', 'config-editor',
+  'users',
+  'banners',
+  'admin-settings',
+  'default-configs',
+  'config-editor',
 ];
 
 const List<String> bypassPages = [
-  'settings', 'login', 'index', 'dashboard', 'theme-editor', 'team',
-  'reset-password', 'config-migration', 'schema-history',
+  'settings',
+  'login',
+  'index',
+  'dashboard',
+  'theme-editor',
+  'team',
+  'reset-password',
+  'config-migration',
+  'schema-history',
 ];
 
 class UserModel {
@@ -495,10 +611,12 @@ class UserModel {
   final String? email;
   final String? profilePicture;
   final String? notificationPreference;
+
   /// Personal Settings > Non-Scouting Tools: shows drive-team tools such as the Match Checklist.
   final bool nonScoutingToolsEnabled;
   final String? createdAt;
   final String? lastLogin;
+
   /// For a CUSTOM user, the pages an admin picked (sent on the admin users list); empty otherwise.
   final List<String> customPages;
 
@@ -615,9 +733,15 @@ class ApiKeysModel {
   factory ApiKeysModel.fromJson(Map<String, dynamic> json) {
     return ApiKeysModel(
       tbaKey: json['tbaKey']?.toString() ?? json['tba_key']?.toString() ?? '',
-      firstUsername: json['firstUsername']?.toString() ?? json['first_username']?.toString() ?? '',
-      firstKey: json['firstKey']?.toString() ?? json['first_key']?.toString() ?? '',
-      match13Key: json['match13Key']?.toString() ?? json['match13_key']?.toString() ?? json['match13ApiKey']?.toString() ?? '',
+      firstUsername: json['firstUsername']?.toString() ??
+          json['first_username']?.toString() ??
+          '',
+      firstKey:
+          json['firstKey']?.toString() ?? json['first_key']?.toString() ?? '',
+      match13Key: json['match13Key']?.toString() ??
+          json['match13_key']?.toString() ??
+          json['match13ApiKey']?.toString() ??
+          '',
     );
   }
 
@@ -695,14 +819,18 @@ class ThemePresetModel {
       lightBg: json['lightBg']?.toString() ?? '#ffffff',
       lightInk: json['lightInk']?.toString() ?? '#1d1a17',
       lightMuted: json['lightMuted']?.toString() ?? '#5f5b55',
-      lightRadius: json['lightRadius']?.toString() ?? json['btnRadius']?.toString() ?? '999px',
+      lightRadius: json['lightRadius']?.toString() ??
+          json['btnRadius']?.toString() ??
+          '999px',
       darkAccent: json['darkAccent']?.toString() ?? '#3ccfc0',
       darkAccent2: json['darkAccent2']?.toString() ?? '#f2a353',
       darkAccent3: json['darkAccent3']?.toString() ?? '#6aa2ff',
       darkBg: json['darkBg']?.toString() ?? '#09090b',
       darkInk: json['darkInk']?.toString() ?? '#f4f2ed',
       darkMuted: json['darkMuted']?.toString() ?? '#c3bfb8',
-      darkRadius: json['darkRadius']?.toString() ?? json['btnRadius']?.toString() ?? '999px',
+      darkRadius: json['darkRadius']?.toString() ??
+          json['btnRadius']?.toString() ??
+          '999px',
       btnRadius: json['btnRadius']?.toString() ?? '999px',
       lightCard: json['lightCard']?.toString() ?? '',
       darkCard: json['darkCard']?.toString() ?? '',
@@ -797,8 +925,10 @@ class RecencyBiasSettingsModel {
   });
 
   factory RecencyBiasSettingsModel.fromJson(Map<String, dynamic> json) {
-    double toDouble(dynamic v, double fallback) => v is num ? v.toDouble() : double.tryParse('$v') ?? fallback;
-    int toInt(dynamic v, int fallback) => v is num ? v.toInt() : int.tryParse('$v') ?? fallback;
+    double toDouble(dynamic v, double fallback) =>
+        v is num ? v.toDouble() : double.tryParse('$v') ?? fallback;
+    int toInt(dynamic v, int fallback) =>
+        v is num ? v.toInt() : int.tryParse('$v') ?? fallback;
     return RecencyBiasSettingsModel(
       enabled: json['enabled'] == true,
       mode: json['mode'] == modeLastN ? modeLastN : modeExponential,
@@ -813,10 +943,14 @@ class RecencyBiasSettingsModel {
   RecencyBiasSettingsModel normalized() => RecencyBiasSettingsModel(
         enabled: enabled,
         mode: mode == modeLastN ? modeLastN : modeExponential,
-        halfLifeMatches: halfLifeMatches.isFinite ? halfLifeMatches.clamp(1.0, 20.0).toDouble() : 4.0,
+        halfLifeMatches: halfLifeMatches.isFinite
+            ? halfLifeMatches.clamp(1.0, 20.0).toDouble()
+            : 4.0,
         windowSize: windowSize.clamp(1, 30).toInt(),
         minMatches: minMatches.clamp(1, 15).toInt(),
-        prescoutWeight: prescoutWeight.isFinite ? prescoutWeight.clamp(0.0, 1.0).toDouble() : 0.5,
+        prescoutWeight: prescoutWeight.isFinite
+            ? prescoutWeight.clamp(0.0, 1.0).toDouble()
+            : 0.5,
       );
 
   Map<String, dynamic> toJson() => {
@@ -859,25 +993,31 @@ class AppSettingsModel {
   final String eventKey;
   final String timezone;
   final bool chatEnabled;
+
   /// Match predictions game (scouts pick each match's winner). Null when the server didn't report it;
   /// omitted on save so the server keeps its value.
   final bool? matchPredictionsEnabled;
+
   /// Anyone can browse and analyze the team's data on the web Public Data page. Null when the server
   /// didn't report it; omitted on save so the server keeps its value.
   final bool? dataPublic;
+
   /// With [dataPublic], notes and comments are shown instead of redacted. Same null handling.
   final bool? dataPublicIncludeNotes;
   final bool registrationLocked;
+
   /// Roles allowed on the create-account page (null = not reported by the server; keep its value).
   final List<String>? selfRegisterRoles;
   final bool useStatboticsEpa;
   final bool useMatch13Exp;
   final bool useTbaOpr;
+
   /// Null when the server didn't report it; omitted on save so the server keeps its value.
   final RecencyBiasSettingsModel? recencyBias;
   final List<String> scoutPages;
   final List<String> analyticsPages;
   final List<String> adminPages;
+
   /// Sent only to a CUSTOM user: the pages an admin picked for them. Null for every other role.
   final List<String>? customPages;
   final String program;
@@ -919,7 +1059,9 @@ class AppSettingsModel {
   }) : apiKeys = apiKeys ?? ApiKeysModel();
 
   factory AppSettingsModel.fromJson(Map<String, dynamic> json) {
-    final settingsMap = json['settings'] is Map ? (json['settings'] as Map<String, dynamic>) : json;
+    final settingsMap = json['settings'] is Map
+        ? (json['settings'] as Map<String, dynamic>)
+        : json;
 
     List<String> parseList(dynamic raw, List<String> fallback) {
       if (raw is List) {
@@ -954,7 +1096,8 @@ class AppSettingsModel {
 
     final parsedTheme = parseTheme(settingsMap['theme']);
     final parsedThemes = parseThemes(settingsMap['themes']);
-    final activeThemeName = settingsMap['activeThemeName']?.toString() ?? (parsedTheme?.name ?? '');
+    final activeThemeName =
+        settingsMap['activeThemeName']?.toString() ?? (parsedTheme?.name ?? '');
     bool parseBool(dynamic val) {
       if (val == null) return false;
       if (val is bool) return val;
@@ -1010,7 +1153,8 @@ class AppSettingsModel {
       timezone: settingsMap['timezone']?.toString() ?? 'America/New_York',
       chatEnabled: settingsMap['chatEnabled'] != false,
       matchPredictionsEnabled: () {
-        final raw = settingsMap['matchPredictionsEnabled'] ?? json['matchPredictionsEnabled'];
+        final raw = settingsMap['matchPredictionsEnabled'] ??
+            json['matchPredictionsEnabled'];
         if (raw == null) return null;
         if (raw is bool) return raw;
         return parseBool(raw);
@@ -1022,32 +1166,46 @@ class AppSettingsModel {
         return parseBool(raw);
       }(),
       dataPublicIncludeNotes: () {
-        final raw = settingsMap['dataPublicIncludeNotes'] ?? json['dataPublicIncludeNotes'];
+        final raw = settingsMap['dataPublicIncludeNotes'] ??
+            json['dataPublicIncludeNotes'];
         if (raw == null) return null;
         if (raw is bool) return raw;
         return parseBool(raw);
       }(),
-      registrationLocked: parseBool(settingsMap['registrationLocked'] ?? json['registrationLocked']),
+      registrationLocked: parseBool(
+          settingsMap['registrationLocked'] ?? json['registrationLocked']),
       selfRegisterRoles: (settingsMap['selfRegisterRoles'] is List)
-          ? (settingsMap['selfRegisterRoles'] as List).map((e) => e.toString().toUpperCase()).toList()
+          ? (settingsMap['selfRegisterRoles'] as List)
+              .map((e) => e.toString().toUpperCase())
+              .toList()
           : null,
       useStatboticsEpa: parseBool(rawEpa),
       useMatch13Exp: parseBool(rawExp),
       useTbaOpr: parseBool(rawOpr),
       recencyBias: settingsMap['recencyBias'] is Map
-          ? RecencyBiasSettingsModel.fromJson(Map<String, dynamic>.from(settingsMap['recencyBias'] as Map))
+          ? RecencyBiasSettingsModel.fromJson(
+              Map<String, dynamic>.from(settingsMap['recencyBias'] as Map))
           : null,
       scoutPages: parseList(settingsMap['scoutPages'], defaultScoutPages),
-      analyticsPages: parseList(settingsMap['analyticsPages'], defaultAnalyticsPages),
+      analyticsPages:
+          parseList(settingsMap['analyticsPages'], defaultAnalyticsPages),
       adminPages: parseList(settingsMap['adminPages'], defaultAdminPages),
       customPages: settingsMap['customPages'] is List
-          ? (settingsMap['customPages'] as List).map((e) => e.toString()).toList()
+          ? (settingsMap['customPages'] as List)
+              .map((e) => e.toString())
+              .toList()
           : null,
-      program: settingsMap['program']?.toString() ?? json['program']?.toString() ?? 'FRC',
-      serverVersion: json['version']?.toString() ?? json['serverVersion']?.toString() ?? '',
+      program: settingsMap['program']?.toString() ??
+          json['program']?.toString() ??
+          'FRC',
+      serverVersion: json['version']?.toString() ??
+          json['serverVersion']?.toString() ??
+          '',
       apiKeys: parseApiKeys(settingsMap['apiKeys']),
-      statboticsBaseUrl: settingsMap['statboticsBaseUrl']?.toString() ?? 'https://api.statbotics.io',
-      match13BaseUrl: settingsMap['match13BaseUrl']?.toString() ?? 'https://actions.match13.com',
+      statboticsBaseUrl: settingsMap['statboticsBaseUrl']?.toString() ??
+          'https://api.statbotics.io',
+      match13BaseUrl: settingsMap['match13BaseUrl']?.toString() ??
+          'https://actions.match13.com',
       theme: parsedTheme,
       themes: parsedThemes,
       activeThemeName: activeThemeName,
@@ -1061,9 +1219,11 @@ class AppSettingsModel {
       'eventKey': eventKey,
       'timezone': timezone,
       'chatEnabled': chatEnabled,
-      if (matchPredictionsEnabled != null) 'matchPredictionsEnabled': matchPredictionsEnabled,
+      if (matchPredictionsEnabled != null)
+        'matchPredictionsEnabled': matchPredictionsEnabled,
       if (dataPublic != null) 'dataPublic': dataPublic,
-      if (dataPublicIncludeNotes != null) 'dataPublicIncludeNotes': dataPublicIncludeNotes,
+      if (dataPublicIncludeNotes != null)
+        'dataPublicIncludeNotes': dataPublicIncludeNotes,
       'registrationLocked': registrationLocked,
       if (selfRegisterRoles != null) 'selfRegisterRoles': selfRegisterRoles,
       'useStatboticsEpa': useStatboticsEpa,
@@ -1119,9 +1279,11 @@ class AppSettingsModel {
       eventKey: eventKey ?? this.eventKey,
       timezone: timezone ?? this.timezone,
       chatEnabled: chatEnabled ?? this.chatEnabled,
-      matchPredictionsEnabled: matchPredictionsEnabled ?? this.matchPredictionsEnabled,
+      matchPredictionsEnabled:
+          matchPredictionsEnabled ?? this.matchPredictionsEnabled,
       dataPublic: dataPublic ?? this.dataPublic,
-      dataPublicIncludeNotes: dataPublicIncludeNotes ?? this.dataPublicIncludeNotes,
+      dataPublicIncludeNotes:
+          dataPublicIncludeNotes ?? this.dataPublicIncludeNotes,
       registrationLocked: registrationLocked ?? this.registrationLocked,
       selfRegisterRoles: selfRegisterRoles ?? this.selfRegisterRoles,
       useStatboticsEpa: useStatboticsEpa ?? this.useStatboticsEpa,
@@ -1282,8 +1444,12 @@ class ConfigMigrationSampleModel {
   factory ConfigMigrationSampleModel.fromJson(Map<String, dynamic> json) {
     return ConfigMigrationSampleModel(
       id: json['id']?.toString() ?? '',
-      before: json['before'] is Map ? Map<String, dynamic>.from(json['before'] as Map) : {},
-      after: json['after'] is Map ? Map<String, dynamic>.from(json['after'] as Map) : {},
+      before: json['before'] is Map
+          ? Map<String, dynamic>.from(json['before'] as Map)
+          : {},
+      after: json['after'] is Map
+          ? Map<String, dynamic>.from(json['after'] as Map)
+          : {},
     );
   }
 }
@@ -1303,7 +1469,8 @@ class ConfigMigrationPreviewModel {
     List<ConfigMigrationSampleModel> sampleList = [];
     if (json['samples'] is List) {
       sampleList = (json['samples'] as List)
-          .map((s) => ConfigMigrationSampleModel.fromJson(s as Map<String, dynamic>))
+          .map((s) =>
+              ConfigMigrationSampleModel.fromJson(s as Map<String, dynamic>))
           .toList();
     }
 
@@ -1348,4 +1515,3 @@ class ConfigMigrationResultModel {
     );
   }
 }
-
