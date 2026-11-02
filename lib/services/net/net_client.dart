@@ -67,6 +67,7 @@ class NetClient {
   /// Storage for ETag revalidation; unset means no revalidation.
   Future<EtagRecord?> Function(String url)? readEtag;
   Future<void> Function(String url, EtagRecord record)? writeEtag;
+  Future<void> Function(String url)? removeEtag;
 
   @visibleForTesting
   set client(http.Client value) => _client = value;
@@ -78,6 +79,7 @@ class NetClient {
     _lastResponseAt.clear();
     readEtag = null;
     writeEtag = null;
+    removeEtag = null;
     connectTimeout = () => const Duration(seconds: 6);
   }
 
@@ -112,6 +114,15 @@ class NetClient {
     throw ArgumentError('Invalid request body "$body".');
   }
 
+  /// Whether a response from [url] is worth keeping. Sync has its own cursor, live cluster figures differ on every
+  /// poll, and a `since` query is a new URL each time, which would add a row forever.
+  static bool _revalidates(Uri url) =>
+      !url.path.startsWith('/api/sync/') &&
+      !url.path.startsWith('/api/admin/cluster/') &&
+      !url.queryParameters.containsKey('since');
+
+  static bool _forbidsStorage(http.Response res) => (res.headers['cache-control'] ?? '').contains('no-store');
+
   static bool _looksTextual(http.Response res) {
     final type = res.headers['content-type'] ?? '';
     return type.contains('json') || type.startsWith('text/');
@@ -130,7 +141,8 @@ class NetClient {
     final prio = priority ?? RequestScheduler.priorityFor(method, url.path);
 
     EtagRecord? stored;
-    if (method == 'GET' && readEtag != null && _header(hdrs, 'if-none-match') == null && !url.path.startsWith('/api/sync/')) {
+    final managed = method == 'GET' && _header(hdrs, 'if-none-match') == null && _revalidates(url);
+    if (managed && readEtag != null) {
       try {
         stored = await readEtag!(url.toString());
       } catch (_) {}
@@ -176,13 +188,15 @@ class NetClient {
             request: res.request);
       }
       final etag = res.headers['etag'];
-      if (res.statusCode == 200 && etag != null && writeEtag != null && _looksTextual(res) && !url.path.startsWith('/api/sync/')) {
-        final text = res.body;
-        if (text.length <= maxEtagBodyChars) {
-          try {
-            await writeEtag!(url.toString(), (etag: etag, body: text));
-          } catch (_) {}
-        }
+      if (managed && res.statusCode == 200) {
+        final keep = etag != null && _looksTextual(res) && !_forbidsStorage(res) && res.body.length <= maxEtagBodyChars;
+        try {
+          if (keep) {
+            await writeEtag?.call(url.toString(), (etag: etag, body: res.body));
+          } else if (stored != null) {
+            await removeEtag?.call(url.toString());
+          }
+        } catch (_) {}
       }
     }
     return res;

@@ -485,7 +485,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _handleSyncNow() async {
     if (!mounted) return;
     setState(() => _isSyncing = true);
-    await widget.apiService.syncAllServerDataInBackground();
+    await widget.apiService.recacheAll();
     if (!mounted) return;
     await _loadCacheSummary();
     if (!mounted) return;
@@ -629,6 +629,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           return 'Teams List (${rawKey.replaceAll('cache_teams_', '')})';
         if (rawKey.startsWith('cache_matches_'))
           return 'Match Schedule (${rawKey.replaceAll('cache_matches_', '')})';
+        // These keys end in the full URL: the path is the part that says what it is.
+        final path = RegExp(r'https?://[^/]+(/[^?]*)').firstMatch(rawKey)?.group(1);
+        if (rawKey.startsWith('cache_etag:')) return 'Server Response: ${path ?? rawKey}';
+        if (rawKey.startsWith('cache_file:')) return 'Saved File: ${path ?? rawKey}';
         return rawKey.replaceAll('cache_', '').replaceAll('_', ' ');
     }
   }

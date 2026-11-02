@@ -161,6 +161,28 @@ class LocalStore {
         await prefs.remove(key);
       }
       await prefs.setBool(_cleanedFlag, true);
+    } else {
+      await _absorbStrayPrefs(db, prefs, movedKeys.where(isMovedPrefsKey).toList());
+    }
+  }
+
+  /// A launch that couldn't open the database wrote these to SharedPreferences, which holds them in memory on every
+  /// launch from then on. Anything the database doesn't have yet (a draft, say) moves across; the rest is dropped.
+  Future<void> _absorbStrayPrefs(LocalDb db, SharedPreferences prefs, List<String> keys) async {
+    if (keys.isEmpty) return;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await db.transaction(() async {
+      for (final key in keys) {
+        final value = prefs.get(key);
+        if (value is! String) continue;
+        await db.into(db.kvEntries).insert(
+              KvEntriesCompanion.insert(key: key, value: value, updatedAt: now),
+              mode: InsertMode.insertOrIgnore,
+            );
+      }
+    });
+    for (final key in keys) {
+      await prefs.remove(key);
     }
   }
 
@@ -240,6 +262,39 @@ class LocalStore {
       'DELETE FROM kv_entries WHERE key LIKE ? ESCAPE \'\\\'',
       ['${_escapeLike(prefix)}%'],
     );
+  }
+
+  /// Of [sizes] (key and length, newest first), the keys that don't fit in the limits.
+  @visibleForTesting
+  static List<String> keysOverLimit(List<(String, int)> sizes, {required int maxEntries, required int maxTotalChars}) {
+    final drop = <String>[];
+    var kept = 0;
+    var total = 0;
+    for (final (key, size) in sizes) {
+      if (kept < maxEntries && total + size <= maxTotalChars) {
+        kept++;
+        total += size;
+      } else {
+        drop.add(key);
+      }
+    }
+    return drop;
+  }
+
+  /// Drops the entries under [prefix] written longest ago until the rest fit. An entry lost here is only downloaded again.
+  Future<void> pruneWithPrefix(String prefix, {required int maxEntries, required int maxTotalChars}) async {
+    await ensureReady();
+    final db = _db;
+    if (db == null) return;
+    final rows = await db.customSelect(
+      'SELECT key, length(value) AS size FROM kv_entries WHERE key LIKE ? ESCAPE \'\\\' ORDER BY updated_at DESC',
+      variables: [Variable.withString('${_escapeLike(prefix)}%')],
+      readsFrom: {db.kvEntries},
+    ).get();
+    final sizes = [for (final r in rows) (r.read<String>('key'), r.read<int>('size'))];
+    for (final key in keysOverLimit(sizes, maxEntries: maxEntries, maxTotalChars: maxTotalChars)) {
+      await (db.delete(db.kvEntries)..where((t) => t.key.equals(key))).go();
+    }
   }
 
   static String _escapeLike(String s) => s.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_');

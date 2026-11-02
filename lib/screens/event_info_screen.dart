@@ -10,6 +10,7 @@ import '../services/api_service.dart';
 import '../services/live_refresh.dart';
 import '../services/image_utils.dart';
 import '../theme/obsidian_ui_theme.dart';
+import '../widgets/cached_server_image.dart';
 import '../widgets/obsidian_feedback.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/ported_page_kit.dart';
@@ -155,7 +156,9 @@ class _EventInfoScreenState extends State<EventInfoScreen> with LiveRefresh<Even
         child: Stack(children: [
           InteractiveViewer(
             maxScale: 5,
-            child: Center(child: Image.network(_fileUrl(file), headers: widget.apiService.fileHeaders, fit: BoxFit.contain)),
+            child: Center(
+              child: CachedServerImage(url: _fileUrl(file), webHeaders: widget.apiService.fileHeaders, fit: BoxFit.contain),
+            ),
           ),
           Positioned(
             top: 4,
@@ -276,11 +279,11 @@ class _EventInfoScreenState extends State<EventInfoScreen> with LiveRefresh<Even
                       borderRadius: BorderRadius.circular(10),
                       child: InkWell(
                         onTap: () => _openImage(img),
-                        child: Image.network(
-                          _fileUrl(img),
-                          headers: widget.apiService.fileHeaders,
+                        child: CachedServerImage(
+                          url: _fileUrl(img),
+                          webHeaders: widget.apiService.fileHeaders,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
+                          errorBuilder: (_) => Container(
                             color: ObsidianUITheme.getSurfaceColor(context),
                             alignment: Alignment.center,
                             child: Icon(Icons.broken_image_rounded, color: secondary),

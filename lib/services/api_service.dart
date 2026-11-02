@@ -25,6 +25,7 @@ import '../models/match_pick_models.dart';
 import '../models/server_analytics_models.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../data/local_store.dart';
+import 'net/server_file_cache.dart';
 import 'account_manager_service.dart';
 import 'auth_storage_service.dart';
 import 'entry_sync.dart' as entry_sync;
@@ -468,16 +469,22 @@ class ApiService {
     _startBackgroundSync();
   }
 
+  static const int _maxEtagEntries = 300;
+  static const int _maxEtagTotalChars = 32 * 1024 * 1024;
+  static const int _etagPruneEveryWrites = 50;
+
   /// Request timeout, ETag storage and slow-link handling for every request this service makes.
   void _configureNetwork() {
     final net = http.NetClient.instance;
     net.connectTimeout = () => requestTimeout;
-    String etagCacheKey(String url) {
+    String cacheScope() {
       final userScope = _currentUser?.id ??
           (_savedUsername.isNotEmpty ? _savedUsername : 'anon');
       final teamScope = _currentUser?.teamNumber ?? 0;
-      return 'cache_etag:${userScope}_$teamScope:$url';
+      return '${userScope}_$teamScope';
     }
+
+    String etagCacheKey(String url) => 'cache_etag:${cacheScope()}:$url';
 
     net.readEtag = (url) async {
       final raw = await _getCache(etagCacheKey(url));
@@ -492,8 +499,21 @@ class ApiService {
         return null;
       }
     };
-    net.writeEtag = (url, record) => _setCache(etagCacheKey(url),
-        jsonEncode({'etag': record.etag, 'body': record.body}));
+    var etagWrites = 0;
+    net.writeEtag = (url, record) async {
+      await _setCache(etagCacheKey(url),
+          jsonEncode({'etag': record.etag, 'body': record.body}));
+      if (etagWrites++ % _etagPruneEveryWrites == 0) {
+        await _store.pruneWithPrefix('cache_etag:',
+            maxEntries: _maxEtagEntries, maxTotalChars: _maxEtagTotalChars);
+      }
+    };
+    net.removeEtag = (url) => _store.remove(etagCacheKey(url));
+    ServerFileCache.instance
+      ..headers = (() => fileHeaders)
+      ..serverUrl = (() => _currentServerUrl)
+      ..scope = cacheScope
+      ..isOnline = (() => _isOnline);
     // Going slow or fast changes how often the background sync runs.
     LinkQuality.instance.lowBandwidth.removeListener(_onLinkQualityChanged);
     LinkQuality.instance.lowBandwidth.addListener(_onLinkQualityChanged);
@@ -514,7 +534,8 @@ class ApiService {
     } catch (_) {}
   }
 
-  bool _isSyncing = false;
+  /// The full sync under way, which anyone asking for one joins rather than being told it's done.
+  Future<void>? _syncInFlight;
 
   void _initConnectivityMonitor() {
     _connectivitySub?.cancel();
@@ -619,9 +640,21 @@ class ApiService {
       DateTime.now().difference(_lastStaticRefresh!) >
           lowBandwidthStaticInterval;
 
-  Future<void> syncAllServerDataInBackground() async {
-    if (!isLoggedIn || !_isOnline || _isSyncing) return;
-    _isSyncing = true;
+  Future<void> syncAllServerDataInBackground() {
+    if (!isLoggedIn || !_isOnline) return Future.value();
+    return _syncInFlight ??= _runFullSync().whenComplete(() {
+      _syncInFlight = null;
+    });
+  }
+
+  /// Refills the cache after it was cleared. A sync already under way may have fetched things before the clear, so
+  /// this waits for it and then runs a complete one of its own.
+  Future<void> recacheAll() async {
+    await _syncInFlight;
+    await syncAllServerDataInBackground();
+  }
+
+  Future<void> _runFullSync() async {
     try {
       await Future.wait([
         fetchCurrentUser().catchError((_) => null),
@@ -663,7 +696,6 @@ class ApiService {
       ]);
     } catch (_) {
     } finally {
-      _isSyncing = false;
       dataSyncedNotifier.value++;
     }
   }
@@ -4206,7 +4238,10 @@ class ApiService {
     if (!_entrySyncSupported) return Future.value(null);
     final key = '$kind|$force';
     return _entrySyncInflight[key] ??= _runEntrySync(kind, force)
-        .whenComplete(() => _entrySyncInflight.remove(key));
+        .whenComplete(() {
+      // A block, not an arrow: returning the removed future would make it wait for itself, forever.
+      _entrySyncInflight.remove(key);
+    });
   }
 
   Future<List<dynamic>?> _runEntrySync(String kind, bool force) async {
@@ -6141,6 +6176,9 @@ class ApiService {
       await _store.removeWithPrefix("cache_etag");
       _memoryCache.clear();
       _cacheTimestamps.clear();
+      // Nothing is left, so the slow-link throttle and the once-a-run file checks no longer apply.
+      _lastStaticRefresh = null;
+      ServerFileCache.instance.forgetChecks();
     } catch (_) {}
   }
 
