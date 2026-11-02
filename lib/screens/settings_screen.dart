@@ -19,6 +19,7 @@ class SettingsScreen extends StatefulWidget {
   final VoidCallback? onNavigateUsers;
   final VoidCallback? onNavigateErrorReports;
   final VoidCallback? onNavigateLoadProfiler;
+  final VoidCallback? onNavigateServerInsights;
   final VoidCallback? onNavigateThemeEditor;
   final bool isVisible;
   final bool isBarsVisible;
@@ -31,6 +32,7 @@ class SettingsScreen extends StatefulWidget {
     this.onNavigateUsers,
     this.onNavigateErrorReports,
     this.onNavigateLoadProfiler,
+    this.onNavigateServerInsights,
     this.onNavigateThemeEditor,
     this.isVisible = true,
     this.isBarsVisible = true,
@@ -1846,6 +1848,69 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Divider(color: borderColor, height: 24),
                   Text(
                     'Analyze real server load, request rates, response times, and split live refresh traffic across cluster nodes.',
+                    style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // Server Analytics & Insights Card (Superadmin access)
+          if (widget.apiService.hasPageAccess('server-insights')) ...[
+            ObsidianGlassCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            const Icon(Icons.insights_rounded,
+                                color: Color(0xFF10B981)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                context.tr('nav.server_insights',
+                                    'Server Insights'),
+                                style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: primaryTextColor),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      if (widget.onNavigateServerInsights != null)
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF10B981),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                          icon: const Icon(Icons.analytics_rounded,
+                              color: Colors.white, size: 18),
+                          label: Text(
+                              context.tr('server_insights.open', 'Open Insights'),
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12)),
+                          onPressed: widget.onNavigateServerInsights,
+                        ),
+                    ],
+                  ),
+                  Divider(color: borderColor, height: 24),
+                  Text(
+                    context.tr('server_insights.settings_desc',
+                        'Monitor database connection pools, WebSocket churn, client platforms, tail latency (p95/p99), and JVM thread dumps.'),
                     style: TextStyle(fontSize: 12, color: secondaryTextColor),
                   ),
                 ],

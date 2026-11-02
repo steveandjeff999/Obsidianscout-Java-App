@@ -53,6 +53,7 @@ import '../screens/event_info_screen.dart';
 import '../screens/storage_manager_screen.dart';
 import '../screens/backup_screen.dart';
 import '../screens/load_profiler_screen.dart';
+import '../screens/server_insights_screen.dart';
 
 class MatchScoutParams {
   final String? matchKey;
@@ -99,7 +100,7 @@ class ShellScreenRegistry {
   ShellScreenRegistry._();
 
   /// Total number of shell screens (indices 0 to [screenCount] - 1).
-  static const int screenCount = 53;
+  static const int screenCount = 54;
 
   static const List<String> titleKeys = [
     'nav.dashboard',
@@ -155,6 +156,7 @@ class ShellScreenRegistry {
     'nav.prediction_leaderboard',
     'nav.event_info',
     'nav.load_profiler',
+    'nav.server_insights',
   ];
 
   static const List<String> subtitleKeys = [
@@ -211,6 +213,7 @@ class ShellScreenRegistry {
     'leaderboard.notice',
     'event_info.subtitle',
     'subtitle.load_profiler',
+    'subtitle.server_insights',
   ];
 
   static String getTitleKey(int index) {
@@ -335,6 +338,8 @@ class ShellScreenRegistry {
         return 'event-info';
       case 52:
         return 'load-profiler';
+      case 53:
+        return 'server-insights';
       default:
         return 'dashboard';
     }
@@ -448,6 +453,8 @@ class ShellScreenRegistry {
         return Icons.campaign_outlined;
       case 52:
         return Icons.speed_rounded;
+      case 53:
+        return Icons.insights_rounded;
       default:
         return Icons.dashboard_rounded;
     }
@@ -577,6 +584,8 @@ class ShellScreenRegistry {
       case 52:
         return context.tr('nav.load-profiler',
             context.tr('nav.load_profiler', 'Load Profiler'));
+      case 53:
+        return context.tr('nav.server_insights', 'Server Insights');
       default:
         return 'Dashboard';
     }
@@ -669,6 +678,7 @@ class ShellScreenRegistry {
           onNavigateUsers: () => onNavigateScreen(22),
           onNavigateErrorReports: () => onNavigateScreen(24),
           onNavigateLoadProfiler: () => onNavigateScreen(52),
+          onNavigateServerInsights: () => onNavigateScreen(53),
           onNavigateThemeEditor: () => onNavigateScreen(28),
           isVisible: isTabActive && currentIndex == 5,
           isBarsVisible: isBarsVisible,
@@ -990,6 +1000,15 @@ class ShellScreenRegistry {
           apiService: apiService,
           isVisible: isTabActive && currentIndex == 52,
           isBarsVisible: isBarsVisible,
+          onNavigateCluster: () => onNavigateScreen(23),
+          onNavigateSettings: () => onNavigateScreen(10),
+        );
+      case 53:
+        return ServerInsightsScreen(
+          apiService: apiService,
+          isVisible: isTabActive && currentIndex == 53,
+          isBarsVisible: isBarsVisible,
+          onNavigateLoadProfiler: () => onNavigateScreen(52),
           onNavigateCluster: () => onNavigateScreen(23),
           onNavigateSettings: () => onNavigateScreen(10),
         );

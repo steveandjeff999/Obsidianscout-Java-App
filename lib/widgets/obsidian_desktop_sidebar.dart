@@ -511,6 +511,13 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
             'subKey': 'subtitle.load_profiler',
           },
           {
+            'pageId': 'server-insights',
+            'index': 53,
+            'icon': Icons.insights_rounded,
+            'labelKey': 'nav.server_insights',
+            'subKey': 'subtitle.server_insights',
+          },
+          {
             'pageId': 'settings',
             'index': 5,
             'icon': Icons.settings_suggest_rounded,

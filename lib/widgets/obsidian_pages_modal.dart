@@ -427,6 +427,16 @@ class ObsidianPagesModal extends StatelessWidget {
         'color': const Color(0xFFF97316),
       },
       {
+        'pageId': 'server-insights',
+        'index': 53,
+        'icon': Icons.insights_rounded,
+        'name': context.tr('nav.server_insights', 'Server Insights'),
+        'desc': context.tr('subtitle.server_insights',
+            'Database pool, sockets, client fleet, JVM and security'),
+        'tag': 'Admin',
+        'color': const Color(0xFF10B981),
+      },
+      {
         'pageId': 'storage-manager',
         'index': 48,
         'icon': Icons.storage_rounded,

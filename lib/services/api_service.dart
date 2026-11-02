@@ -22,6 +22,7 @@ import '../models/gamepad_models.dart';
 import '../models/share_models.dart';
 import '../models/pick_list_models.dart';
 import '../models/match_pick_models.dart';
+import '../models/server_analytics_models.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../data/local_store.dart';
 import 'account_manager_service.dart';
@@ -1130,10 +1131,35 @@ class ApiService {
     await prefs.setString(keyServerUrl, _currentServerUrl);
   }
 
+  /// Set for release builds by CI, the same value [AppUpdateService] compares against.
+  static const String _appVersion = String.fromEnvironment(
+      'OBSIDIAN_RELEASE_VERSION',
+      defaultValue: 'dev');
+
+  String _getPlatformString() {
+    if (kIsWeb) return 'Web';
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return 'Android';
+      case TargetPlatform.iOS:
+        return 'iOS';
+      case TargetPlatform.windows:
+        return 'Windows';
+      case TargetPlatform.macOS:
+        return 'macOS';
+      case TargetPlatform.linux:
+        return 'Linux';
+      default:
+        return 'Unknown';
+    }
+  }
+
   Map<String, String> get _headers => {
         'Content-Type': 'application/json',
         'X-Requested-With': 'XMLHttpRequest',
         'X-Mobile-App': 'true',
+        'X-App-Platform': _getPlatformString(),
+        'X-App-Version': _appVersion,
         if (_deviceId != null && _deviceId!.isNotEmpty)
           'X-Device-Id': _deviceId!,
         'X-Device-Name': _getDeviceName(),
@@ -4839,6 +4865,15 @@ class ApiService {
     return {...item.payload, 'clientId': item.id};
   }
 
+  /// How long [oldest] has waited, measured here so a wrong device clock can't skew the server's offline figures.
+  Map<String, String> _outboxHeaders(OutboxItem oldest) => {
+        ..._headers,
+        'X-Outbox-Age-Ms': DateTime.now()
+            .difference(oldest.createdAt)
+            .inMilliseconds
+            .toString(),
+      };
+
   List<OutboxItem> _nextOutboxChunk(List<OutboxItem> items, int start) {
     final chunk = <OutboxItem>[];
     var chars = 0;
@@ -4861,7 +4896,7 @@ class ApiService {
     try {
       response = await http.post(
         Uri.parse('$_currentServerUrl/api/sync/outbox'),
-        headers: _headers,
+        headers: _outboxHeaders(chunk.first),
         body: jsonEncode({
           'items': [
             for (final item in chunk)
@@ -4954,7 +4989,7 @@ class ApiService {
         final id = Uri.encodeComponent(item.payload['id'].toString());
         response = await http.post(
             Uri.parse('$_currentServerUrl/api/assignments/$id/status'),
-            headers: _headers,
+            headers: _outboxHeaders(item),
             body: jsonEncode({'status': item.payload['status']}));
       } else {
         final endpoint = _outboxEndpoints[item.kind];
@@ -4963,7 +4998,7 @@ class ApiService {
           return _OutboxOutcome.dropped;
         }
         response = await http.post(Uri.parse('$_currentServerUrl$endpoint'),
-            headers: _headers, body: jsonEncode(_outboxPayload(item)));
+            headers: _outboxHeaders(item), body: jsonEncode(_outboxPayload(item)));
       }
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -6658,6 +6693,43 @@ class ApiService {
       if (response.statusCode == 200) {
         final j = jsonDecode(response.body) as Map<String, dynamic>;
         return ClusterLoadProfile.fromJson(j);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<ClusterAnalyticsOverview?> fetchServerAnalyticsOverview() async {
+    if (!_isOnline) return null;
+    try {
+      final response = await http.get(
+        Uri.parse('$_currentServerUrl/api/admin/cluster/analytics/overview'),
+        headers: _headers,
+      );
+      _checkResponse(response);
+      if (response.statusCode == 200) {
+        final j = jsonDecode(response.body) as Map<String, dynamic>;
+        return ClusterAnalyticsOverview.fromJson(j);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// [nodeIp]'s thread dump, or the answering node's without one.
+  Future<String?> fetchServerThreadDump({String? nodeIp}) async {
+    if (!_isOnline) return null;
+    try {
+      final response = await http.get(
+        Uri.parse('$_currentServerUrl/api/admin/cluster/analytics/thread-dump')
+            .replace(queryParameters: nodeIp == null ? null : {'node': nodeIp}),
+        headers: _headers,
+      );
+      _checkResponse(response);
+      if (response.statusCode == 200) {
+        return response.body;
       }
       return null;
     } catch (_) {
