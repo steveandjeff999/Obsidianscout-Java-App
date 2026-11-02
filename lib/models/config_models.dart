@@ -576,6 +576,7 @@ const List<String> superAdminOnlyPages = [
   'cluster-management',
   'error-reports',
   'load-profiler',
+  'server-insights',
   'fcm-settings',
   'migration',
   'backup',
