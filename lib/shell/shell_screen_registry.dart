@@ -54,6 +54,7 @@ import '../screens/storage_manager_screen.dart';
 import '../screens/backup_screen.dart';
 import '../screens/load_profiler_screen.dart';
 import '../screens/server_insights_screen.dart';
+import '../screens/redis_status_screen.dart';
 
 class MatchScoutParams {
   final String? matchKey;
@@ -100,7 +101,7 @@ class ShellScreenRegistry {
   ShellScreenRegistry._();
 
   /// Total number of shell screens (indices 0 to [screenCount] - 1).
-  static const int screenCount = 54;
+  static const int screenCount = 55;
 
   static const List<String> titleKeys = [
     'nav.dashboard',
@@ -157,6 +158,7 @@ class ShellScreenRegistry {
     'nav.event_info',
     'nav.load_profiler',
     'nav.server_insights',
+    'nav.redis_status',
   ];
 
   static const List<String> subtitleKeys = [
@@ -214,6 +216,7 @@ class ShellScreenRegistry {
     'event_info.subtitle',
     'subtitle.load_profiler',
     'subtitle.server_insights',
+    'subtitle.redis_status',
   ];
 
   static String getTitleKey(int index) {
@@ -340,6 +343,8 @@ class ShellScreenRegistry {
         return 'load-profiler';
       case 53:
         return 'server-insights';
+      case 54:
+        return 'redis-status';
       default:
         return 'dashboard';
     }
@@ -455,6 +460,8 @@ class ShellScreenRegistry {
         return Icons.speed_rounded;
       case 53:
         return Icons.insights_rounded;
+      case 54:
+        return Icons.memory_rounded;
       default:
         return Icons.dashboard_rounded;
     }
@@ -586,6 +593,8 @@ class ShellScreenRegistry {
             context.tr('nav.load_profiler', 'Load Profiler'));
       case 53:
         return context.tr('nav.server_insights', 'Server Insights');
+      case 54:
+        return context.tr('nav.redis-status', context.tr('nav.redis_status', 'Redis Cache'));
       default:
         return 'Dashboard';
     }
@@ -679,6 +688,7 @@ class ShellScreenRegistry {
           onNavigateErrorReports: () => onNavigateScreen(24),
           onNavigateLoadProfiler: () => onNavigateScreen(52),
           onNavigateServerInsights: () => onNavigateScreen(53),
+          onNavigateRedisStatus: () => onNavigateScreen(54),
           onNavigateThemeEditor: () => onNavigateScreen(28),
           isVisible: isTabActive && currentIndex == 5,
           isBarsVisible: isBarsVisible,
@@ -793,6 +803,8 @@ class ShellScreenRegistry {
           isBarsVisible: isBarsVisible,
           onNavigateErrorReports: () => onNavigateScreen(24),
           onNavigateLoadProfiler: () => onNavigateScreen(52),
+          onNavigateServerInsights: () => onNavigateScreen(53),
+          onNavigateRedisStatus: () => onNavigateScreen(54),
         );
       case 24:
         return ErrorReportsScreen(
@@ -1009,6 +1021,14 @@ class ShellScreenRegistry {
           isVisible: isTabActive && currentIndex == 53,
           isBarsVisible: isBarsVisible,
           onNavigateLoadProfiler: () => onNavigateScreen(52),
+          onNavigateCluster: () => onNavigateScreen(23),
+          onNavigateSettings: () => onNavigateScreen(10),
+        );
+      case 54:
+        return RedisStatusScreen(
+          apiService: apiService,
+          isVisible: isTabActive && currentIndex == 54,
+          isBarsVisible: isBarsVisible,
           onNavigateCluster: () => onNavigateScreen(23),
           onNavigateSettings: () => onNavigateScreen(10),
         );

@@ -469,11 +469,25 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
             'subKey': 'subtitle.fcm_settings',
           },
           {
+            'pageId': 'load-profiler',
+            'index': 52,
+            'icon': Icons.speed_rounded,
+            'labelKey': 'nav.load_profiler',
+            'subKey': 'subtitle.load_profiler',
+          },
+          {
             'pageId': 'migration',
             'index': 45,
             'icon': Icons.move_down_rounded,
             'labelKey': 'nav.migration',
             'subKey': 'migration.notice',
+          },
+          {
+            'pageId': 'redis-status',
+            'index': 54,
+            'icon': Icons.memory_rounded,
+            'labelKey': 'nav.redis_status',
+            'subKey': 'subtitle.redis_status',
           },
           {
             'pageId': 'schema-history',
@@ -497,25 +511,18 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
             'subKey': 'scouter-report.notice',
           },
           {
-            'pageId': 'cluster-management',
-            'index': 23,
-            'icon': Icons.hub_rounded,
-            'labelKey': 'nav.cluster_management',
-            'subKey': 'subtitle.cluster_management',
-          },
-          {
-            'pageId': 'load-profiler',
-            'index': 52,
-            'icon': Icons.speed_rounded,
-            'labelKey': 'nav.load_profiler',
-            'subKey': 'subtitle.load_profiler',
-          },
-          {
             'pageId': 'server-insights',
             'index': 53,
             'icon': Icons.insights_rounded,
             'labelKey': 'nav.server_insights',
             'subKey': 'subtitle.server_insights',
+          },
+          {
+            'pageId': 'cluster-management',
+            'index': 23,
+            'icon': Icons.hub_rounded,
+            'labelKey': 'nav.cluster_management',
+            'subKey': 'subtitle.cluster_management',
           },
           {
             'pageId': 'settings',

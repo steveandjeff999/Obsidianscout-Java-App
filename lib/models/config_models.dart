@@ -579,6 +579,7 @@ const List<String> superAdminOnlyPages = [
   'server-insights',
   'fcm-settings',
   'migration',
+  'redis-status',
   'backup',
   'logs',
 ];

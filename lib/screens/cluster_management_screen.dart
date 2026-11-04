@@ -17,6 +17,8 @@ class ClusterManagementScreen extends StatefulWidget {
   final bool isBarsVisible;
   final VoidCallback? onNavigateErrorReports;
   final VoidCallback? onNavigateLoadProfiler;
+  final VoidCallback? onNavigateServerInsights;
+  final VoidCallback? onNavigateRedisStatus;
 
   const ClusterManagementScreen({
     super.key,
@@ -25,6 +27,8 @@ class ClusterManagementScreen extends StatefulWidget {
     this.isBarsVisible = true,
     this.onNavigateErrorReports,
     this.onNavigateLoadProfiler,
+    this.onNavigateServerInsights,
+    this.onNavigateRedisStatus,
   });
 
   @override
@@ -2462,6 +2466,20 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                         label: 'Load Profiler',
                         color: const Color(0xFFF97316),
                         onPressed: widget.onNavigateLoadProfiler!,
+                      ),
+                    if (widget.onNavigateRedisStatus != null)
+                      _actionButton(
+                        icon: Icons.memory_rounded,
+                        label: 'Redis Cache',
+                        color: const Color(0xFFEF4444),
+                        onPressed: widget.onNavigateRedisStatus!,
+                      ),
+                    if (widget.onNavigateServerInsights != null)
+                      _actionButton(
+                        icon: Icons.insights_rounded,
+                        label: 'Server Insights',
+                        color: const Color(0xFF10B981),
+                        onPressed: widget.onNavigateServerInsights!,
                       ),
                     if (widget.onNavigateErrorReports != null)
                       _actionButton(

@@ -20,6 +20,7 @@ class SettingsScreen extends StatefulWidget {
   final VoidCallback? onNavigateErrorReports;
   final VoidCallback? onNavigateLoadProfiler;
   final VoidCallback? onNavigateServerInsights;
+  final VoidCallback? onNavigateRedisStatus;
   final VoidCallback? onNavigateThemeEditor;
   final bool isVisible;
   final bool isBarsVisible;
@@ -33,6 +34,7 @@ class SettingsScreen extends StatefulWidget {
     this.onNavigateErrorReports,
     this.onNavigateLoadProfiler,
     this.onNavigateServerInsights,
+    this.onNavigateRedisStatus,
     this.onNavigateThemeEditor,
     this.isVisible = true,
     this.isBarsVisible = true,
@@ -1852,6 +1854,71 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Divider(color: borderColor, height: 24),
                   Text(
                     'Analyze real server load, request rates, response times, and split live refresh traffic across cluster nodes.',
+                    style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // Redis Cache Status & Topology Card (Superadmin access)
+          if (widget.apiService.hasPageAccess('redis-status')) ...[
+            ObsidianGlassCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            const Icon(Icons.memory_rounded,
+                                color: Color(0xFFEF4444)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                context.tr(
+                                    'nav.redis-status',
+                                    context.tr('nav.redis_status',
+                                        'Redis Cache')),
+                                style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: primaryTextColor),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      if (widget.onNavigateRedisStatus != null)
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFEF4444),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                          icon: const Icon(Icons.memory_rounded,
+                              color: Colors.white, size: 18),
+                          label: Text(
+                              context.tr('redis.open', 'Open Redis'),
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12)),
+                          onPressed: widget.onNavigateRedisStatus,
+                        ),
+                    ],
+                  ),
+                  Divider(color: borderColor, height: 24),
+                  Text(
+                    context.tr('redis.settings_desc',
+                        'Real-time memory auto-sizing, zero-downtime leader election, and sub-millisecond cache telemetry.'),
                     style: TextStyle(fontSize: 12, color: secondaryTextColor),
                   ),
                 ],
