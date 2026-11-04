@@ -289,7 +289,7 @@ void main() {
         );
 
     test('ShellScreenRegistry registers case 53 as ServerInsightsScreen', () {
-      expect(ShellScreenRegistry.screenCount, 54);
+      expect(ShellScreenRegistry.screenCount, 55);
       expect(ShellScreenRegistry.getPageIdForIndex(53), 'server-insights');
       expect(ShellScreenRegistry.titleKeys, contains('nav.server_insights'));
       expect(screenAt(53, (_) {}), isA<ServerInsightsScreen>());

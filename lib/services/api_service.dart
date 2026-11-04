@@ -23,6 +23,7 @@ import '../models/share_models.dart';
 import '../models/pick_list_models.dart';
 import '../models/match_pick_models.dart';
 import '../models/server_analytics_models.dart';
+import '../models/redis_models.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../data/local_store.dart';
 import 'net/server_file_cache.dart';
@@ -6772,6 +6773,156 @@ class ApiService {
       return null;
     } catch (_) {
       return null;
+    }
+  }
+
+  Future<RedisStatusResponse?> fetchRedisStatus() async {
+    if (!_isOnline) return null;
+    try {
+      final response = await http.get(
+        Uri.parse('$_currentServerUrl/api/admin/cluster/redis/status'),
+        headers: _headers,
+      );
+      _checkResponse(response);
+      if (response.statusCode == 200) {
+        final j = jsonDecode(response.body) as Map<String, dynamic>;
+        return RedisStatusResponse.fromJson(j);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<List<RedisNodeConfigDto>> fetchRedisConfig() async {
+    if (!_isOnline) return [];
+    try {
+      final response = await http.get(
+        Uri.parse('$_currentServerUrl/api/admin/cluster/redis/config'),
+        headers: _headers,
+      );
+      _checkResponse(response);
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        final list = decoded is List
+            ? decoded
+            : (decoded is Map ? (decoded['nodes'] as List? ?? []) : []);
+        return list
+            .whereType<Map>()
+            .map((e) => RedisNodeConfigDto.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<List<RedisClusterNodeResult>> updateRedisConfig(
+      RedisConfigUpdateRequest req) async {
+    if (!_isOnline) return [];
+    try {
+      final response = await http.put(
+        Uri.parse('$_currentServerUrl/api/admin/cluster/redis/config'),
+        headers: _headers,
+        body: jsonEncode(req.toJson()),
+      );
+      _checkResponse(response);
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is List) {
+          return decoded
+              .whereType<Map>()
+              .map((e) => RedisClusterNodeResult.fromJson(
+                  Map<String, dynamic>.from(e)))
+              .toList();
+        }
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>?> purgeRedisCache() async {
+    if (!_isOnline) return null;
+    try {
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/admin/cluster/redis/purge'),
+        headers: _headers,
+      );
+      _checkResponse(response);
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as Map<String, dynamic>?;
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> resizeRedisMemory() async {
+    if (!_isOnline) return null;
+    try {
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/admin/cluster/redis/resize'),
+        headers: _headers,
+      );
+      _checkResponse(response);
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as Map<String, dynamic>?;
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> triggerRedisFailover() async {
+    if (!_isOnline) return null;
+    try {
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/admin/cluster/redis/failover'),
+        headers: _headers,
+      );
+      _checkResponse(response);
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as Map<String, dynamic>?;
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<List<RedisClusterNodeResult>> installRedis({
+    String? sudoPassword,
+    String targetIp = 'all',
+  }) async {
+    if (!_isOnline) return [];
+    try {
+      final response = await http.post(
+        Uri.parse('$_currentServerUrl/api/admin/cluster/redis/install'),
+        headers: _headers,
+        body: jsonEncode({
+          'sudoPassword': sudoPassword,
+          'targetIp': targetIp,
+        }),
+      );
+      _checkResponse(response);
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is List) {
+          return decoded
+              .whereType<Map>()
+              .map((e) => RedisClusterNodeResult.fromJson(
+                  Map<String, dynamic>.from(e)))
+              .toList();
+        }
+      }
+      return [];
+    } catch (_) {
+      return [];
     }
   }
 
