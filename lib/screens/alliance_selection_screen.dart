@@ -8,7 +8,7 @@ import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/obsidian_feedback.dart';
 import '../data/local_store.dart';
-import '../services/net/adaptive_timer.dart';
+import '../services/live_refresh.dart';
 
 class AllianceSelectionScreen extends StatefulWidget {
   final ApiService apiService;
@@ -26,14 +26,14 @@ class AllianceSelectionScreen extends StatefulWidget {
   State<AllianceSelectionScreen> createState() => _AllianceSelectionScreenState();
 }
 
-class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with SingleTickerProviderStateMixin {
+class _AllianceSelectionScreenState extends State<AllianceSelectionScreen>
+    with SingleTickerProviderStateMixin, LiveRefresh<AllianceSelectionScreen> {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
 
   bool _isLoading = false;
   bool _isSaving = false;
   DateTime? _lastSyncedTime;
-  Timer? _realtimeSyncTimer;
   StreamSubscription<bool>? _onlineSubscription;
 
   List<EventModel> _events = [];
@@ -72,39 +72,46 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen> with 
     });
 
     _initializeData();
-    _startRealtimeSyncTimer();
+  }
+
+  // A pick made on one tablet should show on the others at once, so this reloads sooner than LiveRefresh's defaults.
+  // Picks come a few a minute and the server tells only the teams sharing the board.
+  @override
+  ApiService get liveApi => widget.apiService;
+  @override
+  bool get liveVisible => widget.isVisible;
+  @override
+  Set<String> get liveTopics => const {'alliance-selection'};
+  @override
+  String? get liveEventKey => _selectedEventKey;
+  @override
+  Duration get liveMinInterval => const Duration(seconds: 1);
+  @override
+  Duration get liveSettle => const Duration(milliseconds: 300);
+  @override
+  Duration get liveSpread => const Duration(milliseconds: 500);
+
+  @override
+  Future<void> liveReload() async {
+    // A save syncs with the server itself when it finishes.
+    if (_isLoading || _isSaving || _selectedEventKey == null) return;
+    await _catchUpAndSyncWithServer();
   }
 
   @override
   void didUpdateWidget(covariant AllianceSelectionScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isVisible && !oldWidget.isVisible) {
-      _startRealtimeSyncTimer();
       _catchUpAndSyncWithServer();
-    } else if (!widget.isVisible && oldWidget.isVisible) {
-      _realtimeSyncTimer?.cancel();
-      _realtimeSyncTimer = null;
     }
   }
 
   @override
   void dispose() {
     _onlineSubscription?.cancel();
-    _realtimeSyncTimer?.cancel();
     _tabController.dispose();
     _searchController.dispose();
     super.dispose();
-  }
-
-  void _startRealtimeSyncTimer() {
-    _realtimeSyncTimer?.cancel();
-    if (!widget.isVisible) return;
-    // Poll server every 4 seconds (longer on a slow link) for real-time synchronization with server & other scouts when screen is visible
-    _realtimeSyncTimer = AdaptiveTimer(const Duration(seconds: 4), (_) {
-      if (mounted && widget.apiService.isOnline && !_isLoading && !_isSaving && _selectedEventKey != null && widget.isVisible) {
-        _catchUpAndSyncWithServer();
-      }
-    });
   }
 
   Future<void> _initializeData() async {

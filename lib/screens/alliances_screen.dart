@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
@@ -7,7 +6,7 @@ import '../widgets/obsidian_feedback.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/ported_page_kit.dart';
 import 'alliance_edit_screen.dart';
-import '../services/net/adaptive_timer.dart';
+import '../services/live_refresh.dart';
 
 /// Scouting alliances with partner teams: create, invite, accept, import data, and pick the active one.
 /// Same data as the website's alliances.html; Edit opens [AllianceEditScreen] (alliance-edit.html).
@@ -22,14 +21,12 @@ class AlliancesScreen extends StatefulWidget {
   State<AlliancesScreen> createState() => _AlliancesScreenState();
 }
 
-class _AlliancesScreenState extends State<AlliancesScreen> {
-  static const _liveRefresh = Duration(seconds: 10);
+class _AlliancesScreenState extends State<AlliancesScreen> with LiveRefresh<AlliancesScreen> {
 
   bool _loading = true;
   String? _error;
   List<Map<String, dynamic>> _alliances = [];
   List<Map<String, dynamic>> _invites = [];
-  Timer? _timer;
 
   int? get _myTeam => widget.apiService.currentUser?.teamNumber;
   bool get _isAdmin => widget.apiService.isAdmin;
@@ -38,30 +35,29 @@ class _AlliancesScreenState extends State<AlliancesScreen> {
   void initState() {
     super.initState();
     _load();
-    _syncTimer();
   }
+
+  // The server announces membership changes (invites, responses, leaving, which alliance is active) to every team in
+  // the alliance, so this reloads on those instead of polling.
+  @override
+  ApiService get liveApi => widget.apiService;
+  @override
+  bool get liveVisible => widget.isVisible;
+  @override
+  Set<String> get liveTopics => const {'alliances'};
+  @override
+  String? get liveEventKey => null;
+  @override
+  Duration get liveSettle => const Duration(seconds: 1);
+  @override
+  Duration get liveSpread => const Duration(seconds: 2);
+  @override
+  Future<void> liveReload() => _load(quiet: true);
 
   @override
   void didUpdateWidget(covariant AlliancesScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isVisible && !oldWidget.isVisible) _load(quiet: true);
-    _syncTimer();
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  /// Polls like the website does, but only while the tab is on screen.
-  void _syncTimer() {
-    if (widget.isVisible && _timer == null) {
-      _timer = AdaptiveTimer(_liveRefresh, (_) => _load(quiet: true));
-    } else if (!widget.isVisible) {
-      _timer?.cancel();
-      _timer = null;
-    }
   }
 
   Future<void> _load({bool quiet = false}) async {

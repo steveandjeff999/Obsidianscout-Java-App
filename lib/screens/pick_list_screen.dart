@@ -9,7 +9,7 @@ import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/obsidian_feedback.dart';
-import '../services/net/adaptive_timer.dart';
+import '../services/live_refresh.dart';
 
 /// Ranked pick list for one event. The Do Not Pick list is the one Alliance Selection
 /// uses: the server keeps those teams out of the ranking and returns them separately.
@@ -29,7 +29,8 @@ class PickListScreen extends StatefulWidget {
   State<PickListScreen> createState() => _PickListScreenState();
 }
 
-class _PickListScreenState extends State<PickListScreen> with SingleTickerProviderStateMixin {
+class _PickListScreenState extends State<PickListScreen>
+    with SingleTickerProviderStateMixin, LiveRefresh<PickListScreen> {
   static const Color _dnpRed = Color(0xFFEF4444);
 
   late TabController _tabController;
@@ -37,7 +38,6 @@ class _PickListScreenState extends State<PickListScreen> with SingleTickerProvid
 
   bool _isLoading = false;
   int _pendingSaves = 0;
-  Timer? _syncTimer;
 
   List<EventModel> _events = [];
   String? _selectedEventKey;
@@ -55,37 +55,41 @@ class _PickListScreenState extends State<PickListScreen> with SingleTickerProvid
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _initializeData();
-    _startSyncTimer();
+  }
+
+  // Shares the alliance-selection topic: the ranking, Do Not Pick list and picked labels all live on that board.
+  @override
+  ApiService get liveApi => widget.apiService;
+  @override
+  bool get liveVisible => widget.isVisible;
+  @override
+  Set<String> get liveTopics => const {'alliance-selection'};
+  @override
+  String? get liveEventKey => _selectedEventKey;
+  @override
+  Duration get liveMinInterval => const Duration(seconds: 1);
+  @override
+  Duration get liveSettle => const Duration(milliseconds: 300);
+  @override
+  Duration get liveSpread => const Duration(milliseconds: 500);
+
+  @override
+  Future<void> liveReload() async {
+    if (_isLoading) return;
+    await _refresh();
   }
 
   @override
   void didUpdateWidget(covariant PickListScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.isVisible && !oldWidget.isVisible) {
-      _startSyncTimer();
-      _refresh();
-    } else if (!widget.isVisible && oldWidget.isVisible) {
-      _syncTimer?.cancel();
-      _syncTimer = null;
-    }
+    if (widget.isVisible && !oldWidget.isVisible) _refresh();
   }
 
   @override
   void dispose() {
-    _syncTimer?.cancel();
     _tabController.dispose();
     _searchController.dispose();
     super.dispose();
-  }
-
-  void _startSyncTimer() {
-    _syncTimer?.cancel();
-    if (!widget.isVisible) return;
-    _syncTimer = AdaptiveTimer(const Duration(seconds: 4), (_) {
-      if (mounted && widget.apiService.isOnline && !_isLoading && _pendingSaves == 0 && widget.isVisible) {
-        _refresh();
-      }
-    });
   }
 
   Future<void> _initializeData() async {
