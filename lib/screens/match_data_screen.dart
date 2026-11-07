@@ -11,6 +11,7 @@ import '../widgets/obsidian_glass_card.dart';
 import '../widgets/conflict_resolution_modal.dart';
 import '../widgets/obsidian_image_preview_card.dart';
 import '../widgets/edit_scouting_entry_modal.dart';
+import '../services/photo_values.dart';
 
 class MatchScoutingRecord {
   final String id;
@@ -1112,7 +1113,7 @@ class _MatchDataScreenState extends State<MatchDataScreen> with LiveRefresh<Matc
         const SizedBox(height: 8),
         ...fields.map((f) {
           final val = data[f.id];
-          if (val is String && val.startsWith('data:image/')) {
+          if (isPhotoValue(val)) {
             return ObsidianImagePreviewCard(
               label: f.label.isNotEmpty ? f.label : f.id,
               imageSource: val,
@@ -1170,7 +1171,7 @@ class _MatchDataScreenState extends State<MatchDataScreen> with LiveRefresh<Matc
     if (val == null) return '--';
     if (val is bool) return val ? 'Yes' : 'No';
     if (val is List) return val.join(', ');
-    if (val is String && val.startsWith('data:image/')) return '📷 [Photo]';
+    if (isPhotoValue(val)) return '📷 [Photo]';
     return val.toString();
   }
 

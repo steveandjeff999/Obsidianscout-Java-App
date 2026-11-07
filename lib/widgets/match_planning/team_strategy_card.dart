@@ -6,6 +6,7 @@ import '../../models/team_match_models.dart';
 import '../../theme/obsidian_ui_theme.dart';
 import '../obsidian_image_preview_card.dart';
 import 'fullscreen_graph_modal.dart';
+import '../../services/photo_values.dart';
 
 class TeamStrategyCard extends StatefulWidget {
   final int teamNumber;
@@ -550,7 +551,7 @@ class _TeamStrategyCardState extends State<TeamStrategyCard> with SingleTickerPr
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(s['label']!.toUpperCase(), style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8))),
-                    if (s['val']!.startsWith('data:image/'))
+                    if (isPhotoValue(s['val']))
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
                         child: ObsidianImageThumbnail(imageSource: s['val'], size: 56, title: s['label']!),

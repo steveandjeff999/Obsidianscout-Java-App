@@ -9,6 +9,7 @@ import '../services/image_utils.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../theme/obsidian_responsive.dart';
 import 'inline_camera_capture_dialog.dart';
+import 'obsidian_image_preview_card.dart' show photoWidget;
 
 class DynamicFieldWidget extends StatelessWidget {
   final ScoutingFieldModel field;
@@ -834,7 +835,8 @@ class DynamicFieldWidget extends StatelessWidget {
     final borderColor = ObsidianUITheme.getGlassBorderColor(context);
 
     final String? imgStr = currentValue is String && (currentValue as String).isNotEmpty ? currentValue as String : null;
-    final Uint8List? imgBytes = ImageProcessingUtils.dataUrlToBytes(imgStr);
+    // A new capture is a data URL; a saved photo may be a blob-store path on the server.
+    final Widget? imgWidget = photoWidget(imgStr, fit: BoxFit.contain);
 
     Future<void> pickPhoto(ImageSource source) async {
       if (source == ImageSource.camera) {
@@ -912,7 +914,7 @@ class DynamicFieldWidget extends StatelessWidget {
     }
 
     void showImageZoomDialog() {
-      if (imgBytes == null) return;
+      if (imgWidget == null) return;
       showDialog(
         context: context,
         builder: (ctx) => Dialog(
@@ -947,7 +949,7 @@ class DynamicFieldWidget extends StatelessWidget {
                   maxScale: 4.0,
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.memory(imgBytes, fit: BoxFit.contain),
+                    child: imgWidget,
                   ),
                 ),
               ),
@@ -982,7 +984,7 @@ class DynamicFieldWidget extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              if (field.required && imgBytes == null)
+              if (field.required && imgWidget == null)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
@@ -997,7 +999,7 @@ class DynamicFieldWidget extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8.0),
-          if (imgBytes != null) ...[
+          if (imgWidget != null) ...[
             GestureDetector(
               onTap: showImageZoomDialog,
               child: Stack(
@@ -1013,10 +1015,7 @@ class DynamicFieldWidget extends StatelessWidget {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.memory(
-                        imgBytes,
-                        fit: BoxFit.contain,
-                      ),
+                      child: imgWidget,
                     ),
                   ),
                   Container(

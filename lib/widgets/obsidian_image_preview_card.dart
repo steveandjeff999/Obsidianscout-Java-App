@@ -1,6 +1,8 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../services/image_utils.dart';
+import '../services/photo_values.dart';
+import 'cached_server_image.dart';
 import '../theme/obsidian_ui_theme.dart';
 
 class ObsidianImagePreviewCard extends StatelessWidget {
@@ -16,8 +18,8 @@ class ObsidianImagePreviewCard extends StatelessWidget {
   });
 
   static void showZoomDialog(BuildContext context, String? imageSource, {String title = 'Photo Preview'}) {
-    final Uint8List? bytes = ImageProcessingUtils.dataUrlToBytes(imageSource);
-    if (bytes == null) return;
+    final Widget? image = photoWidget(imageSource, fit: BoxFit.contain);
+    if (image == null) return;
 
     showDialog(
       context: context,
@@ -66,7 +68,7 @@ class ObsidianImagePreviewCard extends StatelessWidget {
                 maxScale: 4.0,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.memory(bytes, fit: BoxFit.contain),
+                  child: image,
                 ),
               ),
             ),
@@ -81,9 +83,9 @@ class ObsidianImagePreviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = ObsidianUITheme.isDark(context);
     final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
-    final Uint8List? imgBytes = ImageProcessingUtils.dataUrlToBytes(imageSource);
+    final Widget? image = photoWidget(imageSource, fit: BoxFit.contain);
 
-    if (imgBytes == null) {
+    if (image == null) {
       return const SizedBox.shrink();
     }
 
@@ -132,7 +134,7 @@ class ObsidianImagePreviewCard extends StatelessWidget {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(10),
-                    child: Image.memory(imgBytes, fit: BoxFit.contain),
+                    child: image,
                   ),
                 ),
                 Container(
@@ -178,8 +180,8 @@ class ObsidianImageThumbnail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Uint8List? bytes = ImageProcessingUtils.dataUrlToBytes(imageSource);
-    if (bytes == null) return const SizedBox.shrink();
+    final Widget? image = photoWidget(imageSource, width: size, height: size, fit: BoxFit.cover);
+    if (image == null) return const SizedBox.shrink();
 
     return GestureDetector(
       onTap: () => ObsidianImagePreviewCard.showZoomDialog(context, imageSource, title: title),
@@ -203,12 +205,7 @@ class ObsidianImageThumbnail extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(7),
-              child: Image.memory(
-                bytes,
-                width: size,
-                height: size,
-                fit: BoxFit.cover,
-              ),
+              child: image,
             ),
             Positioned(
               right: 2,
@@ -227,4 +224,28 @@ class ObsidianImageThumbnail extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A photo value as a widget: a base64 data URL decoded in place, or a blob-store path loaded from the server
+/// (cached on the device). Null when [source] is neither.
+Widget? photoWidget(String? source, {double? width, double? height, BoxFit? fit}) {
+  if (source == null || source.isEmpty) return null;
+  if (isBlobPhotoPath(source)) {
+    final url = resolveBlobPhotoUrl(source);
+    if (url == null) return null;
+    return CachedServerImage(
+      url: url,
+      width: width,
+      height: height,
+      fit: fit,
+      errorBuilder: (_) => SizedBox(
+        width: width,
+        height: height,
+        child: const Center(child: Icon(Icons.broken_image_outlined, color: Colors.white38)),
+      ),
+    );
+  }
+  final Uint8List? bytes = ImageProcessingUtils.dataUrlToBytes(source);
+  if (bytes == null) return null;
+  return Image.memory(bytes, width: width, height: height, fit: fit);
 }

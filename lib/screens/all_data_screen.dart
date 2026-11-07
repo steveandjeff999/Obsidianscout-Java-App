@@ -12,6 +12,7 @@ import '../widgets/conflict_resolution_modal.dart';
 import '../widgets/obsidian_image_preview_card.dart';
 import '../widgets/edit_scouting_entry_modal.dart';
 import '../widgets/obsidian_share_modal.dart';
+import '../services/photo_values.dart';
 
 class UnifiedScoutingEntry {
   final String id;
@@ -890,7 +891,7 @@ class _AllDataScreenState extends State<AllDataScreen> with LiveRefresh<AllDataS
               final typeColor = _getTypeColor(entry.type);
               final conflicts = _getConflictingEntriesFor(entry);
               final hasConflict = conflicts.length > 1 || entry.hasDiscrepancy;
-              final imageVal = entry.data.values.where((v) => v is String && v.startsWith('data:image/')).firstOrNull?.toString();
+              final imageVal = entry.data.values.where((v) => isPhotoValue(v)).firstOrNull?.toString();
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
@@ -1337,7 +1338,7 @@ class _AllDataScreenState extends State<AllDataScreen> with LiveRefresh<AllDataS
                               }
                             }
 
-                            if (fieldVal is String && fieldVal.startsWith('data:image/')) {
+                            if (isPhotoValue(fieldVal)) {
                               return ObsidianImagePreviewCard(
                                 label: displayLabel,
                                 imageSource: fieldVal,
@@ -1409,7 +1410,7 @@ class _AllDataScreenState extends State<AllDataScreen> with LiveRefresh<AllDataS
     if (val == null) return '--';
     if (val is bool) return val ? 'Yes' : 'No';
     if (val is List) return val.join(', ');
-    if (val is String && val.startsWith('data:image/')) return '📷 [Photo]';
+    if (isPhotoValue(val)) return '📷 [Photo]';
     return val.toString();
   }
 

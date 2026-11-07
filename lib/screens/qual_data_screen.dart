@@ -12,6 +12,7 @@ import '../widgets/obsidian_glass_card.dart';
 import '../widgets/conflict_resolution_modal.dart';
 import '../widgets/obsidian_image_preview_card.dart';
 import '../widgets/edit_scouting_entry_modal.dart';
+import '../services/photo_values.dart';
 
 class QualScoutingRecord {
   final String id;
@@ -1561,7 +1562,7 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                         if (_qualConfig != null && _qualConfig!.fields.isNotEmpty)
                           ..._qualConfig!.fields.map((f) {
                             final val = entry.data[f.id];
-                            if (val is String && val.startsWith('data:image/')) {
+                            if (isPhotoValue(val)) {
                               return ObsidianImagePreviewCard(
                                 label: f.label.isNotEmpty ? f.label : f.id,
                                 imageSource: val,
@@ -1599,7 +1600,7 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                           })
                         else
                           ...entry.data.entries.map((item) {
-                            if (item.value is String && item.value.startsWith('data:image/')) {
+                            if (isPhotoValue(item.value)) {
                               return ObsidianImagePreviewCard(
                                 label: item.key,
                                 imageSource: item.value,
@@ -1655,7 +1656,7 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
     if (val == null) return '--';
     if (val is bool) return val ? 'Yes' : 'No';
     if (val is List) return val.join(', ');
-    if (val is String && val.startsWith('data:image/')) return '📷 [Photo]';
+    if (isPhotoValue(val)) return '📷 [Photo]';
     return val.toString();
   }
 

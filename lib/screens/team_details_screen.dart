@@ -10,6 +10,7 @@ import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/obsidian_image_preview_card.dart';
 import '../widgets/obsidian_chart_interactive_wrapper.dart';
+import '../services/photo_values.dart';
 
 class TeamDetailsScreen extends StatefulWidget {
   final TeamModel team;
@@ -1291,7 +1292,7 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
   }
 
   // Uploaded photos are stored as image data URLs; show them as images, not base64 text.
-  bool _isPhoto(dynamic val) => val is String && val.startsWith('data:image/');
+  bool _isPhoto(dynamic val) => isPhotoValue(val);
 
   Widget _pitFieldRow(String label, String value, Color primary, Color secondary) {
     return Padding(

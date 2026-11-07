@@ -3,6 +3,7 @@ import '../models/config_models.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
 import 'obsidian_image_preview_card.dart';
+import '../services/photo_values.dart';
 
 class ConflictResolutionModal extends StatefulWidget {
   final ApiService apiService;
@@ -665,7 +666,7 @@ class _ConflictResolutionModalState extends State<ConflictResolutionModal> {
                                       children: [
                                         Text('Sub #${idx + 1}', style: TextStyle(fontSize: 10, color: secondaryTextColor)),
                                         const SizedBox(height: 2),
-                                        if (val is String && val.startsWith('data:image/'))
+                                        if (isPhotoValue(val))
                                           ObsidianImageThumbnail(imageSource: val, size: 64, title: label)
                                         else
                                           Text(

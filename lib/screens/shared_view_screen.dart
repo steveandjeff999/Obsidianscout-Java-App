@@ -9,6 +9,7 @@ import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/obsidian_glass_app_bar.dart';
 import '../widgets/obsidian_image_preview_card.dart';
+import '../services/photo_values.dart';
 
 class SharedViewScreen extends StatefulWidget {
   final ApiService apiService;
@@ -958,7 +959,7 @@ class _SharedViewScreenState extends State<SharedViewScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Expanded(child: Text(item.key, style: const TextStyle(color: Colors.grey, fontSize: 13))),
-                        if (item.value is String && (item.value as String).startsWith('data:image/'))
+                        if (isPhotoValue(item.value))
                           ObsidianImageThumbnail(imageSource: item.value as String, size: 64, title: item.key)
                         else
                           Text('${item.value}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),

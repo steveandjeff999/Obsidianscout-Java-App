@@ -11,6 +11,7 @@ import '../widgets/obsidian_glass_card.dart';
 import '../widgets/conflict_resolution_modal.dart';
 import '../widgets/obsidian_image_preview_card.dart';
 import '../widgets/edit_scouting_entry_modal.dart';
+import '../services/photo_values.dart';
 
 class TeamPitCoverageItem {
   final int teamNumber;
@@ -692,7 +693,7 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
               final quickFieldLabel = _quickFieldOptions.where((f) => f.id == _selectedQuickFieldId).firstOrNull?.label ?? _selectedQuickFieldId;
               final conflicts = _getConflictingEntriesForTeam(item.teamNumber);
               final hasConflict = conflicts.length > 1;
-              final imageVal = item.pitData.values.where((v) => v is String && v.startsWith('data:image/')).firstOrNull?.toString();
+              final imageVal = item.pitData.values.where((v) => isPhotoValue(v)).firstOrNull?.toString();
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
@@ -1103,7 +1104,7 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
                             }
 
                             final val = item.pitData[f.id];
-                            final isImage = f.type == 'image' || f.type == 'image_upload' || f.type == 'photo' || (val is String && val.startsWith('data:image/'));
+                            final isImage = f.type == 'image' || f.type == 'image_upload' || f.type == 'photo' || (isPhotoValue(val));
 
                             if (isImage && val != null && val.toString().isNotEmpty) {
                               return ObsidianImagePreviewCard(
@@ -1197,7 +1198,7 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
 
   String _formatVal(dynamic val) {
     if (val == null) return '--';
-    if (val is String && val.startsWith('data:image/')) return '📷 [Photo]';
+    if (isPhotoValue(val)) return '📷 [Photo]';
     if (val is bool) return val ? 'Yes' : 'No';
     if (val is List) return val.join(', ');
     return val.toString();
