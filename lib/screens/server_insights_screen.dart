@@ -6,6 +6,7 @@ import '../models/server_analytics_models.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
+import '../widgets/security_admin_panel.dart';
 
 // ============================================================================
 // Server Insights & Analytics Screen
@@ -856,6 +857,7 @@ class _ServerInsightsScreenState extends State<ServerInsightsScreen>
   Widget _buildSecurityTab(
       SecurityInsightsMetrics sec, Color primaryText, Color secondaryText) {
     return _buildTab([
+      SecurityAdminPanel(apiService: widget.apiService),
       ObsidianGlassCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

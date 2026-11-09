@@ -24,6 +24,8 @@ import '../models/pick_list_models.dart';
 import '../models/match_pick_models.dart';
 import '../models/server_analytics_models.dart';
 import '../models/redis_models.dart';
+import '../models/security_models.dart';
+import 'security_pow.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../data/local_store.dart';
 import 'net/server_file_cache.dart';
@@ -152,6 +154,8 @@ class ApiService {
       StreamController<int>.broadcast();
   final StreamController<String> _sessionRevokedController =
       StreamController<String>.broadcast();
+  final StreamController<IpBlockInfo> _ipBlockedController =
+      StreamController<IpBlockInfo>.broadcast();
 
   String get serverUrl => _currentServerUrl;
   String get currentServerUrl => _currentServerUrl;
@@ -255,6 +259,8 @@ class ApiService {
 
   Stream<int> get onServerError => _serverErrorController.stream;
   Stream<String> get onSessionRevoked => _sessionRevokedController.stream;
+  /// The server refused a request because this network is temporarily blocked.
+  Stream<IpBlockInfo> get onIpBlocked => _ipBlockedController.stream;
   ThemeMode get themeMode => themeNotifier.value;
   bool get useServerCustomTheme => useServerCustomThemeNotifier.value;
   ThemePresetModel? get currentCustomTheme => customThemeNotifier.value;
@@ -1253,9 +1259,24 @@ class ApiService {
         }
       } catch (_) {}
       _handleUnauthorized(reason, epoch, requestCookie);
+    } else if (response.statusCode == 403) {
+      _reportIpBlock(response);
     } else if (response.statusCode >= 500) {
       _serverErrorController.add(response.statusCode);
     }
+  }
+
+  /// Tells the app (main shell) when a refusal is an IP block, so it can show the blocked screen.
+  bool _reportIpBlock(http.Response response) {
+    if (response.statusCode != 403) return false;
+    try {
+      final info = IpBlockInfo.tryParse(jsonDecode(response.body));
+      if (info != null) {
+        _ipBlockedController.add(info);
+        return true;
+      }
+    } catch (_) {}
+    return false;
   }
 
   void _checkResponseForServerError(http.Response response,
@@ -1312,17 +1333,32 @@ class ApiService {
   }) async {
     lastLoginError = null;
     try {
-      final response = await http.post(
+      final loginBody = jsonEncode({
+        'username': username,
+        'teamNumber': teamNumber,
+        'program': program,
+        'password': password,
+        'keepMeLoggedIn': keepMeLoggedIn,
+      });
+      var response = await http.post(
         Uri.parse('$_currentServerUrl/api/auth/login'),
         headers: _headers,
-        body: jsonEncode({
-          'username': username,
-          'teamNumber': teamNumber,
-          'program': program,
-          'password': password,
-          'keepMeLoggedIn': keepMeLoggedIn,
-        }),
+        body: loginBody,
       );
+      // The server may ask for a quick security check first: solve it and send the sign-in again.
+      final challenge = _challengeFrom(response);
+      if (challenge != null) {
+        final answer = await SecurityPow.solve(challenge);
+        response = await http.post(
+          Uri.parse('$_currentServerUrl/api/auth/login'),
+          headers: {..._headers, SecurityPow.header: answer},
+          body: loginBody,
+        );
+      }
+      if (response.statusCode == 403 && _reportIpBlock(response)) {
+        lastLoginError = _extractServerError(response);
+        return false;
+      }
 
       if (response.statusCode == 200 || response.statusCode == 302) {
         if (response.body.isNotEmpty) {
@@ -1384,6 +1420,17 @@ class ApiService {
     } catch (e) {
       return false;
     }
+  }
+
+  PowChallenge? _challengeFrom(http.Response response) {
+    if (response.statusCode != 428) return null;
+    try {
+      final body = jsonDecode(response.body);
+      if (body is Map && body['challenge'] is Map) {
+        return PowChallenge.fromJson(Map<String, dynamic>.from(body['challenge'] as Map));
+      }
+    } catch (_) {}
+    return null;
   }
 
   /// The server's error message from the most recent failed [login] (for example the
@@ -6774,6 +6821,201 @@ class ApiService {
     } catch (_) {
       return null;
     }
+  }
+
+  // ==========================================================================
+  // Intrusion detection
+  // ==========================================================================
+
+  Future<dynamic> _securityGet(String path, [Map<String, String>? query]) async {
+    final response = await http.get(
+      Uri.parse('$_currentServerUrl$path').replace(queryParameters: query),
+      headers: _headers,
+    );
+    _checkResponse(response);
+    if (response.statusCode == 200) return jsonDecode(response.body);
+    return null;
+  }
+
+  Future<SecurityActionResult> _securitySend(String method, String path, [Object? body]) async {
+    try {
+      final uri = Uri.parse('$_currentServerUrl$path');
+      final encoded = body == null ? null : jsonEncode(body);
+      final response = method == 'DELETE'
+          ? await http.delete(uri, headers: _headers, body: encoded)
+          : await http.post(uri, headers: _headers, body: encoded ?? '{}');
+      _checkResponse(response);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        int? count;
+        try {
+          final decoded = jsonDecode(response.body);
+          if (decoded is Map && decoded['count'] is num) count = (decoded['count'] as num).toInt();
+        } catch (_) {}
+        return SecurityActionResult(ok: true, count: count);
+      }
+      return SecurityActionResult(ok: false, error: _extractServerError(response) ?? 'HTTP ${response.statusCode}');
+    } catch (e) {
+      return SecurityActionResult(ok: false, error: e.toString());
+    }
+  }
+
+  Future<SecuritySummary?> fetchSecuritySummary() async {
+    try {
+      final j = await _securityGet('/api/admin/security/summary');
+      return j is Map ? SecuritySummary.fromJson(Map<String, dynamic>.from(j)) : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<List<IpBlock>?> fetchSecurityBlocks({bool activeOnly = true}) async {
+    try {
+      final j = await _securityGet('/api/admin/security/blocks', {'active': activeOnly ? 'true' : 'false'});
+      return j is List ? j.map((e) => IpBlock.fromJson(Map<String, dynamic>.from(e as Map))).toList() : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<List<UnblockRequest>?> fetchUnblockRequests({String status = 'pending'}) async {
+    try {
+      final j = await _securityGet('/api/admin/security/unblock-requests', {'status': status});
+      return j is List ? j.map((e) => UnblockRequest.fromJson(Map<String, dynamic>.from(e as Map))).toList() : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<List<AllowlistEntry>?> fetchSecurityAllowlist() async {
+    try {
+      final j = await _securityGet('/api/admin/security/allowlist');
+      return j is List ? j.map((e) => AllowlistEntry.fromJson(Map<String, dynamic>.from(e as Map))).toList() : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<List<ProtectedAccount>?> fetchProtectedAccounts() async {
+    try {
+      final j = await _securityGet('/api/admin/security/protected-accounts');
+      return j is List ? j.map((e) => ProtectedAccount.fromJson(Map<String, dynamic>.from(e as Map))).toList() : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<SecurityEventPage?> fetchSecurityEvents({
+    String? ip,
+    String? user,
+    String? type,
+    String? severity,
+    int offset = 0,
+    int limit = 50,
+  }) async {
+    try {
+      final query = <String, String>{
+        'offset': '$offset',
+        'limit': '$limit',
+        if (ip != null && ip.isNotEmpty) 'ip': ip,
+        if (user != null && user.isNotEmpty) 'user': user,
+        if (type != null && type.isNotEmpty) 'type': type,
+        if (severity != null && severity.isNotEmpty) 'severity': severity,
+      };
+      final j = await _securityGet('/api/admin/security/events', query);
+      return j is Map ? SecurityEventPage.fromJson(Map<String, dynamic>.from(j)) : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<SecurityActionResult> updateSecuritySettings({required String mode, required bool autoRevokeSessions}) =>
+      _securitySend('POST', '/api/admin/security/settings', {'mode': mode, 'autoRevokeSessions': autoRevokeSessions});
+
+  /// Lifts a block everywhere straight away. [allowlistFor] is none, 24h, 7d or permanent.
+  Future<SecurityActionResult> liftSecurityBlock(String blockId,
+          {String reason = '', bool resetStrikes = true, String allowlistFor = 'none'}) =>
+      _securitySend('POST', '/api/admin/security/blocks/${Uri.encodeComponent(blockId)}/lift',
+          {'reason': reason, 'resetStrikes': resetStrikes, 'allowlistFor': allowlistFor});
+
+  Future<SecurityActionResult> unblockAllSecurityBlocks(String reason) =>
+      _securitySend('POST', '/api/admin/security/blocks/unblock-all', {'reason': reason});
+
+  /// Blocks an address or range; the server caps it at 60 minutes.
+  Future<SecurityActionResult> blockAddress(String ipOrCidr, {int minutes = 60, String reason = ''}) =>
+      _securitySend('POST', '/api/admin/security/blocks', {'ipOrCidr': ipOrCidr, 'minutes': minutes.clamp(1, 60), 'reason': reason});
+
+  Future<SecurityActionResult> approveUnblockRequest(String id,
+          {String note = '', bool resetStrikes = true, String allowlistFor = 'none'}) =>
+      _securitySend('POST', '/api/admin/security/unblock-requests/${Uri.encodeComponent(id)}/approve',
+          {'note': note, 'resetStrikes': resetStrikes, 'allowlistFor': allowlistFor});
+
+  Future<SecurityActionResult> denyUnblockRequest(String id, {String note = ''}) =>
+      _securitySend('POST', '/api/admin/security/unblock-requests/${Uri.encodeComponent(id)}/deny', {'note': note});
+
+  Future<SecurityActionResult> addAllowlistEntry(String ipOrCidr, {String note = '', int? expiresInHours}) =>
+      _securitySend('POST', '/api/admin/security/allowlist', {'ipOrCidr': ipOrCidr, 'note': note, 'expiresInHours': expiresInHours});
+
+  Future<SecurityActionResult> removeAllowlistEntry(String id) =>
+      _securitySend('DELETE', '/api/admin/security/allowlist/${Uri.encodeComponent(id)}');
+
+  /// [account] is [ProtectedAccount.account], which names the team and program as well as the username.
+  Future<SecurityActionResult> clearAccountProtection(String account) =>
+      _securitySend('POST', '/api/admin/security/protected-accounts/clear', {'account': account});
+
+  // ---- reachable while blocked ------------------------------------------------
+
+  Future<BlockStatus?> fetchBlockStatus() async {
+    try {
+      final response = await http.get(Uri.parse('$_currentServerUrl/api/security/block-status'), headers: _headers);
+      if (response.statusCode == 200) {
+        return BlockStatus.fromJson(Map<String, dynamic>.from(jsonDecode(response.body) as Map));
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Runs the security check and sends an unblock request. Returns the request's status, or throws with the
+  /// server's message.
+  Future<UnblockRequestStatus> submitUnblockRequest({
+    required String name,
+    int? teamNumber,
+    String? email,
+    required String message,
+  }) async {
+    final challengeResponse = await http.get(Uri.parse('$_currentServerUrl/api/security/challenge'), headers: _headers);
+    if (challengeResponse.statusCode != 200) {
+      throw Exception(_extractServerError(challengeResponse) ?? 'Security check unavailable');
+    }
+    final challenge = PowChallenge.fromJson(Map<String, dynamic>.from(jsonDecode(challengeResponse.body) as Map));
+    final answer = await SecurityPow.solve(challenge);
+    final response = await http.post(
+      Uri.parse('$_currentServerUrl/api/security/unblock-request'),
+      headers: _headers,
+      body: jsonEncode({
+        'name': name,
+        'teamNumber': teamNumber,
+        'email': (email == null || email.isEmpty) ? null : email,
+        'message': message,
+        'challenge': answer,
+      }),
+    );
+    if (response.statusCode == 200) {
+      return UnblockRequestStatus.fromJson(Map<String, dynamic>.from(jsonDecode(response.body) as Map));
+    }
+    throw Exception(_extractServerError(response) ?? 'HTTP ${response.statusCode}');
+  }
+
+  Future<UnblockRequestStatus?> fetchUnblockRequestStatus(String id) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_currentServerUrl/api/security/unblock-request/status').replace(queryParameters: {'id': id}),
+        headers: _headers,
+      );
+      if (response.statusCode == 200) {
+        return UnblockRequestStatus.fromJson(Map<String, dynamic>.from(jsonDecode(response.body) as Map));
+      }
+    } catch (_) {}
+    return null;
   }
 
   Future<RedisStatusResponse?> fetchRedisStatus() async {

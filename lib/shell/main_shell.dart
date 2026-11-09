@@ -6,6 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import '../l10n/app_localizations.dart';
 import '../models/desktop_tab_model.dart';
+import '../models/security_models.dart';
+import '../screens/ip_blocked_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/match_list_screen.dart';
 import '../screens/qr_scanner_screen.dart';
@@ -167,6 +169,8 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   StreamSubscription<bool>? _onlineSub;
   StreamSubscription<int>? _serverErrorSub;
   StreamSubscription<String>? _sessionRevokedSub;
+  StreamSubscription<IpBlockInfo>? _ipBlockedSub;
+  bool _showingIpBlock = false;
   StreamSubscription<WidgetLaunch>? _widgetLaunchSub;
 
   /// A home-screen widget tap waiting for sign-in or unlock.
@@ -312,6 +316,19 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
           ),
         ),
       );
+    });
+
+    // The server blocked this network: show the blocked screen (once) until the block lifts.
+    _ipBlockedSub = widget.apiService.onIpBlocked.listen((info) async {
+      if (!mounted || _showingIpBlock) return;
+      _showingIpBlock = true;
+      await Navigator.of(context, rootNavigator: true).push(
+        MaterialPageRoute<void>(
+          fullscreenDialog: true,
+          builder: (_) => IpBlockedScreen(apiService: widget.apiService, info: info),
+        ),
+      );
+      _showingIpBlock = false;
     });
 
     _sessionRevokedSub = widget.apiService.onSessionRevoked.listen((reason) {
@@ -616,6 +633,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
     _onlineSub?.cancel();
     _serverErrorSub?.cancel();
     _sessionRevokedSub?.cancel();
+    _ipBlockedSub?.cancel();
     _wsNotificationService?.dispose();
     super.dispose();
   }
