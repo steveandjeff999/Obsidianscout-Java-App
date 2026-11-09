@@ -2813,6 +2813,7 @@
   "security.type_session_anomaly": "Session anomaly",
   "security.type_token_reuse_revoked": "Revoked session reused",
   "security.type_scraping": "Scraping",
+  "security.type_fake_crawler": "Fake crawler",
   "security.type_challenge_failed": "Security check failed",
   "security.type_account_protected": "Account protected",
   "security.type_account_protection_cleared": "Protection cleared",

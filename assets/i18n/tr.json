@@ -2696,6 +2696,7 @@
   "security.type_session_anomaly": "Oturum anormalliği",
   "security.type_token_reuse_revoked": "İptal edilen oturum yeniden kullanıldı",
   "security.type_scraping": "Veri kazıma",
+  "security.type_fake_crawler": "Sahte tarayıcı botu",
   "security.type_challenge_failed": "Güvenlik kontrolü başarısız",
   "security.type_account_protected": "Hesap korunuyor",
   "security.type_account_protection_cleared": "Koruma kaldırıldı",

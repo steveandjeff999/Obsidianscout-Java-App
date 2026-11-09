@@ -2696,6 +2696,7 @@
   "security.type_session_anomaly": "Anomalía de sesión",
   "security.type_token_reuse_revoked": "Sesión revocada reutilizada",
   "security.type_scraping": "Extracción masiva",
+  "security.type_fake_crawler": "Rastreador falso",
   "security.type_challenge_failed": "Comprobación de seguridad fallida",
   "security.type_account_protected": "Cuenta protegida",
   "security.type_account_protection_cleared": "Protección quitada",

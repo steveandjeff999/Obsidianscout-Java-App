@@ -72,6 +72,7 @@ class _SecurityAdminPanelState extends State<SecurityAdminPanel> {
     'SESSION_ANOMALY': 'Session anomaly',
     'TOKEN_REUSE_REVOKED': 'Revoked session reused',
     'SCRAPING': 'Scraping',
+    'FAKE_CRAWLER': 'Fake crawler',
     'CHALLENGE_FAILED': 'Security check failed',
     'ACCOUNT_PROTECTED': 'Account protected',
     'ACCOUNT_PROTECTION_CLEARED': 'Protection cleared',

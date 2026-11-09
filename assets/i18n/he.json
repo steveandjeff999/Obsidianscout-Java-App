@@ -2696,6 +2696,7 @@
   "security.type_session_anomaly": "חריגה בהפעלה",
   "security.type_token_reuse_revoked": "שימוש חוזר בהפעלה שבוטלה",
   "security.type_scraping": "גריפת נתונים",
+  "security.type_fake_crawler": "סורק מזויף",
   "security.type_challenge_failed": "בדיקת האבטחה נכשלה",
   "security.type_account_protected": "חשבון מוגן",
   "security.type_account_protection_cleared": "ההגנה הוסרה",
