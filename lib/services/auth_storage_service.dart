@@ -1,4 +1,5 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'server_url.dart';
 
 class StoredCredentials {
   final String username;
@@ -74,7 +75,7 @@ class AuthStorageService {
       password: password,
       teamNumber: teamNumber,
       program: program,
-      serverUrl: serverUrl,
+      serverUrl: migrateLegacyServerUrl(serverUrl),
       jwt: jwt ?? '',
     );
   }

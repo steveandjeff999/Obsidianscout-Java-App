@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'server_url.dart';
 
 /// An account this device has signed in to, shown in the account switcher.
 class SavedAccount {
@@ -75,7 +76,7 @@ class SavedAccount {
       username: json['username']?.toString() ?? '',
       teamNumber: (json['teamNumber'] as num?)?.toInt() ?? 0,
       program: json['program']?.toString() ?? 'FRC',
-      serverUrl: json['serverUrl']?.toString() ?? '',
+      serverUrl: migrateLegacyServerUrl(json['serverUrl']?.toString() ?? ''),
       role: json['role']?.toString(),
       profilePicture: json['profilePicture']?.toString(),
       sessionCookie: json['sessionCookie']?.toString(),

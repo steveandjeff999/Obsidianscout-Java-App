@@ -36,6 +36,7 @@ import 'live_refresh.dart';
 import 'local_analytics.dart' as local_analytics;
 import 'net/link_quality.dart';
 import 'scout_history_service.dart';
+import 'server_url.dart';
 
 class ApiService {
   static const String keyServerUrl = "obsidianscout_server_url";
@@ -56,7 +57,7 @@ class ApiService {
       "obsidianscout_request_timeout_seconds";
   static const String keyDeviceId = "obsidianscout_device_id";
   static const int defaultRequestTimeoutSeconds = 6;
-  static const String defaultUrl = "https://kotlin.obsidianscout.com";
+  static const String defaultUrl = defaultServerUrl;
 
   String _currentServerUrl = defaultUrl;
   String? _sessionCookie;
@@ -381,7 +382,11 @@ class ApiService {
   Future<void> init() async {
     await _trackLastDataAt();
     final prefs = await SharedPreferences.getInstance();
-    _currentServerUrl = prefs.getString(keyServerUrl) ?? defaultUrl;
+    final savedServerUrl = prefs.getString(keyServerUrl);
+    _currentServerUrl = savedServerUrl == null ? defaultUrl : migrateLegacyServerUrl(savedServerUrl);
+    if (savedServerUrl != null && _currentServerUrl != savedServerUrl) {
+      await prefs.setString(keyServerUrl, _currentServerUrl);
+    }
     _keepMeLoggedIn = prefs.getBool(keyKeepMeLoggedIn) ?? false;
     _savedUsername = prefs.getString(keySavedUsername) ?? '';
 
