@@ -26,6 +26,7 @@ import '../models/server_analytics_models.dart';
 import '../models/redis_models.dart';
 import '../models/security_models.dart';
 import 'security_pow.dart';
+import 'server_compat.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../data/local_store.dart';
 import 'net/server_file_cache.dart';
@@ -1171,8 +1172,49 @@ class ApiService {
         ? cleanUrl.substring(0, cleanUrl.length - 1)
         : cleanUrl;
     _outboxBatchSupported = true;
+    _serverCompat = null;
+    _serverCompatUrl = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(keyServerUrl, _currentServerUrl);
+  }
+
+  ServerCompatibility? _serverCompat;
+  String? _serverCompatUrl;
+  DateTime? _serverCompatCheckedAt;
+  Future<ServerCompatibility?>? _serverCompatInFlight;
+  static const Duration _serverCompatRecheck = Duration(minutes: 15);
+
+  /// The current server's API compatibility with this app, from `/api/version`. Cached per server URL and
+  /// re-checked every 15 minutes so a server update is noticed while the app stays open. Null when offline or
+  /// the server couldn't be reached; then the last known answer for this server is kept.
+  Future<ServerCompatibility?> checkServerCompatibility({bool force = false}) {
+    final url = _currentServerUrl;
+    final fresh = _serverCompatUrl == url &&
+        _serverCompatCheckedAt != null &&
+        DateTime.now().difference(_serverCompatCheckedAt!) < _serverCompatRecheck;
+    if (!force && fresh) return Future.value(_serverCompat);
+    if (!_isOnline) return Future.value(_serverCompatUrl == url ? _serverCompat : null);
+    return _serverCompatInFlight ??= _fetchServerCompatibility(url).whenComplete(() => _serverCompatInFlight = null);
+  }
+
+  Future<ServerCompatibility?> _fetchServerCompatibility(String url) async {
+    try {
+      final response = await http
+          .get(Uri.parse('$url/api/version'), headers: _headers)
+          .timeout(const Duration(seconds: 10));
+      if (url != _currentServerUrl) return null; // The server changed mid-request.
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body is Map<String, dynamic>) {
+          _serverCompat = ServerCompatibility.fromJson(body);
+          _serverCompatUrl = url;
+          _serverCompatCheckedAt = DateTime.now();
+        }
+      }
+    } catch (e) {
+      debugPrint('[ServerCompat] Version check failed: $e');
+    }
+    return _serverCompatUrl == url ? _serverCompat : null;
   }
 
   /// Set for release builds by CI, the same value [AppUpdateService] compares against.

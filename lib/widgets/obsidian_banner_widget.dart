@@ -57,7 +57,11 @@ class _ObsidianBannerWidgetState extends State<ObsidianBannerWidget> {
     if (_isFetching) return;
     _isFetching = true;
     try {
-      final banners = await widget.apiService.fetchBanners();
+      final banners = List<Map<String, dynamic>>.of(await widget.apiService.fetchBanners());
+
+      // App/server API mismatch: a warning only, the app keeps working.
+      final compatBanner = (await widget.apiService.checkServerCompatibility())?.toBanner();
+      if (compatBanner != null) banners.insert(0, compatBanner);
 
       // Offline / local fallback check for missing eventKey or missing API key
       if (banners.isEmpty && !widget.apiService.isOnline) {
