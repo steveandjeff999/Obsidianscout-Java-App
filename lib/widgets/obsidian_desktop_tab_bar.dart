@@ -347,14 +347,15 @@ class _ObsidianDesktopTabBarState extends State<ObsidianDesktopTabBar> {
 
   Widget _buildNewTabButton(BuildContext context, bool isDark) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 6.0),
+      margin: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 4.0),
       child: Tooltip(
         message: 'Open New Tab (Ctrl+T)',
         child: InkWell(
           onTap: widget.onNewTab,
           borderRadius: BorderRadius.circular(6.0),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 7.0, vertical: 4.0),
+            // Roomier than the icon so it's an easy finger target on tablets.
+            padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
             decoration: BoxDecoration(
               color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(6.0),

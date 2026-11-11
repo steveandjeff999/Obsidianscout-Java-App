@@ -1247,8 +1247,11 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
                       onLogout: _handleLogout,
                       onOpenAccounts: _openAccountSwitcher,
                     ),
+              // Desktop layout has no app bar to absorb system insets. On Android (DeX / desktop
+              // windowing, edge-to-edge) the status bar or window caption would otherwise sit over
+              // the tab bar and swallow taps. Insets are zero on Windows, so this is a no-op there.
               body: isDesktop
-                  ? (isDesktopTabs
+                  ? SafeArea(child: (isDesktopTabs
                       ? Row(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
@@ -1325,7 +1328,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
                               ),
                             ),
                           ],
-                        ))
+                        )))
                   : Center(
                       child: Container(
                         constraints: const BoxConstraints(maxWidth: 1600.0),
