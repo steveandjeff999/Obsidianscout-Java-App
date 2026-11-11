@@ -56,9 +56,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool get _showSharedApiKeys =>
       _isSuperAdmin && (_serverApiLevel ?? 0) >= kSharedApiKeysServerApiLevel;
 
-  Future<void> _loadServerApiLevel() async {
-    if (!_isSuperAdmin) return;
-    final compat = await widget.apiService.checkServerCompatibility();
+  /// Reads the server's API level. Not limited to superadmins: the role may not be loaded yet when this screen is
+  /// first built, and the check is one small cached request. [force] skips the 15-minute cache, so a server that
+  /// was updated while the app stayed open is noticed as soon as Settings is opened again.
+  Future<void> _loadServerApiLevel({bool force = false}) async {
+    final compat = await widget.apiService.checkServerCompatibility(force: force);
     if (!mounted || compat == null) return;
     if (compat.serverApiLevel != _serverApiLevel) {
       setState(() => _serverApiLevel = compat.serverApiLevel);
@@ -90,7 +92,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void didUpdateWidget(covariant SettingsScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isVisible && !oldWidget.isVisible) {
-      _loadServerApiLevel();
+      _loadServerApiLevel(force: true);
       _loadCacheSummary();
       _loadSessions();
       _loadBiometricSettings();
