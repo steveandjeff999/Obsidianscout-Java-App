@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
+import '../services/app_update_service.dart';
+import '../widgets/app_update_dialog.dart';
 import '../services/auth_storage_service.dart';
 import '../services/biometric_auth_service.dart';
 import '../services/gamepad_service.dart';
@@ -79,6 +81,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isBiometricEnrolled = false;
   bool _requirePasskeyOnLaunch = false;
 
+  /// Only GitHub (non-store) release installs update themselves, so only they get the update card.
+  bool _canSelfUpdate = false;
+  bool _isCheckingForUpdate = false;
+
   @override
   void initState() {
     super.initState();
@@ -86,6 +92,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _loadSessions();
     _loadBiometricSettings();
     _loadServerApiLevel();
+    _loadUpdateAvailability();
+  }
+
+  Future<void> _loadUpdateAvailability() async {
+    final can = await AppUpdateService.instance.canSelfUpdate();
+    if (mounted && can != _canSelfUpdate) setState(() => _canSelfUpdate = can);
+  }
+
+  Future<void> _checkForUpdateNow() async {
+    if (_isCheckingForUpdate) return;
+    setState(() => _isCheckingForUpdate = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final update = await AppUpdateService.instance.checkNow();
+      if (!mounted) return;
+      if (update != null) {
+        await AppUpdateDialog.show(context, update);
+      } else {
+        messenger.showSnackBar(SnackBar(
+          content: Text(context.tr('app_update.up_to_date',
+              'You have the latest version (${AppUpdateService.installedVersion}).')),
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(
+        content: Text(e is AppUpdateCheckException
+            ? e.message
+            : context.tr('app_update.check_failed', 'Could not check for updates.')),
+        backgroundColor: ObsidianUITheme.errorRed,
+        behavior: SnackBarBehavior.floating,
+      ));
+    } finally {
+      if (mounted) setState(() => _isCheckingForUpdate = false);
+    }
   }
 
   @override
@@ -2656,6 +2698,83 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 16),
+
+          // App Updates Card (GitHub installs only; store installs are updated by their store)
+          if (_canSelfUpdate) ...[
+            ObsidianGlassCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.system_update_rounded,
+                          color: ObsidianUITheme.primaryAccent),
+                      const SizedBox(width: 8),
+                      Text(
+                        context.tr('app_update.settings_title', 'App Updates'),
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: primaryTextColor),
+                      ),
+                    ],
+                  ),
+                  Divider(color: borderColor, height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                                context.tr('app_update.installed_version',
+                                    'Installed version'),
+                                style: TextStyle(
+                                    fontSize: 12, color: secondaryTextColor)),
+                            const SizedBox(height: 2),
+                            Text(
+                              AppUpdateService.installedVersion,
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: primaryTextColor,
+                                  fontFamily: 'monospace'),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: ObsidianUITheme.primaryAccent,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed:
+                            _isCheckingForUpdate ? null : _checkForUpdateNow,
+                        icon: _isCheckingForUpdate
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white))
+                            : const Icon(Icons.refresh_rounded,
+                                color: Colors.white, size: 18),
+                        label: Text(
+                            context.tr('app_update.check_now',
+                                'Check for Updates'),
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
 
           // Account & Logout Card
           ObsidianGlassCard(
