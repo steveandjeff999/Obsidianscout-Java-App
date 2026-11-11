@@ -1095,6 +1095,9 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
       ),
     );
 
+    // The app bar draws behind the status bar, whose height varies by device (notches, cutouts), so size it from the real inset.
+    final mobileAppBarHeight = MediaQuery.paddingOf(context).top + 62.0;
+
     // Floats over the page, so showing it or the bottom bar moving never shifts the page's content.
     final pageArea = Stack(
       children: [
@@ -1170,7 +1173,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
               appBar: isDesktop
                   ? null
                   : PreferredSize(
-                      preferredSize: const Size.fromHeight(90.0),
+                      preferredSize: Size.fromHeight(mobileAppBarHeight),
                       child: AnimatedOpacity(
                         opacity: _isBarsVisible ? 1.0 : 0.0,
                         duration: const Duration(milliseconds: 300),
@@ -1328,7 +1331,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
                         constraints: const BoxConstraints(maxWidth: 1600.0),
                         child: Column(
                           children: [
-                            const SizedBox(height: 95.0),
+                            SizedBox(height: mobileAppBarHeight + 5.0),
                             ObsidianBannerWidget(
                               apiService: widget.apiService,
                               isBarsVisible: _isBarsVisible,

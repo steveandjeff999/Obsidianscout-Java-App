@@ -486,7 +486,7 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Scaffold(
           body: Container(
             decoration: ObsidianUITheme.getBackgroundDecoration(context),
-            child: Center(
+            child: SafeArea(child: Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(24.0),
                 child: Center(
@@ -632,7 +632,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
-            ),
+            )),
           ),
         ),
       );
@@ -647,7 +647,7 @@ class _LoginScreenState extends State<LoginScreen> {
       child: Scaffold(
       body: Container(
         decoration: ObsidianUITheme.getBackgroundDecoration(context),
-        child: Center(
+        child: SafeArea(child: Center(
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
             padding: const EdgeInsets.all(20.0),
@@ -899,7 +899,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
-    ),
+    )),
   ),
 ),
 );

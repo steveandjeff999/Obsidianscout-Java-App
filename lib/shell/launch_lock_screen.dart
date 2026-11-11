@@ -33,7 +33,7 @@ class LaunchLockScreen extends StatelessWidget {
         decoration: ObsidianUITheme.getBackgroundDecoration(context),
         child: Scaffold(
           backgroundColor: Colors.transparent,
-          body: Center(
+          body: SafeArea(child: Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
               child: Center(
@@ -175,7 +175,7 @@ class LaunchLockScreen extends StatelessWidget {
                 ),
               ),
             ),
-          ),
+          )),
         ),
       ),
     );

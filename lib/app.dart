@@ -5,6 +5,7 @@ import 'services/api_service.dart';
 import 'shell/main_shell.dart';
 import 'theme/obsidian_ui_theme.dart';
 import 'widgets/obsidian_feedback.dart';
+import 'widgets/system_inset_guard.dart';
 
 class ObsidianscoutApp extends StatelessWidget {
   final ApiService apiService;
@@ -45,6 +46,8 @@ class ObsidianscoutApp extends StatelessWidget {
             GlobalCupertinoLocalizations.delegate,
           ],
           scrollBehavior: const ObsidianBouncingScrollBehavior(),
+          // Wraps the navigator, so every page, dialog and bottom sheet stays above the system nav bar.
+          builder: (context, child) => SystemInsetGuard(child: child ?? const SizedBox.shrink()),
           home: MainShell(apiService: apiService),
         );
       },
