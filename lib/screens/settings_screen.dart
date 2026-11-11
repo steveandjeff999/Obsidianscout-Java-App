@@ -10,6 +10,8 @@ import '../widgets/obsidian_glass_card.dart';
 import '../widgets/obsidian_user_avatar.dart';
 import 'gamepad_settings_screen.dart';
 import 'theme_editor_screen.dart';
+import 'shared_api_keys_screen.dart';
+import '../services/server_compat.dart';
 import '../widgets/slack_integration_editor.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -45,6 +47,23 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  /// The connected server's API level, or null until known. Gates features older servers don't have.
+  int? _serverApiLevel;
+
+  bool get _isSuperAdmin => widget.apiService.currentUserRole.toUpperCase() == 'SUPERADMIN';
+
+  /// Shared API keys are still being tested, so the editor only shows on servers that have them.
+  bool get _showSharedApiKeys =>
+      _isSuperAdmin && (_serverApiLevel ?? 0) >= kSharedApiKeysServerApiLevel;
+
+  Future<void> _loadServerApiLevel() async {
+    if (!_isSuperAdmin) return;
+    final compat = await widget.apiService.checkServerCompatibility();
+    if (!mounted || compat == null) return;
+    if (compat.serverApiLevel != _serverApiLevel) {
+      setState(() => _serverApiLevel = compat.serverApiLevel);
+    }
+  }
   bool _isLoadingCache = true;
   bool _savingNonScoutingTools = false;
   bool _isSyncing = false;
@@ -64,12 +83,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _loadCacheSummary();
     _loadSessions();
     _loadBiometricSettings();
+    _loadServerApiLevel();
   }
 
   @override
   void didUpdateWidget(covariant SettingsScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isVisible && !oldWidget.isVisible) {
+      _loadServerApiLevel();
       _loadCacheSummary();
       _loadSessions();
       _loadBiometricSettings();
@@ -1791,6 +1812,71 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Divider(color: borderColor, height: 24),
                   Text(
                     'Create scout accounts, manage role permissions (Scout, Analytics, Admin), reset passwords, and update profiles.',
+                    style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // Shared API Keys Card (Superadmin, servers with shared keys only)
+          if (_showSharedApiKeys) ...[
+            ObsidianGlassCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            const Icon(Icons.key_rounded,
+                                color: ObsidianUITheme.warningOrange),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                context.tr('shared_keys.title', 'Shared API Keys'),
+                                style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: primaryTextColor),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: ObsidianUITheme.warningOrange,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                        ),
+                        icon: const Icon(Icons.edit_rounded,
+                            color: Colors.white, size: 18),
+                        label: const Text('Edit Keys',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12)),
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (ctx) => SharedApiKeysScreen(
+                                apiService: widget.apiService),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Divider(color: borderColor, height: 24),
+                  Text(
+                    'Beta: TBA, FIRST and Match 13 keys that teams without their own fall back to.',
                     style: TextStyle(fontSize: 12, color: secondaryTextColor),
                   ),
                 ],

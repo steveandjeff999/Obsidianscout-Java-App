@@ -13,6 +13,10 @@ const int kAppApiLevel = 1;
 /// count as 0.
 const int kMinServerApiLevel = 1;
 
+/// Server API level that added the superadmin shared API keys (`/api/admin/shared-api-keys`). The app only shows
+/// the editor on servers at this level or newer, since the feature is still being tested.
+const int kSharedApiKeysServerApiLevel = 2;
+
 enum ServerCompatStatus { compatible, serverTooOld, appTooOld }
 
 class ServerCompatibility {
