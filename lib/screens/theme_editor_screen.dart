@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import '../models/config_models.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
+import '../widgets/obsidian_action_bar.dart';
 import '../widgets/obsidian_feedback.dart';
 import '../widgets/obsidian_glass_card.dart';
 
@@ -130,7 +133,48 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
     }
 
     _populateFormFromPreset(_themes[_selectedPresetIndex]);
+    _savedSnapshot = _snapshot();
     setState(() => _isLoading = false);
+  }
+
+  /// What a save would send right now, without touching the form; compared against [_savedSnapshot].
+  String? _savedSnapshot;
+
+  String _bgValueFor({required bool isDark}) {
+    final mode = isDark ? _darkBgMode : _lightBgMode;
+    if (mode == 'solid') return isDark ? _darkBgSolid : _lightBgSolid;
+    if (mode == 'gradient') {
+      return isDark
+          ? 'linear-gradient(${_darkBgAngle.round()}deg, $_darkBgGrad1 0%, $_darkBgGrad2 100%)'
+          : 'linear-gradient(${_lightBgAngle.round()}deg, $_lightBgGrad1 0%, $_lightBgGrad2 100%)';
+    }
+    return (isDark ? _darkBgCtrl : _lightBgCtrl).text;
+  }
+
+  String _snapshot() {
+    final themes = List<ThemePresetModel>.from(_themes);
+    if (_selectedPresetIndex >= 0 && _selectedPresetIndex < themes.length) {
+      themes[_selectedPresetIndex] = themes[_selectedPresetIndex].copyWith(
+        lightAccent: _lightAccentCtrl.text.trim(),
+        lightAccent2: _lightAccent2Ctrl.text.trim(),
+        lightAccent3: _lightAccent3Ctrl.text.trim(),
+        lightInk: _lightInkCtrl.text.trim(),
+        lightMuted: _lightMutedCtrl.text.trim(),
+        lightCard: _lightCardCtrl.text.trim(),
+        lightBg: _bgValueFor(isDark: false).trim(),
+        lightRadius: _lightRadius,
+        darkAccent: _darkAccentCtrl.text.trim(),
+        darkAccent2: _darkAccent2Ctrl.text.trim(),
+        darkAccent3: _darkAccent3Ctrl.text.trim(),
+        darkInk: _darkInkCtrl.text.trim(),
+        darkMuted: _darkMutedCtrl.text.trim(),
+        darkCard: _darkCardCtrl.text.trim(),
+        darkBg: _bgValueFor(isDark: true).trim(),
+        darkRadius: _darkRadius,
+        btnRadius: _darkRadius,
+      );
+    }
+    return jsonEncode({'active': _activeThemeName, 'themes': themes.map((t) => t.toJson()).toList()});
   }
 
   void _populateFormFromPreset(ThemePresetModel preset) {
@@ -238,6 +282,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
     );
 
     if (!mounted) return;
+    if (res.isSuccess) _savedSnapshot = _snapshot();
     setState(() => _isSaving = false);
 
     if (res.isSuccess) {
@@ -618,8 +663,40 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
           ? const Center(child: CircularProgressIndicator())
           : !isAdmin
               ? _buildAdminLockedView(primaryTextColor, secondaryTextColor)
-              : SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(16.0, 12.0, 16.0, widget.isBarsVisible ? 120.0 : 24.0),
+              : ObsidianActionBarLayout(
+                  bar: ObsidianActionBar(
+                    reserveBottomNav: true,
+                    isBarsVisible: widget.isBarsVisible,
+                    uiMode: widget.apiService.uiMode,
+                    isSaving: _isSaving,
+                    isDirty: () => _savedSnapshot != null && _snapshot() != _savedSnapshot,
+                    secondary: [
+                      OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: primaryTextColor,
+                          side: BorderSide(color: ObsidianUITheme.getBorderColor(context)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: _isSaving ? null : _handleResetPreset,
+                        icon: const Icon(Icons.restart_alt_rounded, size: 18),
+                        label: const Text('Reset'),
+                      ),
+                    ],
+                    primary: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryAccent,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: _isSaving ? null : _handleSaveAll,
+                      icon: _isSaving
+                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : const Icon(Icons.save_rounded, size: 18),
+                      label: Text(_isSaving ? 'Saving...' : 'Save Theme Settings', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  body: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 12.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -684,77 +761,10 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
 
                       const SizedBox(height: 24),
 
-                      // Action Buttons (Responsive Layout)
-                      LayoutBuilder(
-                        builder: (ctx, constraints) {
-                          if (constraints.maxWidth < 450) {
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: primaryAccent,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(vertical: 14),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  ),
-                                  onPressed: _isSaving ? null : _handleSaveAll,
-                                  icon: _isSaving
-                                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                      : const Icon(Icons.save_rounded),
-                                  label: Text(_isSaving ? 'Saving...' : 'Save Theme Settings', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                                ),
-                                const SizedBox(height: 10),
-                                OutlinedButton.icon(
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: primaryTextColor,
-                                    side: BorderSide(color: ObsidianUITheme.getBorderColor(context)),
-                                    padding: const EdgeInsets.symmetric(vertical: 14),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  ),
-                                  onPressed: _handleResetPreset,
-                                  icon: const Icon(Icons.restart_alt_rounded),
-                                  label: const Text('Reset Defaults'),
-                                ),
-                              ],
-                            );
-                          }
-                          return Row(
-                            children: [
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: primaryAccent,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  ),
-                                  onPressed: _isSaving ? null : _handleSaveAll,
-                                  icon: _isSaving
-                                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                      : const Icon(Icons.save_rounded),
-                                  label: Text(_isSaving ? 'Saving...' : 'Save Theme Settings', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              OutlinedButton.icon(
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: primaryTextColor,
-                                  side: BorderSide(color: ObsidianUITheme.getBorderColor(context)),
-                                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                ),
-                                onPressed: _handleResetPreset,
-                                icon: const Icon(Icons.restart_alt_rounded),
-                                label: const Text('Reset Defaults'),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
                       const SizedBox(height: 32),
                     ],
                   ),
+                ),
                 ),
     );
   }

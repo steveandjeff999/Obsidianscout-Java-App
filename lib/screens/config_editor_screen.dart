@@ -12,7 +12,9 @@ import '../services/api_service.dart';
 import '../services/config_collab/config_collab_session.dart';
 import '../services/config_collab/config_sync_engine.dart';
 import '../theme/obsidian_ui_theme.dart';
+import '../widgets/obsidian_action_bar.dart';
 import '../widgets/obsidian_feedback.dart';
+import '../widgets/event_code_picker.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/slack_integration_editor.dart';
 
@@ -91,6 +93,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
   AppSettingsModel _currentSettings = AppSettingsModel();
   final TextEditingController _yearController = TextEditingController();
   final TextEditingController _eventCodeController = TextEditingController();
+  final TextEditingController _alternateEventCodeController = TextEditingController();
   final TextEditingController _timezoneController = TextEditingController();
   final TextEditingController _tbaKeyController = TextEditingController();
   final TextEditingController _firstUsernameController = TextEditingController();
@@ -125,6 +128,39 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
   bool _isTestingMatch13 = false;
   bool _isSavingSettings = false;
   bool _isSavingPermissions = false;
+
+  // Last-saved form values, so the pinned Save bar can say whether there are unsaved changes.
+  String? _savedApiSnapshot;
+  String? _savedPermissionsSnapshot;
+
+  String _apiSnapshot() => jsonEncode([
+        _yearController.text,
+        _eventCodeController.text,
+        _alternateEventCodeController.text,
+        _timezoneController.text,
+        _tbaKeyController.text,
+        _firstUsernameController.text,
+        _firstKeyController.text,
+        _statboticsUrlController.text,
+        _match13UrlController.text,
+        _match13KeyController.text,
+        _useStatboticsEpa,
+        _useMatch13Exp,
+        _useTbaOpr,
+        _recencyBias?.toJson(),
+      ]);
+
+  String _permissionsSnapshot() => jsonEncode([
+        _chatEnabled,
+        _matchPredictionsEnabled,
+        _dataPublic,
+        _dataPublicIncludeNotes,
+        _registrationLocked,
+        _selfRegisterRoles,
+        _scoutPages,
+        _analyticsPages,
+        _adminPages,
+      ]);
 
   List<DefaultConfigPresetModel> _presets = [];
   String? _selectedPresetName;
@@ -202,6 +238,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     _currentSettings = fresh;
     _yearController.text = fresh.year.toString();
     _eventCodeController.text = fresh.eventCode;
+    _alternateEventCodeController.text = fresh.alternateEventCode ?? '';
     _timezoneController.text = fresh.timezone;
     _useStatboticsEpa = fresh.useStatboticsEpa;
     _useMatch13Exp = fresh.useMatch13Exp;
@@ -249,6 +286,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     _versionController.dispose();
     _yearController.dispose();
     _eventCodeController.dispose();
+    _alternateEventCodeController.dispose();
     _timezoneController.dispose();
     _tbaKeyController.dispose();
     _firstUsernameController.dispose();
@@ -285,6 +323,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       }
       _yearController.text = _currentSettings.year.toString();
       _eventCodeController.text = _currentSettings.eventCode;
+      _alternateEventCodeController.text = _currentSettings.alternateEventCode ?? '';
       _timezoneController.text = _currentSettings.timezone;
       _useStatboticsEpa = _currentSettings.useStatboticsEpa;
       _useMatch13Exp = _currentSettings.useMatch13Exp;
@@ -305,6 +344,8 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       _statboticsUrlController.text = _currentSettings.statboticsBaseUrl;
       _match13UrlController.text = _currentSettings.match13BaseUrl;
       _match13KeyController.text = _currentSettings.apiKeys.match13Key;
+      _savedApiSnapshot = _apiSnapshot();
+      _savedPermissionsSnapshot = _permissionsSnapshot();
 
       setState(() {
         _isLoading = false;
@@ -975,6 +1016,10 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     final updated = _currentSettings.copyWith(
       year: int.tryParse(_yearController.text.trim()) ?? _currentSettings.year,
       eventCode: _eventCodeController.text.trim(),
+      // Only sent when this server knows the field or one was entered, so an older server isn't sent it.
+      alternateEventCode: (_currentSettings.alternateEventCode != null || _alternateEventCodeController.text.trim().isNotEmpty)
+          ? _alternateEventCodeController.text.trim()
+          : null,
       timezone: _timezoneController.text.trim().isNotEmpty ? _timezoneController.text.trim() : 'America/New_York',
       useStatboticsEpa: _useStatboticsEpa,
       useMatch13Exp: _useMatch13Exp,
@@ -1003,6 +1048,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     final response = await widget.apiService.updateSettings(updated);
 
     if (mounted) {
+      if (response.success || response.isOffline) _savedApiSnapshot = _apiSnapshot();
       setState(() => _isSavingSettings = false);
       if (response.success) {
         _currentSettings = response.data ?? updated;
@@ -1048,6 +1094,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     final response = await widget.apiService.updateSettings(updated);
 
     if (mounted) {
+      if (response.success || response.isOffline) _savedPermissionsSnapshot = _permissionsSnapshot();
       setState(() => _isSavingPermissions = false);
       if (response.success) {
         _currentSettings = response.data ?? updated;
@@ -2089,9 +2136,11 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
     final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
 
-    return SingleChildScrollView(
+    return ObsidianActionBarLayout(
+      bar: _isLoading ? null : _buildPinnedSaveBar(),
+      body: SingleChildScrollView(
       physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
-      padding: EdgeInsets.fromLTRB(16.0, 4.0, 16.0, widget.isBarsVisible ? 32.0 : 16.0),
+      padding: const EdgeInsets.fromLTRB(16.0, 4.0, 16.0, 12.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2189,7 +2238,72 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
           ],
         ],
       ),
+      ),
     );
+  }
+
+  /// The Save button for the open tab, pinned under the page so it is always in reach.
+  Widget? _buildPinnedSaveBar() {
+    Widget saveButton({required bool saving, required String label, required VoidCallback? onPressed}) {
+      return ElevatedButton.icon(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: ObsidianUITheme.primaryAccent,
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 18),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        icon: saving
+            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+            : const Icon(Icons.save_rounded, color: Colors.white, size: 20),
+        label: Text(
+          saving ? 'Saving...' : label,
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+        ),
+        onPressed: saving ? null : onPressed,
+      );
+    }
+
+    switch (_activeMainTab) {
+      case 'config':
+        final collab = _collab;
+        final live = _collabStatus == CollabStatus.live;
+        final readOnly = _collabStatus == CollabStatus.readonly;
+        return ObsidianActionBar(
+          reserveBottomNav: true,
+          isBarsVisible: widget.isBarsVisible,
+          uiMode: widget.apiService.uiMode,
+          isSaving: _isSaving,
+          isLive: live,
+          liveText: 'Changes sync automatically - Save version records a snapshot',
+          isDirty: collab == null ? null : () => !collab.isLive && collab.hasUnsavedChanges,
+          primary: saveButton(
+            saving: _isSaving,
+            label: live ? 'Save version' : 'Save config',
+            onPressed: readOnly ? null : _handleSave,
+          ),
+        );
+      case 'api':
+        return ObsidianActionBar(
+          reserveBottomNav: true,
+          isBarsVisible: widget.isBarsVisible,
+          uiMode: widget.apiService.uiMode,
+          isSaving: _isSavingSettings,
+          isDirty: () => _savedApiSnapshot != null && _apiSnapshot() != _savedApiSnapshot,
+          primary: saveButton(saving: _isSavingSettings, label: 'Save API settings', onPressed: _handleSaveSettings),
+        );
+      case 'permissions':
+        return ObsidianActionBar(
+          reserveBottomNav: true,
+          isBarsVisible: widget.isBarsVisible,
+          uiMode: widget.apiService.uiMode,
+          isSaving: _isSavingPermissions,
+          isDirty: () => _savedPermissionsSnapshot != null && _permissionsSnapshot() != _savedPermissionsSnapshot,
+          primary: saveButton(saving: _isSavingPermissions, label: 'Save permissions', onPressed: _handleSavePermissions),
+        );
+      default:
+        return null;
+    }
   }
 
   Widget _buildTopLevelTab(String tabId, String label, IconData icon) {
@@ -3464,25 +3578,6 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
               if (isNarrow) {
                 return Column(
                   children: [
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: ObsidianUITheme.primaryAccent,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        icon: _isSaving
-                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                            : const Icon(Icons.save_rounded, color: Colors.white, size: 20),
-                        label: Text(
-                          _isSaving ? 'Saving...' : 'Save config',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-                        ),
-                        onPressed: _isSaving ? null : _handleSave,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
                     Row(
                       children: [
                         Expanded(
@@ -3527,26 +3622,6 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
               }
               return Row(
                 children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: ObsidianUITheme.primaryAccent,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      icon: _isSaving
-                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : const Icon(Icons.save_rounded, color: Colors.white, size: 20),
-                      label: Text(
-                        _isSaving ? 'Saving...' : 'Save config',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                      ),
-                      onPressed: _isSaving ? null : _handleSave,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
                   OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
@@ -3710,6 +3785,23 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     );
   }
 
+  /// Opens the event list and fills in the season, event code and FIRST's alternate code from the pick.
+  Future<void> _pickEventCode() async {
+    final year = int.tryParse(_yearController.text.trim()) ?? _currentSettings.year;
+    final pick = await showEventCodePicker(context, apiService: widget.apiService, initialYear: year);
+    if (pick == null || !mounted) return;
+    setState(() {
+      _yearController.text = pick.year.toString();
+      _eventCodeController.text = pick.event.code;
+      _alternateEventCodeController.text = pick.event.altCode;
+    });
+    final key = '${pick.year}${pick.event.code.toLowerCase()}';
+    final text = pick.event.altCode.isNotEmpty
+        ? "Filled in $key, with FIRST's code ${pick.event.altCode} as the alternate code. Save to apply."
+        : 'Filled in $key. Save to apply.';
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  }
+
   Widget _buildApiSettingsEditor() {
     final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
     final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
@@ -3801,6 +3893,36 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
               const SizedBox(height: 4),
               Text(
                 'Event key is year + code (e.g. $enteredYear + ${enteredCode.isNotEmpty ? enteredCode : 'okok'} -> $computedEventKey).',
+                style: TextStyle(color: secondaryTextColor, fontSize: 11),
+              ),
+              const SizedBox(height: 6),
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: OutlinedButton.icon(
+                  icon: Icon(Icons.travel_explore_rounded, size: 18, color: ObsidianUITheme.primaryAccent),
+                  label: Text("Don't know your event code?", style: TextStyle(color: ObsidianUITheme.primaryAccent, fontSize: 13)),
+                  style: OutlinedButton.styleFrom(side: BorderSide(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.4))),
+                  onPressed: _pickEventCode,
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              // Alternate Event Code (FIRST API)
+              TextField(
+                controller: _alternateEventCodeController,
+                style: TextStyle(color: primaryTextColor, fontSize: 14),
+                decoration: InputDecoration(
+                  labelText: 'Alternate Event Code (FIRST API)',
+                  labelStyle: TextStyle(color: secondaryTextColor, fontSize: 12),
+                  hintText: 'e.g. molee',
+                  isDense: true,
+                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
+                  focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.primaryAccent)),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Only for events FIRST lists under a different code than TBA and Match 13 (e.g. TBA cttd, FIRST molee). Leave blank otherwise.',
                 style: TextStyle(color: secondaryTextColor, fontSize: 11),
               ),
               const SizedBox(height: 14),
@@ -4122,25 +4244,6 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
           ),
         ],
 
-        const SizedBox(height: 18),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: ObsidianUITheme.primaryAccent,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            icon: _isSavingSettings
-                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const Icon(Icons.save_rounded, color: Colors.white, size: 20),
-            label: Text(
-              _isSavingSettings ? 'Saving...' : 'Save API settings',
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-            ),
-            onPressed: _isSavingSettings ? null : _handleSaveSettings,
-          ),
-        ),
       ],
     );
   }
@@ -4275,26 +4378,6 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
         _buildRolePermissionsCard('Analytics Role Access', _analyticsPages, 'analytics'),
         const SizedBox(height: 14),
         _buildRolePermissionsCard('Admin Role Access', _adminPages, 'admin'),
-        const SizedBox(height: 18),
-
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: ObsidianUITheme.primaryAccent,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            icon: _isSavingPermissions
-                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const Icon(Icons.save_rounded, color: Colors.white, size: 20),
-            label: Text(
-              _isSavingPermissions ? 'Saving...' : 'Save permissions',
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-            ),
-            onPressed: _isSavingPermissions ? null : _handleSavePermissions,
-          ),
-        ),
       ],
     );
   }

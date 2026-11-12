@@ -85,9 +85,15 @@ class _AllianceEditScreenState extends State<AllianceEditScreen> with SingleTick
       _year.text = jsonStr(_alliance['year']);
       _code.text = jsonStr(_alliance['eventCode']);
       _notes.text = jsonStr(_alliance['notes']);
+      _savedDetails = _detailsSnapshot();
       _loading = false;
     });
   }
+
+  bool _savingDetails = false;
+  String? _savedDetails;
+
+  String _detailsSnapshot() => [_name.text, _year.text, _code.text, _notes.text].join('|');
 
   Future<void> _run(Future<dynamic> Function() call, String action, {String? success}) async {
     final res = await call();
@@ -102,16 +108,21 @@ class _AllianceEditScreenState extends State<AllianceEditScreen> with SingleTick
       return;
     }
     String? orNull(String s) => s.trim().isEmpty ? null : s.trim();
-    await _run(
-      () => widget.apiService.requestJson('PUT', '/api/alliances/$_id', body: {
-        'name': name,
-        'year': int.tryParse(_year.text.trim()),
-        'eventCode': orNull(_code.text),
-        'notes': orNull(_notes.text),
-      }),
-      context.tr('alliance-edit.save_details', 'Save Details'),
-      success: 'Alliance updated!',
-    );
+    setState(() => _savingDetails = true);
+    try {
+      await _run(
+        () => widget.apiService.requestJson('PUT', '/api/alliances/$_id', body: {
+          'name': name,
+          'year': int.tryParse(_year.text.trim()),
+          'eventCode': orNull(_code.text),
+          'notes': orNull(_notes.text),
+        }),
+        context.tr('alliance-edit.save_details', 'Save Details'),
+        success: 'Alliance updated!',
+      );
+    } finally {
+      if (mounted) setState(() => _savingDetails = false);
+    }
   }
 
   Future<void> _invite() async {
@@ -318,6 +329,17 @@ class _AllianceEditScreenState extends State<AllianceEditScreen> with SingleTick
     return PortedPageList(
       onRefresh: _load,
       isBarsVisible: false,
+      actionBar: _canEdit
+          ? ObsidianActionBar(
+              isSaving: _savingDetails,
+              isDirty: () => _savedDetails != null && _detailsSnapshot() != _savedDetails,
+              primary: FilledButton.icon(
+                onPressed: _savingDetails ? null : _saveDetails,
+                icon: const Icon(Icons.save_rounded, size: 18),
+                label: Text(context.tr('alliance-edit.save_details', 'Save Details')),
+              ),
+            )
+          : null,
       children: [
         if (jsonBool(validation['isMisconfigured']) && issues.isNotEmpty)
           PortedSection(
@@ -350,10 +372,6 @@ class _AllianceEditScreenState extends State<AllianceEditScreen> with SingleTick
           title: context.tr('alliance-edit.alliance_details', 'Alliance Details'),
           subtitle: context.tr('alliance-edit.tying_this_alliance_to_a_speci',
               'Tying this alliance to a specific event filters synced data for this event. Event key is year + code (e.g. 2026 + okok → 2026okok).'),
-          actions: [
-            if (_canEdit)
-              FilledButton(onPressed: _saveDetails, child: Text(context.tr('alliance-edit.save_details', 'Save Details'))),
-          ],
           child: Column(
             children: [
               TextField(

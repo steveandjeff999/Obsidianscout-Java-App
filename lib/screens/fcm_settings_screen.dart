@@ -36,6 +36,19 @@ class _FcmSettingsScreenState extends State<FcmSettingsScreen> {
   final _vapidKey = TextEditingController();
   final _appleAppId = TextEditingController();
   final _appleApiKey = TextEditingController();
+  String? _savedSnapshot;
+
+  String _snapshot() => jsonEncode([
+        _enabled,
+        _serviceAccount.text,
+        _projectId.text,
+        _apiKey.text,
+        _appId.text,
+        _senderId.text,
+        _vapidKey.text,
+        _appleAppId.text,
+        _appleApiKey.text,
+      ]);
 
   bool get _isSuper => widget.apiService.currentUserRole.toUpperCase() == 'SUPERADMIN';
 
@@ -71,6 +84,7 @@ class _FcmSettingsScreenState extends State<FcmSettingsScreen> {
       _vapidKey.text = jsonStr(cfg['vapidKey']);
       _appleAppId.text = jsonStr(cfg['appleAppId']);
       _appleApiKey.text = jsonStr(cfg['appleApiKey']);
+      _savedSnapshot = _snapshot();
     });
   }
 
@@ -166,14 +180,16 @@ class _FcmSettingsScreenState extends State<FcmSettingsScreen> {
       'appleApiKey': _appleApiKey.text.trim(),
     });
     if (!mounted) return;
+    final fullySaved = res.success && jsonBool(jsonMap(res.data)['success']);
+    if (fullySaved) _serviceAccount.clear();
+    if (res.success) _savedSnapshot = _snapshot();
     setState(() => _saving = false);
     if (!res.success) {
       _showAlert('Failed to save FCM settings: ${res.message ?? 'Request failed'}', error: true);
       return;
     }
-    if (jsonBool(jsonMap(res.data)['success'])) {
+    if (fullySaved) {
       _showAlert(context.tr('fcm.save_success', 'FCM Settings saved to database successfully!'));
-      _serviceAccount.clear();
       await _load();
     } else {
       _showAlert('Settings saved, but Firebase SDK failed to initialize. Please check your credentials.', error: true);
@@ -207,6 +223,27 @@ class _FcmSettingsScreenState extends State<FcmSettingsScreen> {
     return PortedPageList(
       onRefresh: _load,
       isBarsVisible: widget.isBarsVisible,
+      actionBar: _loading
+          ? null
+          : ObsidianActionBar(
+              reserveBottomNav: true,
+              isBarsVisible: widget.isBarsVisible,
+              uiMode: widget.apiService.uiMode,
+              isSaving: _saving,
+              isDirty: () => _savedSnapshot != null && _snapshot() != _savedSnapshot,
+              secondary: [
+                OutlinedButton.icon(
+                  onPressed: _testing ? null : _test,
+                  icon: const Icon(Icons.notifications_active_rounded, size: 18),
+                  label: Text(context.tr('fcm.btn_test_short', 'Test')),
+                ),
+              ],
+              primary: FilledButton.icon(
+                onPressed: _saving ? null : _save,
+                icon: const Icon(Icons.save_rounded, size: 18),
+                label: Text(context.tr('fcm.btn_save', 'Save to Database')),
+              ),
+            ),
       children: [
         PortedSection(
           icon: Icons.local_fire_department_rounded,
@@ -311,21 +348,6 @@ class _FcmSettingsScreenState extends State<FcmSettingsScreen> {
       ),
       if (_alert != null)
         PortedNotice(_alert!, icon: _alertIsError ? Icons.error_outline_rounded : Icons.check_circle_outline_rounded),
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Wrap(spacing: 10, runSpacing: 8, children: [
-          OutlinedButton.icon(
-            onPressed: _testing ? null : _test,
-            icon: const Icon(Icons.notifications_active_rounded, size: 18),
-            label: Text(context.tr('fcm.btn_test', 'Send Test Notification')),
-          ),
-          FilledButton.icon(
-            onPressed: _saving ? null : _save,
-            icon: const Icon(Icons.save_rounded, size: 18),
-            label: Text(context.tr('fcm.btn_save', 'Save to Database')),
-          ),
-        ]),
-      ),
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Text('The service account key is sent to your server only.', style: TextStyle(fontSize: 11, color: muted)),

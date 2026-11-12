@@ -989,9 +989,83 @@ class RecencyBiasSettingsModel {
   }
 }
 
+/// One event in the settings "Don't know your event code?" picker.
+class EventCatalogEntryModel {
+  /// The event code to use (TBA's for FRC, FTC Scout's for FTC).
+  final String code;
+
+  /// FIRST's code when it differs from [code]; empty otherwise.
+  final String altCode;
+  final String name;
+  final String? startDate;
+  final String? endDate;
+  final String location;
+  final int? week;
+  final String type;
+
+  EventCatalogEntryModel({
+    required this.code,
+    this.altCode = '',
+    required this.name,
+    this.startDate,
+    this.endDate,
+    this.location = '',
+    this.week,
+    this.type = '',
+  });
+
+  factory EventCatalogEntryModel.fromJson(Map<String, dynamic> json) =>
+      EventCatalogEntryModel(
+        code: json['code']?.toString() ?? '',
+        altCode: json['altCode']?.toString() ?? '',
+        name: json['name']?.toString() ?? '',
+        startDate: json['startDate']?.toString(),
+        endDate: json['endDate']?.toString(),
+        location: json['location']?.toString() ?? '',
+        week: (json['week'] as num?)?.toInt(),
+        type: json['type']?.toString() ?? '',
+      );
+
+  late final String searchText = [name, code, altCode, location, type, if (week != null) 'week $week']
+      .join(' ')
+      .toLowerCase();
+}
+
+class EventCatalogModel {
+  final int year;
+
+  /// False when the server can't list events (FRC with no TBA or FIRST key anywhere).
+  final bool available;
+  final DateTime? fetchedAt;
+  final List<EventCatalogEntryModel> events;
+
+  const EventCatalogModel({
+    required this.year,
+    required this.available,
+    this.fetchedAt,
+    this.events = const [],
+  });
+
+  factory EventCatalogModel.fromJson(Map<String, dynamic> json) => EventCatalogModel(
+        year: (json['year'] as num?)?.toInt() ?? DateTime.now().year,
+        available: json['available'] != false,
+        fetchedAt: DateTime.tryParse(json['fetchedAt']?.toString() ?? ''),
+        events: (json['events'] is List)
+            ? (json['events'] as List)
+                .whereType<Map<String, dynamic>>()
+                .map(EventCatalogEntryModel.fromJson)
+                .toList()
+            : const [],
+      );
+}
+
 class AppSettingsModel {
   final int year;
   final String eventCode;
+
+  /// FIRST's code for the event when it differs from [eventCode] (TBA "arc", FIRST "ARCHIMEDES"). Null when
+  /// the server didn't report it; omitted on save so the server keeps its value.
+  final String? alternateEventCode;
   final String eventKey;
   final String timezone;
   final bool chatEnabled;
@@ -1034,6 +1108,7 @@ class AppSettingsModel {
   AppSettingsModel({
     this.year = 2026,
     this.eventCode = '',
+    this.alternateEventCode,
     this.eventKey = '',
     this.timezone = 'America/New_York',
     this.chatEnabled = true,
@@ -1151,6 +1226,7 @@ class AppSettingsModel {
     return AppSettingsModel(
       year: (settingsMap['year'] as num?)?.toInt() ?? DateTime.now().year,
       eventCode: settingsMap['eventCode']?.toString() ?? '',
+      alternateEventCode: settingsMap['alternateEventCode']?.toString(),
       eventKey: settingsMap['eventKey']?.toString() ?? '',
       timezone: settingsMap['timezone']?.toString() ?? 'America/New_York',
       chatEnabled: settingsMap['chatEnabled'] != false,
@@ -1218,6 +1294,7 @@ class AppSettingsModel {
     return {
       'year': year,
       'eventCode': eventCode,
+      if (alternateEventCode != null) 'alternateEventCode': alternateEventCode,
       'eventKey': eventKey,
       'timezone': timezone,
       'chatEnabled': chatEnabled,
@@ -1250,6 +1327,7 @@ class AppSettingsModel {
   AppSettingsModel copyWith({
     int? year,
     String? eventCode,
+    String? alternateEventCode,
     String? eventKey,
     String? timezone,
     bool? chatEnabled,
@@ -1278,6 +1356,7 @@ class AppSettingsModel {
     return AppSettingsModel(
       year: year ?? this.year,
       eventCode: eventCode ?? this.eventCode,
+      alternateEventCode: alternateEventCode ?? this.alternateEventCode,
       eventKey: eventKey ?? this.eventKey,
       timezone: timezone ?? this.timezone,
       chatEnabled: chatEnabled ?? this.chatEnabled,

@@ -3,6 +3,8 @@ import '../l10n/app_localizations.dart';
 import '../models/api_response.dart';
 import '../services/file_download_helper.dart';
 import '../theme/obsidian_ui_theme.dart';
+import 'obsidian_action_bar.dart';
+export 'obsidian_action_bar.dart';
 import 'obsidian_feedback.dart';
 import 'obsidian_glass_card.dart';
 
@@ -77,19 +79,23 @@ class PortedPageList extends StatelessWidget {
   final Future<void> Function() onRefresh;
   final bool isBarsVisible;
 
-  const PortedPageList({super.key, required this.children, required this.onRefresh, this.isBarsVisible = true});
+  /// Optional [ObsidianActionBar] pinned under the list (it clears the bottom navigation itself).
+  final Widget? actionBar;
+
+  const PortedPageList({super.key, required this.children, required this.onRefresh, this.isBarsVisible = true, this.actionBar});
 
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
+    final list = RefreshIndicator(
       color: ObsidianUITheme.primaryAccent,
       onRefresh: onRefresh,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.only(top: 4, bottom: isBarsVisible ? 120 : 20),
+        padding: EdgeInsets.only(top: 4, bottom: actionBar != null ? 12 : (isBarsVisible ? 120 : 20)),
         children: children,
       ),
     );
+    return ObsidianActionBarLayout(body: list, bar: actionBar);
   }
 }
 

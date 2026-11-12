@@ -2811,6 +2811,33 @@ class ApiService {
     return res;
   }
 
+  /// Every event the server knows of for [year] (GET /api/settings/event-catalog), for the
+  /// "Don't know your event code?" picker. The server keeps the list current with its shared API keys.
+  Future<ApiResponse<EventCatalogModel>> fetchEventCatalog(int year) async {
+    if (!_isOnline) {
+      return const ApiResponse.error(
+          isOffline: true, message: 'The event list needs a connection');
+    }
+    try {
+      final response = await http.get(
+        Uri.parse('$_currentServerUrl/api/settings/event-catalog?year=$year'),
+        headers: _headers,
+      );
+      _checkResponse(response);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          return ApiResponse.success(EventCatalogModel.fromJson(decoded),
+              statusCode: response.statusCode);
+        }
+      }
+      return ApiResponse.fromHttpResponse(response,
+          defaultErrorMessage: 'Failed to load the event list');
+    } catch (e) {
+      return ApiResponse.error(message: e.toString());
+    }
+  }
+
   Future<ApiResponse<Map<String, dynamic>>> testApiKey({
     required String api,
     String? tbaKey,

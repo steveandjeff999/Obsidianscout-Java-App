@@ -52,6 +52,12 @@ class _SharedApiKeysScreenState extends State<SharedApiKeysScreen> {
 
   /// Fills the form from the server's answer. Secrets come back masked ("********"); sending the mask back keeps
   /// the stored value.
+  String? _savedSnapshot;
+
+  String _snapshot() => [_frcTba, _frcFirstUser, _frcFirstKey, _frcMatch13, _ftcFirstUser, _ftcFirstKey]
+      .map((c) => c.text)
+      .join('|');
+
   void _fill(dynamic data) {
     final body = jsonMap(data);
     final frc = jsonMap(body['frc']);
@@ -64,6 +70,7 @@ class _SharedApiKeysScreenState extends State<SharedApiKeysScreen> {
     _frcMatch13.text = jsonStr(frcKeys['match13Key']);
     _ftcFirstUser.text = jsonStr(ftcKeys['firstUsername']);
     _ftcFirstKey.text = jsonStr(ftcKeys['firstKey']);
+    _savedSnapshot = _snapshot();
     _rateLimited = [
       for (final s in jsonList(frc['rateLimited'])) 'FRC ${_sourceNames['$s'] ?? s}',
       for (final s in jsonList(ftc['rateLimited'])) 'FTC ${_sourceNames['$s'] ?? s}',
@@ -140,6 +147,17 @@ class _SharedApiKeysScreenState extends State<SharedApiKeysScreen> {
           : PortedPageList(
               onRefresh: _load,
               isBarsVisible: false,
+              actionBar: _loading
+                  ? null
+                  : ObsidianActionBar(
+                      isSaving: _saving,
+                      isDirty: () => _savedSnapshot != null && _snapshot() != _savedSnapshot,
+                      primary: FilledButton.icon(
+                        onPressed: _saving ? null : _save,
+                        icon: const Icon(Icons.save_rounded, size: 18),
+                        label: Text(context.tr('shared_keys.save', 'Save shared keys')),
+                      ),
+                    ),
               children: [
                 PortedSection(
                   icon: Icons.key_rounded,
@@ -184,14 +202,6 @@ class _SharedApiKeysScreenState extends State<SharedApiKeysScreen> {
       ),
       if (_alert != null)
         PortedNotice(_alert!, icon: _alertIsError ? Icons.error_outline_rounded : Icons.check_circle_outline_rounded),
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: FilledButton.icon(
-          onPressed: _saving ? null : _save,
-          icon: const Icon(Icons.save_rounded, size: 18),
-          label: Text(context.tr('shared_keys.save', 'Save shared keys')),
-        ),
-      ),
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Text(

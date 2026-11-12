@@ -6,6 +6,7 @@ import '../models/config_models.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
+import '../widgets/obsidian_action_bar.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../services/net/adaptive_timer.dart';
 
@@ -2549,7 +2550,8 @@ class _CreateEditAssignmentBottomSheetState
         top: 20,
         bottom: MediaQuery.of(context).viewInsets.bottom + 20,
       ),
-      child: SingleChildScrollView(
+      child: ObsidianSheetWithFooter(
+        body: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2756,8 +2758,10 @@ class _CreateEditAssignmentBottomSheetState
                 ),
               ),
             ],
-            const SizedBox(height: 18),
-            SizedBox(
+          ],
+        ),
+        ),
+        footer: SizedBox(
               width: double.infinity,
               height: 44,
               child: ElevatedButton(
@@ -2772,8 +2776,6 @@ class _CreateEditAssignmentBottomSheetState
                     : Text(widget.assignment != null ? 'Update Assignment' : 'Create Assignment', style: const TextStyle(fontWeight: FontWeight.bold)),
               ),
             ),
-          ],
-        ),
       ),
     );
   }
@@ -2984,7 +2986,8 @@ class _BulkWizardBottomSheetState extends State<_BulkWizardBottomSheet> {
         top: 20,
         bottom: MediaQuery.of(context).viewInsets.bottom + 20,
       ),
-      child: SingleChildScrollView(
+      child: ObsidianSheetWithFooter(
+        body: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -3199,8 +3202,10 @@ class _BulkWizardBottomSheetState extends State<_BulkWizardBottomSheet> {
               selectedIds: _selectedScouterIds,
               onChanged: () => setState(() {}),
             ),
-            const SizedBox(height: 16),
-            SizedBox(
+          ],
+        ),
+        ),
+        footer: SizedBox(
               width: double.infinity,
               height: 44,
               child: ElevatedButton(
@@ -3215,8 +3220,6 @@ class _BulkWizardBottomSheetState extends State<_BulkWizardBottomSheet> {
                     : const Text('Generate Bulk Assignments', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
             ),
-          ],
-        ),
       ),
     );
   }
@@ -3590,7 +3593,8 @@ class _PlannedShiftsBottomSheetState extends State<_PlannedShiftsBottomSheet> {
         top: 20,
         bottom: MediaQuery.of(context).viewInsets.bottom + 20,
       ),
-      child: SingleChildScrollView(
+      child: ObsidianSheetWithFooter(
+        body: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -3739,8 +3743,10 @@ class _PlannedShiftsBottomSheetState extends State<_PlannedShiftsBottomSheet> {
               ),
               style: TextStyle(fontSize: 11, color: secondary),
             ),
-            const SizedBox(height: 16),
-            Row(
+          ],
+        ),
+        ),
+        footer: Row(
               children: [
                 if (_editingId.isNotEmpty) ...[
                   Expanded(
@@ -3769,8 +3775,6 @@ class _PlannedShiftsBottomSheetState extends State<_PlannedShiftsBottomSheet> {
                 ),
               ],
             ),
-          ],
-        ),
       ),
     );
   }
@@ -3891,7 +3895,8 @@ class _PitAutoBottomSheetState extends State<_PitAutoBottomSheet> {
         top: 20,
         bottom: MediaQuery.of(context).viewInsets.bottom + 20,
       ),
-      child: SingleChildScrollView(
+      child: ObsidianSheetWithFooter(
+        body: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -3940,8 +3945,10 @@ class _PitAutoBottomSheetState extends State<_PitAutoBottomSheet> {
               _summary,
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF8B5CF6)),
             ),
-            const SizedBox(height: 12),
-            SizedBox(
+          ],
+        ),
+        ),
+        footer: SizedBox(
               width: double.infinity,
               height: 44,
               child: ElevatedButton(
@@ -3956,8 +3963,6 @@ class _PitAutoBottomSheetState extends State<_PitAutoBottomSheet> {
                     : const Text('Distribute Pit Assignments', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
             ),
-          ],
-        ),
       ),
     );
   }
@@ -4502,7 +4507,8 @@ class _PitGroupsBottomSheetState extends State<_PitGroupsBottomSheet> {
         top: 20,
         bottom: MediaQuery.of(context).viewInsets.bottom + 20,
       ),
-      child: SingleChildScrollView(
+      child: ObsidianSheetWithFooter(
+        body: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -4599,8 +4605,10 @@ class _PitGroupsBottomSheetState extends State<_PitGroupsBottomSheet> {
               icon: const Icon(Icons.add_rounded, size: 18),
               label: const Text('Add Group'),
             ),
-            const SizedBox(height: 10),
-            SizedBox(
+          ],
+        ),
+        ),
+        footer: SizedBox(
               width: double.infinity,
               height: 44,
               child: ElevatedButton(
@@ -4615,8 +4623,6 @@ class _PitGroupsBottomSheetState extends State<_PitGroupsBottomSheet> {
                     : const Text('Save Groups', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
             ),
-          ],
-        ),
       ),
     );
   }

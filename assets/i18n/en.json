@@ -2825,5 +2825,12 @@
   "security.type_unblock_approved": "Request approved",
   "security.type_unblock_denied": "Request denied",
   "security.type_sessions_revoked": "Sessions signed out",
-  "security.type_admin_action": "Superadmin action"
+  "security.type_admin_action": "Superadmin action",
+  "action_bar.not_auto_saved": "Changes are not saved automatically",
+  "action_bar.unsaved": "Unsaved changes",
+  "action_bar.saving": "Saving...",
+  "action_bar.saved": "All changes saved",
+  "action_bar.failed": "Not saved - your changes are still unsaved",
+  "action_bar.live": "Changes sync automatically",
+  "fcm.btn_test_short": "Test"
 }
