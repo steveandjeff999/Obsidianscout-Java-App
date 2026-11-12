@@ -9,6 +9,7 @@ import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/obsidian_glass_app_bar.dart';
 import '../widgets/obsidian_image_preview_card.dart';
+import '../widgets/obsidian_3d_graph_view.dart';
 import '../services/photo_values.dart';
 
 class SharedViewScreen extends StatefulWidget {
@@ -39,6 +40,10 @@ class _SharedViewScreenState extends State<SharedViewScreen> {
   String _sort = 'value_desc';
   bool _includePrescout = false;
   String _selectedMetricId = 'score_total';
+  bool _is3DMode = false;
+  String _metricXId = 'score_auto';
+  String _metricYId = 'score_teleop';
+  String _metricZId = 'score_total';
   String _teamSearch = '';
 
   // All Data Viewer State
@@ -100,6 +105,10 @@ class _SharedViewScreenState extends State<SharedViewScreen> {
     _sort = (dataObj['sort'] as String?) ?? 'value_desc';
     _includePrescout = (dataObj['includePrescout'] as bool?) ?? false;
     _selectedMetricId = (dataObj['metricId'] as String?) ?? (dataObj['metric'] as String?) ?? 'score_total';
+    _is3DMode = (dataObj['is3D'] as bool?) ?? false;
+    _metricXId = (dataObj['metricXId'] as String?) ?? 'score_auto';
+    _metricYId = (dataObj['metricYId'] as String?) ?? 'score_teleop';
+    _metricZId = (dataObj['metricZId'] as String?) ?? 'score_total';
 
     final teamsList = (dataObj['selectedTeams'] as List<dynamic>?)?.map((e) => (e as num).toInt()).toList() ?? [];
     if (teamsList.isNotEmpty) {
@@ -657,6 +666,94 @@ class _SharedViewScreenState extends State<SharedViewScreen> {
     }
 
     final widgets = <Widget>[];
+
+    if (_is3DMode) {
+      final sortedTeams = _selectedTeams.toList()..sort();
+      String labelFor(String id) {
+        if (id == 'score_auto' || id == 'auto_score') return 'Auto points';
+        if (id == 'score_teleop' || id == 'teleop_score') return 'Teleop points';
+        if (id == 'score_endgame' || id == 'endgame_score') return 'Endgame points';
+        if (id == 'score_total') return 'Total points';
+        if (id == 'ext_epa') return 'Statbotics EPA';
+        if (id == 'ext_exp') return 'Match 13 xP';
+        if (id == 'ext_opr') return 'TBA OPR';
+        return id.replaceFirst('field:', '');
+      }
+      double extractVal(Map<String, dynamic> e, String id) {
+        final data = (e['data'] is Map<String, dynamic>) ? e['data'] as Map<String, dynamic> : e;
+        if (id.startsWith('field:')) {
+          final v = data[id.substring(6)];
+          return (v is num) ? v.toDouble() : (double.tryParse('$v') ?? 0.0);
+        }
+        double sum = 0.0;
+        data.forEach((k, v) {
+          if (v is num && k != 'matchNumber' && k != 'targetTeamNumber') {
+            final kl = k.toLowerCase();
+            if (id.contains('auto') && kl.contains('auto')) sum += v.toDouble();
+            else if (id.contains('teleop') && kl.contains('teleop')) sum += v.toDouble();
+            else if (id.contains('endgame') && kl.contains('endgame')) sum += v.toDouble();
+            else if (id.contains('total')) sum += v.toDouble();
+          }
+        });
+        return sum;
+      }
+      final series3D = <Map<String, dynamic>>[];
+      if (_dataView == 'matches') {
+        for (final tNum in sortedTeams) {
+          final teamEntries = entries.whereType<Map<String, dynamic>>().where((e) =>
+              (e['targetTeamNumber'] ?? e['teamNumber']) == tNum && (_includePrescout || e['isPrescout'] != true)).toList();
+          final pts = teamEntries.map((e) => {
+            'x': extractVal(e, _metricXId),
+            'y': extractVal(e, _metricYId),
+            'z': extractVal(e, _metricZId),
+            'label': '$tNum',
+            'matchLabel': e['matchNumber'] != null ? 'M${e['matchNumber']}' : '',
+          }).toList();
+          if (pts.isNotEmpty) series3D.add({'name': 'Team $tNum', 'points': pts});
+        }
+      } else {
+        final avgPts = <Map<String, dynamic>>[];
+        for (final tNum in sortedTeams) {
+          final teamEntries = entries.whereType<Map<String, dynamic>>().where((e) =>
+              (e['targetTeamNumber'] ?? e['teamNumber']) == tNum && (_includePrescout || e['isPrescout'] != true)).toList();
+          if (teamEntries.isEmpty) continue;
+          double sx = 0, sy = 0, sz = 0;
+          for (final e in teamEntries) {
+            sx += extractVal(e, _metricXId);
+            sy += extractVal(e, _metricYId);
+            sz += extractVal(e, _metricZId);
+          }
+          final n = teamEntries.length;
+          avgPts.add({'x': sx / n, 'y': sy / n, 'z': sz / n, 'label': '$tNum'});
+        }
+        series3D.add({'name': 'Teams', 'points': avgPts});
+      }
+      for (final gt in _selectedGraphTypes) {
+        widgets.add(
+          ObsidianGlassCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('3D ${gt.toUpperCase()} (${labelFor(_metricXId)} \u00D7 ${labelFor(_metricYId)} \u00D7 ${labelFor(_metricZId)})',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                const SizedBox(height: 12),
+                Obsidian3DGraphView(
+                  graphType: gt,
+                  series: series3D,
+                  xLabel: labelFor(_metricXId),
+                  yLabel: labelFor(_metricYId),
+                  zLabel: labelFor(_metricZId),
+                  height: 400,
+                ),
+              ],
+            ),
+          ),
+        );
+        widgets.add(const SizedBox(height: 16));
+      }
+      return widgets;
+    }
 
     for (final gt in _selectedGraphTypes) {
       widgets.add(

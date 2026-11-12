@@ -12,6 +12,7 @@ import '../services/api_service.dart';
 import '../services/live_refresh.dart';
 import '../widgets/obsidian_chart_interactive_wrapper.dart';
 import '../widgets/obsidian_share_modal.dart';
+import '../widgets/obsidian_3d_graph_view.dart';
 
 // Reserved fields that are metadata, not graphable
 const _reserved = {'eventKey', 'matchKey', 'matchNumber', 'targetTeamNumber'};
@@ -51,6 +52,7 @@ const List<GraphTypeInfo> kGraphTypes = [
   GraphTypeInfo('box', 'Box', Icons.candlestick_chart_rounded, group: 'distribution'),
   GraphTypeInfo('violin', 'Violin', Icons.graphic_eq_rounded, group: 'distribution'),
   GraphTypeInfo('histogram', 'Histogram', Icons.analytics_rounded, group: 'distribution'),
+  GraphTypeInfo('density', '3D Density', Icons.blur_on_rounded, group: 'distribution'),
 ];
 
 class GraphsScreen extends StatefulWidget {
@@ -100,6 +102,10 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
   // State - mirrors web page
   List<GraphMetric> _metrics = [];
   GraphMetric? _selectedMetric;
+  bool _is3DMode = false;
+  GraphMetric? _metricX;
+  GraphMetric? _metricY;
+  GraphMetric? _metricZ;
   Set<int> _selectedTeams = {};
   Set<String> _selectedGraphTypes = {'bar'};
   String _datasource = 'scouted'; // scouted, epa, exp, opr, all
@@ -332,10 +338,10 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
   List<GraphMetric> _buildMetrics([ScoutingConfigModel? overrideConfig]) {
     if (_datasource == 'exp') {
       return const [
-        GraphMetric(id: 'score_total', label: 'Total EXP', kind: 'score', scope: 'total'),
-        GraphMetric(id: 'score_auto', label: 'Auto EXP', kind: 'score', scope: 'auto'),
-        GraphMetric(id: 'score_teleop', label: 'Teleop EXP', kind: 'score', scope: 'teleop'),
-        GraphMetric(id: 'score_endgame', label: 'Endgame EXP', kind: 'score', scope: 'endgame'),
+        GraphMetric(id: 'score_total', label: 'Total xP', kind: 'score', scope: 'total'),
+        GraphMetric(id: 'score_auto', label: 'Auto xP', kind: 'score', scope: 'auto'),
+        GraphMetric(id: 'score_teleop', label: 'Teleop xP', kind: 'score', scope: 'teleop'),
+        GraphMetric(id: 'score_endgame', label: 'Endgame xP', kind: 'score', scope: 'endgame'),
       ];
     }
     if (_datasource == 'all') {
@@ -344,6 +350,9 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
         GraphMetric(id: 'score_auto', label: 'Auto points', kind: 'score', scope: 'auto'),
         GraphMetric(id: 'score_teleop', label: 'Teleop points', kind: 'score', scope: 'teleop'),
         GraphMetric(id: 'score_endgame', label: 'Endgame points', kind: 'score', scope: 'endgame'),
+        GraphMetric(id: 'ext_epa', label: 'Statbotics EPA', kind: 'external', scope: 'epa'),
+        GraphMetric(id: 'ext_exp', label: 'Match 13 xP', kind: 'external', scope: 'exp'),
+        GraphMetric(id: 'ext_opr', label: 'TBA OPR', kind: 'external', scope: 'opr'),
       ];
     }
 
@@ -1109,8 +1118,33 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
                   const SizedBox(height: 12),
                 ],
 
-                // Metric dropdown (for scouted, exp, and all)
+                // 3D Viewport Toggle
+                SwitchListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('3D Viewport (X / Y / Z)',
+                      style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context), fontSize: 13, fontWeight: FontWeight.w600)),
+                  value: _is3DMode,
+                  activeThumbColor: ObsidianUITheme.primaryAccent,
+                  onChanged: (val) {
+                    setState(() {
+                      _is3DMode = val;
+                      if (!_is3DMode) _selectedGraphTypes.remove('density');
+                      _ensure3DMetrics();
+                    });
+                  },
+                ),
+                const SizedBox(height: 8),
+
+                // Metric dropdown(s) (for scouted, exp, and all)
                 if (_datasource == 'scouted' || _datasource == 'exp' || _datasource == 'all') ...[
+                  if (_is3DMode) ...[
+                    _buildAxisDropdown('X Axis Metric', _metricX, (m) => setState(() => _metricX = m)),
+                    const SizedBox(height: 10),
+                    _buildAxisDropdown('Y Axis Metric', _metricY, (m) => setState(() => _metricY = m)),
+                    const SizedBox(height: 10),
+                    _buildAxisDropdown('Z Axis Metric', _metricZ, (m) => setState(() => _metricZ = m)),
+                  ] else
                   DropdownButtonFormField<GraphMetric>(
                     isExpanded: true,
                     initialValue: _metrics.contains(_selectedMetric) ? _selectedMetric : (_metrics.isNotEmpty ? _metrics.first : null),
@@ -1194,7 +1228,7 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: kGraphTypes.map((type) {
+                  children: kGraphTypes.where((t) => _is3DMode || t.id != 'density').map((type) {
                     final isLineDisabled = type.id == 'line' && isAverages;
                     final selected = _selectedGraphTypes.contains(type.id);
                     return Opacity(
@@ -1324,6 +1358,10 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
                           'eventKey': _eventKey,
                           'metric': _selectedMetric?.id,
                           'metricId': _selectedMetric?.id,
+                          'is3D': _is3DMode,
+                          'metricXId': _metricX?.id,
+                          'metricYId': _metricY?.id,
+                          'metricZId': _metricZ?.id,
                           'metricName': _selectedMetric?.label,
                           'selectedTeams': teamsList,
                           'graphTypes': graphTypesList,
@@ -1336,6 +1374,10 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
                         snapshotData: {
                           'eventKey': _eventKey,
                           'metricId': _selectedMetric?.id,
+                          'is3D': _is3DMode,
+                          'metricXId': _metricX?.id,
+                          'metricYId': _metricY?.id,
+                          'metricZId': _metricZ?.id,
                           'metricName': _selectedMetric?.label,
                           'selectedTeams': teamsList,
                           'selectedGraphTypes': graphTypesList,
@@ -1442,6 +1484,35 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
         : (isScouted
             ? '$metricLabel — ${graphType.toUpperCase()}'
             : '${_getDatasourceLabel(_datasource)} — ${graphType.toUpperCase()} ($viewTitle)');
+
+    // 0. 3D Viewport rendering
+    if (_is3DMode) {
+      if (_datasource == 'epa' || _datasource == 'opr') {
+        return ObsidianGlassCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('3D ${graphType.toUpperCase()}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: ObsidianUITheme.getPrimaryTextColor(context))),
+              const SizedBox(height: 12),
+              _buildNotice('3D X/Y/Z axes require multiple distinct metrics. Switch Data Source to Scouted Data, Match 13 xP, or All Sources.'),
+            ],
+          ),
+        );
+      }
+      if ((graphType == 'line' || graphType == 'area') && (_dataView == 'averages' || _datasource == 'epa' || _datasource == 'opr')) {
+        return ObsidianGlassCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('3D ${graphType.toUpperCase()}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: ObsidianUITheme.getPrimaryTextColor(context))),
+              const SizedBox(height: 12),
+              _buildNotice('3D ${graphType.toUpperCase()} requires Match-by-match view.'),
+            ],
+          ),
+        );
+      }
+      return _build3DGraphCard(graphType);
+    }
 
     // 1. Line graph restriction for averages
     if (graphType == 'line' && (_dataView == 'averages' || _datasource == 'epa' || _datasource == 'opr')) {
@@ -1720,7 +1791,7 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
     }
 
     if (graphType == 'bar') {
-      if (_dataView == 'matches') {
+      if (_dataView == 'matches' || forcePerTeamMatches) {
         final seriesList = _buildTeamSeries(entries, metric);
         return _buildGroupedBarChart(seriesList, title: title);
       }
@@ -2856,6 +2927,277 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
       onRefresh: _generateGraphs,
       chart: buildChart(context),
       fullscreenChartBuilder: (ctx) => buildChart(ctx),
+    );
+  }
+
+  void _ensure3DMetrics() {
+    final numeric = _metrics.where((m) => m.kind != 'category').toList();
+    if (numeric.isEmpty) return;
+    if (_metricX == null || !numeric.contains(_metricX)) {
+      _metricX = numeric.length > 1 ? numeric[1] : numeric.first;
+    }
+    if (_metricY == null || !numeric.contains(_metricY)) {
+      _metricY = numeric.length > 2 ? numeric[2] : numeric.first;
+    }
+    if (_metricZ == null || !numeric.contains(_metricZ)) {
+      _metricZ = numeric.first;
+    }
+  }
+
+  Widget _buildAxisDropdown(String label, GraphMetric? current, ValueChanged<GraphMetric?> onChanged) {
+    final numeric = _metrics.where((m) => m.kind != 'category').toList();
+    final effective = (current != null && numeric.contains(current)) ? current : (numeric.isNotEmpty ? numeric.first : null);
+    return DropdownButtonFormField<GraphMetric>(
+      isExpanded: true,
+      initialValue: effective,
+      dropdownColor: ObsidianUITheme.getSurfaceColor(context),
+      style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(context)),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context)),
+        prefixIcon: Icon(Icons.view_in_ar_rounded, color: ObsidianUITheme.primaryAccent),
+        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: ObsidianUITheme.getBorderColor(context))),
+      ),
+      items: numeric.map((m) => DropdownMenuItem(value: m, child: Text(m.label, overflow: TextOverflow.ellipsis))).toList(),
+      onChanged: onChanged,
+    );
+  }
+
+  List<Map<String, dynamic>> _build3DSeriesPayload(GraphMetric mx, GraphMetric my, GraphMetric mz, {bool forcePerTeamMatches = false}) {
+    if (_datasource == 'scouted') {
+      final entries = _getFilteredEntriesForTeams();
+      final byTeam = <int, List<ScoutingEntryModel>>{};
+      for (final e in entries) {
+        final t = e.targetTeamNumber ?? 0;
+        if (t <= 0) continue;
+        byTeam.putIfAbsent(t, () => []).add(e);
+      }
+      final teams = byTeam.keys.toList()..sort();
+      if (_dataView == 'matches' || forcePerTeamMatches) {
+        return teams.map((t) {
+          final list = List<ScoutingEntryModel>.from(byTeam[t]!);
+          list.sort((a, b) => (a.matchNumber ?? 0).compareTo(b.matchNumber ?? 0));
+          final pts = <Map<String, dynamic>>[];
+          for (final e in list) {
+            final vx = _metricValue(e, mx);
+            final vy = _metricValue(e, my);
+            final vz = _metricValue(e, mz);
+            if (vx == null || vy == null || vz == null) continue;
+            pts.add({
+              'x': vx,
+              'y': vy,
+              'z': vz,
+              'label': '$t',
+              'matchLabel': e.matchNumber != null ? 'M${e.matchNumber}' : (e.matchKey ?? ''),
+            });
+          }
+          return {'name': 'Team $t', 'points': pts};
+        }).where((s) => (s['points'] as List).isNotEmpty).toList();
+      }
+
+      final avgPts = <Map<String, dynamic>>[];
+      for (final t in teams) {
+        final list = byTeam[t]!;
+        double sx = 0, sy = 0, sz = 0;
+        int count = 0;
+        for (final e in list) {
+          final vx = _metricValue(e, mx);
+          final vy = _metricValue(e, my);
+          final vz = _metricValue(e, mz);
+          if (vx == null || vy == null || vz == null) continue;
+          sx += vx;
+          sy += vy;
+          sz += vz;
+          count++;
+        }
+        if (count > 0) {
+          avgPts.add({'x': sx / count, 'y': sy / count, 'z': sz / count, 'label': '$t'});
+        }
+      }
+      return [{'name': 'Teams', 'points': avgPts}];
+    }
+
+    // Non-scouted datasources (exp, epa, opr, all)
+    final teams = _selectedTeams.toList()..sort();
+    if (_datasource == 'exp' && (_dataView == 'matches' || (forcePerTeamMatches && (_statsHistory?.match13History ?? []).isNotEmpty))) {
+      if (_datasource == 'all' && forcePerTeamMatches) {
+      final entries = _getFilteredEntriesForTeams();
+      if (entries.isNotEmpty) {
+        final byTeam = <int, List<ScoutingEntryModel>>{};
+        for (final e in entries) {
+          final t = e.targetTeamNumber ?? 0;
+          if (t > 0) byTeam.putIfAbsent(t, () => []).add(e);
+        }
+        final sortedTeams = byTeam.keys.toList()..sort();
+        final perTeam = sortedTeams.map((t) {
+          final pts = <Map<String, dynamic>>[];
+          for (final e in byTeam[t]!) {
+            final vx = _metricValue(e, mx);
+            final vy = _metricValue(e, my);
+            final vz = _metricValue(e, mz);
+            if (vx == null || vy == null || vz == null) continue;
+            pts.add({'x': vx, 'y': vy, 'z': vz, 'label': '$t', 'matchLabel': e.matchNumber != null ? 'M${e.matchNumber}' : (e.matchKey ?? '')});
+          }
+          return {'name': 'Team $t', 'points': pts};
+        }).where((s) => (s['points'] as List).isNotEmpty).toList();
+        if (perTeam.isNotEmpty) return perTeam;
+      }
+    }
+    final rawHistory = _statsHistory?.match13History ?? [];
+      return teams.map((teamNumber) {
+        final pts = <Map<String, dynamic>>[];
+        for (final matchObj in rawHistory) {
+          final td = extractTeamExpData(matchObj, teamNumber);
+          if (td == null) continue;
+          final matchKey = (matchObj['key'] ?? matchObj['matchKey'] ?? matchObj['match_key'] ?? matchObj['match'] ?? '').toString();
+          final label = formatMatchKeyToLabel(matchKey);
+          pts.add({
+            'x': getTeamExpMetricValue(td, mx.id),
+            'y': getTeamExpMetricValue(td, my.id),
+            'z': getTeamExpMetricValue(td, mz.id),
+            'label': '$teamNumber',
+            'matchLabel': label,
+          });
+        }
+        return {'name': 'Team $teamNumber', 'points': pts};
+      }).where((s) => (s['points'] as List).isNotEmpty).toList();
+    }
+
+    if (_datasource == 'all' && forcePerTeamMatches) {
+      final entries = _getFilteredEntriesForTeams();
+      if (entries.isNotEmpty) {
+        final byTeam = <int, List<ScoutingEntryModel>>{};
+        for (final e in entries) {
+          final t = e.targetTeamNumber ?? 0;
+          if (t > 0) byTeam.putIfAbsent(t, () => []).add(e);
+        }
+        final sortedTeams = byTeam.keys.toList()..sort();
+        final perTeam = sortedTeams.map((t) {
+          final pts = <Map<String, dynamic>>[];
+          for (final e in byTeam[t]!) {
+            final vx = _metricValue(e, mx);
+            final vy = _metricValue(e, my);
+            final vz = _metricValue(e, mz);
+            if (vx == null || vy == null || vz == null) continue;
+            pts.add({'x': vx, 'y': vy, 'z': vz, 'label': '$t', 'matchLabel': e.matchNumber != null ? 'M${e.matchNumber}' : (e.matchKey ?? '')});
+          }
+          return {'name': 'Team $t', 'points': pts};
+        }).where((s) => (s['points'] as List).isNotEmpty).toList();
+        if (perTeam.isNotEmpty) return perTeam;
+      }
+    }
+    final rawHistory = _statsHistory?.match13History ?? [];
+    final filteredEntries = _datasource == 'all' ? _getFilteredEntriesForTeams() : <ScoutingEntryModel>[];
+    final pts = <Map<String, dynamic>>[];
+    for (final teamNumber in teams) {
+      final tm = _teamMap[teamNumber];
+      final teamEntries = filteredEntries.where((e) => e.targetTeamNumber == teamNumber).toList();
+
+      double avgExpMetric(String metricId) {
+        double sum = 0.0;
+        int cnt = 0;
+        for (final matchObj in rawHistory) {
+          final td = extractTeamExpData(matchObj, teamNumber);
+          if (td == null) continue;
+          sum += getTeamExpMetricValue(td, metricId);
+          cnt++;
+        }
+        if (cnt > 0) return sum / cnt;
+        if (metricId == 'score_total') return tm?.exp ?? (tm?.match13Exp ?? 0.0);
+        return 0.0;
+      }
+
+      double avgScoutedMetric(GraphMetric m) {
+        if (teamEntries.isEmpty) return m.scope == 'total' ? (tm?.averagePoints ?? 0.0) : 0.0;
+        double sum = 0.0;
+        int cnt = 0;
+        for (final e in teamEntries) {
+          final v = _metricValue(e, m);
+          if (v != null) {
+            sum += v;
+            cnt++;
+          }
+        }
+        return cnt > 0 ? sum / cnt : 0.0;
+      }
+
+      double valFor(GraphMetric m) {
+        if (_datasource == 'exp') return avgExpMetric(m.id);
+        if (m.id == 'ext_epa') return tm?.epa ?? 0.0;
+        if (m.id == 'ext_exp') return tm?.exp ?? (tm?.match13Exp ?? 0.0);
+        if (m.id == 'ext_opr') return tm?.opr ?? 0.0;
+        return avgScoutedMetric(m);
+      }
+      pts.add({'x': valFor(mx), 'y': valFor(my), 'z': valFor(mz), 'label': '$teamNumber'});
+    }
+    return [{'name': _getDatasourceLabel(_datasource), 'points': pts}];
+  }
+
+  Widget _build3DGraphCard(String graphType) {
+    _ensure3DMetrics();
+    final fallback = const GraphMetric(id: 'score_total', label: 'Total points', kind: 'score', scope: 'total');
+    final mx = _metricX ?? _selectedMetric ?? fallback;
+    final my = _metricY ?? _selectedMetric ?? fallback;
+    final mz = _metricZ ?? _selectedMetric ?? fallback;
+    final series = _build3DSeriesPayload(mx, my, mz, forcePerTeamMatches: graphType == 'box' || graphType == 'violin');
+    final title = '3D ${graphType.toUpperCase()} (${mx.label} \u00D7 ${my.label} \u00D7 ${mz.label})';
+
+    return ObsidianGlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: ObsidianUITheme.getPrimaryTextColor(context)),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Fullscreen',
+                icon: Icon(Icons.fullscreen_rounded, color: ObsidianUITheme.getSecondaryTextColor(context)),
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => Dialog.fullscreen(
+                      child: Scaffold(
+                        appBar: AppBar(
+                          title: Text(title, style: const TextStyle(fontSize: 15)),
+                          leading: IconButton(
+                            icon: const Icon(Icons.close_rounded),
+                            onPressed: () => Navigator.of(ctx).pop(),
+                          ),
+                        ),
+                        body: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Obsidian3DGraphView(
+                            graphType: graphType,
+                            series: series,
+                            xLabel: mx.label,
+                            yLabel: my.label,
+                            zLabel: mz.label,
+                            height: MediaQuery.of(ctx).size.height - 100,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Obsidian3DGraphView(
+            graphType: graphType,
+            series: series,
+            xLabel: mx.label,
+            yLabel: my.label,
+            zLabel: mz.label,
+            height: 420,
+          ),
+        ],
+      ),
     );
   }
 

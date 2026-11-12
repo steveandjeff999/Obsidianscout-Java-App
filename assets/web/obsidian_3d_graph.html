@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <style>
+    html, body, #viewport {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <div id="viewport"></div>
+  <script src="obsidian_3d_graph.js"></script>
+  <script>
+    window.__obsidian3DPending = null;
+    window.renderObsidian3D = function (payload) {
+      try {
+        var config = typeof payload === "string" ? JSON.parse(payload) : payload;
+        if (window.Obsidian3DGraph) {
+          window.Obsidian3DGraph.render(document.getElementById("viewport"), config);
+        } else {
+          window.__obsidian3DPending = config;
+        }
+      } catch (e) {
+        console.error("renderObsidian3D error:", e);
+      }
+    };
+    if (window.__obsidian3DPending && window.Obsidian3DGraph) {
+      window.Obsidian3DGraph.render(document.getElementById("viewport"), window.__obsidian3DPending);
+      window.__obsidian3DPending = null;
+    }
+  </script>
+</body>
+</html>
