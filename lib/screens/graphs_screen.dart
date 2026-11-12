@@ -1791,7 +1791,7 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
     }
 
     if (graphType == 'bar') {
-      if (_dataView == 'matches' || forcePerTeamMatches) {
+      if (_dataView == 'matches') {
         final seriesList = _buildTeamSeries(entries, metric);
         return _buildGroupedBarChart(seriesList, title: title);
       }
