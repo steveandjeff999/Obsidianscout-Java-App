@@ -5425,17 +5425,20 @@ class ApiService {
       final result = ApiResponse<void>.fromHttpResponse(response,
           defaultErrorMessage: 'Failed to resolve conflict');
       if (result.success) {
-        if (data != null) {
-          await _patchCachedEntries(
-              cacheKey,
-              (list) => [
-                    for (final e in list)
-                      if (e is Map && e['id']?.toString() == cleanKeepId)
-                        {...e, 'data': data}
-                      else
-                        e,
-                  ]);
-        }
+        await _patchCachedEntries(
+            cacheKey,
+            (list) => [
+                  for (final e in list)
+                    if (e is Map && e['id']?.toString() == cleanKeepId)
+                      <String, dynamic>{
+                        ...Map<String, dynamic>.from(e),
+                        if (data != null) 'data': data,
+                        'hasDiscrepancy': false,
+                        'conflictingTeams': const <dynamic>[],
+                      }
+                    else
+                      e,
+                ]);
         for (final id in cleanDeleteIds) {
           await _removeStoredEntry(cacheKey, id, isPit: isPit);
         }
@@ -5486,8 +5489,8 @@ class ApiService {
       return [
         for (final e in list)
           if (e is Map && flags.containsKey(e['id']?.toString()))
-            {
-              ...e,
+            <String, dynamic>{
+              ...Map<String, dynamic>.from(e),
               'hasDiscrepancy': true,
               'conflictingTeams':
                   flags[e['id']?.toString()]!['conflictingTeams']
@@ -5607,7 +5610,15 @@ class ApiService {
             (list) => [
                   for (final e in list)
                     if (e is Map && e['id']?.toString() == cleanId)
-                      saved != null ? {...e, ...saved} : {...e, 'data': data}
+                      saved != null
+                          ? <String, dynamic>{
+                              ...Map<String, dynamic>.from(e),
+                              ...saved
+                            }
+                          : <String, dynamic>{
+                              ...Map<String, dynamic>.from(e),
+                              'data': data
+                            }
                     else
                       e,
                 ]);

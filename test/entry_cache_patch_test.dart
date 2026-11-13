@@ -135,6 +135,7 @@ void main() {
       expect(server.requests, ['POST /api/scouting/resolve']);
       final entries = (await api.getCachedScoutingEntries()).cast<Map>();
       expect(entries.map((e) => e['id']), ['a', 'c', 'd']);
+      expect(entries.first, isA<Map<String, dynamic>>());
       expect(entries.first['data'], {'score': 3});
       expect(entries.first['hasDiscrepancy'], isFalse);
     });
@@ -175,6 +176,7 @@ void main() {
 
     final entries = (await api.getCachedScoutingEntries()).cast<Map>();
     expect(entries.map((e) => e['id']), ['a', 'c', 'd']);
+    expect(entries.first, isA<Map<String, dynamic>>());
     expect(entries.first['data'], {'score': 3});
     expect(entries.first['hasDiscrepancy'], isFalse, reason: 'its conflict is resolved');
     expect(entries.where((e) => e['id'] != 'a').map((e) => e['hasDiscrepancy']), [true, true],

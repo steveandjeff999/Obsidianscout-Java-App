@@ -7,12 +7,12 @@ list(APPEND FLUTTER_PLUGIN_LIST
   connectivity_plus
   file_selector_windows
   firebase_core
-  flutter_inappwebview_windows
   flutter_secure_storage_windows
   local_auth_windows
   permission_handler_windows
   screen_retriever_windows
   url_launcher_windows
+  webview_windows
   window_manager
 )
 

@@ -1538,7 +1538,7 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
                 SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Discrepancy Warning: Some data contains conflicting inputs from partner teams. Review or resolve in Alliance Scouting Data.',
+                    'Discrepancy Warning: Some data contains conflicting scouting inputs. Review or resolve in All Data.',
                     style: TextStyle(color: Color(0xFFCA8A04), fontSize: 12, height: 1.3),
                   ),
                 ),
