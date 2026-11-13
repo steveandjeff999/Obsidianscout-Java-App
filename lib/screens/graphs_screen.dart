@@ -222,19 +222,28 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
 
       final effectiveKey = (eventKey != null && eventKey.isNotEmpty) ? eventKey : (settings?.eventKey ?? '');
 
-      final eventsAndTeams = await Future.wait([
-        widget.apiService.fetchEvents(year: settings?.year),
-        widget.apiService.fetchTeams(effectiveKey.isNotEmpty ? effectiveKey : null),
-        widget.apiService.fetchStatsHistory(effectiveKey.isNotEmpty ? effectiveKey : null),
-      ]);
-
-      final events = eventsAndTeams[0] as List<EventModel>;
-      final teams = eventsAndTeams[1] as List<TeamModel>;
-      final statsHistory = eventsAndTeams[2] as StatsHistoryModel?;
-
       final entries = rawEntries
           .map((e) => ScoutingEntryModel.fromJson(e as Map<String, dynamic>))
           .toList();
+
+      final events = await widget.apiService.fetchEvents(year: settings?.year);
+      final List<TeamModel> teams;
+      final StatsHistoryModel? statsHistory;
+      if (effectiveKey.isNotEmpty) {
+        final eventData = await Future.wait([
+          widget.apiService.fetchTeams(effectiveKey),
+          widget.apiService.fetchStatsHistory(effectiveKey),
+        ]);
+        teams = eventData[0] as List<TeamModel>;
+        statsHistory = eventData[1] as StatsHistoryModel?;
+      } else {
+        teams = await _loadAllEventTeams(
+          events: events,
+          entries: entries,
+          currentEventKey: effectiveKey,
+        );
+        statsHistory = null;
+      }
 
       final metrics = _buildMetrics(config);
 
@@ -280,6 +289,65 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
     }
   }
 
+  Future<List<TeamModel>> _loadAllEventTeams({
+    List<EventModel>? events,
+    List<ScoutingEntryModel>? entries,
+    String? currentEventKey,
+  }) async {
+    final allEvents = events ?? _events;
+    final allEntries = entries ?? _entries;
+    final activeKey =
+        currentEventKey ?? _settings?.eventKey ?? widget.apiService.currentSettings?.eventKey ?? '';
+
+    final eventKeysToFetch = <String>{
+      for (final e in allEntries)
+        if (e.eventKey != null && e.eventKey!.isNotEmpty) e.eventKey!,
+      if (activeKey.isNotEmpty) activeKey,
+    };
+    if (allEvents.length <= 15) {
+      for (final ev in allEvents) {
+        if (ev.eventKey.isNotEmpty) {
+          eventKeysToFetch.add(ev.eventKey);
+        }
+      }
+    }
+
+    final teamMap = <int, TeamModel>{};
+    if (eventKeysToFetch.isNotEmpty) {
+      final perEventLists = await Future.wait(
+        eventKeysToFetch.map(
+          (key) => widget.apiService.fetchTeams(key).catchError((_) => <TeamModel>[]),
+        ),
+      );
+      for (final list in perEventLists) {
+        for (final t in list) {
+          if (t.teamNumber <= 0) continue;
+          final existing = teamMap[t.teamNumber];
+          if (existing == null ||
+              ((existing.nickname == null || existing.nickname!.isEmpty) &&
+                  (t.nickname != null && t.nickname!.isNotEmpty))) {
+            teamMap[t.teamNumber] = t;
+          }
+        }
+      }
+    }
+
+    for (final entry in allEntries) {
+      final teamNum = entry.targetTeamNumber;
+      if (teamNum != null && teamNum > 0 && !teamMap.containsKey(teamNum)) {
+        teamMap[teamNum] = TeamModel(
+          eventKey: entry.eventKey ?? '',
+          teamKey: 'frc$teamNum',
+          teamNumber: teamNum,
+        );
+      }
+    }
+
+    final teams = teamMap.values.toList()
+      ..sort((a, b) => a.teamNumber.compareTo(b.teamNumber));
+    return teams;
+  }
+
   Future<void> _onEventChanged(String? newEventKey) async {
     final effectiveKey = newEventKey ?? '';
     setState(() {
@@ -287,31 +355,43 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
       _isLoading = true;
     });
 
-    final targetKey = effectiveKey.isNotEmpty ? effectiveKey : null;
-    final results = await Future.wait([
-      widget.apiService.fetchTeams(targetKey),
-      widget.apiService.fetchStatsHistory(targetKey),
-    ]);
-    final teams = results[0] as List<TeamModel>;
-    final statsHistory = results[1] as StatsHistoryModel?;
-
-    final teamMap = <int, TeamModel>{};
-    for (final t in teams) {
-      teamMap[t.teamNumber] = t;
-    }
-
-    if (!mounted) return;
-
-    setState(() {
-      _teams = teams;
-      _teamMap = teamMap;
-      _statsHistory = statsHistory;
-      if (effectiveKey.isNotEmpty && teams.isNotEmpty) {
-        final validNums = teams.map((t) => t.teamNumber).toSet();
-        _selectedTeams = _selectedTeams.intersection(validNums);
+    try {
+      final List<TeamModel> teams;
+      final StatsHistoryModel? statsHistory;
+      if (effectiveKey.isNotEmpty) {
+        final results = await Future.wait([
+          widget.apiService.fetchTeams(effectiveKey),
+          widget.apiService.fetchStatsHistory(effectiveKey),
+        ]);
+        teams = results[0] as List<TeamModel>;
+        statsHistory = results[1] as StatsHistoryModel?;
+      } else {
+        teams = await _loadAllEventTeams();
+        statsHistory = null;
       }
-      _isLoading = false;
-    });
+
+      final teamMap = <int, TeamModel>{};
+      for (final t in teams) {
+        teamMap[t.teamNumber] = t;
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _teams = teams;
+        _teamMap = teamMap;
+        _statsHistory = statsHistory;
+        if (teams.isNotEmpty) {
+          final validNums = teams.map((t) => t.teamNumber).toSet();
+          _selectedTeams = _selectedTeams.intersection(validNums);
+        }
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   void _updateDatasource(String newSource) {
