@@ -410,7 +410,7 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
 
   void _updateGraphTypeAvailability() {
     final isAverages = _dataView == 'averages' || _datasource == 'epa' || _datasource == 'opr';
-    if (isAverages && _selectedGraphTypes.contains('line')) {
+    if (isAverages && !_is3DMode && _selectedGraphTypes.contains('line')) {
       _selectedGraphTypes.remove('line');
     }
   }
@@ -508,14 +508,49 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
     return 0.0;
   }
 
+  String? _normalizePhase(String? rawPhase) {
+    if (rawPhase == null || rawPhase.trim().isEmpty) return null;
+    final p = rawPhase.toLowerCase().trim();
+    if (p.contains('auto') || p.contains('autónomo') || p.contains('autonomo')) return 'auto';
+    if (p.contains('teleop') || p.contains('teleoperado') || p.contains('general')) return 'teleop';
+    if (p.contains('endgame') || p.contains('end') || p.contains('fin')) return 'endgame';
+    if (p.contains('post')) return 'postmatch';
+    return p;
+  }
+
   double _entryScore(ScoutingConfigModel? config, ScoutingEntryModel entry, [String? scope]) {
     if (config == null || config.fields.isEmpty) return 0.0;
+    final targetScope = _normalizePhase(scope) ?? 'total';
+    String currentSectionPhase = 'auto';
     double total = 0.0;
     for (final field in config.fields) {
-      if (_reserved.contains(field.id) || field.type.toLowerCase() == 'section') continue;
-      if (scope != null && scope != 'total') {
-        final phase = field.phase?.toLowerCase() ?? '';
-        if (phase != scope.toLowerCase()) continue;
+      if (_reserved.contains(field.id)) continue;
+      if (field.type.toLowerCase() == 'section') {
+        final secPhase = _normalizePhase(field.phase) ?? _normalizePhase(field.label);
+        if (secPhase != null) {
+          currentSectionPhase = secPhase;
+        }
+        continue;
+      }
+
+      String? fieldPhase = _normalizePhase(field.phase);
+      if (fieldPhase == null) {
+        final idLower = field.id.toLowerCase();
+        if (idLower.startsWith('auto')) {
+          fieldPhase = 'auto';
+        } else if (idLower.startsWith('teleop')) {
+          fieldPhase = 'teleop';
+        } else if (idLower.startsWith('endgame')) {
+          fieldPhase = 'endgame';
+        } else if (idLower.startsWith('post')) {
+          fieldPhase = 'postmatch';
+        } else {
+          fieldPhase = currentSectionPhase;
+        }
+      }
+
+      if (targetScope != 'total' && fieldPhase != targetScope) {
+        continue;
       }
       total += _fieldPoints(field, entry.data[field.id]);
     }
@@ -1309,7 +1344,7 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
                   spacing: 8,
                   runSpacing: 8,
                   children: kGraphTypes.where((t) => _is3DMode || t.id != 'density').map((type) {
-                    final isLineDisabled = type.id == 'line' && isAverages;
+                    final isLineDisabled = type.id == 'line' && isAverages && !_is3DMode;
                     final selected = _selectedGraphTypes.contains(type.id);
                     return Opacity(
                       opacity: isLineDisabled ? 0.4 : 1.0,
@@ -1352,7 +1387,7 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
                       setState(() {
                         _selectedGraphTypes = kGraphTypes
                             .map((g) => g.id)
-                            .where((id) => !isAverages || id != 'line')
+                            .where((id) => !isAverages || _is3DMode || id != 'line')
                             .toSet();
                       });
                     }),
@@ -1575,18 +1610,6 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
               Text('3D ${graphType.toUpperCase()}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: ObsidianUITheme.getPrimaryTextColor(context))),
               const SizedBox(height: 12),
               _buildNotice('3D X/Y/Z axes require multiple distinct metrics. Switch Data Source to Scouted Data, Match 13 xP, or All Sources.'),
-            ],
-          ),
-        );
-      }
-      if ((graphType == 'line' || graphType == 'area') && (_dataView == 'averages' || _datasource == 'epa' || _datasource == 'opr')) {
-        return ObsidianGlassCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('3D ${graphType.toUpperCase()}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: ObsidianUITheme.getPrimaryTextColor(context))),
-              const SizedBox(height: 12),
-              _buildNotice('3D ${graphType.toUpperCase()} requires Match-by-match view.'),
             ],
           ),
         );
@@ -3043,6 +3066,49 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
     );
   }
 
+  double _resolveTeamExternalMetric(int teamNumber, GraphMetric m) {
+    final tm = _teamMap[teamNumber];
+    if (m.id == 'ext_epa') return tm?.epa ?? 0.0;
+    if (m.id == 'ext_exp') {
+      final rawHistory = _statsHistory?.match13History ?? [];
+      double sum = 0.0;
+      int cnt = 0;
+      for (final matchObj in rawHistory) {
+        final td = extractTeamExpData(matchObj, teamNumber);
+        if (td == null) continue;
+        sum += getTeamExpMetricValue(td, 'score_total');
+        cnt++;
+      }
+      if (cnt > 0) return sum / cnt;
+      return tm?.exp ?? (tm?.match13Exp ?? 0.0);
+    }
+    if (m.id == 'ext_opr') return tm?.opr ?? 0.0;
+    return 0.0;
+  }
+
+  double? _resolveEntryOrTeamMetric(ScoutingEntryModel entry, int teamNumber, GraphMetric m) {
+    if (m.id.startsWith('ext_')) {
+      return _resolveTeamExternalMetric(teamNumber, m);
+    }
+    return _metricValue(entry, m);
+  }
+
+  int _compare3DTeams(int teamA, double zA, int teamB, double zB) {
+    switch (_sort) {
+      case 'value_desc':
+        final cmp = zB.compareTo(zA);
+        return cmp != 0 ? cmp : teamA.compareTo(teamB);
+      case 'value_asc':
+        final cmp = zA.compareTo(zB);
+        return cmp != 0 ? cmp : teamA.compareTo(teamB);
+      case 'team_desc':
+        return teamB.compareTo(teamA);
+      case 'team_asc':
+      default:
+        return teamA.compareTo(teamB);
+    }
+  }
+
   List<Map<String, dynamic>> _build3DSeriesPayload(GraphMetric mx, GraphMetric my, GraphMetric mz, {bool forcePerTeamMatches = false}) {
     if (_datasource == 'scouted') {
       final entries = _getFilteredEntriesForTeams();
@@ -3052,78 +3118,78 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
         if (t <= 0) continue;
         byTeam.putIfAbsent(t, () => []).add(e);
       }
-      final teams = byTeam.keys.toList()..sort();
-      if (_dataView == 'matches' || forcePerTeamMatches) {
-        return teams.map((t) {
-          final list = List<ScoutingEntryModel>.from(byTeam[t]!);
-          list.sort((a, b) => (a.matchNumber ?? 0).compareTo(b.matchNumber ?? 0));
-          final pts = <Map<String, dynamic>>[];
-          for (final e in list) {
-            final vx = _metricValue(e, mx);
-            final vy = _metricValue(e, my);
-            final vz = _metricValue(e, mz);
-            if (vx == null || vy == null || vz == null) continue;
-            pts.add({
-              'x': vx,
-              'y': vy,
-              'z': vz,
-              'label': '$t',
-              'matchLabel': e.matchNumber != null ? 'M${e.matchNumber}' : (e.matchKey ?? ''),
-            });
-          }
-          return {'name': 'Team $t', 'points': pts};
-        }).where((s) => (s['points'] as List).isNotEmpty).toList();
+
+      // Include selected teams that have team summary data even if 0 scouting entries exist
+      for (final t in _selectedTeams) {
+        if (!byTeam.containsKey(t) && _teamMap.containsKey(t)) {
+          byTeam[t] = const [];
+        }
       }
 
-      final avgPts = <Map<String, dynamic>>[];
-      for (final t in teams) {
-        final list = byTeam[t]!;
+      final teamAverages = <({int team, double x, double y, double z, List<Map<String, dynamic>> matchPts})>[];
+      for (final t in byTeam.keys) {
+        final list = List<ScoutingEntryModel>.from(byTeam[t]!);
+        list.sort((a, b) => (a.matchNumber ?? 0).compareTo(b.matchNumber ?? 0));
+        final pts = <Map<String, dynamic>>[];
         double sx = 0, sy = 0, sz = 0;
         int count = 0;
         for (final e in list) {
-          final vx = _metricValue(e, mx);
-          final vy = _metricValue(e, my);
-          final vz = _metricValue(e, mz);
+          final vx = _resolveEntryOrTeamMetric(e, t, mx);
+          final vy = _resolveEntryOrTeamMetric(e, t, my);
+          final vz = _resolveEntryOrTeamMetric(e, t, mz);
           if (vx == null || vy == null || vz == null) continue;
+          pts.add({
+            'x': vx,
+            'y': vy,
+            'z': vz,
+            'label': '$t',
+            'matchLabel': e.matchNumber != null ? 'M${e.matchNumber}' : (e.matchKey ?? ''),
+          });
           sx += vx;
           sy += vy;
           sz += vz;
           count++;
         }
         if (count > 0) {
-          avgPts.add({'x': sx / count, 'y': sy / count, 'z': sz / count, 'label': '$t'});
+          final ax = mx.kind == 'count' ? count.toDouble() : (sx / count);
+          final ay = my.kind == 'count' ? count.toDouble() : (sy / count);
+          final az = mz.kind == 'count' ? count.toDouble() : (sz / count);
+          teamAverages.add((team: t, x: ax, y: ay, z: az, matchPts: pts));
+        } else if (_dataView != 'matches' && !forcePerTeamMatches) {
+          final tm = _teamMap[t];
+          if (tm != null && tm.averagePoints != null) {
+            final fx = mx.scope == 'total' ? tm.averagePoints! : (mx.id.startsWith('ext_') ? _resolveTeamExternalMetric(t, mx) : 0.0);
+            final fy = my.scope == 'total' ? tm.averagePoints! : (my.id.startsWith('ext_') ? _resolveTeamExternalMetric(t, my) : 0.0);
+            final fz = mz.scope == 'total' ? tm.averagePoints! : (mz.id.startsWith('ext_') ? _resolveTeamExternalMetric(t, mz) : 0.0);
+            teamAverages.add((team: t, x: fx, y: fy, z: fz, matchPts: const []));
+          }
         }
       }
-      return [{'name': 'Teams', 'points': avgPts}];
+
+      teamAverages.sort((a, b) => _compare3DTeams(a.team, a.z, b.team, b.z));
+
+      if (_dataView == 'matches' || forcePerTeamMatches) {
+        return teamAverages
+            .where((item) => item.matchPts.isNotEmpty)
+            .map((item) => {'name': 'Team ${item.team}', 'points': item.matchPts})
+            .toList();
+      }
+
+      return teamAverages
+          .map((item) => {
+                'name': 'Team ${item.team}',
+                'points': [
+                  {'x': item.x, 'y': item.y, 'z': item.z, 'label': '${item.team}'}
+                ],
+              })
+          .toList();
     }
 
     // Non-scouted datasources (exp, epa, opr, all)
     final teams = _selectedTeams.toList()..sort();
-    if (_datasource == 'exp' && (_dataView == 'matches' || (forcePerTeamMatches && (_statsHistory?.match13History ?? []).isNotEmpty))) {
-      if (_datasource == 'all' && forcePerTeamMatches) {
-      final entries = _getFilteredEntriesForTeams();
-      if (entries.isNotEmpty) {
-        final byTeam = <int, List<ScoutingEntryModel>>{};
-        for (final e in entries) {
-          final t = e.targetTeamNumber ?? 0;
-          if (t > 0) byTeam.putIfAbsent(t, () => []).add(e);
-        }
-        final sortedTeams = byTeam.keys.toList()..sort();
-        final perTeam = sortedTeams.map((t) {
-          final pts = <Map<String, dynamic>>[];
-          for (final e in byTeam[t]!) {
-            final vx = _metricValue(e, mx);
-            final vy = _metricValue(e, my);
-            final vz = _metricValue(e, mz);
-            if (vx == null || vy == null || vz == null) continue;
-            pts.add({'x': vx, 'y': vy, 'z': vz, 'label': '$t', 'matchLabel': e.matchNumber != null ? 'M${e.matchNumber}' : (e.matchKey ?? '')});
-          }
-          return {'name': 'Team $t', 'points': pts};
-        }).where((s) => (s['points'] as List).isNotEmpty).toList();
-        if (perTeam.isNotEmpty) return perTeam;
-      }
-    }
     final rawHistory = _statsHistory?.match13History ?? [];
+
+    if (_datasource == 'exp' && (_dataView == 'matches' || (forcePerTeamMatches && rawHistory.isNotEmpty))) {
       return teams.map((teamNumber) {
         final pts = <Map<String, dynamic>>[];
         for (final matchObj in rawHistory) {
@@ -3143,7 +3209,7 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
       }).where((s) => (s['points'] as List).isNotEmpty).toList();
     }
 
-    if (_datasource == 'all' && forcePerTeamMatches) {
+    if (_datasource == 'all' && (_dataView == 'matches' || forcePerTeamMatches)) {
       final entries = _getFilteredEntriesForTeams();
       if (entries.isNotEmpty) {
         final byTeam = <int, List<ScoutingEntryModel>>{};
@@ -3153,22 +3219,30 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
         }
         final sortedTeams = byTeam.keys.toList()..sort();
         final perTeam = sortedTeams.map((t) {
+          final list = List<ScoutingEntryModel>.from(byTeam[t]!)
+            ..sort((a, b) => (a.matchNumber ?? 0).compareTo(b.matchNumber ?? 0));
           final pts = <Map<String, dynamic>>[];
-          for (final e in byTeam[t]!) {
-            final vx = _metricValue(e, mx);
-            final vy = _metricValue(e, my);
-            final vz = _metricValue(e, mz);
+          for (final e in list) {
+            final vx = _resolveEntryOrTeamMetric(e, t, mx);
+            final vy = _resolveEntryOrTeamMetric(e, t, my);
+            final vz = _resolveEntryOrTeamMetric(e, t, mz);
             if (vx == null || vy == null || vz == null) continue;
-            pts.add({'x': vx, 'y': vy, 'z': vz, 'label': '$t', 'matchLabel': e.matchNumber != null ? 'M${e.matchNumber}' : (e.matchKey ?? '')});
+            pts.add({
+              'x': vx,
+              'y': vy,
+              'z': vz,
+              'label': '$t',
+              'matchLabel': e.matchNumber != null ? 'M${e.matchNumber}' : (e.matchKey ?? ''),
+            });
           }
           return {'name': 'Team $t', 'points': pts};
         }).where((s) => (s['points'] as List).isNotEmpty).toList();
         if (perTeam.isNotEmpty) return perTeam;
       }
     }
-    final rawHistory = _statsHistory?.match13History ?? [];
+
     final filteredEntries = _datasource == 'all' ? _getFilteredEntriesForTeams() : <ScoutingEntryModel>[];
-    final pts = <Map<String, dynamic>>[];
+    final teamRows = <({int team, double x, double y, double z})>[];
     for (final teamNumber in teams) {
       final tm = _teamMap[teamNumber];
       final teamEntries = filteredEntries.where((e) => e.targetTeamNumber == teamNumber).toList();
@@ -3188,6 +3262,7 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
       }
 
       double avgScoutedMetric(GraphMetric m) {
+        if (m.kind == 'count') return teamEntries.length.toDouble();
         if (teamEntries.isEmpty) return m.scope == 'total' ? (tm?.averagePoints ?? 0.0) : 0.0;
         double sum = 0.0;
         int cnt = 0;
@@ -3203,14 +3278,22 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
 
       double valFor(GraphMetric m) {
         if (_datasource == 'exp') return avgExpMetric(m.id);
-        if (m.id == 'ext_epa') return tm?.epa ?? 0.0;
-        if (m.id == 'ext_exp') return tm?.exp ?? (tm?.match13Exp ?? 0.0);
-        if (m.id == 'ext_opr') return tm?.opr ?? 0.0;
+        if (m.id.startsWith('ext_')) return _resolveTeamExternalMetric(teamNumber, m);
         return avgScoutedMetric(m);
       }
-      pts.add({'x': valFor(mx), 'y': valFor(my), 'z': valFor(mz), 'label': '$teamNumber'});
+
+      teamRows.add((team: teamNumber, x: valFor(mx), y: valFor(my), z: valFor(mz)));
     }
-    return [{'name': _getDatasourceLabel(_datasource), 'points': pts}];
+
+    teamRows.sort((a, b) => _compare3DTeams(a.team, a.z, b.team, b.z));
+    return teamRows
+        .map((item) => {
+              'name': 'Team ${item.team}',
+              'points': [
+                {'x': item.x, 'y': item.y, 'z': item.z, 'label': '${item.team}'}
+              ],
+            })
+        .toList();
   }
 
   Widget _build3DGraphCard(String graphType) {
@@ -3219,7 +3302,12 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
     final mx = _metricX ?? _selectedMetric ?? fallback;
     final my = _metricY ?? _selectedMetric ?? fallback;
     final mz = _metricZ ?? _selectedMetric ?? fallback;
-    final series = _build3DSeriesPayload(mx, my, mz, forcePerTeamMatches: graphType == 'box' || graphType == 'violin');
+    final usePerTeam = _dataView == 'matches' ||
+        graphType == 'box' ||
+        graphType == 'violin' ||
+        graphType == 'histogram' ||
+        graphType == 'density';
+    final series = _build3DSeriesPayload(mx, my, mz, forcePerTeamMatches: usePerTeam);
     final title = '3D ${graphType.toUpperCase()} (${mx.label} \u00D7 ${my.label} \u00D7 ${mz.label})';
 
     return ObsidianGlassCard(

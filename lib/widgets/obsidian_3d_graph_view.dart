@@ -296,17 +296,33 @@ class _Fallback3DPainter extends CustomPainter {
     required this.isDark,
   });
 
+  static const _fallbackPalette = <Color>[
+    Color(0xFF0B8F88),
+    Color(0xFF255A9C),
+    Color(0xFFD97706),
+    Color(0xFFDC2626),
+    Color(0xFF7C3AED),
+    Color(0xFF059669),
+    Color(0xFFDB2777),
+    Color(0xFF0284C7),
+  ];
+
   @override
   void paint(Canvas canvas, Size size) {
-    final pts = <({double x, double y, double z, String label})>[];
-    for (final s in series) {
-      for (final p in (s['points'] as List<dynamic>? ?? [])) {
+    final pts = <({double x, double y, double z, String label, Color color})>[];
+    for (int sIdx = 0; sIdx < series.length; sIdx++) {
+      final s = series[sIdx];
+      final pointsList = s['points'] as List<dynamic>? ?? [];
+      for (int pIdx = 0; pIdx < pointsList.length; pIdx++) {
+        final p = pointsList[pIdx];
         if (p is Map) {
+          final colorIdx = series.length == 1 ? pIdx : sIdx;
           pts.add((
             x: ((p['x'] as num?) ?? 0).toDouble(),
             y: ((p['y'] as num?) ?? 0).toDouble(),
             z: ((p['z'] as num?) ?? 0).toDouble(),
             label: (p['label'] ?? '').toString(),
+            color: _fallbackPalette[colorIdx % _fallbackPalette.length],
           ));
         }
       }
@@ -333,14 +349,13 @@ class _Fallback3DPainter extends CustomPainter {
       return Offset(size.width * 0.5 + rx * scale, size.height * 0.52 - rz2 * scale);
     }
 
-    final dotPaint = Paint()..color = const Color(0xFF0B8F88);
     final textColor = isDark ? Colors.white : Colors.black87;
     for (final p in pts) {
       final nx = ((p.x - minX) / ((maxX - minX) == 0 ? 1 : (maxX - minX))) * 2 - 1;
       final ny = ((p.y - minY) / ((maxY - minY) == 0 ? 1 : (maxY - minY))) * 2 - 1;
       final nz = ((p.z - minZ) / ((maxZ - minZ) == 0 ? 1 : (maxZ - minZ))) * 2 - 1;
       final o = project(nx, ny, nz);
-      canvas.drawCircle(o, 5, dotPaint);
+      canvas.drawCircle(o, 5, Paint()..color = p.color);
       if (p.label.isNotEmpty) {
         final tp = TextPainter(
           text: TextSpan(text: p.label, style: TextStyle(color: textColor, fontSize: 10)),

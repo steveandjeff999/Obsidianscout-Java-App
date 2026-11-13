@@ -669,17 +669,34 @@ class _SharedViewScreenState extends State<SharedViewScreen> {
 
     if (_is3DMode) {
       final sortedTeams = _selectedTeams.toList()..sort();
+      final teamObjMap = <int, Map<String, dynamic>>{};
+      for (final t in teams) {
+        if (t is Map<String, dynamic>) {
+          final numVal = t['teamNumber'];
+          final tNum = numVal is int ? numVal : int.tryParse('$numVal');
+          if (tNum != null) teamObjMap[tNum] = t;
+        }
+      }
       String labelFor(String id) {
         if (id == 'score_auto' || id == 'auto_score') return 'Auto points';
         if (id == 'score_teleop' || id == 'teleop_score') return 'Teleop points';
         if (id == 'score_endgame' || id == 'endgame_score') return 'Endgame points';
         if (id == 'score_total') return 'Total points';
+        if (id == 'count') return 'Entry count';
         if (id == 'ext_epa') return 'Statbotics EPA';
         if (id == 'ext_exp') return 'Match 13 xP';
         if (id == 'ext_opr') return 'TBA OPR';
         return id.replaceFirst('field:', '');
       }
-      double extractVal(Map<String, dynamic> e, String id) {
+      double extractVal(Map<String, dynamic> e, int tNum, String id) {
+        if (id == 'count') return 1.0;
+        if (id.startsWith('ext_')) {
+          final tm = teamObjMap[tNum];
+          if (id == 'ext_epa') return ((tm?['epa'] as num?) ?? 0).toDouble();
+          if (id == 'ext_exp') return ((tm?['exp'] ?? tm?['match13Exp'] ?? 0) as num).toDouble();
+          if (id == 'ext_opr') return ((tm?['opr'] as num?) ?? 0).toDouble();
+          return 0.0;
+        }
         final data = (e['data'] is Map<String, dynamic>) ? e['data'] as Map<String, dynamic> : e;
         if (id.startsWith('field:')) {
           final v = data[id.substring(6)];
@@ -689,46 +706,60 @@ class _SharedViewScreenState extends State<SharedViewScreen> {
         data.forEach((k, v) {
           if (v is num && k != 'matchNumber' && k != 'targetTeamNumber') {
             final kl = k.toLowerCase();
-            if (id.contains('auto') && kl.contains('auto')) sum += v.toDouble();
-            else if (id.contains('teleop') && kl.contains('teleop')) sum += v.toDouble();
-            else if (id.contains('endgame') && kl.contains('endgame')) sum += v.toDouble();
-            else if (id.contains('total')) sum += v.toDouble();
+            if (id.contains('auto') && kl.contains('auto')) {
+              sum += v.toDouble();
+            } else if (id.contains('teleop') && kl.contains('teleop')) {
+              sum += v.toDouble();
+            } else if (id.contains('endgame') &&
+                (kl.contains('endgame') || kl.contains('barge') || kl.contains('climb') || kl.contains('harmony') || kl.contains('park'))) {
+              sum += v.toDouble();
+            } else if (id.contains('total')) {
+              sum += v.toDouble();
+            }
           }
         });
         return sum;
       }
-      final series3D = <Map<String, dynamic>>[];
-      if (_dataView == 'matches') {
-        for (final tNum in sortedTeams) {
-          final teamEntries = entries.whereType<Map<String, dynamic>>().where((e) =>
-              (e['targetTeamNumber'] ?? e['teamNumber']) == tNum && (_includePrescout || e['isPrescout'] != true)).toList();
-          final pts = teamEntries.map((e) => {
-            'x': extractVal(e, _metricXId),
-            'y': extractVal(e, _metricYId),
-            'z': extractVal(e, _metricZId),
-            'label': '$tNum',
-            'matchLabel': e['matchNumber'] != null ? 'M${e['matchNumber']}' : '',
-          }).toList();
-          if (pts.isNotEmpty) series3D.add({'name': 'Team $tNum', 'points': pts});
-        }
-      } else {
-        final avgPts = <Map<String, dynamic>>[];
-        for (final tNum in sortedTeams) {
-          final teamEntries = entries.whereType<Map<String, dynamic>>().where((e) =>
-              (e['targetTeamNumber'] ?? e['teamNumber']) == tNum && (_includePrescout || e['isPrescout'] != true)).toList();
-          if (teamEntries.isEmpty) continue;
-          double sx = 0, sy = 0, sz = 0;
-          for (final e in teamEntries) {
-            sx += extractVal(e, _metricXId);
-            sy += extractVal(e, _metricYId);
-            sz += extractVal(e, _metricZId);
-          }
+
+      final seriesMatches = <Map<String, dynamic>>[];
+      final seriesAverages = <Map<String, dynamic>>[];
+      for (final tNum in sortedTeams) {
+        final teamEntries = entries.whereType<Map<String, dynamic>>().where((e) =>
+            (e['targetTeamNumber'] ?? e['teamNumber']) == tNum && (_includePrescout || e['isPrescout'] != true)).toList();
+        teamEntries.sort((a, b) => ((a['matchNumber'] as num?) ?? 0).compareTo((b['matchNumber'] as num?) ?? 0));
+        final pts = teamEntries.map((e) => {
+          'x': extractVal(e, tNum, _metricXId),
+          'y': extractVal(e, tNum, _metricYId),
+          'z': extractVal(e, tNum, _metricZId),
+          'label': '$tNum',
+          'matchLabel': e['matchNumber'] != null ? 'M${e['matchNumber']}' : '',
+        }).toList();
+        if (pts.isNotEmpty) {
+          seriesMatches.add({'name': 'Team $tNum', 'points': pts});
           final n = teamEntries.length;
-          avgPts.add({'x': sx / n, 'y': sy / n, 'z': sz / n, 'label': '$tNum'});
+          double sx = 0, sy = 0, sz = 0;
+          for (final p in pts) {
+            sx += (p['x'] as num).toDouble();
+            sy += (p['y'] as num).toDouble();
+            sz += (p['z'] as num).toDouble();
+          }
+          seriesAverages.add({
+            'name': 'Team $tNum',
+            'points': [
+              {
+                'x': _metricXId == 'count' ? n.toDouble() : sx / n,
+                'y': _metricYId == 'count' ? n.toDouble() : sy / n,
+                'z': _metricZId == 'count' ? n.toDouble() : sz / n,
+                'label': '$tNum',
+              }
+            ],
+          });
         }
-        series3D.add({'name': 'Teams', 'points': avgPts});
       }
+
       for (final gt in _selectedGraphTypes) {
+        final useMatches = _dataView == 'matches' || gt == 'box' || gt == 'violin' || gt == 'histogram' || gt == 'density';
+        final series3D = (useMatches && seriesMatches.isNotEmpty) ? seriesMatches : seriesAverages;
         widgets.add(
           ObsidianGlassCard(
             padding: const EdgeInsets.all(16),
