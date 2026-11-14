@@ -191,6 +191,34 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || vars.ANDROID_KEY_PASSWORD || secrets.ANDROID_KEYSTORE_PASSWORD || vars.ANDROID_KEYSTORE_PASSWORD }}
         run: flutter build apk --release --build-name=${{ needs.auto-tag.outputs.version_name }} --build-number=${{ needs.auto-tag.outputs.build_number }} --dart-define=OBSIDIAN_RELEASE_VERSION=${{ needs.auto-tag.outputs.version_name }}
 
+      # APK Signature Scheme v3 key rotation. Until the ANDROID_ROTATED_* secrets exist, releases stay signed with
+      # the original key only. These are secrets only (never variables): this key, unlike the original, is private.
+      - name: Re-sign APK with Rotated Key
+        env:
+          ROTATED_KEYSTORE_BASE64: ${{ secrets.ANDROID_ROTATED_KEYSTORE_BASE64 }}
+          NEW_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_ROTATED_KEYSTORE_PASSWORD }}
+          NEW_KEY_ALIAS: ${{ secrets.ANDROID_ROTATED_KEY_ALIAS || 'obsidianscout2026' }}
+          LINEAGE_BASE64: ${{ secrets.ANDROID_SIGNING_LINEAGE_BASE64 }}
+          OLD_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || vars.ANDROID_KEYSTORE_PASSWORD }}
+          OLD_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || vars.ANDROID_KEY_ALIAS || 'obsidianscout' }}
+          OLD_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || vars.ANDROID_KEY_PASSWORD || secrets.ANDROID_KEYSTORE_PASSWORD || vars.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$ROTATED_KEYSTORE_BASE64" ] && [ -z "$NEW_KEYSTORE_PASSWORD" ] && [ -z "$LINEAGE_BASE64" ]; then
+            echo "Rotated signing key not configured; the APK stays signed with the original key only."
+            exit 0
+          fi
+          if [ -z "$ROTATED_KEYSTORE_BASE64" ] || [ -z "$NEW_KEYSTORE_PASSWORD" ] || [ -z "$LINEAGE_BASE64" ]; then
+            echo "::error::Set all of ANDROID_ROTATED_KEYSTORE_BASE64, ANDROID_ROTATED_KEYSTORE_PASSWORD and ANDROID_SIGNING_LINEAGE_BASE64 as secrets."
+            exit 1
+          fi
+          echo "$ROTATED_KEYSTORE_BASE64" | tr -d '\r\n' | base64 --decode > "$RUNNER_TEMP/rotated.keystore"
+          echo "$LINEAGE_BASE64" | tr -d '\r\n' | base64 --decode > "$RUNNER_TEMP/signing-lineage.bin"
+          OLD_KEYSTORE_PATH="$ANDROID_KEYSTORE_PATH" \
+          NEW_KEYSTORE_PATH="$RUNNER_TEMP/rotated.keystore" \
+          LINEAGE_PATH="$RUNNER_TEMP/signing-lineage.bin" \
+            bash android/sign_rotated_apk.sh build/app/outputs/flutter-apk/app-release.apk
+          rm -f "$RUNNER_TEMP/rotated.keystore" "$RUNNER_TEMP/signing-lineage.bin"
+
       - name: Upload Android APK Artifact
         uses: actions/upload-artifact@v4
         with:

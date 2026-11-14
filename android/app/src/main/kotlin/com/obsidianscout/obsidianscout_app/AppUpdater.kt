@@ -29,20 +29,33 @@ object AppUpdater {
         null
     }
 
-    private fun getSigningDigests(packageInfo: PackageInfo): Set<String> {
-        val signatures = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            val signingInfo = packageInfo.signingInfo ?: return emptySet()
-            signingInfo.apkContentsSigners
-        } else {
-            @Suppress("DEPRECATION")
-            packageInfo.signatures
-        } ?: return emptySet()
-
+    private fun digests(signatures: Array<android.content.pm.Signature>?): Set<String> {
+        if (signatures == null) return emptySet()
         val digest = MessageDigest.getInstance("SHA-256")
         return signatures.mapTo(HashSet()) { sig ->
             digest.reset()
             digest.digest(sig.toByteArray()).joinToString("") { "%02x".format(it) }
         }
+    }
+
+    /** The certificate(s) the package is signed with right now. */
+    private fun currentSignerDigests(packageInfo: PackageInfo): Set<String> =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            digests(packageInfo.signingInfo?.apkContentsSigners)
+        } else {
+            @Suppress("DEPRECATION")
+            digests(packageInfo.signatures)
+        }
+
+    /**
+     * Every certificate the package vouches for: its current signer(s) plus, after a v3 key rotation, the older
+     * keys in its signing lineage. An update signed with a rotated key lists the installed key here.
+     */
+    private fun knownSignerDigests(packageInfo: PackageInfo): Set<String> {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return currentSignerDigests(packageInfo)
+        val info = packageInfo.signingInfo ?: return emptySet()
+        val history = if (info.hasMultipleSigners()) null else info.signingCertificateHistory
+        return digests(info.apkContentsSigners) + digests(history)
     }
 
     private fun verifyApkSignature(activity: Activity, apkFile: File) {
@@ -77,11 +90,13 @@ object AppUpdater {
             )
         }
 
-        val installedDigests = getSigningDigests(installedInfo)
-        val archiveDigests = getSigningDigests(archiveInfo)
+        // The update must be signed by the installed key, or by a newer key whose rotation lineage includes it.
+        // An APK signed only with an older key fails this once the installed app has rotated.
+        val installedDigests = currentSignerDigests(installedInfo)
+        val archiveDigests = knownSignerDigests(archiveInfo)
         // Some OEM builds don't report certificates for archives. The system installer still refuses an update
-        // signed by a different key, so only a positive mismatch is rejected here.
-        if (installedDigests.isNotEmpty() && archiveDigests.isNotEmpty() && installedDigests != archiveDigests) {
+        // signed by an unrelated key, so only a positive mismatch is rejected here.
+        if (installedDigests.isNotEmpty() && archiveDigests.isNotEmpty() && !archiveDigests.containsAll(installedDigests)) {
             throw SecurityException("Downloaded APK signing certificate does not match installed application")
         }
     }
