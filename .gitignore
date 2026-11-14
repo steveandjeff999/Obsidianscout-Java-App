@@ -51,3 +51,6 @@ app.*.map.json
 *.keystore
 *.jks
 **/key.properties
+VULNERABILITY_LIST.md
+SECURITY_AUDIT_REPORT.md
+
