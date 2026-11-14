@@ -16,6 +16,7 @@ class AppUpdateInfo {
   final String assetName;
   final String downloadUrl;
   final int size;
+  final String? sha256;
   final String notes;
   final String releaseUrl;
   final AppInstallSource source;
@@ -26,6 +27,7 @@ class AppUpdateInfo {
     required this.assetName,
     required this.downloadUrl,
     required this.size,
+    this.sha256,
     required this.notes,
     required this.releaseUrl,
     required this.source,
@@ -120,16 +122,62 @@ class AppUpdateService {
       return null;
     }
 
+    final assetName = asset['name'].toString();
+    final sha256Hex = await _resolveAssetSha256(assets, asset, assetName);
+
     return AppUpdateInfo(
       tag: tag,
       version: version,
-      assetName: asset['name'].toString(),
+      assetName: assetName,
       downloadUrl: asset['browser_download_url'].toString(),
       size: (asset['size'] as num?)?.toInt() ?? 0,
+      sha256: sha256Hex,
       notes: release['body']?.toString() ?? '',
       releaseUrl: release['html_url']?.toString() ?? releasesUrl,
       source: source,
     );
+  }
+
+  static String? _extractSha256FromAsset(Map asset) {
+    final raw = asset['digest']?.toString().trim() ?? '';
+    if (raw.isEmpty) return null;
+    final cleaned = raw.toLowerCase().replaceFirst(RegExp(r'^sha256:'), '');
+    return RegExp(r'^[0-9a-f]{64}$').hasMatch(cleaned) ? cleaned : null;
+  }
+
+  Future<String?> _resolveAssetSha256(List<Map> assets, Map asset, String assetName) async {
+    final inline = _extractSha256FromAsset(asset);
+    if (inline != null) return inline;
+
+    final checksumAsset = assets.cast<Map?>().firstWhere(
+          (a) => a?['name']?.toString().toLowerCase() == 'checksums.txt',
+          orElse: () => null,
+        );
+    final url = checksumAsset?['browser_download_url']?.toString() ?? '';
+    final uri = Uri.tryParse(url);
+    const allowedHosts = {
+      'github.com',
+      'objects.githubusercontent.com',
+      'api.github.com',
+      'release-assets.githubusercontent.com',
+    };
+    if (uri == null || uri.scheme.toLowerCase() != 'https' || !allowedHosts.contains(uri.host.toLowerCase())) {
+      return null;
+    }
+
+    try {
+      final res = await http.get(uri, headers: const {'User-Agent': 'ObsidianScout-App'}).timeout(const Duration(seconds: 10));
+      if (res.statusCode != 200) return null;
+      for (final line in const LineSplitter().convert(res.body)) {
+        final match = RegExp(r'^\s*([0-9a-fA-F]{64})\s+\*?(.+?)\s*$').firstMatch(line);
+        if (match != null && match.group(2) == assetName) {
+          return match.group(1)!.toLowerCase();
+        }
+      }
+    } catch (e) {
+      debugPrint('[AppUpdate] Could not fetch checksums.txt: $e');
+    }
+    return null;
   }
 
   /// Downloads the update package, reusing a finished download of the same release.
@@ -203,7 +251,12 @@ class AppUpdateService {
         'body': json['body'],
         'assets': [
           for (final a in (json['assets'] as List? ?? const []).whereType<Map>())
-            {'name': a['name'], 'size': a['size'], 'browser_download_url': a['browser_download_url']},
+            {
+              'name': a['name'],
+              'size': a['size'],
+              'browser_download_url': a['browser_download_url'],
+              'digest': a['digest'],
+            },
         ],
       };
       await prefs.setString(_cachedReleaseKey, jsonEncode(slim));

@@ -31,21 +31,22 @@ class AuthStorageService {
   static const String _keyProgram = 'auth_program';
   static const String _keyServerUrl = 'auth_server_url';
   static const String _keyJwt = 'auth_jwt';
+  static const String _keySessionCookie = 'auth_session_cookie';
   static const String _keyEnrolled = 'auth_enrolled';
   static const String _keyRequireOnLaunch = 'auth_require_on_launch';
   static const String _keyBiometricPromptDismissed = 'auth_biometric_prompt_dismissed';
 
-  /// Saves complete credentials after successful login.
+  /// Saves complete credentials after successful login (without persisting plaintext password).
   static Future<void> saveCredentials({
     required String username,
-    required String password,
+    String password = '',
     required int teamNumber,
     required String program,
     required String serverUrl,
     required String jwt,
   }) async {
     await _storage.write(key: _keyUsername, value: username);
-    await _storage.write(key: _keyPassword, value: password);
+    await _storage.delete(key: _keyPassword);
     await _storage.write(key: _keyTeamNumber, value: teamNumber.toString());
     await _storage.write(key: _keyProgram, value: program);
     await _storage.write(key: _keyServerUrl, value: serverUrl);
@@ -56,28 +57,46 @@ class AuthStorageService {
   static Future<StoredCredentials?> loadCredentials() async {
     final username = await _storage.read(key: _keyUsername);
     final password = await _storage.read(key: _keyPassword);
+    if (password != null) {
+      // Purge any legacy plaintext password from earlier app versions.
+      await _storage.delete(key: _keyPassword);
+    }
     final teamStr = await _storage.read(key: _keyTeamNumber);
     final program = await _storage.read(key: _keyProgram);
     final serverUrl = await _storage.read(key: _keyServerUrl);
     final jwt = await _storage.read(key: _keyJwt);
 
     if (username == null ||
-        password == null ||
         teamStr == null ||
         program == null ||
-        serverUrl == null) {
+        serverUrl == null ||
+        ((jwt == null || jwt.isEmpty) && (password == null || password.isEmpty))) {
       return null;
     }
 
     final teamNumber = int.tryParse(teamStr) ?? 0;
     return StoredCredentials(
       username: username,
-      password: password,
+      password: password ?? '',
       teamNumber: teamNumber,
       program: program,
       serverUrl: migrateLegacyServerUrl(serverUrl),
       jwt: jwt ?? '',
     );
+  }
+
+  /// Persists or clears the active session cookie in encrypted storage.
+  static Future<void> saveSessionCookie(String? cookie) async {
+    if (cookie != null && cookie.isNotEmpty) {
+      await _storage.write(key: _keySessionCookie, value: cookie);
+    } else {
+      await _storage.delete(key: _keySessionCookie);
+    }
+  }
+
+  /// Loads the persisted active session cookie from encrypted storage.
+  static Future<String?> loadSessionCookie() async {
+    return await _storage.read(key: _keySessionCookie);
   }
 
   /// Updates just the JWT token (e.g. after re-auth).
@@ -112,6 +131,7 @@ class AuthStorageService {
     await _storage.delete(key: _keyProgram);
     await _storage.delete(key: _keyServerUrl);
     await _storage.delete(key: _keyJwt);
+    await _storage.delete(key: _keySessionCookie);
     await _storage.delete(key: _keyEnrolled);
     await _storage.delete(key: _keyRequireOnLaunch);
     await _storage.delete(key: _keyBiometricPromptDismissed);

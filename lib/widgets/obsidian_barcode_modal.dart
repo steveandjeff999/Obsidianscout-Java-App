@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data' show BytesBuilder;
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -41,18 +42,37 @@ class BarcodeCompressor {
     return chunks;
   }
 
-  /// Decompresses OSC: base64 deflate format back to JSON string
+  static const int _maxCompressedBase64Chars = 65536;
+  static const int _maxDecompressedBytes = 512 * 1024;
+
+  /// Decompresses OSC: base64 deflate format back to JSON string with bounded output size.
   static String decompressData(String compressedStr) {
     if (!compressedStr.startsWith("OSC:")) {
       return compressedStr;
     }
+    if (compressedStr.length > _maxCompressedBase64Chars) {
+      return '';
+    }
     try {
       final base64Str = compressedStr.substring(4);
       final compressedBytes = base64.decode(base64Str);
-      final decompressedBytes = zlib.decode(compressedBytes);
-      return utf8.decode(decompressedBytes);
+      final filter = RawZLibFilter.inflateFilter(
+        windowBits: ZLibOption.defaultWindowBits,
+        gzip: false,
+        raw: false,
+      );
+      filter.process(compressedBytes, 0, compressedBytes.length);
+      final out = BytesBuilder(copy: false);
+      List<int>? chunk;
+      while ((chunk = filter.processed()) != null) {
+        if (out.length + chunk!.length > _maxDecompressedBytes) {
+          return '';
+        }
+        out.add(chunk);
+      }
+      return utf8.decode(out.takeBytes());
     } catch (e) {
-      return compressedStr;
+      return '';
     }
   }
 }

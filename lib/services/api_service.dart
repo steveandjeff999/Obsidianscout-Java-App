@@ -466,12 +466,23 @@ class ApiService {
     savedAccountsNotifier.value = await AccountManagerService.load();
 
     if (_keepMeLoggedIn) {
-      final savedCookie = prefs.getString(keySessionCookie);
+      var savedCookie = await AuthStorageService.loadSessionCookie();
+      if (savedCookie == null || savedCookie.isEmpty) {
+        final legacyCookie = prefs.getString(keySessionCookie);
+        if (legacyCookie != null && legacyCookie.isNotEmpty) {
+          savedCookie = legacyCookie;
+          await AuthStorageService.saveSessionCookie(savedCookie);
+        }
+      }
+      await prefs.remove(keySessionCookie);
       if (savedCookie != null && savedCookie.isNotEmpty) {
         _sessionCookie = savedCookie;
         // Non-blocking verification in background: allows immediate UI mount without startup freezing
         unawaited(_verifySessionAsync(prefs));
       }
+    } else {
+      await prefs.remove(keySessionCookie);
+      await AuthStorageService.saveSessionCookie(null);
     }
 
     if (isLoggedIn) {
@@ -541,6 +552,7 @@ class ApiService {
       final isValid = await _verifySession();
       if (!isValid && _keepMeLoggedIn) {
         _sessionCookie = null;
+        await AuthStorageService.saveSessionCookie(null);
         await prefs.remove(keySessionCookie);
         _sessionRevokedController.add('Session expired or invalidated.');
       }
@@ -1151,13 +1163,29 @@ class ApiService {
           if (decoded is Map && decoded['loggedIn'] == true) {
             return true;
           }
-        } catch (_) {}
+        } catch (_) {
+          return false;
+        }
         return false;
       }
       return false;
-    } catch (_) {
-      // If offline / local network check fails, trust stored session if keepMeLoggedIn is true
+    } on TimeoutException {
+      // If offline / network timed out, trust stored session if keepMeLoggedIn is true
       return true;
+    } on http.ClientException {
+      return true;
+    } catch (e) {
+      // dart:io isn't importable here (web build), so match network failure types by name.
+      // Offline/flaky venue networks must not sign the user out; anything else is not trusted.
+      const offlineErrorTypes = [
+        'SocketException',
+        'HandshakeException',
+        'TlsException',
+        'HttpException',
+        'OSError',
+      ];
+      final type = e.runtimeType.toString();
+      return offlineErrorTypes.any(type.contains);
     }
   }
 
@@ -1168,9 +1196,19 @@ class ApiService {
         !cleanUrl.startsWith('https://')) {
       cleanUrl = 'https://$cleanUrl';
     }
-    _currentServerUrl = cleanUrl.endsWith('/')
+    final normalized = cleanUrl.endsWith('/')
         ? cleanUrl.substring(0, cleanUrl.length - 1)
         : cleanUrl;
+    final previousOrigin = Uri.tryParse(_currentServerUrl)?.origin;
+    final nextOrigin = Uri.tryParse(normalized)?.origin;
+    if (_currentServerUrl.isNotEmpty &&
+        previousOrigin != null &&
+        nextOrigin != null &&
+        previousOrigin != nextOrigin) {
+      _sessionCookie = null;
+      await AuthStorageService.saveSessionCookie(null);
+    }
+    _currentServerUrl = normalized;
     _outboxBatchSupported = true;
     _serverCompat = null;
     _serverCompatUrl = null;
@@ -1284,6 +1322,7 @@ class ApiService {
       prefs.remove(keySessionCookie);
       prefs.setBool(keyKeepMeLoggedIn, false);
     });
+    unawaited(AuthStorageService.saveSessionCookie(null));
     _store.remove("cache_auth_me").catchError((_) {});
     unawaited(clearAllCache());
     unawaited(_forgetActiveSessionCookie());
@@ -1331,18 +1370,27 @@ class ApiService {
     _checkResponse(response, epoch: epoch, requestCookie: requestCookie);
   }
 
+  // Must match the server's session cookie name (SessionTransportCookie "obsidian_session" in Site App.kt).
+  static const Set<String> _allowedCookieNames = {
+    'obsidian_session',
+    'xsrf-token',
+  };
+
   void _updateCookiesFromResponse(http.Response response) {
     final rawSetCookie = response.headers['set-cookie'];
     if (rawSetCookie == null || rawSetCookie.isEmpty) return;
 
     final Map<String, String> cookieMap = {};
 
-    // Preserve existing cookies
+    // Preserve existing allowed cookies
     if (_sessionCookie != null && _sessionCookie!.isNotEmpty) {
       for (var pair in _sessionCookie!.split(';')) {
         final kv = pair.trim().split('=');
         if (kv.length >= 2) {
-          cookieMap[kv[0].trim()] = kv.sublist(1).join('=').trim();
+          final name = kv[0].trim();
+          if (_allowedCookieNames.contains(name.toLowerCase())) {
+            cookieMap[name] = kv.sublist(1).join('=').trim();
+          }
         }
       }
     }
@@ -1354,6 +1402,9 @@ class ApiService {
       final kv = firstPair.split('=');
       if (kv.length >= 2) {
         final name = kv[0].trim();
+        if (!_allowedCookieNames.contains(name.toLowerCase())) {
+          continue;
+        }
         final value = kv.sublist(1).join('=').trim();
         if (value.isEmpty || value == 'deleted') {
           cookieMap.remove(name);
@@ -1366,8 +1417,17 @@ class ApiService {
     if (cookieMap.isNotEmpty) {
       _sessionCookie =
           cookieMap.entries.map((e) => '${e.key}=${e.value}').join('; ');
+      final updatedCookie = _sessionCookie!;
+      unawaited(AuthStorageService.isEnrolled().then((enrolled) async {
+        if (enrolled) {
+          await AuthStorageService.updateJwt(updatedCookie);
+        }
+      }));
     } else {
       _sessionCookie = null;
+    }
+    if (_keepMeLoggedIn) {
+      unawaited(AuthStorageService.saveSessionCookie(_sessionCookie));
     }
   }
 
@@ -1446,10 +1506,11 @@ class ApiService {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool(keyKeepMeLoggedIn, keepMeLoggedIn);
         await prefs.setString(keySavedUsername, username);
+        await prefs.remove(keySessionCookie);
         if (keepMeLoggedIn && _sessionCookie != null) {
-          await prefs.setString(keySessionCookie, _sessionCookie!);
+          await AuthStorageService.saveSessionCookie(_sessionCookie);
         } else {
-          await prefs.remove(keySessionCookie);
+          await AuthStorageService.saveSessionCookie(null);
         }
         _startBackgroundSync();
         try {
@@ -1557,10 +1618,11 @@ class ApiService {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool(keyKeepMeLoggedIn, keepMeLoggedIn);
         await prefs.setString(keySavedUsername, username);
+        await prefs.remove(keySessionCookie);
         if (keepMeLoggedIn && _sessionCookie != null) {
-          await prefs.setString(keySessionCookie, _sessionCookie!);
+          await AuthStorageService.saveSessionCookie(_sessionCookie);
         } else {
-          await prefs.remove(keySessionCookie);
+          await AuthStorageService.saveSessionCookie(null);
         }
         _startBackgroundSync();
         await _rememberActiveAccount(
@@ -1599,6 +1661,7 @@ class ApiService {
     settingsNotifier.value = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(keySessionCookie);
+    await AuthStorageService.saveSessionCookie(null);
     await _store.remove("cache_auth_me");
     await clearAllCache();
     await prefs.setBool(keyKeepMeLoggedIn, false);
@@ -1758,10 +1821,11 @@ class ApiService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(keyKeepMeLoggedIn, _keepMeLoggedIn);
     await prefs.setString(keySavedUsername, _savedUsername);
+    await prefs.remove(keySessionCookie);
     if (_keepMeLoggedIn && _sessionCookie != null) {
-      await prefs.setString(keySessionCookie, _sessionCookie!);
+      await AuthStorageService.saveSessionCookie(_sessionCookie);
     } else {
-      await prefs.remove(keySessionCookie);
+      await AuthStorageService.saveSessionCookie(null);
     }
   }
 
@@ -1915,7 +1979,11 @@ class ApiService {
         _handlingRevocation = false;
         _keepMeLoggedIn = true;
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(keySessionCookie, _sessionCookie!);
+        await AuthStorageService.saveSessionCookie(_sessionCookie);
+        if (_sessionCookie != null && _sessionCookie!.isNotEmpty) {
+          await AuthStorageService.updateJwt(_sessionCookie!);
+        }
+        await prefs.remove(keySessionCookie);
         await prefs.setBool(keyKeepMeLoggedIn, true);
         _startBackgroundSync();
         try {
@@ -1926,19 +1994,21 @@ class ApiService {
       }
     }
 
-    if (creds.password.isEmpty) return false;
+    final fallbackPassword =
+        creds.password.isNotEmpty ? creds.password : (_sessionPassword ?? '');
+    if (fallbackPassword.isEmpty) return false;
 
-    // If session verification failed or no session, re-login with stored password
+    // If session verification failed or no session, re-login with in-memory password if present
     final success = await login(
       creds.username,
-      creds.password,
+      fallbackPassword,
       teamNumber: creds.teamNumber,
       program: creds.program,
       keepMeLoggedIn: true,
     );
 
     if (success) {
-      _sessionPassword = creds.password;
+      _sessionPassword = fallbackPassword;
       // Update stored session cookie
       if (_sessionCookie != null) {
         await AuthStorageService.updateJwt(_sessionCookie!);

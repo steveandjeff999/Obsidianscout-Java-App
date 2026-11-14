@@ -1,9 +1,17 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // Jetpack Compose compiler, for the Glance home-screen widgets.
     id("org.jetbrains.kotlin.plugin.compose")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
 }
 
 android {
@@ -29,18 +37,23 @@ android {
 
     signingConfigs {
         create("release") {
-            val keystoreFile = file("release.keystore")
-            if (keystoreFile.exists()) {
-                storeFile = keystoreFile
-                storePassword = "REMOVED"
-                keyAlias = "obsidianscout"
-                keyPassword = "REMOVED"
-            } else {
-                val debugKeystore = signingConfigs.getByName("debug")
-                storeFile = debugKeystore.storeFile
-                storePassword = debugKeystore.storePassword
-                keyAlias = debugKeystore.keyAlias
-                keyPassword = debugKeystore.keyPassword
+            val storePath = keystoreProperties.getProperty("storeFile")
+                ?: System.getenv("ANDROID_KEYSTORE_PATH")
+            val storePass = keystoreProperties.getProperty("storePassword")
+                ?: System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            val alias = keystoreProperties.getProperty("keyAlias")
+                ?: System.getenv("ANDROID_KEY_ALIAS")
+                ?: "obsidianscout"
+            val keyPass = keystoreProperties.getProperty("keyPassword")
+                ?: System.getenv("ANDROID_KEY_PASSWORD")
+                ?: storePass
+
+            val resolvedStoreFile = if (!storePath.isNullOrBlank()) file(storePath) else file("release.keystore")
+            if (resolvedStoreFile.exists() && !storePass.isNullOrBlank()) {
+                storeFile = resolvedStoreFile
+                storePassword = storePass
+                keyAlias = alias
+                keyPassword = keyPass
             }
         }
     }
@@ -51,7 +64,12 @@ android {
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            val releaseSigning = signingConfigs.getByName("release")
+            signingConfig = if (releaseSigning.storeFile?.exists() == true && !releaseSigning.storePassword.isNullOrBlank()) {
+                releaseSigning
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 

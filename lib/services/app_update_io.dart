@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ffi';
 import 'dart:io';
 import 'package:archive/archive_io.dart';
+import 'package:crypto/crypto.dart';
 import 'package:ffi/ffi.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -93,10 +94,42 @@ Future<Directory> _updatesRoot() async {
   return Directory('${(await getTemporaryDirectory()).path}/$_androidFolder');
 }
 
+const Set<String> _allowedUpdateHosts = {
+  'github.com',
+  'objects.githubusercontent.com',
+  'api.github.com',
+  'release-assets.githubusercontent.com',
+};
+
+void _validateDownloadUrl(String url) {
+  final uri = Uri.tryParse(url);
+  if (uri == null || uri.scheme.toLowerCase() != 'https') {
+    throw const HttpException('Update download URL must use HTTPS.');
+  }
+  final host = uri.host.toLowerCase();
+  if (!_allowedUpdateHosts.contains(host)) {
+    throw HttpException('Untrusted update download host: $host');
+  }
+}
+
+Future<bool> _verifyFileSha256(File file, String? expectedSha256) async {
+  if (expectedSha256 == null || expectedSha256.trim().isEmpty) {
+    return true;
+  }
+  final normalized = expectedSha256
+      .trim()
+      .toLowerCase()
+      .replaceFirst(RegExp(r'^sha256:'), '');
+  final digest = await sha256.bind(file.openRead()).first;
+  return digest.toString().toLowerCase() == normalized;
+}
+
 Future<String> downloadPackage(
   AppUpdateInfo update, {
   void Function(int received, int total)? onProgress,
 }) async {
+  _validateDownloadUrl(update.downloadUrl);
+
   final root = await _updatesRoot();
   final sep = Platform.pathSeparator;
   final safeTag = update.tag.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
@@ -104,9 +137,13 @@ Future<String> downloadPackage(
   final dir = Directory('${root.path}$sep$safeTag');
   final file = File('${dir.path}$sep$safeAssetName');
 
-  if (await file.exists() && (update.size == 0 || await file.length() == update.size)) {
-    onProgress?.call(update.size, update.size);
-    return file.path;
+  if (await file.exists()) {
+    final sizeMatches = update.size == 0 || await file.length() == update.size;
+    if (sizeMatches && await _verifyFileSha256(file, update.sha256)) {
+      onProgress?.call(update.size, update.size);
+      return file.path;
+    }
+    await file.delete();
   }
 
   // Packages from older releases are no longer needed.
@@ -142,6 +179,9 @@ Future<String> downloadPackage(
     }
     if (update.size > 0 && received != update.size) {
       throw const HttpException('Download was interrupted. Please try again.');
+    }
+    if (!await _verifyFileSha256(part, update.sha256)) {
+      throw const HttpException('Downloaded update failed SHA-256 integrity verification.');
     }
     if (await file.exists()) await file.delete();
     await part.rename(file.path);

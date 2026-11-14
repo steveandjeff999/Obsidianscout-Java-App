@@ -46,3 +46,8 @@ app.*.map.json
 
 # Release Build Artifacts Directory
 /releases/
+
+# Android signing keys & credentials
+*.keystore
+*.jks
+**/key.properties

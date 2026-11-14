@@ -164,8 +164,31 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
+      - name: Configure Android Signing Keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 || vars.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || vars.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | tr -d '\r\n' | base64 --decode > "$RUNNER_TEMP/release.keystore"
+            echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+          else
+            # A debug-signed release can't update installs signed with the release key, and the runner's
+            # debug key changes every run, so refuse to publish one.
+            echo "::error::ANDROID_KEYSTORE_BASE64 is not set as a secret or variable; refusing to build a debug-signed Android release."
+            exit 1
+          fi
+          if [ -z "$ANDROID_KEYSTORE_PASSWORD" ]; then
+            echo "::error::ANDROID_KEYSTORE_PASSWORD is not set as a secret or variable."
+            exit 1
+          fi
+
       # OBSIDIAN_RELEASE_VERSION lets the app compare itself with newer GitHub releases (lib/services/app_update_service.dart)
       - name: Build Android Release APK
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || vars.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || vars.ANDROID_KEY_ALIAS || 'obsidianscout' }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || vars.ANDROID_KEY_PASSWORD || secrets.ANDROID_KEYSTORE_PASSWORD || vars.ANDROID_KEYSTORE_PASSWORD }}
         run: flutter build apk --release --build-name=${{ needs.auto-tag.outputs.version_name }} --build-number=${{ needs.auto-tag.outputs.build_number }} --dart-define=OBSIDIAN_RELEASE_VERSION=${{ needs.auto-tag.outputs.version_name }}
 
       - name: Upload Android APK Artifact

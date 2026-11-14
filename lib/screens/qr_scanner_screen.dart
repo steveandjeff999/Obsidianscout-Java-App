@@ -605,9 +605,18 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
       if (trimmed.startsWith('OSC:PART:')) {
         final parts = trimmed.split(':');
         if (parts.length >= 5) {
-          final index = int.tryParse(parts[2]) ?? 1;
-          final total = int.tryParse(parts[3]) ?? 1;
+          final index = int.tryParse(parts[2]);
+          final total = int.tryParse(parts[3]);
           final chunk = parts.sublist(4).join(':');
+          if (index == null ||
+              total == null ||
+              index < 1 ||
+              total < 1 ||
+              total > 64 ||
+              index > total ||
+              chunk.length > 8192) {
+            return;
+          }
 
           if (_activeMultiTotal != total) {
             _activeMultiTotal = total;
