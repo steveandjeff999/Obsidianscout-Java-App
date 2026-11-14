@@ -114,7 +114,7 @@ void _validateDownloadUrl(String url) {
 
 Future<bool> _verifyFileSha256(File file, String? expectedSha256) async {
   if (expectedSha256 == null || expectedSha256.trim().isEmpty) {
-    return true;
+    return false;
   }
   final normalized = expectedSha256
       .trim()
@@ -129,6 +129,11 @@ Future<String> downloadPackage(
   void Function(int received, int total)? onProgress,
 }) async {
   _validateDownloadUrl(update.downloadUrl);
+  // Every release publishes per-asset digests and checksums.txt; never run a package we can't verify.
+  if (update.sha256 == null || update.sha256!.trim().isEmpty) {
+    throw const HttpException(
+        'This update has no published SHA-256 checksum, so it can\'t be verified. Please try again later.');
+  }
 
   final root = await _updatesRoot();
   final sep = Platform.pathSeparator;

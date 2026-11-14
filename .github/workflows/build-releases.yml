@@ -524,7 +524,10 @@ jobs:
       - name: Generate SHA-256 Checksums
         run: |
           cd release_staging
-          sha256sum * > checksums.txt
+          rm -f checksums.txt
+          # Regular files only: a stray directory would make sha256sum fail the release.
+          find . -maxdepth 1 -type f ! -name checksums.txt -printf '%P\n' | sort | xargs -r -d '\n' sha256sum > checksums.txt
+          cat checksums.txt
 
       - name: Upload Staged Release Bundle
         uses: actions/upload-artifact@v4
