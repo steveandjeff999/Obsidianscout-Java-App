@@ -177,10 +177,10 @@ class TeamValidationModel {
   final double? averageScoutedScore;
   final double? epa;
   final double? opr;
-  final double? exp;
+  final double? xP;
   final double? epaDiff;
   final double? oprDiff;
-  final double? expDiff;
+  final double? xPDiff;
   final bool isAnomaly;
   final String? anomalyReason;
   final bool hasDiscrepancy;
@@ -193,10 +193,10 @@ class TeamValidationModel {
     this.averageScoutedScore,
     this.epa,
     this.opr,
-    this.exp,
+    this.xP,
     this.epaDiff,
     this.oprDiff,
-    this.expDiff,
+    this.xPDiff,
     required this.isAnomaly,
     this.anomalyReason,
     this.hasDiscrepancy = false,
@@ -211,10 +211,18 @@ class TeamValidationModel {
       averageScoutedScore: (json['averageScoutedScore'] as num?)?.toDouble(),
       epa: (json['epa'] as num?)?.toDouble(),
       opr: (json['opr'] as num?)?.toDouble(),
-      exp: (json['exp'] as num?)?.toDouble() ?? (json['match13Exp'] as num?)?.toDouble() ?? (json['match13_exp'] as num?)?.toDouble(),
+      xP: (json['xP'] as num?)?.toDouble() ??
+          (json['match13xP'] as num?)?.toDouble() ??
+          (json['match13_xp'] as num?)?.toDouble() ??
+          (json['exp'] as num?)?.toDouble() ??
+          (json['match13Exp'] as num?)?.toDouble() ??
+          (json['match13_exp'] as num?)?.toDouble(),
       epaDiff: (json['epaDiff'] as num?)?.toDouble(),
       oprDiff: (json['oprDiff'] as num?)?.toDouble(),
-      expDiff: (json['expDiff'] as num?)?.toDouble() ?? (json['match13ExpDiff'] as num?)?.toDouble(),
+      xPDiff: (json['xPDiff'] as num?)?.toDouble() ??
+          (json['match13xPDiff'] as num?)?.toDouble() ??
+          (json['expDiff'] as num?)?.toDouble() ??
+          (json['match13ExpDiff'] as num?)?.toDouble(),
       isAnomaly: json['isAnomaly'] == true,
       anomalyReason: json['anomalyReason']?.toString(),
       hasDiscrepancy: json['hasDiscrepancy'] == true,
@@ -230,10 +238,10 @@ class TeamValidationModel {
       'averageScoutedScore': averageScoutedScore,
       'epa': epa,
       'opr': opr,
-      if (exp != null) 'exp': exp,
+      if (xP != null) 'xP': xP,
       'epaDiff': epaDiff,
       'oprDiff': oprDiff,
-      if (expDiff != null) 'expDiff': expDiff,
+      if (xPDiff != null) 'xPDiff': xPDiff,
       'isAnomaly': isAnomaly,
       'anomalyReason': anomalyReason,
       'hasDiscrepancy': hasDiscrepancy,
@@ -252,7 +260,7 @@ class ValidationSummaryModel {
   final int teamsWithAnomalies;
   final bool useStatboticsEpa;
   final bool useTbaOpr;
-  final bool useMatch13Exp;
+  final bool useMatch13xP;
   final double threshold;
   final List<MatchValidationModel> matches;
   final List<TeamValidationModel> teams;
@@ -268,7 +276,7 @@ class ValidationSummaryModel {
     required this.teamsWithAnomalies,
     required this.useStatboticsEpa,
     required this.useTbaOpr,
-    this.useMatch13Exp = false,
+    this.useMatch13xP = false,
     required this.threshold,
     required this.matches,
     required this.teams,
@@ -286,7 +294,7 @@ class ValidationSummaryModel {
       teamsWithAnomalies: (json['teamsWithAnomalies'] as num?)?.toInt() ?? 0,
       useStatboticsEpa: json['useStatboticsEpa'] == true,
       useTbaOpr: json['useTbaOpr'] == true,
-      useMatch13Exp: json['useMatch13Exp'] == true,
+      useMatch13xP: json['useMatch13xP'] == true || json['useMatch13Exp'] == true,
       threshold: (json['threshold'] as num?)?.toDouble() ?? 15.0,
       matches: (json['matches'] as List<dynamic>?)
               ?.map((e) => MatchValidationModel.fromJson(e as Map<String, dynamic>))
@@ -311,7 +319,7 @@ class ValidationSummaryModel {
       'teamsWithAnomalies': teamsWithAnomalies,
       'useStatboticsEpa': useStatboticsEpa,
       'useTbaOpr': useTbaOpr,
-      'useMatch13Exp': useMatch13Exp,
+      'useMatch13xP': useMatch13xP,
       'threshold': threshold,
       'matches': matches.map((e) => e.toJson()).toList(),
       'teams': teams.map((e) => e.toJson()).toList(),

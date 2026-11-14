@@ -9,8 +9,8 @@ class TeamModel {
   final String? country;
   final double? averagePoints;
   final double? epa;
-  final double? exp;
-  final double? match13Exp;
+  final double? xP;
+  final double? match13xP;
   final double? opr;
 
   TeamModel({
@@ -24,13 +24,17 @@ class TeamModel {
     this.country,
     this.averagePoints,
     this.epa,
-    this.exp,
-    this.match13Exp,
+    this.xP,
+    this.match13xP,
     this.opr,
   });
 
   factory TeamModel.fromJson(Map<String, dynamic> json) {
-    final parsedExp = (json['exp'] as num?)?.toDouble() ??
+    final parsedxP = (json['xP'] as num?)?.toDouble() ??
+        (json['match13xP'] as num?)?.toDouble() ??
+        (json['match13_xP'] as num?)?.toDouble() ??
+        (json['match13_xp'] as num?)?.toDouble() ??
+        (json['exp'] as num?)?.toDouble() ??
         (json['match13Exp'] as num?)?.toDouble() ??
         (json['match13_exp'] as num?)?.toDouble();
     return TeamModel(
@@ -44,8 +48,8 @@ class TeamModel {
       country: json['country']?.toString(),
       averagePoints: (json['averagePoints'] as num?)?.toDouble(),
       epa: (json['epa'] as num?)?.toDouble(),
-      exp: parsedExp,
-      match13Exp: parsedExp,
+      xP: parsedxP,
+      match13xP: parsedxP,
       opr: (json['opr'] as num?)?.toDouble(),
     );
   }
@@ -57,8 +61,8 @@ class TeamModel {
       num += averagePoints! * 1.0;
       den += 1.0;
     }
-    if (exp != null) {
-      num += exp! * 0.9;
+    if (xP != null) {
+      num += xP! * 0.9;
       den += 0.9;
     }
     if (epa != null) {

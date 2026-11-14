@@ -233,7 +233,7 @@ class StatsHistoryModel {
 }
 
 /// Helper to extract Match 13 xP team object from a Match 13 match object
-dynamic extractTeamExpData(dynamic matchObj, int teamNumber) {
+dynamic extractTeamxPData(dynamic matchObj, int teamNumber) {
   if (matchObj is! Map) return null;
   final teams = matchObj['teams'];
   if (teams == null) return null;
@@ -268,8 +268,8 @@ dynamic extractTeamExpData(dynamic matchObj, int teamNumber) {
 }
 
 /// Helper to extract numeric value from Match 13 team data given a metric ID
-double getTeamExpMetricValue(dynamic teamExpData, String metricId) {
-  if (teamExpData is! Map) return 0.0;
+double getTeamxPMetricValue(dynamic teamxPData, String metricId) {
+  if (teamxPData is! Map) return 0.0;
 
   double numVal(dynamic v) {
     if (v is num) return v.toDouble();
@@ -278,41 +278,45 @@ double getTeamExpMetricValue(dynamic teamExpData, String metricId) {
   }
 
   if (metricId == 'score_auto') {
-    final v = teamExpData['xAutoPost'] ??
-        teamExpData['xAuto'] ??
-        teamExpData['xAutoPre'] ??
-        teamExpData['auto'] ??
-        teamExpData['auto_exp'] ??
-        teamExpData['autoExp'];
+    final v = teamxPData['xAutoPost'] ??
+        teamxPData['xAuto'] ??
+        teamxPData['xAutoPre'] ??
+        teamxPData['auto'] ??
+        teamxPData['auto_xP'] ??
+        teamxPData['auto_exp'] ??
+        teamxPData['autoExp'];
     return numVal(v);
   }
 
   if (metricId == 'score_teleop') {
-    final v = teamExpData['xTelePost'] ??
-        teamExpData['xTele'] ??
-        teamExpData['xTelePre'] ??
-        teamExpData['teleop'] ??
-        teamExpData['teleop_exp'] ??
-        teamExpData['teleopExp'];
+    final v = teamxPData['xTelePost'] ??
+        teamxPData['xTele'] ??
+        teamxPData['xTelePre'] ??
+        teamxPData['teleop'] ??
+        teamxPData['teleop_xP'] ??
+        teamxPData['teleop_exp'] ??
+        teamxPData['teleopExp'];
     return numVal(v);
   }
 
   if (metricId == 'score_endgame') {
-    final v = teamExpData['xEndPost'] ??
-        teamExpData['xEnd'] ??
-        teamExpData['xEndPre'] ??
-        teamExpData['endgame'] ??
-        teamExpData['endgame_exp'] ??
-        teamExpData['endgameExp'];
+    final v = teamxPData['xEndPost'] ??
+        teamxPData['xEnd'] ??
+        teamxPData['xEndPre'] ??
+        teamxPData['endgame'] ??
+        teamxPData['endgame_xP'] ??
+        teamxPData['endgame_exp'] ??
+        teamxPData['endgameExp'];
     return numVal(v);
   }
 
-  final v = teamExpData['xpPost'] ??
-      teamExpData['xp'] ??
-      teamExpData['xpPre'] ??
-      teamExpData['exp'] ??
-      teamExpData['total'] ??
-      teamExpData['total_points'];
+  final v = teamxPData['xpPost'] ??
+      teamxPData['xp'] ??
+      teamxPData['xpPre'] ??
+      teamxPData['xP'] ??
+      teamxPData['exp'] ??
+      teamxPData['total'] ??
+      teamxPData['total_points'];
   return numVal(v);
 }
 

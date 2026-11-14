@@ -1161,7 +1161,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
       );
     }
 
-    final useExp = _summaryData?.useMatch13Exp ?? false;
+    final usexP = _summaryData?.useMatch13xP ?? false;
     final useEpa = _summaryData?.useStatboticsEpa ?? true;
     final useOpr = _summaryData?.useTbaOpr ?? true;
 
@@ -1171,7 +1171,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
       itemCount: teams.length,
       itemBuilder: (ctx, idx) {
         final team = teams[idx];
-        return _buildTeamValidationCard(context, team, useExp: useExp, useEpa: useEpa, useOpr: useOpr);
+        return _buildTeamValidationCard(context, team, usexP: usexP, useEpa: useEpa, useOpr: useOpr);
       },
     );
   }
@@ -1179,7 +1179,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
   Widget _buildTeamValidationCard(
     BuildContext context,
     TeamValidationModel team, {
-    required bool useExp,
+    required bool usexP,
     required bool useEpa,
     required bool useOpr,
   }) {
@@ -1200,7 +1200,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
                 teamKey: team.teamKey,
                 nickname: team.nickname,
                 name: team.nickname,
-                exp: team.exp,
+                xP: team.xP,
                 epa: team.epa,
                 opr: team.opr,
               ),
@@ -1258,7 +1258,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
           ),
           const SizedBox(height: 10.0),
 
-          // Scores Row: Scouted Avg, EXP, EPA, OPR
+          // Scores Row: Scouted Avg, xP, EPA, OPR
           Row(
             children: [
               // Scouted Avg
@@ -1284,7 +1284,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
               ),
 
               // Match 13 xP
-              if (useExp)
+              if (usexP)
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1297,12 +1297,12 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
                       Row(
                         children: [
                           Text(
-                            team.exp != null ? '${team.exp}' : 'N/A',
+                            team.xP != null ? '${team.xP}' : 'N/A',
                             style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: primaryTextColor),
                           ),
-                          if (team.expDiff != null) ...[
+                          if (team.xPDiff != null) ...[
                             const SizedBox(width: 4.0),
-                            _buildDeltaBadge(team.expDiff!, team.expDiff!.abs() >= _threshold),
+                            _buildDeltaBadge(team.xPDiff!, team.xPDiff!.abs() >= _threshold),
                           ],
                         ],
                       ),

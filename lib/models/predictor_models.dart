@@ -1,4 +1,4 @@
-class Match13TeamExpDetail {
+class Match13TeamxPDetail {
   final double? xpPost;
   final double? xpPre;
   final double? xAutoPost;
@@ -8,7 +8,7 @@ class Match13TeamExpDetail {
   final double? xEndPost;
   final double? xEndPre;
 
-  Match13TeamExpDetail({
+  Match13TeamxPDetail({
     this.xpPost,
     this.xpPre,
     this.xAutoPost,
@@ -19,8 +19,8 @@ class Match13TeamExpDetail {
     this.xEndPre,
   });
 
-  factory Match13TeamExpDetail.fromJson(Map<String, dynamic> json) {
-    return Match13TeamExpDetail(
+  factory Match13TeamxPDetail.fromJson(Map<String, dynamic> json) {
+    return Match13TeamxPDetail(
       xpPost: (json['xpPost'] as num?)?.toDouble() ?? (json['xp'] as num?)?.toDouble(),
       xpPre: (json['xpPre'] as num?)?.toDouble(),
       xAutoPost: (json['xAutoPost'] as num?)?.toDouble() ?? (json['xAuto'] as num?)?.toDouble(),
@@ -120,8 +120,8 @@ class MatchTeamPrediction {
   final int scoutedMatchesCount;
   final double? epa;
   final double? opr;
-  final double? exp;
-  final Match13TeamExpDetail? match13TeamExp;
+  final double? xP;
+  final Match13TeamxPDetail? match13TeamxP;
   final bool hasDiscrepancy;
   /// True when [averageScoutedScore] gives recent matches more weight (server Recency Bias setting).
   final bool recencyWeighted;
@@ -134,13 +134,14 @@ class MatchTeamPrediction {
     this.scoutedMatchesCount = 0,
     this.epa,
     this.opr,
-    this.exp,
-    this.match13TeamExp,
+    this.xP,
+    this.match13TeamxP,
     this.hasDiscrepancy = false,
     this.recencyWeighted = false,
   });
 
   factory MatchTeamPrediction.fromJson(Map<String, dynamic> json) {
+    final rawTeamxP = json['match13TeamxP'] ?? json['match13TeamExp'];
     return MatchTeamPrediction(
       teamNumber: (json['teamNumber'] as num?)?.toInt() ?? 0,
       teamKey: json['teamKey']?.toString(),
@@ -149,9 +150,14 @@ class MatchTeamPrediction {
       scoutedMatchesCount: (json['scoutedMatchesCount'] as num?)?.toInt() ?? 0,
       epa: (json['epa'] as num?)?.toDouble(),
       opr: (json['opr'] as num?)?.toDouble(),
-      exp: (json['exp'] as num?)?.toDouble() ?? (json['match13Exp'] as num?)?.toDouble() ?? (json['match13_exp'] as num?)?.toDouble(),
-      match13TeamExp: json['match13TeamExp'] is Map<String, dynamic>
-          ? Match13TeamExpDetail.fromJson(json['match13TeamExp'] as Map<String, dynamic>)
+      xP: (json['xP'] as num?)?.toDouble() ??
+          (json['match13xP'] as num?)?.toDouble() ??
+          (json['match13_xp'] as num?)?.toDouble() ??
+          (json['exp'] as num?)?.toDouble() ??
+          (json['match13Exp'] as num?)?.toDouble() ??
+          (json['match13_exp'] as num?)?.toDouble(),
+      match13TeamxP: rawTeamxP is Map<String, dynamic>
+          ? Match13TeamxPDetail.fromJson(rawTeamxP)
           : null,
       hasDiscrepancy: json['hasDiscrepancy'] == true,
       recencyWeighted: json['recencyWeighted'] == true,
@@ -167,8 +173,8 @@ class MatchTeamPrediction {
       'scoutedMatchesCount': scoutedMatchesCount,
       if (epa != null) 'epa': epa,
       if (opr != null) 'opr': opr,
-      if (exp != null) 'exp': exp,
-      if (match13TeamExp != null) 'match13TeamExp': match13TeamExp!.toJson(),
+      if (xP != null) 'xP': xP,
+      if (match13TeamxP != null) 'match13TeamxP': match13TeamxP!.toJson(),
       'hasDiscrepancy': hasDiscrepancy,
       'recencyWeighted': recencyWeighted,
     };
@@ -180,14 +186,14 @@ class AlliancePrediction {
   final double totalScoutedScore;
   final double totalEpa;
   final double totalOpr;
-  final double totalExp;
+  final double totalxP;
 
   AlliancePrediction({
     this.teams = const [],
     this.totalScoutedScore = 0.0,
     this.totalEpa = 0.0,
     this.totalOpr = 0.0,
-    this.totalExp = 0.0,
+    this.totalxP = 0.0,
   });
 
   factory AlliancePrediction.fromJson(Map<String, dynamic> json) {
@@ -197,7 +203,12 @@ class AlliancePrediction {
       totalScoutedScore: (json['totalScoutedScore'] as num?)?.toDouble() ?? 0.0,
       totalEpa: (json['totalEpa'] as num?)?.toDouble() ?? 0.0,
       totalOpr: (json['totalOpr'] as num?)?.toDouble() ?? 0.0,
-      totalExp: (json['totalExp'] as num?)?.toDouble() ?? (json['total_exp'] as num?)?.toDouble() ?? 0.0,
+      totalxP: (json['totalxP'] as num?)?.toDouble() ??
+          (json['total_xP'] as num?)?.toDouble() ??
+          (json['total_xp'] as num?)?.toDouble() ??
+          (json['totalExp'] as num?)?.toDouble() ??
+          (json['total_exp'] as num?)?.toDouble() ??
+          0.0,
     );
   }
 
@@ -207,7 +218,7 @@ class AlliancePrediction {
       'totalScoutedScore': totalScoutedScore,
       'totalEpa': totalEpa,
       'totalOpr': totalOpr,
-      'totalExp': totalExp,
+      'totalxP': totalxP,
     };
   }
 }
@@ -219,7 +230,7 @@ class MatchPredictionResponse {
   final AlliancePrediction blueAlliance;
   final bool useStatboticsEpa;
   final bool useTbaOpr;
-  final bool useMatch13Exp;
+  final bool useMatch13xP;
   final Match13PredictionDetail? match13Pred;
 
   MatchPredictionResponse({
@@ -229,7 +240,7 @@ class MatchPredictionResponse {
     required this.blueAlliance,
     this.useStatboticsEpa = false,
     this.useTbaOpr = false,
-    this.useMatch13Exp = false,
+    this.useMatch13xP = false,
     this.match13Pred,
   });
 
@@ -245,7 +256,7 @@ class MatchPredictionResponse {
           : AlliancePrediction(),
       useStatboticsEpa: json['useStatboticsEpa'] == true,
       useTbaOpr: json['useTbaOpr'] == true,
-      useMatch13Exp: json['useMatch13Exp'] == true,
+      useMatch13xP: json['useMatch13xP'] == true || json['useMatch13Exp'] == true,
       match13Pred: json['match13Pred'] is Map<String, dynamic>
           ? Match13PredictionDetail.fromJson(json['match13Pred'] as Map<String, dynamic>)
           : null,
@@ -260,7 +271,7 @@ class MatchPredictionResponse {
       'blueAlliance': blueAlliance.toJson(),
       'useStatboticsEpa': useStatboticsEpa,
       'useTbaOpr': useTbaOpr,
-      'useMatch13Exp': useMatch13Exp,
+      'useMatch13xP': useMatch13xP,
       if (match13Pred != null) 'match13Pred': match13Pred!.toJson(),
     };
   }

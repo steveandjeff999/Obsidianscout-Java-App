@@ -68,7 +68,7 @@ class _RankingsScreenState extends State<RankingsScreen> with LiveRefresh<Rankin
   bool get _isFtc => widget.apiService.currentProgram.toUpperCase() == 'FTC';
   bool get _effectiveUseEpa => !_isFtc && (widget.apiService.currentSettings?.useStatboticsEpa ?? false);
   bool get _effectiveUseOpr => widget.apiService.currentSettings?.useTbaOpr ?? false;
-  bool get _effectiveUseExp => !_isFtc && (widget.apiService.currentSettings?.useMatch13Exp ?? false);
+  bool get _effectiveUsexP => !_isFtc && (widget.apiService.currentSettings?.useMatch13xP ?? false);
 
   Future<void> _initData() async {
     final settings = widget.apiService.currentSettings;
@@ -84,11 +84,11 @@ class _RankingsScreenState extends State<RankingsScreen> with LiveRefresh<Rankin
       _selectedMetric = 'scouted';
       _activeSortMetric = 'scouted';
     }
-    if (!_effectiveUseExp && _selectedMetric == 'exp') {
+    if (!_effectiveUsexP && (_selectedMetric == 'xP' || _selectedMetric == 'exp')) {
       _selectedMetric = 'scouted';
       _activeSortMetric = 'scouted';
     }
-    if (!_effectiveUseEpa && !_effectiveUseOpr && !_effectiveUseExp && _selectedMetric == 'all') {
+    if (!_effectiveUseEpa && !_effectiveUseOpr && !_effectiveUsexP && _selectedMetric == 'all') {
       _selectedMetric = 'scouted';
       _activeSortMetric = 'scouted';
     }
@@ -196,9 +196,9 @@ class _RankingsScreenState extends State<RankingsScreen> with LiveRefresh<Rankin
       } else if (_activeSortMetric == 'opr') {
         valA = a.opr ?? -999999;
         valB = b.opr ?? -999999;
-      } else if (_activeSortMetric == 'exp') {
-        valA = a.exp ?? -999999;
-        valB = b.exp ?? -999999;
+      } else if (_activeSortMetric == 'xP' || _activeSortMetric == 'exp') {
+        valA = a.xP ?? -999999;
+        valB = b.xP ?? -999999;
       }
 
       final hasA = valA != -999999;
@@ -323,12 +323,12 @@ class _RankingsScreenState extends State<RankingsScreen> with LiveRefresh<Rankin
                                                     ? context.tr('predictor.ftcscout_opr', 'FTC Scout OPR')
                                                     : context.tr('rankings.metric.opr', 'TBA OPR')),
                                               ),
-                                            if (_effectiveUseExp)
+                                            if (_effectiveUsexP)
                                               DropdownMenuItem(
-                                                value: 'exp',
-                                                child: Text(context.tr('rankings.metric.exp', 'Match 13 xP')),
+                                                value: 'xP',
+                                                child: Text(context.tr('rankings.metric.xP', 'Match 13 xP')),
                                               ),
-                                            if (((_effectiveUseEpa ? 1 : 0) + (_effectiveUseOpr ? 1 : 0) + (_effectiveUseExp ? 1 : 0)) >= 1)
+                                            if (((_effectiveUseEpa ? 1 : 0) + (_effectiveUseOpr ? 1 : 0) + (_effectiveUsexP ? 1 : 0)) >= 1)
                                               DropdownMenuItem(
                                                 value: 'all',
                                                 child: Text(context.tr('rankings.metric.all', 'All Metrics')),
@@ -502,7 +502,7 @@ class _RankingsScreenState extends State<RankingsScreen> with LiveRefresh<Rankin
     final showScouted = _selectedMetric == 'scouted' || _selectedMetric == 'all';
     final showOpr = (_selectedMetric == 'opr' || _selectedMetric == 'all') && _effectiveUseOpr;
     final showEpa = (_selectedMetric == 'epa' || _selectedMetric == 'all') && _effectiveUseEpa;
-    final showExp = (_selectedMetric == 'exp' || _selectedMetric == 'all') && _effectiveUseExp;
+    final showxP = (_selectedMetric == 'xP' || _selectedMetric == 'exp' || _selectedMetric == 'all') && _effectiveUsexP;
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -578,20 +578,20 @@ class _RankingsScreenState extends State<RankingsScreen> with LiveRefresh<Rankin
                   ),
                 ),
               ),
-            if (showExp)
+            if (showxP)
               DataColumn(
                 label: InkWell(
-                  onTap: () => _onSort('exp'),
+                  onTap: () => _onSort('xP'),
                   child: Row(
                     children: [
                       Text(
                         'xP',
                         style: TextStyle(
-                          color: _activeSortMetric == 'exp' ? ObsidianUITheme.primaryAccent : primaryTextColor,
-                          fontWeight: _activeSortMetric == 'exp' ? FontWeight.bold : FontWeight.w600,
+                          color: (_activeSortMetric == 'xP' || _activeSortMetric == 'exp') ? ObsidianUITheme.primaryAccent : primaryTextColor,
+                          fontWeight: (_activeSortMetric == 'xP' || _activeSortMetric == 'exp') ? FontWeight.bold : FontWeight.w600,
                         ),
                       ),
-                      if (_activeSortMetric == 'exp')
+                      if (_activeSortMetric == 'xP' || _activeSortMetric == 'exp')
                         Icon(_sortAsc ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
                             size: 14, color: ObsidianUITheme.primaryAccent),
                     ],
@@ -642,10 +642,10 @@ class _RankingsScreenState extends State<RankingsScreen> with LiveRefresh<Rankin
                       style: TextStyle(color: secondaryTextColor),
                     ),
                   ),
-                if (showExp)
+                if (showxP)
                   DataCell(
                     Text(
-                      t.exp != null ? t.exp!.toStringAsFixed(2) : '—',
+                      t.xP != null ? t.xP!.toStringAsFixed(2) : '—',
                       style: TextStyle(color: secondaryTextColor),
                     ),
                   ),
@@ -665,7 +665,7 @@ class _RankingsScreenState extends State<RankingsScreen> with LiveRefresh<Rankin
     final showScouted = _selectedMetric == 'scouted' || _selectedMetric == 'all';
     final showOpr = (_selectedMetric == 'opr' || _selectedMetric == 'all') && _effectiveUseOpr;
     final showEpa = (_selectedMetric == 'epa' || _selectedMetric == 'all') && _effectiveUseEpa;
-    final showExp = (_selectedMetric == 'exp' || _selectedMetric == 'all') && _effectiveUseExp;
+    final showxP = (_selectedMetric == 'xP' || _selectedMetric == 'exp' || _selectedMetric == 'all') && _effectiveUsexP;
 
     return ListView.separated(
       shrinkWrap: true,
@@ -724,10 +724,10 @@ class _RankingsScreenState extends State<RankingsScreen> with LiveRefresh<Rankin
                             padding: const EdgeInsets.only(left: 6),
                             child: Text('EPA: ${t.epa!.toStringAsFixed(1)}', style: TextStyle(fontSize: 11, color: secondaryTextColor)),
                           ),
-                        if (showExp && t.exp != null)
+                        if (showxP && t.xP != null)
                           Padding(
                             padding: const EdgeInsets.only(left: 6),
-                            child: Text('xP: ${t.exp!.toStringAsFixed(1)}', style: TextStyle(fontSize: 11, color: secondaryTextColor)),
+                            child: Text('xP: ${t.xP!.toStringAsFixed(1)}', style: TextStyle(fontSize: 11, color: secondaryTextColor)),
                           ),
                       ],
                     ),

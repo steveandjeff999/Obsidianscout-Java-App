@@ -78,13 +78,13 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
     final isFtc = widget.apiService.currentProgram.toUpperCase() == 'FTC';
     final effectiveEpa = !isFtc && (settings?.useStatboticsEpa ?? false);
     final effectiveOpr = settings?.useTbaOpr ?? false;
-    final effectiveExp = !isFtc && (settings?.useMatch13Exp ?? false);
+    final effectivexP = !isFtc && (settings?.useMatch13xP ?? false);
 
-    final activeCount = (effectiveEpa ? 1 : 0) + (effectiveOpr ? 1 : 0) + (effectiveExp ? 1 : 0);
+    final activeCount = (effectiveEpa ? 1 : 0) + (effectiveOpr ? 1 : 0) + (effectivexP ? 1 : 0);
     if (activeCount >= 1) {
       _dataSource = 'all';
-    } else if (effectiveExp) {
-      _dataSource = 'exp';
+    } else if (effectivexP) {
+      _dataSource = 'xP';
     } else if (effectiveEpa) {
       _dataSource = 'epa';
     } else if (effectiveOpr) {
@@ -267,7 +267,7 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
     final isFtc = widget.apiService.currentProgram.toUpperCase() == 'FTC';
     final effectiveEpa = !isFtc && (settings?.useStatboticsEpa ?? false);
     final effectiveOpr = settings?.useTbaOpr ?? false;
-    final effectiveExp = !isFtc && (settings?.useMatch13Exp ?? false);
+    final effectivexP = !isFtc && (settings?.useMatch13xP ?? false);
 
     final filtered = _filteredPredictions;
 
@@ -417,7 +417,7 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
                             child: Builder(
                               builder: (context) {
                                 final modelItems = [
-                                  if (effectiveEpa || effectiveExp || effectiveOpr)
+                                  if (effectiveEpa || effectivexP || effectiveOpr)
                                     DropdownMenuItem(
                                       value: 'all',
                                       child: Text(context.tr('predictor.all_sources', 'All Sources')),
@@ -426,10 +426,10 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
                                     value: 'scouted',
                                     child: Text(context.tr('predictor.scouted_data', 'Scouted Data')),
                                   ),
-                                  if (effectiveExp)
+                                  if (effectivexP)
                                     DropdownMenuItem(
-                                      value: 'exp',
-                                      child: Text(context.tr('predictor.match13_exp', 'Match 13 xP')),
+                                      value: 'xP',
+                                      child: Text(context.tr('predictor.match13_xP', 'Match 13 xP')),
                                     ),
                                   if (effectiveEpa)
                                     DropdownMenuItem(
@@ -591,7 +591,7 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
                 style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: secondaryTextColor, letterSpacing: 0.5),
               ),
             ),
-            ...filtered.map((match) => _buildMatchCard(context, match, isDark, primaryTextColor, secondaryTextColor, effectiveEpa, effectiveOpr, effectiveExp, isFtc)),
+            ...filtered.map((match) => _buildMatchCard(context, match, isDark, primaryTextColor, secondaryTextColor, effectiveEpa, effectiveOpr, effectivexP, isFtc)),
           ],
         ],
       ),
@@ -599,16 +599,16 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
   }
 
   /// Computes the displayed point value for an individual team based on the active dataSource.
-  /// If scouted/epa/opr/exp is selected: returns that metric's value if present and non-zero.
+  /// If scouted/epa/opr/xP is selected: returns that metric's value if present and non-zero.
   /// If 'all' is selected: returns the composite average of the available non-zero metrics among
-  /// [averageScoutedScore, exp, epa, opr] (excluding 0s and nulls).
-  double? _getTeamPoints(MatchTeamPrediction team, bool effectiveEpa, bool effectiveOpr, bool effectiveExp) {
+  /// [averageScoutedScore, xP, epa, opr] (excluding 0s and nulls).
+  double? _getTeamPoints(MatchTeamPrediction team, bool effectiveEpa, bool effectiveOpr, bool effectivexP) {
     if (_dataSource == 'scouted') {
       final s = team.averageScoutedScore;
       return (s != null && s > 0) ? s : null;
-    } else if (_dataSource == 'exp') {
-      final ex = team.exp;
-      return (effectiveExp && ex != null && ex > 0) ? ex : null;
+    } else if (_dataSource == 'xP') {
+      final ex = team.xP;
+      return (effectivexP && ex != null && ex > 0) ? ex : null;
     } else if (_dataSource == 'epa') {
       final e = team.epa;
       return (effectiveEpa && e != null && e > 0) ? e : null;
@@ -621,8 +621,8 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
       if (team.averageScoutedScore != null && team.averageScoutedScore! > 0) {
         values.add(team.averageScoutedScore!);
       }
-      if (effectiveExp && team.exp != null && team.exp! > 0) {
-        values.add(team.exp!);
+      if (effectivexP && team.xP != null && team.xP! > 0) {
+        values.add(team.xP!);
       }
       if (effectiveEpa && team.epa != null && team.epa! > 0) {
         values.add(team.epa!);
@@ -635,11 +635,11 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
     }
   }
 
-  double _getAllianceTotal(AlliancePrediction alliance, bool effectiveEpa, bool effectiveOpr, bool effectiveExp) {
+  double _getAllianceTotal(AlliancePrediction alliance, bool effectiveEpa, bool effectiveOpr, bool effectivexP) {
     if (_dataSource == 'scouted') {
       return alliance.totalScoutedScore;
-    } else if (_dataSource == 'exp') {
-      return effectiveExp ? alliance.totalExp : 0.0;
+    } else if (_dataSource == 'xP') {
+      return effectivexP ? alliance.totalxP : 0.0;
     } else if (_dataSource == 'epa') {
       return effectiveEpa ? alliance.totalEpa : 0.0;
     } else if (_dataSource == 'opr') {
@@ -649,7 +649,7 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
       double sum = 0.0;
       bool hasAny = false;
       for (final t in alliance.teams) {
-        final p = _getTeamPoints(t, effectiveEpa, effectiveOpr, effectiveExp);
+        final p = _getTeamPoints(t, effectiveEpa, effectiveOpr, effectivexP);
         if (p != null) {
           sum += p;
           hasAny = true;
@@ -658,7 +658,7 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
       if (hasAny) return sum;
       final totals = <double>[];
       if (alliance.totalScoutedScore > 0) totals.add(alliance.totalScoutedScore);
-      if (effectiveExp && alliance.totalExp > 0) totals.add(alliance.totalExp);
+      if (effectivexP && alliance.totalxP > 0) totals.add(alliance.totalxP);
       if (effectiveEpa && alliance.totalEpa > 0) totals.add(alliance.totalEpa);
       if (effectiveOpr && alliance.totalOpr > 0) totals.add(alliance.totalOpr);
       if (totals.isEmpty) return 0.0;
@@ -674,15 +674,15 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
     Color secondaryTextColor,
     bool effectiveEpa,
     bool effectiveOpr,
-    bool effectiveExp,
+    bool effectivexP,
     bool isFtc,
   ) {
     final red = match.redAlliance;
     final blue = match.blueAlliance;
 
-    final redPoints = _getAllianceTotal(red, effectiveEpa, effectiveOpr, effectiveExp);
-    final bluePoints = _getAllianceTotal(blue, effectiveEpa, effectiveOpr, effectiveExp);
-    final unit = _dataSource == 'opr' ? 'OPR' : (_dataSource == 'epa' ? 'EPA' : (_dataSource == 'exp' ? 'EXP' : 'pts'));
+    final redPoints = _getAllianceTotal(red, effectiveEpa, effectiveOpr, effectivexP);
+    final bluePoints = _getAllianceTotal(blue, effectiveEpa, effectiveOpr, effectivexP);
+    final unit = _dataSource == 'opr' ? 'OPR' : (_dataSource == 'epa' ? 'EPA' : (_dataSource == 'xP' ? 'xP' : 'pts'));
 
     final diff = (redPoints - bluePoints).abs();
     final bool isRedWinner = redPoints > bluePoints && (redPoints > 0 || bluePoints > 0);
@@ -857,7 +857,7 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
                             spacing: 4.0,
                             runSpacing: 4.0,
                             children: red.teams.map((t) {
-                              final teamPts = _getTeamPoints(t, effectiveEpa, effectiveOpr, effectiveExp);
+                              final teamPts = _getTeamPoints(t, effectiveEpa, effectiveOpr, effectivexP);
                               return Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 3.0),
                                 decoration: BoxDecoration(
@@ -929,7 +929,7 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
                             spacing: 4.0,
                             runSpacing: 4.0,
                             children: blue.teams.map((t) {
-                              final teamPts = _getTeamPoints(t, effectiveEpa, effectiveOpr, effectiveExp);
+                              final teamPts = _getTeamPoints(t, effectiveEpa, effectiveOpr, effectivexP);
                               return Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 3.0),
                                 decoration: BoxDecoration(

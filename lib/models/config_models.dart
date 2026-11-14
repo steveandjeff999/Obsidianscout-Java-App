@@ -1085,7 +1085,7 @@ class AppSettingsModel {
   /// Roles allowed on the create-account page (null = not reported by the server; keep its value).
   final List<String>? selfRegisterRoles;
   final bool useStatboticsEpa;
-  final bool useMatch13Exp;
+  final bool useMatch13xP;
   final bool useTbaOpr;
 
   /// Null when the server didn't report it; omitted on save so the server keeps its value.
@@ -1118,7 +1118,7 @@ class AppSettingsModel {
     this.registrationLocked = false,
     this.selfRegisterRoles,
     this.useStatboticsEpa = false,
-    this.useMatch13Exp = false,
+    this.useMatch13xP = false,
     this.useTbaOpr = false,
     this.recencyBias,
     this.scoutPages = defaultScoutPages,
@@ -1186,13 +1186,25 @@ class AppSettingsModel {
       return false;
     }
 
-    final rawExp = settingsMap['useMatch13Exp'] ??
+    final rawxP = settingsMap['useMatch13xP'] ??
+        settingsMap['use_match13_xP'] ??
+        settingsMap['use_match13_xp'] ??
+        settingsMap['match13xP'] ??
+        settingsMap['usexP'] ??
+        settingsMap['use_xp'] ??
+        settingsMap['match13_xp'] ??
+        settingsMap['useMatch13Exp'] ??
         settingsMap['use_match13_exp'] ??
         settingsMap['match13Exp'] ??
         settingsMap['useMatch13'] ??
         settingsMap['useExp'] ??
         settingsMap['use_exp'] ??
         settingsMap['match13_exp'] ??
+        json['useMatch13xP'] ??
+        json['use_match13_xP'] ??
+        json['use_match13_xp'] ??
+        json['match13xP'] ??
+        json['usexP'] ??
         json['useMatch13Exp'] ??
         json['use_match13_exp'] ??
         json['match13Exp'] ??
@@ -1258,7 +1270,7 @@ class AppSettingsModel {
               .toList()
           : null,
       useStatboticsEpa: parseBool(rawEpa),
-      useMatch13Exp: parseBool(rawExp),
+      useMatch13xP: parseBool(rawxP),
       useTbaOpr: parseBool(rawOpr),
       recencyBias: settingsMap['recencyBias'] is Map
           ? RecencyBiasSettingsModel.fromJson(
@@ -1306,7 +1318,7 @@ class AppSettingsModel {
       'registrationLocked': registrationLocked,
       if (selfRegisterRoles != null) 'selfRegisterRoles': selfRegisterRoles,
       'useStatboticsEpa': useStatboticsEpa,
-      'useMatch13Exp': useMatch13Exp,
+      'useMatch13xP': useMatch13xP,
       'useTbaOpr': useTbaOpr,
       if (recencyBias != null) 'recencyBias': recencyBias!.toJson(),
       'scoutPages': scoutPages,
@@ -1337,7 +1349,7 @@ class AppSettingsModel {
     bool? registrationLocked,
     List<String>? selfRegisterRoles,
     bool? useStatboticsEpa,
-    bool? useMatch13Exp,
+    bool? useMatch13xP,
     bool? useTbaOpr,
     RecencyBiasSettingsModel? recencyBias,
     List<String>? scoutPages,
@@ -1368,7 +1380,7 @@ class AppSettingsModel {
       registrationLocked: registrationLocked ?? this.registrationLocked,
       selfRegisterRoles: selfRegisterRoles ?? this.selfRegisterRoles,
       useStatboticsEpa: useStatboticsEpa ?? this.useStatboticsEpa,
-      useMatch13Exp: useMatch13Exp ?? this.useMatch13Exp,
+      useMatch13xP: useMatch13xP ?? this.useMatch13xP,
       useTbaOpr: useTbaOpr ?? this.useTbaOpr,
       recencyBias: recencyBias ?? this.recencyBias,
       scoutPages: scoutPages ?? this.scoutPages,

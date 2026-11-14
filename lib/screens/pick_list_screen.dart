@@ -289,7 +289,7 @@ class _PickListScreenState extends State<PickListScreen>
   bool get _isFtc => widget.apiService.currentProgram.toUpperCase() == 'FTC';
   bool get _useEpa => !_isFtc && (widget.apiService.currentSettings?.useStatboticsEpa ?? false);
   bool get _useOpr => widget.apiService.currentSettings?.useTbaOpr ?? false;
-  bool get _useExp => !_isFtc && (widget.apiService.currentSettings?.useMatch13Exp ?? false);
+  bool get _usexP => !_isFtc && (widget.apiService.currentSettings?.useMatch13xP ?? false);
 
   TeamModel? _findTeam(int teamNumber) {
     for (final t in _allTeams) {
@@ -305,8 +305,9 @@ class _PickListScreenState extends State<PickListScreen>
         return team.averagePoints;
       case 'epa':
         return team.epa;
+      case 'xP':
       case 'exp':
-        return team.exp;
+        return team.xP;
       case 'opr':
         return team.opr;
       default:
@@ -378,7 +379,7 @@ class _PickListScreenState extends State<PickListScreen>
       DropdownMenuItem(value: 'weighted', child: Text(context.tr('alliance-selection.weighted', 'Weighted'))),
       DropdownMenuItem(value: 'scouted', child: Text(context.tr('scouted', 'Scouted'))),
       if (_useEpa) DropdownMenuItem(value: 'epa', child: Text(context.tr('alliance-selection.epa', 'EPA'))),
-      if (_useExp) const DropdownMenuItem(value: 'exp', child: Text('EXP')),
+      if (_usexP) const DropdownMenuItem(value: 'xP', child: Text('xP')),
       if (_useOpr) DropdownMenuItem(value: 'opr', child: Text(_isFtc ? 'FTC Scout OPR' : context.tr('alliance-selection.opr', 'OPR'))),
     ];
     final effectiveMetric = metricItems.any((i) => i.value == _selectedMetric) ? _selectedMetric : 'weighted';

@@ -436,7 +436,7 @@ Map<String, dynamic> buildDataset({
       'state': t['state'],
       'opr': t['opr'],
       'epa': t['epa'],
-      'exp': t['exp'],
+      'xP': t['xP'] ?? t['exp'],
     });
   }
 
@@ -464,7 +464,7 @@ Map<String, dynamic> buildDataset({
   fields.add(_meta('calc_endgame_score', 'Endgame Score', 'number', 'calculated', 'Phase Scores'));
   if (!isFtc) {
     fields.add(_meta('statbotics_epa', 'EPA', 'number', 'calculated', 'Statistics'));
-    fields.add(_meta('match13_exp', 'EXP', 'number', 'calculated', 'Statistics'));
+    fields.add(_meta('match13_xP', 'xP', 'number', 'calculated', 'Statistics'));
   }
   fields.add(_meta('tba_opr', isFtc ? 'FTC Scout OPR' : 'OPR', 'number', 'calculated', 'Statistics'));
   for (final f in _fields(pitConfig)) {
@@ -477,7 +477,7 @@ Map<String, dynamic> buildDataset({
   }
 
   Map<Object?, Object?> teamMap(String key) => {for (final t in teamsList) t['teamNumber']: t[key]};
-  final opr = teamMap('opr'), epa = teamMap('epa'), exp = teamMap('exp');
+  final opr = teamMap('opr'), epa = teamMap('epa'), xP = teamMap('xP');
   final configFields = _fields(matchConfig);
 
   final flatMatches = matches.map((e) {
@@ -495,7 +495,7 @@ Map<String, dynamic> buildDataset({
       'calc_teleop_score': _scoreSection(matchConfig, e, const ['teleop']),
       'calc_endgame_score': _scoreSection(matchConfig, e, const ['endgame', 'climb']),
       'statbotics_epa': epa[t] ?? 0.0,
-      'match13_exp': exp[t] ?? 0.0,
+      'match13_xP': xP[t] ?? 0.0,
       'tba_opr': opr[t] ?? 0.0,
       'hasDiscrepancy': e['hasDiscrepancy'] == true,
     };

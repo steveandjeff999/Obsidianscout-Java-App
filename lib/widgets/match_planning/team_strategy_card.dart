@@ -22,7 +22,7 @@ class TeamStrategyCard extends StatefulWidget {
   final List<MatchModel> allMatches;
   final StatsHistoryModel? statsHistory;
   final bool useStatboticsEpa;
-  final bool useMatch13Exp;
+  final bool useMatch13xP;
   final bool useTbaOpr;
   final bool isFtc;
 
@@ -41,7 +41,7 @@ class TeamStrategyCard extends StatefulWidget {
     required this.allMatches,
     required this.statsHistory,
     required this.useStatboticsEpa,
-    required this.useMatch13Exp,
+    required this.useMatch13xP,
     required this.useTbaOpr,
     this.isFtc = false,
   });
@@ -135,12 +135,12 @@ class _TeamStrategyCardState extends State<TeamStrategyCard> with SingleTickerPr
       final List<Map<String, dynamic>> teamItems = [];
 
       for (final item in match13History) {
-        final teamData = extractTeamExpData(item, teamNum);
+        final teamData = extractTeamxPData(item, teamNum);
         if (teamData != null) {
-          final expVal = getTeamExpMetricValue(teamData, 'total');
+          final xPVal = getTeamxPMetricValue(teamData, 'total');
           final matchKey = (item is Map ? item['matchKey'] ?? item['match_key'] ?? '' : '').toString();
           final label = _formatMatchKey(matchKey);
-          teamItems.add({'label': label, 'val': expVal, 'weight': _getMatchWeight(label)});
+          teamItems.add({'label': label, 'val': xPVal, 'weight': _getMatchWeight(label)});
         }
       }
 
@@ -233,7 +233,7 @@ class _TeamStrategyCardState extends State<TeamStrategyCard> with SingleTickerPr
         team: widget.team,
         initialDatasource: _activeDatasource,
         enableStatbotics: !widget.isFtc && widget.useStatboticsEpa,
-        enableMatch13: !widget.isFtc && widget.useMatch13Exp,
+        enableMatch13: !widget.isFtc && widget.useMatch13xP,
         dataProvider: _getGraphData,
       ),
     );
@@ -268,8 +268,8 @@ class _TeamStrategyCardState extends State<TeamStrategyCard> with SingleTickerPr
     }
 
     final epaStr = widget.team?.epa != null ? widget.team!.epa!.toStringAsFixed(1) : '-';
-    final expStr = (widget.team?.exp ?? widget.team?.match13Exp) != null
-        ? (widget.team?.exp ?? widget.team?.match13Exp)!.toStringAsFixed(1)
+    final xPStr = (widget.team?.xP ?? widget.team?.match13xP) != null
+        ? (widget.team?.xP ?? widget.team?.match13xP)!.toStringAsFixed(1)
         : '-';
     final oprStr = widget.team?.opr != null ? widget.team!.opr!.toStringAsFixed(1) : '-';
 
@@ -364,8 +364,8 @@ class _TeamStrategyCardState extends State<TeamStrategyCard> with SingleTickerPr
               _buildStatPill('Scouted Avg', calculatedAvg, const Color(0xFF10B981), isDark),
               if (!widget.isFtc && widget.useStatboticsEpa)
                 _buildStatPill('Statbotics EPA', epaStr, ObsidianUITheme.primaryAccent, isDark),
-              if (!widget.isFtc && widget.useMatch13Exp)
-                _buildStatPill('Match 13 xP', expStr, const Color(0xFFF59E0B), isDark),
+              if (!widget.isFtc && widget.useMatch13xP)
+                _buildStatPill('Match 13 xP', xPStr, const Color(0xFFF59E0B), isDark),
               if (widget.useTbaOpr)
                 _buildStatPill(widget.isFtc ? 'FTC OPR' : 'TBA OPR', oprStr, const Color(0xFF8B5CF6), isDark),
               _buildStatPill('Matches', '${teamMatches.length}', primaryTextColor, isDark),
@@ -729,7 +729,7 @@ class _TeamStrategyCardState extends State<TeamStrategyCard> with SingleTickerPr
                       _buildInlineSourceBtn('scouted', 'Scouted'),
                       if (!widget.isFtc && widget.useStatboticsEpa)
                         _buildInlineSourceBtn('statbotics', 'Statbotics'),
-                      if (!widget.isFtc && widget.useMatch13Exp)
+                      if (!widget.isFtc && widget.useMatch13xP)
                         _buildInlineSourceBtn('match13', 'Match 13'),
                     ],
                   ),

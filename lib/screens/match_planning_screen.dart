@@ -1286,7 +1286,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
     final isFtc = widget.apiService.currentProgram == 'FTC';
 
     final useStatbotics = !isFtc && (settings?.useStatboticsEpa ?? false);
-    final useMatch13 = !isFtc && (settings?.useMatch13Exp ?? false);
+    final useMatch13 = !isFtc && (settings?.useMatch13xP ?? false);
     final useOpr = settings?.useTbaOpr ?? false;
 
     Widget buildSingleCard(int pos) {
@@ -1310,7 +1310,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
         allMatches: _matches,
         statsHistory: _statsHistory,
         useStatboticsEpa: useStatbotics,
-        useMatch13Exp: useMatch13,
+        useMatch13xP: useMatch13,
         useTbaOpr: useOpr,
         isFtc: isFtc,
       );

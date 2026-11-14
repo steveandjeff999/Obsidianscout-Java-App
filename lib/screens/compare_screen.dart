@@ -51,12 +51,12 @@ class _CompareScreenState extends State<CompareScreen> with LiveRefresh<CompareS
   Map<String, dynamic>? _result;
   String? _error;
 
-  /// 'scouted' compares scouting averages (server); 'exp' compares Match 13 xP for the selected event.
+  /// 'scouted' compares scouting averages (server); 'xP' compares Match 13 xP for the selected event.
   String _source = 'scouted';
   final Map<String, List<dynamic>> _match13ByEvent = {};
 
   bool get _match13Available =>
-      widget.apiService.currentProgram != 'FTC' && (widget.apiService.currentSettings?.useMatch13Exp ?? false);
+      widget.apiService.currentProgram != 'FTC' && (widget.apiService.currentSettings?.useMatch13xP ?? false);
 
   @override
   void initState() {
@@ -102,8 +102,8 @@ class _CompareScreenState extends State<CompareScreen> with LiveRefresh<CompareS
         _error = null;
       });
     }
-    if (_source == 'exp') {
-      await _compareExp(teams);
+    if (_source == 'xP') {
+      await _comparexP(teams);
       return;
     }
     final res = await widget.apiService.requestJson('GET', '/api/analytics/compare', query: {
@@ -119,7 +119,7 @@ class _CompareScreenState extends State<CompareScreen> with LiveRefresh<CompareS
     });
   }
 
-  Future<void> _compareExp(List<int> teams) async {
+  Future<void> _comparexP(List<int> teams) async {
     if (_eventKey.isEmpty) {
       setState(() {
         _comparing = false;
@@ -151,19 +151,19 @@ class _CompareScreenState extends State<CompareScreen> with LiveRefresh<CompareS
     if (!mounted) return;
     setState(() {
       _comparing = false;
-      _result = _buildExpResult(teams, history!);
+      _result = _buildxPResult(teams, history!);
     });
   }
 
   /// Offline copy of the server's Match13Compare: turns Match 13 history into the compare endpoint's shape: current, starting and peak xP, the change over
   /// the event, and the latest auto / teleop / endgame split for each team.
-  Map<String, dynamic> _buildExpResult(List<int> teams, List<dynamic> history) {
+  Map<String, dynamic> _buildxPResult(List<int> teams, List<dynamic> history) {
     final teamData = <String, dynamic>{};
     var anyData = false;
     for (final n in teams) {
       final played = <({int weight, dynamic data})>[];
       for (final match in history) {
-        final data = extractTeamExpData(match, n);
+        final data = extractTeamxPData(match, n);
         if (data == null) continue;
         final key = match is Map ? (match['key'] ?? match['matchKey'] ?? match['match_key'] ?? '').toString() : '';
         played.add((weight: getMatchSortWeightFromLabel(formatMatchKeyToLabel(key)), data: data));
@@ -174,22 +174,22 @@ class _CompareScreenState extends State<CompareScreen> with LiveRefresh<CompareS
       if (played.isNotEmpty) {
         anyData = true;
         final latest = played.last.data;
-        final current = getTeamExpMetricValue(latest, 'score_total');
+        final current = getTeamxPMetricValue(latest, 'score_total');
         // xP going into the first match; the post-match value when the history has no pre-match number.
         final pre = jsonDouble(jsonMap(played.first.data)['xpPre']);
-        final start = pre ?? getTeamExpMetricValue(played.first.data, 'score_total');
+        final start = pre ?? getTeamxPMetricValue(played.first.data, 'score_total');
         metrics['xp_current'] = current;
         metrics['xp_start'] = start;
         metrics['xp_change'] = current - start;
-        metrics['xp_peak'] = played.map((m) => getTeamExpMetricValue(m.data, 'score_total')).reduce((a, b) => a > b ? a : b);
-        metrics['xp_auto'] = getTeamExpMetricValue(latest, 'score_auto');
-        metrics['xp_teleop'] = getTeamExpMetricValue(latest, 'score_teleop');
-        metrics['xp_endgame'] = getTeamExpMetricValue(latest, 'score_endgame');
+        metrics['xp_peak'] = played.map((m) => getTeamxPMetricValue(m.data, 'score_total')).reduce((a, b) => a > b ? a : b);
+        metrics['xp_auto'] = getTeamxPMetricValue(latest, 'score_auto');
+        metrics['xp_teleop'] = getTeamxPMetricValue(latest, 'score_teleop');
+        metrics['xp_endgame'] = getTeamxPMetricValue(latest, 'score_endgame');
       }
       teamData['$n'] = {
         'nickname': team?.nickname ?? team?.name,
         'matchesScouted': played.length,
-        'exp': metrics['xp_current'] ?? team?.match13Exp ?? team?.exp,
+        'xP': metrics['xp_current'] ?? team?.match13xP ?? team?.xP,
         'metrics': metrics,
       };
     }
@@ -201,14 +201,14 @@ class _CompareScreenState extends State<CompareScreen> with LiveRefresh<CompareS
       'metricDefinitions': !anyData
           ? []
           : [
-              def('xp_current', context.tr('compare.exp_current', 'Current xP'), 'overview'),
-              def('xp_start', context.tr('compare.exp_start', 'Starting xP'), 'overview'),
-              def('xp_change', context.tr('compare.exp_change', 'xP Change This Event'), 'overview'),
-              def('xp_peak', context.tr('compare.exp_peak', 'Peak xP'), 'overview'),
-              def('matches_scouted', context.tr('compare.exp_matches', 'Matches With xP'), 'overview', 'matches'),
-              def('xp_auto', context.tr('compare.exp_auto', 'Auto xP'), 'auto'),
-              def('xp_teleop', context.tr('compare.exp_teleop', 'Teleop xP'), 'teleop'),
-              def('xp_endgame', context.tr('compare.exp_endgame', 'Endgame xP'), 'endgame'),
+              def('xp_current', context.tr('compare.xP_current', 'Current xP'), 'overview'),
+              def('xp_start', context.tr('compare.xP_start', 'Starting xP'), 'overview'),
+              def('xp_change', context.tr('compare.xP_change', 'xP Change This Event'), 'overview'),
+              def('xp_peak', context.tr('compare.xP_peak', 'Peak xP'), 'overview'),
+              def('matches_scouted', context.tr('compare.xP_matches', 'Matches With xP'), 'overview', 'matches'),
+              def('xp_auto', context.tr('compare.xP_auto', 'Auto xP'), 'auto'),
+              def('xp_teleop', context.tr('compare.xP_teleop', 'Teleop xP'), 'teleop'),
+              def('xp_endgame', context.tr('compare.xP_endgame', 'Endgame xP'), 'endgame'),
             ],
     };
   }
@@ -235,7 +235,7 @@ class _CompareScreenState extends State<CompareScreen> with LiveRefresh<CompareS
                         label: Text(context.tr('compare.source_scouted', 'Scouted')),
                       ),
                       ButtonSegment(
-                        value: 'exp',
+                        value: 'xP',
                         icon: const Icon(Icons.insights_rounded, size: 18),
                         label: Text(context.tr('compare.source_match13', 'Match 13 xP')),
                       ),
@@ -309,8 +309,8 @@ class _CompareScreenState extends State<CompareScreen> with LiveRefresh<CompareS
           const PortedLoading()
         else if (_error != null)
           PortedError(message: _error!, onRetry: _compare)
-        else if (_source == 'exp' && _eventKey.isEmpty)
-          PortedNotice(context.tr('compare.exp_needs_event', 'Pick an event to compare Match 13 xP.'))
+        else if (_source == 'xP' && _eventKey.isEmpty)
+          PortedNotice(context.tr('compare.xP_needs_event', 'Pick an event to compare Match 13 xP.'))
         else if (_result == null)
           PortedNotice(context.tr('compare.select_at_least_two', 'Select at least two teams above to view a side-by-side comparison.'))
         else
@@ -326,7 +326,7 @@ class _CompareScreenState extends State<CompareScreen> with LiveRefresh<CompareS
     final settings = widget.apiService.currentSettings;
     final isFtc = widget.apiService.currentProgram == 'FTC';
     final showEpa = !isFtc && (settings?.useStatboticsEpa ?? false);
-    final showExp = !isFtc && (settings?.useMatch13Exp ?? false);
+    final showxP = !isFtc && (settings?.useMatch13xP ?? false);
     final showOpr = settings?.useTbaOpr ?? false;
     final primary = ObsidianUITheme.getPrimaryTextColor(context);
     final muted = ObsidianUITheme.getSecondaryTextColor(context);
@@ -340,9 +340,10 @@ class _CompareScreenState extends State<CompareScreen> with LiveRefresh<CompareS
               child: Builder(builder: (context) {
                 final t = jsonMap(data['$n']);
                 final team = _teams.where((x) => x.teamNumber == n).firstOrNull;
+                final teamxP = t['xP'] ?? t['exp'];
                 final badges = <Widget>[
                   if (showEpa && t['epa'] != null) PortedBadge('EPA ${fmtNum(t['epa'], digits: 1)}', color: const Color(0xFF38BDF8)),
-                  if (showExp && t['exp'] != null) PortedBadge('EXP ${fmtNum(t['exp'], digits: 1)}', color: const Color(0xFF10B981)),
+                  if (showxP && teamxP != null) PortedBadge('xP ${fmtNum(teamxP, digits: 1)}', color: const Color(0xFF10B981)),
                   if (showOpr && t['opr'] != null) PortedBadge('OPR ${fmtNum(t['opr'], digits: 1)}', color: const Color(0xFFC084FC)),
                 ];
                 return Column(
@@ -359,7 +360,7 @@ class _CompareScreenState extends State<CompareScreen> with LiveRefresh<CompareS
                     ],
                     if (t['matchesScouted'] != null) ...[
                       const SizedBox(height: 6),
-                      Text(_source == 'exp' ? '${t['matchesScouted']} matches with xP' : '${t['matchesScouted']} matches', style: TextStyle(fontSize: 11, color: muted)),
+                      Text(_source == 'xP' ? '${t['matchesScouted']} matches with xP' : '${t['matchesScouted']} matches', style: TextStyle(fontSize: 11, color: muted)),
                     ],
                   ],
                 );
@@ -372,8 +373,8 @@ class _CompareScreenState extends State<CompareScreen> with LiveRefresh<CompareS
     if (defs.isEmpty) {
       return [
         hero,
-        PortedNotice(_source == 'exp'
-            ? context.tr('compare.exp_no_data', 'No Match 13 match data for these teams at this event.')
+        PortedNotice(_source == 'xP'
+            ? context.tr('compare.xP_no_data', 'No Match 13 match data for these teams at this event.')
             : context.tr('compare.no_data', 'No scouting data available for these teams at this event.')),
       ];
     }

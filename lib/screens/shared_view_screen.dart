@@ -100,15 +100,20 @@ class _SharedViewScreenState extends State<SharedViewScreen> {
 
     final dataObj = snapshotData.isNotEmpty ? snapshotData : queryConfig;
 
-    _datasource = (dataObj['datasource'] as String?) ?? 'scouted';
+    final rawDs = (dataObj['datasource'] as String?) ?? 'scouted';
+    _datasource = rawDs == 'exp' ? 'xP' : rawDs;
     _dataView = (dataObj['dataView'] as String?) ?? 'averages';
     _sort = (dataObj['sort'] as String?) ?? 'value_desc';
     _includePrescout = (dataObj['includePrescout'] as bool?) ?? false;
-    _selectedMetricId = (dataObj['metricId'] as String?) ?? (dataObj['metric'] as String?) ?? 'score_total';
+    String normMetric(String? m, String fallback) {
+      if (m == null) return fallback;
+      return m == 'ext_exp' ? 'ext_xP' : m;
+    }
+    _selectedMetricId = normMetric((dataObj['metricId'] as String?) ?? (dataObj['metric'] as String?), 'score_total');
     _is3DMode = (dataObj['is3D'] as bool?) ?? false;
-    _metricXId = (dataObj['metricXId'] as String?) ?? 'score_auto';
-    _metricYId = (dataObj['metricYId'] as String?) ?? 'score_teleop';
-    _metricZId = (dataObj['metricZId'] as String?) ?? 'score_total';
+    _metricXId = normMetric(dataObj['metricXId'] as String?, 'score_auto');
+    _metricYId = normMetric(dataObj['metricYId'] as String?, 'score_teleop');
+    _metricZId = normMetric(dataObj['metricZId'] as String?, 'score_total');
 
     final teamsList = (dataObj['selectedTeams'] as List<dynamic>?)?.map((e) => (e as num).toInt()).toList() ?? [];
     if (teamsList.isNotEmpty) {
@@ -391,9 +396,19 @@ class _SharedViewScreenState extends State<SharedViewScreen> {
 
     final isFtc = (settings['program'] as String?)?.toUpperCase() == 'FTC';
     final effectiveUseEpa = !isFtc && (settings['useStatboticsEpa'] == true || rawTeams.any((t) => (t['epa'] as num?) != null && (t['epa'] as num) > 0) || (statsHistory['epaHistory'] is List && (statsHistory['epaHistory'] as List).isNotEmpty));
-    final effectiveUseExp = !isFtc && (settings['useMatch13Exp'] == true || (statsHistory['match13History'] is List && (statsHistory['match13History'] as List).isNotEmpty) || rawTeams.any((t) => ((t['exp'] as num?) != null && (t['exp'] as num) > 0) || ((t['match13Exp'] as num?) != null && (t['match13Exp'] as num) > 0)));
+    final effectiveUsexP = !isFtc &&
+        (settings['useMatch13xP'] == true ||
+            settings['useMatch13Exp'] == true ||
+            (statsHistory['match13History'] is List && (statsHistory['match13History'] as List).isNotEmpty) ||
+            rawTeams.any((t) =>
+                ((t['xP'] as num?) != null && (t['xP'] as num) > 0) ||
+                ((t['match13xP'] as num?) != null && (t['match13xP'] as num) > 0) ||
+                ((t['match13_xP'] as num?) != null && (t['match13_xP'] as num) > 0) ||
+                ((t['exp'] as num?) != null && (t['exp'] as num) > 0) ||
+                ((t['match13Exp'] as num?) != null && (t['match13Exp'] as num) > 0) ||
+                ((t['match13_exp'] as num?) != null && (t['match13_exp'] as num) > 0)));
     final effectiveUseOpr = settings['useTbaOpr'] == true || rawTeams.any((t) => (t['opr'] as num?) != null && (t['opr'] as num) > 0) || (statsHistory['oprs'] is Map && (statsHistory['oprs'] as Map).isNotEmpty);
-    final showDatasource = effectiveUseEpa || effectiveUseExp || effectiveUseOpr;
+    final showDatasource = effectiveUseEpa || effectiveUsexP || effectiveUseOpr;
 
     final allTeamNumbers = <int>{};
     for (final t in rawTeams) {
@@ -564,7 +579,7 @@ class _SharedViewScreenState extends State<SharedViewScreen> {
                     const DropdownMenuItem(value: 'all', child: Text('All Sources')),
                     const DropdownMenuItem(value: 'scouted', child: Text('Scouted Data')),
                     if (effectiveUseEpa) const DropdownMenuItem(value: 'epa', child: Text('Statbotics EPA')),
-                    if (effectiveUseExp) const DropdownMenuItem(value: 'exp', child: Text('Match 13 xP')),
+                    if (effectiveUsexP) const DropdownMenuItem(value: 'xP', child: Text('Match 13 xP')),
                     if (effectiveUseOpr) DropdownMenuItem(value: 'opr', child: Text(isFtc ? 'FTC Scout OPR' : 'TBA OPR')),
                   ],
                   onChanged: (v) => setState(() => _datasource = v ?? 'scouted'),
@@ -588,7 +603,7 @@ class _SharedViewScreenState extends State<SharedViewScreen> {
                 onChanged: (v) => setState(() => _selectedMetricId = v ?? 'score_total'),
               ),
               const SizedBox(height: 12),
-              if (_datasource == 'scouted' || _datasource == 'exp' || _datasource == 'all') ...[
+              if (_datasource == 'scouted' || _datasource == 'xP' || _datasource == 'exp' || _datasource == 'all') ...[
                 SegmentedButton<String>(
                   segments: [
                     ButtonSegment(value: 'averages', label: Text(context.tr('graphs.team_averages'))),
@@ -684,7 +699,7 @@ class _SharedViewScreenState extends State<SharedViewScreen> {
         if (id == 'score_total') return 'Total points';
         if (id == 'count') return 'Entry count';
         if (id == 'ext_epa') return 'Statbotics EPA';
-        if (id == 'ext_exp') return 'Match 13 xP';
+        if (id == 'ext_xP' || id == 'ext_exp') return 'Match 13 xP';
         if (id == 'ext_opr') return 'TBA OPR';
         return id.replaceFirst('field:', '');
       }
@@ -693,7 +708,9 @@ class _SharedViewScreenState extends State<SharedViewScreen> {
         if (id.startsWith('ext_')) {
           final tm = teamObjMap[tNum];
           if (id == 'ext_epa') return ((tm?['epa'] as num?) ?? 0).toDouble();
-          if (id == 'ext_exp') return ((tm?['exp'] ?? tm?['match13Exp'] ?? 0) as num).toDouble();
+          if (id == 'ext_xP' || id == 'ext_exp') {
+            return ((tm?['xP'] ?? tm?['match13xP'] ?? tm?['match13_xP'] ?? tm?['exp'] ?? tm?['match13Exp'] ?? tm?['match13_exp'] ?? 0) as num).toDouble();
+          }
           if (id == 'ext_opr') return ((tm?['opr'] as num?) ?? 0).toDouble();
           return 0.0;
         }
@@ -829,9 +846,16 @@ class _SharedViewScreenState extends State<SharedViewScreen> {
             final oprs = (statsHistory['oprs'] as Map<String, dynamic>?) ?? {};
             val = ((oprs['$tNum'] as num?) ?? (oprs['frc$tNum'] as num?) ?? (oprs['ftc$tNum'] as num?) ?? 0.0).toDouble();
           }
-        } else if (_datasource == 'exp') {
+        } else if (_datasource == 'xP' || _datasource == 'exp') {
           final tObj = teams.firstWhere((t) => t['teamNumber'] == tNum, orElse: () => {});
-          val = ((tObj['exp'] as num?) ?? (tObj['match13Exp'] as num?) ?? (tObj['match13_exp'] as num?) ?? 0.0).toDouble();
+          val = ((tObj['xP'] as num?) ??
+                  (tObj['match13xP'] as num?) ??
+                  (tObj['match13_xP'] as num?) ??
+                  (tObj['exp'] as num?) ??
+                  (tObj['match13Exp'] as num?) ??
+                  (tObj['match13_exp'] as num?) ??
+                  0.0)
+              .toDouble();
         } else {
           final teamEntries = entries.where((e) => (e['targetTeamNumber'] ?? e['teamNumber']) == tNum).toList();
           if (teamEntries.isNotEmpty) {

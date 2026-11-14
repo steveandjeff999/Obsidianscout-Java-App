@@ -108,7 +108,7 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
   GraphMetric? _metricZ;
   Set<int> _selectedTeams = {};
   Set<String> _selectedGraphTypes = {'bar'};
-  String _datasource = 'scouted'; // scouted, epa, exp, opr, all
+  String _datasource = 'scouted'; // scouted, epa, xP, opr, all
   String _dataView = 'averages'; // averages, matches
   String _sort = 'value_desc'; // value_desc, value_asc, team_asc, team_desc
   bool _includePrescout = false;
@@ -416,7 +416,7 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
   }
 
   List<GraphMetric> _buildMetrics([ScoutingConfigModel? overrideConfig]) {
-    if (_datasource == 'exp') {
+    if (_datasource == 'xP' || _datasource == 'exp') {
       return const [
         GraphMetric(id: 'score_total', label: 'Total xP', kind: 'score', scope: 'total'),
         GraphMetric(id: 'score_auto', label: 'Auto xP', kind: 'score', scope: 'auto'),
@@ -431,7 +431,7 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
         GraphMetric(id: 'score_teleop', label: 'Teleop points', kind: 'score', scope: 'teleop'),
         GraphMetric(id: 'score_endgame', label: 'Endgame points', kind: 'score', scope: 'endgame'),
         GraphMetric(id: 'ext_epa', label: 'Statbotics EPA', kind: 'external', scope: 'epa'),
-        GraphMetric(id: 'ext_exp', label: 'Match 13 xP', kind: 'external', scope: 'exp'),
+        GraphMetric(id: 'ext_xP', label: 'Match 13 xP', kind: 'external', scope: 'xP'),
         GraphMetric(id: 'ext_opr', label: 'TBA OPR', kind: 'external', scope: 'opr'),
       ];
     }
@@ -914,8 +914,8 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
       setState(() => _selectedTeams = sorted.take(n).map((t) => t.teamNumber).toSet());
       return;
     }
-    if (_datasource == 'exp') {
-      final sorted = List<TeamModel>.from(_teams)..sort((a, b) => (b.exp ?? 0.0).compareTo(a.exp ?? 0.0));
+    if (_datasource == 'xP' || _datasource == 'exp') {
+      final sorted = List<TeamModel>.from(_teams)..sort((a, b) => (b.xP ?? 0.0).compareTo(a.xP ?? 0.0));
       setState(() => _selectedTeams = sorted.take(n).map((t) => t.teamNumber).toSet());
       return;
     }
@@ -943,6 +943,7 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
     final isFtc = _settings?.program == 'FTC';
     switch (ds) {
       case 'epa': return 'Statbotics EPA';
+      case 'xP':
       case 'exp': return 'Match 13 xP';
       case 'opr': return isFtc ? 'FTC Scout OPR' : 'TBA OPR';
       case 'all': return 'All Sources';
@@ -963,9 +964,9 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
 
     final isFtc = (_settings?.program ?? widget.apiService.currentProgram).toUpperCase() == 'FTC';
     final effectiveUseEpa = !isFtc && (_settings?.useStatboticsEpa == true || widget.apiService.currentSettings?.useStatboticsEpa == true);
-    final effectiveUseExp = !isFtc && (_settings?.useMatch13Exp == true || widget.apiService.currentSettings?.useMatch13Exp == true);
+    final effectiveUsexP = !isFtc && (_settings?.useMatch13xP == true || widget.apiService.currentSettings?.useMatch13xP == true);
     final effectiveUseOpr = _settings?.useTbaOpr == true || widget.apiService.currentSettings?.useTbaOpr == true;
-    final showDatasource = effectiveUseEpa || effectiveUseExp || effectiveUseOpr;
+    final showDatasource = effectiveUseEpa || effectiveUsexP || effectiveUseOpr;
     final isAverages = _dataView == 'averages' || _datasource == 'epa' || _datasource == 'opr';
 
     return SingleChildScrollView(
@@ -1205,8 +1206,8 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
                         const DropdownMenuItem(value: 'scouted', child: Text('Scouted Data', overflow: TextOverflow.ellipsis)),
                         if (effectiveUseEpa)
                           const DropdownMenuItem(value: 'epa', child: Text('Statbotics EPA', overflow: TextOverflow.ellipsis)),
-                        if (effectiveUseExp)
-                          const DropdownMenuItem(value: 'exp', child: Text('Match 13 xP', overflow: TextOverflow.ellipsis)),
+                        if (effectiveUsexP)
+                          const DropdownMenuItem(value: 'xP', child: Text('Match 13 xP', overflow: TextOverflow.ellipsis)),
                         if (effectiveUseOpr)
                           DropdownMenuItem(value: 'opr', child: Text(isFtc ? 'FTC Scout OPR' : 'TBA OPR', overflow: TextOverflow.ellipsis)),
                       ];
@@ -1251,8 +1252,8 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
                 ),
                 const SizedBox(height: 8),
 
-                // Metric dropdown(s) (for scouted, exp, and all)
-                if (_datasource == 'scouted' || _datasource == 'exp' || _datasource == 'all') ...[
+                // Metric dropdown(s) (for scouted, xP, and all)
+                if (_datasource == 'scouted' || _datasource == 'xP' || _datasource == 'exp' || _datasource == 'all') ...[
                   if (_is3DMode) ...[
                     _buildAxisDropdown('X Axis Metric', _metricX, (m) => setState(() => _metricX = m)),
                     const SizedBox(height: 10),
@@ -1515,7 +1516,7 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
                             'name': t.name,
                             'epa': t.epa,
                             'opr': t.opr,
-                            'exp': t.exp,
+                            'xP': t.xP,
                             'averagePoints': t.averagePoints,
                           }).toList(),
                           'statsHistory': _statsHistory?.toJson(),
@@ -1594,7 +1595,7 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
     final metricLabel = metric?.label ?? 'Metric';
     final viewTitle = _dataView == 'matches' ? 'Match-by-match' : 'Team averages';
 
-    final title = (_datasource == 'exp' || _datasource == 'all')
+    final title = (_datasource == 'xP' || _datasource == 'exp' || _datasource == 'all')
         ? '${_getDatasourceLabel(_datasource)} ($metricLabel) — ${graphType.toUpperCase()} ($viewTitle)'
         : (isScouted
             ? '$metricLabel — ${graphType.toUpperCase()}'
@@ -1678,13 +1679,13 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
     final selectedNums = _selectedTeams.toList();
     final isFtc = (_settings?.program ?? widget.apiService.currentProgram).toUpperCase() == 'FTC';
     final effectiveUseEpa = !isFtc && (_settings?.useStatboticsEpa == true || widget.apiService.currentSettings?.useStatboticsEpa == true);
-    final effectiveUseExp = !isFtc && (_settings?.useMatch13Exp == true || widget.apiService.currentSettings?.useMatch13Exp == true);
+    final effectiveUsexP = !isFtc && (_settings?.useMatch13xP == true || widget.apiService.currentSettings?.useMatch13xP == true);
     final effectiveUseOpr = _settings?.useTbaOpr == true || widget.apiService.currentSettings?.useTbaOpr == true;
     final rawMatch13History = _statsHistory?.match13History ?? [];
 
     // --- MATCH-BY-MATCH RENDERING ---
     if (_dataView == 'matches') {
-      if (_datasource == 'exp') {
+      if (_datasource == 'xP' || _datasource == 'exp') {
         if (rawMatch13History.isEmpty) {
           return _buildNotice('No Match 13 match data available for this event.');
         }
@@ -1693,13 +1694,13 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
         for (final teamNum in selectedNums) {
           final teamMatches = <({String label, double value, int sortWeight})>[];
           for (final matchObj in rawMatch13History) {
-            final teamData = extractTeamExpData(matchObj, teamNum);
+            final teamData = extractTeamxPData(matchObj, teamNum);
             if (teamData == null) continue;
 
             final matchKey = (matchObj is Map) ? (matchObj['key'] ?? matchObj['matchKey'] ?? matchObj['match_key'] ?? matchObj['match'] ?? '').toString() : '';
             final label = formatMatchKeyToLabel(matchKey);
             final sortWeight = getMatchSortWeightFromLabel(label);
-            final val = getTeamExpMetricValue(teamData, _selectedMetric?.id ?? 'score_total');
+            final val = getTeamxPMetricValue(teamData, _selectedMetric?.id ?? 'score_total');
             teamMatches.add((label: label, value: val, sortWeight: sortWeight));
           }
 
@@ -1762,26 +1763,26 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
           }
 
           // 2. Match 13 xP series
-          if (effectiveUseExp && rawMatch13History.isNotEmpty) {
-            final expMatches = <({String label, double value, int sortWeight})>[];
+          if (effectiveUsexP && rawMatch13History.isNotEmpty) {
+            final xPMatches = <({String label, double value, int sortWeight})>[];
             for (final matchObj in rawMatch13History) {
-              final teamData = extractTeamExpData(matchObj, teamNum);
+              final teamData = extractTeamxPData(matchObj, teamNum);
               if (teamData == null) continue;
 
               final matchKey = (matchObj is Map) ? (matchObj['key'] ?? matchObj['matchKey'] ?? matchObj['match_key'] ?? matchObj['match'] ?? '').toString() : '';
               final label = formatMatchKeyToLabel(matchKey);
               final sortWeight = getMatchSortWeightFromLabel(label);
-              final val = getTeamExpMetricValue(teamData, metric.id);
-              expMatches.add((label: label, value: val, sortWeight: sortWeight));
+              final val = getTeamxPMetricValue(teamData, metric.id);
+              xPMatches.add((label: label, value: val, sortWeight: sortWeight));
             }
 
-            expMatches.sort((a, b) => a.sortWeight.compareTo(b.sortWeight));
+            xPMatches.sort((a, b) => a.sortWeight.compareTo(b.sortWeight));
 
-            if (expMatches.isNotEmpty) {
+            if (xPMatches.isNotEmpty) {
               seriesList.add(GraphSeries(
                 name: 'Team $teamNum (Match 13 xP)',
-                x: expMatches.map((m) => m.label).toList(),
-                y: expMatches.map((m) => m.value).toList(),
+                x: xPMatches.map((m) => m.label).toList(),
+                y: xPMatches.map((m) => m.value).toList(),
               ));
             }
           }
@@ -1808,7 +1809,7 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
         num: teamNum,
         label: 'Team $teamNum',
         epa: team?.epa ?? 0.0,
-        exp: team?.exp ?? (team?.match13Exp ?? 0.0),
+        xP: team?.xP ?? (team?.match13xP ?? 0.0),
         opr: team?.opr ?? 0.0,
         scouted: team?.averagePoints ?? 0.0,
       );
@@ -1823,15 +1824,15 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
       if (_datasource == 'epa') {
         valA = a.epa;
         valB = b.epa;
-      } else if (_datasource == 'exp') {
-        valA = a.exp;
-        valB = b.exp;
+      } else if (_datasource == 'xP' || _datasource == 'exp') {
+        valA = a.xP;
+        valB = b.xP;
       } else if (_datasource == 'opr') {
         valA = a.opr;
         valB = b.opr;
       } else if (_datasource == 'all') {
-        valA = effectiveUseEpa ? a.epa : (effectiveUseExp ? a.exp : (effectiveUseOpr ? a.opr : a.scouted));
-        valB = effectiveUseEpa ? b.epa : (effectiveUseExp ? b.exp : (effectiveUseOpr ? b.opr : b.scouted));
+        valA = effectiveUseEpa ? a.epa : (effectiveUsexP ? a.xP : (effectiveUseOpr ? a.opr : a.scouted));
+        valB = effectiveUseEpa ? b.epa : (effectiveUsexP ? b.xP : (effectiveUseOpr ? b.opr : b.scouted));
       }
       if (_sort == 'value_asc') return valA.compareTo(valB);
       return valB.compareTo(valA);
@@ -1845,8 +1846,8 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
           GraphSeries(name: 'Scouted Average', x: labels, y: data.map((d) => d.scouted).toList()),
           if (effectiveUseEpa)
             GraphSeries(name: 'Statbotics EPA', x: labels, y: data.map((d) => d.epa).toList()),
-          if (effectiveUseExp)
-            GraphSeries(name: 'Match 13 xP', x: labels, y: data.map((d) => d.exp).toList()),
+          if (effectiveUsexP)
+            GraphSeries(name: 'Match 13 xP', x: labels, y: data.map((d) => d.xP).toList()),
           if (effectiveUseOpr)
             GraphSeries(name: isFtc ? 'FTC Scout OPR' : 'TBA OPR', x: labels, y: data.map((d) => d.opr).toList()),
         ];
@@ -1855,8 +1856,8 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
         double Function(dynamic d) valExtractor;
         if (_datasource == 'epa') {
           valExtractor = (d) => d.epa;
-        } else if (_datasource == 'exp') {
-          valExtractor = (d) => d.exp;
+        } else if (_datasource == 'xP' || _datasource == 'exp') {
+          valExtractor = (d) => d.xP;
         } else {
           valExtractor = (d) => d.opr;
         }
@@ -1874,8 +1875,8 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
       if ((_datasource == 'epa' || _datasource == 'all') && effectiveUseEpa) {
         seriesList.add(GraphSeries(name: 'Statbotics EPA', x: labels, y: data.map((d) => d.epa).toList()));
       }
-      if ((_datasource == 'exp' || _datasource == 'all') && effectiveUseExp) {
-        seriesList.add(GraphSeries(name: 'Match 13 xP', x: labels, y: data.map((d) => d.exp).toList()));
+      if ((_datasource == 'xP' || _datasource == 'exp' || _datasource == 'all') && effectiveUsexP) {
+        seriesList.add(GraphSeries(name: 'Match 13 xP', x: labels, y: data.map((d) => d.xP).toList()));
       }
       if ((_datasource == 'opr' || _datasource == 'all') && effectiveUseOpr) {
         seriesList.add(GraphSeries(name: isFtc ? 'FTC Scout OPR' : 'TBA OPR', x: labels, y: data.map((d) => d.opr).toList()));
@@ -3069,18 +3070,18 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
   double _resolveTeamExternalMetric(int teamNumber, GraphMetric m) {
     final tm = _teamMap[teamNumber];
     if (m.id == 'ext_epa') return tm?.epa ?? 0.0;
-    if (m.id == 'ext_exp') {
+    if (m.id == 'ext_xP' || m.id == 'ext_exp') {
       final rawHistory = _statsHistory?.match13History ?? [];
       double sum = 0.0;
       int cnt = 0;
       for (final matchObj in rawHistory) {
-        final td = extractTeamExpData(matchObj, teamNumber);
+        final td = extractTeamxPData(matchObj, teamNumber);
         if (td == null) continue;
-        sum += getTeamExpMetricValue(td, 'score_total');
+        sum += getTeamxPMetricValue(td, 'score_total');
         cnt++;
       }
       if (cnt > 0) return sum / cnt;
-      return tm?.exp ?? (tm?.match13Exp ?? 0.0);
+      return tm?.xP ?? (tm?.match13xP ?? 0.0);
     }
     if (m.id == 'ext_opr') return tm?.opr ?? 0.0;
     return 0.0;
@@ -3189,18 +3190,18 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
     final teams = _selectedTeams.toList()..sort();
     final rawHistory = _statsHistory?.match13History ?? [];
 
-    if (_datasource == 'exp' && (_dataView == 'matches' || (forcePerTeamMatches && rawHistory.isNotEmpty))) {
+    if ((_datasource == 'xP' || _datasource == 'exp') && (_dataView == 'matches' || (forcePerTeamMatches && rawHistory.isNotEmpty))) {
       return teams.map((teamNumber) {
         final pts = <Map<String, dynamic>>[];
         for (final matchObj in rawHistory) {
-          final td = extractTeamExpData(matchObj, teamNumber);
+          final td = extractTeamxPData(matchObj, teamNumber);
           if (td == null) continue;
           final matchKey = (matchObj['key'] ?? matchObj['matchKey'] ?? matchObj['match_key'] ?? matchObj['match'] ?? '').toString();
           final label = formatMatchKeyToLabel(matchKey);
           pts.add({
-            'x': getTeamExpMetricValue(td, mx.id),
-            'y': getTeamExpMetricValue(td, my.id),
-            'z': getTeamExpMetricValue(td, mz.id),
+            'x': getTeamxPMetricValue(td, mx.id),
+            'y': getTeamxPMetricValue(td, my.id),
+            'z': getTeamxPMetricValue(td, mz.id),
             'label': '$teamNumber',
             'matchLabel': label,
           });
@@ -3247,17 +3248,17 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
       final tm = _teamMap[teamNumber];
       final teamEntries = filteredEntries.where((e) => e.targetTeamNumber == teamNumber).toList();
 
-      double avgExpMetric(String metricId) {
+      double avgxPMetric(String metricId) {
         double sum = 0.0;
         int cnt = 0;
         for (final matchObj in rawHistory) {
-          final td = extractTeamExpData(matchObj, teamNumber);
+          final td = extractTeamxPData(matchObj, teamNumber);
           if (td == null) continue;
-          sum += getTeamExpMetricValue(td, metricId);
+          sum += getTeamxPMetricValue(td, metricId);
           cnt++;
         }
         if (cnt > 0) return sum / cnt;
-        if (metricId == 'score_total') return tm?.exp ?? (tm?.match13Exp ?? 0.0);
+        if (metricId == 'score_total') return tm?.xP ?? (tm?.match13xP ?? 0.0);
         return 0.0;
       }
 
@@ -3277,7 +3278,7 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
       }
 
       double valFor(GraphMetric m) {
-        if (_datasource == 'exp') return avgExpMetric(m.id);
+        if (_datasource == 'xP' || _datasource == 'exp') return avgxPMetric(m.id);
         if (m.id.startsWith('ext_')) return _resolveTeamExternalMetric(teamNumber, m);
         return avgScoutedMetric(m);
       }

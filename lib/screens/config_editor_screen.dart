@@ -103,7 +103,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
   final TextEditingController _match13KeyController = TextEditingController();
 
   bool _useStatboticsEpa = false;
-  bool _useMatch13Exp = false;
+  bool _useMatch13xP = false;
   bool _useTbaOpr = false;
   /// Null until the server reports it or the user changes it; only sent on save when set.
   RecencyBiasSettingsModel? _recencyBias;
@@ -145,7 +145,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
         _match13UrlController.text,
         _match13KeyController.text,
         _useStatboticsEpa,
-        _useMatch13Exp,
+        _useMatch13xP,
         _useTbaOpr,
         _recencyBias?.toJson(),
       ]);
@@ -241,7 +241,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     _alternateEventCodeController.text = fresh.alternateEventCode ?? '';
     _timezoneController.text = fresh.timezone;
     _useStatboticsEpa = fresh.useStatboticsEpa;
-    _useMatch13Exp = fresh.useMatch13Exp;
+    _useMatch13xP = fresh.useMatch13xP;
     _useTbaOpr = fresh.useTbaOpr;
     _recencyBias = fresh.recencyBias;
     _chatEnabled = fresh.chatEnabled;
@@ -326,7 +326,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       _alternateEventCodeController.text = _currentSettings.alternateEventCode ?? '';
       _timezoneController.text = _currentSettings.timezone;
       _useStatboticsEpa = _currentSettings.useStatboticsEpa;
-      _useMatch13Exp = _currentSettings.useMatch13Exp;
+      _useMatch13xP = _currentSettings.useMatch13xP;
       _useTbaOpr = _currentSettings.useTbaOpr;
       _recencyBias = _currentSettings.recencyBias;
       _chatEnabled = _currentSettings.chatEnabled;
@@ -1022,7 +1022,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
           : null,
       timezone: _timezoneController.text.trim().isNotEmpty ? _timezoneController.text.trim() : 'America/New_York',
       useStatboticsEpa: _useStatboticsEpa,
-      useMatch13Exp: _useMatch13Exp,
+      useMatch13xP: _useMatch13xP,
       useTbaOpr: _useTbaOpr,
       recencyBias: _recencyBias,
       chatEnabled: _chatEnabled,
@@ -3959,11 +3959,11 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                 CheckboxListTile(
                   title: Text('Use Match 13 xP', style: TextStyle(color: primaryTextColor, fontSize: 13)),
                   subtitle: Text('Pull expected points (xP) metrics for FRC teams from Match 13', style: TextStyle(color: secondaryTextColor, fontSize: 11)),
-                  value: _useMatch13Exp,
+                  value: _useMatch13xP,
                   activeColor: ObsidianUITheme.primaryAccent,
                   contentPadding: EdgeInsets.zero,
                   controlAffinity: ListTileControlAffinity.leading,
-                  onChanged: (val) => setState(() => _useMatch13Exp = val ?? false),
+                  onChanged: (val) => setState(() => _useMatch13xP = val ?? false),
                 ),
               ],
               CheckboxListTile(

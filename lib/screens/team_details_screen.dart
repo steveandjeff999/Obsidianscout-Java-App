@@ -459,7 +459,7 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
 
   bool get _isFtc => widget.apiService.currentProgram.toUpperCase() == 'FTC';
   bool get _effectiveUseEpa => !_isFtc && (widget.apiService.currentSettings?.useStatboticsEpa ?? false);
-  bool get _effectiveUseExp => !_isFtc && (widget.apiService.currentSettings?.useMatch13Exp ?? false);
+  bool get _effectiveUsexP => !_isFtc && (widget.apiService.currentSettings?.useMatch13xP ?? false);
   bool get _effectiveUseOpr => widget.apiService.currentSettings?.useTbaOpr ?? true;
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -485,8 +485,8 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
                   Expanded(child: _statCard(context.tr('team_details.epa', 'EPA'), widget.team.epa?.toStringAsFixed(1) ?? '--', Colors.amber, Icons.electric_bolt_rounded)),
                   const SizedBox(width: 8),
                 ],
-                if (_effectiveUseExp) ...[
-                  Expanded(child: _statCard(context.tr('team_details.exp', 'xP'), widget.team.exp?.toStringAsFixed(1) ?? '--', Colors.purpleAccent, Icons.bolt_rounded)),
+                if (_effectiveUsexP) ...[
+                  Expanded(child: _statCard(context.tr('team_details.xP', 'xP'), widget.team.xP?.toStringAsFixed(1) ?? '--', Colors.purpleAccent, Icons.bolt_rounded)),
                   const SizedBox(width: 8),
                 ],
                 if (_effectiveUseOpr) ...[

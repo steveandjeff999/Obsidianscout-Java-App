@@ -102,7 +102,7 @@ class _TeamsListScreenState extends State<TeamsListScreen> with LiveRefresh<Team
 
   bool get _isFtc => widget.apiService.currentProgram.toUpperCase() == 'FTC';
   bool get _effectiveUseEpa => !_isFtc && (widget.apiService.currentSettings?.useStatboticsEpa ?? false);
-  bool get _effectiveUseExp => !_isFtc && (widget.apiService.currentSettings?.useMatch13Exp ?? false);
+  bool get _effectiveUsexP => !_isFtc && (widget.apiService.currentSettings?.useMatch13xP ?? false);
   bool get _effectiveUseOpr => widget.apiService.currentSettings?.useTbaOpr ?? false;
 
   List<TeamModel> get _filteredSorted {
@@ -120,8 +120,9 @@ class _TeamsListScreenState extends State<TeamsListScreen> with LiveRefresh<Team
           return (a.nickname ?? a.name ?? '').compareTo(b.nickname ?? b.name ?? '');
         case 'epa':
           return (b.epa ?? 0).compareTo(a.epa ?? 0);
+        case 'xP':
         case 'exp':
-          return (b.exp ?? 0).compareTo(a.exp ?? 0);
+          return (b.xP ?? 0).compareTo(a.xP ?? 0);
         case 'opr':
           return (b.opr ?? 0).compareTo(a.opr ?? 0);
         case 'number':
@@ -229,7 +230,7 @@ class _TeamsListScreenState extends State<TeamsListScreen> with LiveRefresh<Team
                         ('number', Icons.tag_rounded, '# Number'),
                         ('name', Icons.sort_by_alpha_rounded, 'Name'),
                         if (_effectiveUseEpa) ('epa', Icons.electric_bolt_rounded, 'EPA'),
-                        if (_effectiveUseExp) ('exp', Icons.bolt_rounded, 'xP'),
+                        if (_effectiveUsexP) ('xP', Icons.bolt_rounded, 'xP'),
                         if (_effectiveUseOpr) ('opr', Icons.leaderboard_rounded, 'OPR'),
                       ])
                         Padding(
@@ -314,7 +315,7 @@ class _TeamsListScreenState extends State<TeamsListScreen> with LiveRefresh<Team
     final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
     final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
     final hasStats = (team.epa != null && _effectiveUseEpa) ||
-        (team.exp != null && _effectiveUseExp) ||
+        (team.xP != null && _effectiveUsexP) ||
         team.opr != null ||
         team.averagePoints != null;
 
@@ -389,8 +390,8 @@ class _TeamsListScreenState extends State<TeamsListScreen> with LiveRefresh<Team
                     children: [
                       if (team.epa != null && _effectiveUseEpa)
                         _statBadge(context, 'EPA', team.epa!.toStringAsFixed(1), Colors.amber),
-                      if (team.exp != null && _effectiveUseExp)
-                        _statBadge(context, 'xP', team.exp!.toStringAsFixed(1), Colors.purpleAccent),
+                      if (team.xP != null && _effectiveUsexP)
+                        _statBadge(context, 'xP', team.xP!.toStringAsFixed(1), Colors.purpleAccent),
                       if (team.opr != null && _effectiveUseOpr)
                         _statBadge(context, 'OPR', team.opr!.toStringAsFixed(1), ObsidianUITheme.primaryAccent),
                       if (team.averagePoints != null)
