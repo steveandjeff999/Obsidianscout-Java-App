@@ -564,7 +564,7 @@ class ShellScreenRegistry {
       case 39:
         return context.tr('nav.projected_rankings', 'Projected Rankings');
       case 40:
-        return context.tr('nav.scouter-report', 'Scouter Report');
+        return context.tr('nav.scouter-report', 'Scout Report');
       case 41:
         return context.tr('nav.alliances', 'Alliances');
       case 42:

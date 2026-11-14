@@ -402,7 +402,7 @@ class ObsidianPagesModal extends StatelessWidget {
         'pageId': 'scouter-report',
         'index': 40,
         'icon': Icons.summarize_rounded,
-        'name': context.tr('nav.scouter-report', 'Scouter Report'),
+        'name': context.tr('nav.scouter-report', 'Scout Report'),
         'desc': 'Contribution per scout, with CSV export',
         'tag': 'Admin',
         'color': ObsidianUITheme.primaryAccent,

@@ -485,7 +485,7 @@ const List<MapEntry<String, String>> customRoleGrantablePages = [
   MapEntry('assignments', 'Scouting Assignments (Admin)'),
   MapEntry('admin-settings', 'Admin Settings'),
   MapEntry('users', 'Users'),
-  MapEntry('scouter-report', 'Scouter Report'),
+  MapEntry('scouter-report', 'Scout Report'),
   MapEntry('banners', 'Banners'),
 ];
 

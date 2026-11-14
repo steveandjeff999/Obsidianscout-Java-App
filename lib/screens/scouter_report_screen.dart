@@ -102,7 +102,7 @@ class _ScouterReportScreenState extends State<ScouterReportScreen> with LiveRefr
     final res = await widget.apiService.requestJson('GET', '/api/admin/scouter-report', query: _query());
     if (!mounted) return;
     if (quiet && !res.success) return;
-    if (!res.success) reportResult(context, res, action: context.tr('scouter-report.title', 'Scouter Report'));
+    if (!res.success) reportResult(context, res, action: context.tr('scouter-report.title', 'Scout Report'));
     setState(() {
       _report = res.success ? jsonMap(res.data) : null;
       if (!quiet) _expanded.clear();
@@ -168,7 +168,7 @@ class _ScouterReportScreenState extends State<ScouterReportScreen> with LiveRefr
   Widget _buildControls(BuildContext context) {
     final surface = ObsidianUITheme.getSurfaceColor(context);
     return PortedSection(
-      title: context.tr('scouter-report.title', 'Scouter Report'),
+      title: context.tr('scouter-report.title', 'Scout Report'),
       subtitle: context.tr('scouter-report.notice', 'See how much each scout contributed for an event or a whole season, then export it.'),
       actions: [
         FilledButton.icon(
