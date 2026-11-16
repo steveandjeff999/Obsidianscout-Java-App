@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/obsidian_tokens.dart';
 import '../models/config_models.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
@@ -185,7 +186,7 @@ class _EventCodePickerSheetState extends State<_EventCodePickerSheet> {
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
         decoration: BoxDecoration(
           color: bg,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
           border: Border.all(color: border),
         ),
         child: Column(

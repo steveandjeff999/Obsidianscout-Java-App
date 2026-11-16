@@ -13,13 +13,13 @@ import '../widgets/security_admin_panel.dart';
 // Superadministrator-only real-time cluster telemetry & diagnostics dashboard.
 // ============================================================================
 
-const Color _green = Color(0xFF10B981);
-const Color _red = Color(0xFFEF4444);
-const Color _orange = Color(0xFFF97316);
-const Color _amber = Color(0xFFF59E0B);
-const Color _sky = Color(0xFF38BDF8);
+const Color _green = ObsidianUITheme.successGreen;
+const Color _red = ObsidianUITheme.errorRed;
+const Color _orange = ObsidianUITheme.warningOrange;
+const Color _amber = ObsidianUITheme.warningOrange;
+const Color _sky = ObsidianUITheme.defaultSecondaryAccent;
 const Color _indigo = Color(0xFF6366F1);
-const Color _violet = Color(0xFF8B5CF6);
+const Color _violet = ObsidianUITheme.defaultPrimaryAccent;
 const Color _rose = Color(0xFFF43F5E);
 
 String _formatDuration(int ms) {

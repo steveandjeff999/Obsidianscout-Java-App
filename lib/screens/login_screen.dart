@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/obsidian_tokens.dart';
 import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/obsidian_ui_theme.dart';
@@ -446,7 +447,7 @@ class _LoginScreenState extends State<LoginScreen> {
           backgroundColor: ObsidianUITheme.getSurfaceColor(context),
           content: Row(
             children: [
-              const Icon(Icons.arrow_back_rounded, color: Colors.cyanAccent, size: 20),
+              const Icon(Icons.arrow_back_rounded, color: ObsidianUITheme.defaultPrimaryAccent, size: 20),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -740,7 +741,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 fontSize: 11.0,
                                 fontWeight: FontWeight.bold,
                                 color: ObsidianUITheme.primaryAccent,
-                                letterSpacing: 1.0,
+                                letterSpacing: 0,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -795,7 +796,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     padding: const EdgeInsets.symmetric(vertical: 10.0),
                                     decoration: BoxDecoration(
                                       color: _activeTabIndex == 0 ? ObsidianUITheme.primaryAccent : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(12.0),
+                                      borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                                     ),
                                     child: Text(
                                       context.tr('login.sign_in', 'Sign In'),
@@ -817,7 +818,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     padding: const EdgeInsets.symmetric(vertical: 10.0),
                                     decoration: BoxDecoration(
                                       color: _activeTabIndex == 1 ? ObsidianUITheme.secondaryAccent : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(12.0),
+                                      borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                                     ),
                                     child: Text(
                                       context.tr('login.create_account', 'Create Account'),
@@ -882,7 +883,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             : Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Icon(Icons.fingerprint_rounded, color: Colors.cyanAccent),
+                                  const Icon(Icons.fingerprint_rounded, color: ObsidianUITheme.defaultPrimaryAccent),
                                   const SizedBox(width: 10.0),
                                   Text(
                                     'Sign In with Passkey / Biometrics',
@@ -1199,7 +1200,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 8.0),
                       decoration: BoxDecoration(
                         color: _forgotTabIndex == 0 ? ObsidianUITheme.primaryAccent : Colors.transparent,
-                        borderRadius: BorderRadius.circular(10.0),
+                        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                       ),
                       child: Text(
                         context.tr('index.email', 'Email'),
@@ -1221,7 +1222,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 8.0),
                       decoration: BoxDecoration(
                         color: _forgotTabIndex == 1 ? ObsidianUITheme.primaryAccent : Colors.transparent,
-                        borderRadius: BorderRadius.circular(10.0),
+                        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                       ),
                       child: Text(
                         context.tr('index.username_team', 'Username & Team'),

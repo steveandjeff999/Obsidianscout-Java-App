@@ -69,7 +69,7 @@ class _ObsidianNavigationDrawerState extends State<ObsidianNavigationDrawer> {
     final headerTextColor = ObsidianUITheme.getPrimaryTextColor(context);
     final sectionLabelColor = ObsidianUITheme.getSecondaryTextColor(context);
     final primaryAccent = ObsidianUITheme.getPrimaryAccent(context);
-    final itemRadius = ObsidianUITheme.getButtonRadius(context, fallback: 12.0)
+    final itemRadius = ObsidianUITheme.getButtonRadius(context)
         .clamp(4.0, 18.0);
 
     final user = apiService.currentUser;
@@ -660,12 +660,12 @@ class _ObsidianNavigationDrawerState extends State<ObsidianNavigationDrawer> {
                         padding: const EdgeInsets.only(
                             left: 12.0, bottom: 6.0, top: 4.0),
                         child: Text(
-                          context.tr(titleKey).toUpperCase(),
+                          context.tr(titleKey),
                           style: TextStyle(
                             color: sectionLabelColor,
-                            fontSize: 10.0,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1.2,
+                            fontSize: 12.0,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 0,
                           ),
                         ),
                       ),
@@ -747,12 +747,12 @@ class _ObsidianNavigationDrawerState extends State<ObsidianNavigationDrawer> {
                   Padding(
                     padding: const EdgeInsets.only(left: 12.0, bottom: 8.0),
                     child: Text(
-                      'PREFERENCES',
+                      'Preferences',
                       style: TextStyle(
                         color: sectionLabelColor,
-                        fontSize: 10.0,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.2,
+                        fontSize: 12.0,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0,
                       ),
                     ),
                   ),
@@ -763,8 +763,8 @@ class _ObsidianNavigationDrawerState extends State<ObsidianNavigationDrawer> {
                           ? Icons.dark_mode_rounded
                           : Icons.light_mode_rounded,
                       color: apiService.themeMode == ThemeMode.light
-                          ? const Color(0xFF4F46E5)
-                          : const Color(0xFFFFB703),
+                          ? ObsidianUITheme.defaultPrimaryAccent
+                          : ObsidianUITheme.warningOrange,
                       size: 22,
                     ),
                     title: Text(
@@ -786,7 +786,7 @@ class _ObsidianNavigationDrawerState extends State<ObsidianNavigationDrawer> {
                     ),
                     trailing: Switch.adaptive(
                       value: apiService.themeMode == ThemeMode.light,
-                      activeThumbColor: const Color(0xFF4F46E5),
+                      activeThumbColor: ObsidianUITheme.defaultPrimaryAccent,
                       onChanged: (value) {
                         apiService.setThemeMode(
                             value ? ThemeMode.light : ThemeMode.dark);

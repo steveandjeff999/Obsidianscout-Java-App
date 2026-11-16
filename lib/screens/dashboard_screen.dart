@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/obsidian_tokens.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../theme/obsidian_ui_theme.dart';
@@ -36,7 +37,7 @@ class DashboardScreen extends StatelessWidget {
     final isDesktop = ObsidianResponsive.isDesktop(context, overrideMode: apiService?.uiMode);
     final bool isConnected = apiService?.isLoggedIn ?? true;
     final String statusText = isConnected ? context.tr('connection.online') : context.tr('connection.offline');
-    final Color statusColor = isConnected ? ObsidianUITheme.successGreen : Colors.redAccent;
+    final Color statusColor = isConnected ? ObsidianUITheme.successGreen : ObsidianUITheme.errorRed;
     final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
     final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
     final tertiaryTextColor = ObsidianUITheme.getTertiaryTextColor(context);
@@ -126,12 +127,12 @@ class DashboardScreen extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(left: 20.0, top: 12.0, bottom: 4.0),
                     child: Text(
-                      'QUICK ACTIONS',
+                      'Quick actions',
                       style: TextStyle(
                         fontSize: 12.0,
                         fontWeight: FontWeight.w700,
                         color: tertiaryTextColor,
-                        letterSpacing: 1.0,
+                        letterSpacing: 0,
                       ),
                     ),
                   ),
@@ -150,7 +151,7 @@ class DashboardScreen extends StatelessWidget {
                                   padding: const EdgeInsets.all(8.0),
                                   decoration: BoxDecoration(
                                     color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.circular(8.0),
+                                    borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                                   ),
                                   child: Icon(Icons.sports_esports_rounded, size: 24.0, color: ObsidianUITheme.primaryAccent),
                                 ),
@@ -172,7 +173,7 @@ class DashboardScreen extends StatelessWidget {
                                   padding: const EdgeInsets.all(8.0),
                                   decoration: BoxDecoration(
                                     color: ObsidianUITheme.secondaryAccent.withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.circular(8.0),
+                                    borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                                   ),
                                   child: Icon(Icons.build_circle_rounded, size: 24.0, color: ObsidianUITheme.secondaryAccent),
                                 ),
@@ -291,7 +292,7 @@ class DashboardScreen extends StatelessWidget {
                       onTap: onNavigateAlliance,
                       child: Row(
                         children: [
-                          const Icon(Icons.stars_rounded, size: 32.0, color: Colors.amberAccent),
+                          const Icon(Icons.stars_rounded, size: 32.0, color: ObsidianUITheme.warningOrange),
                           const SizedBox(width: 16.0),
                           Expanded(
                             child: Column(
@@ -319,7 +320,7 @@ class DashboardScreen extends StatelessWidget {
                       onTap: onNavigatePrescout,
                       child: Row(
                         children: [
-                          const Icon(Icons.history_edu_rounded, size: 32.0, color: Colors.cyanAccent),
+                          const Icon(Icons.history_edu_rounded, size: 32.0, color: ObsidianUITheme.defaultPrimaryAccent),
                           const SizedBox(width: 16.0),
                           Expanded(
                             child: Column(
@@ -347,7 +348,7 @@ class DashboardScreen extends StatelessWidget {
                       onTap: onNavigateHistory,
                       child: Row(
                         children: [
-                          const Icon(Icons.history_rounded, size: 32.0, color: Color(0xFF38BDF8)),
+                          const Icon(Icons.history_rounded, size: 32.0, color: ObsidianUITheme.defaultSecondaryAccent),
                           const SizedBox(width: 16.0),
                           Expanded(
                             child: Column(
@@ -429,7 +430,7 @@ class DashboardScreen extends StatelessWidget {
           icon: Icons.qr_code_scanner_rounded,
           title: context.tr('scanner.title'),
           subtitle: context.tr('scanner.scan_qr'),
-          accentColor: Colors.cyanAccent,
+          accentColor: ObsidianUITheme.defaultPrimaryAccent,
           onTap: onNavigateQrScanner,
         ),
       if (canAlliance)
@@ -437,7 +438,7 @@ class DashboardScreen extends StatelessWidget {
           icon: Icons.stars_rounded,
           title: context.tr('nav.alliance_selection'),
           subtitle: context.tr('subtitle.alliance_selection'),
-          accentColor: Colors.amberAccent,
+          accentColor: ObsidianUITheme.warningOrange,
           onTap: onNavigateAlliance!,
         ),
       if (canPrescout)
@@ -453,7 +454,7 @@ class DashboardScreen extends StatelessWidget {
           icon: Icons.history_rounded,
           title: context.tr('nav.scout_history'),
           subtitle: context.tr('subtitle.scout_history'),
-          accentColor: const Color(0xFF38BDF8),
+          accentColor: ObsidianUITheme.defaultSecondaryAccent,
           onTap: onNavigateHistory!,
         ),
     ];
@@ -464,10 +465,9 @@ class DashboardScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Desktop Status & Overview Card
-          ObsidianGlassCard(
-            margin: const EdgeInsets.only(bottom: 16.0),
-            padding: const EdgeInsets.all(18.0),
+          // Plain page header (site style): logo, serif title, status chip, description
+          Padding(
+            padding: const EdgeInsets.only(bottom: 20.0, top: 4.0),
             child: Row(
               children: [
                 Image.asset(
@@ -490,37 +490,40 @@ class DashboardScreen extends StatelessWidget {
                     children: [
                       Wrap(
                         crossAxisAlignment: WrapCrossAlignment.center,
-                        spacing: 10.0,
+                        spacing: 12.0,
                         runSpacing: 6.0,
                         children: [
                           Text(
                             program.isNotEmpty ? 'ObsidianScout $program' : 'ObsidianScout',
-                            style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold, color: primaryTextColor),
+                            style: ObsidianTokens.serif(
+                              base: TextStyle(color: primaryTextColor, height: 1.1),
+                              size: 34.0,
+                              weight: FontWeight.w500,
+                            ),
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
                             decoration: BoxDecoration(
-                              color: statusColor.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(6.0),
-                              border: Border.all(color: statusColor.withValues(alpha: 0.4)),
+                              color: statusColor.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Container(width: 6, height: 6, decoration: BoxDecoration(shape: BoxShape.circle, color: statusColor)),
-                                const SizedBox(width: 4),
-                                Text(statusText, style: TextStyle(fontSize: 11.0, fontWeight: FontWeight.bold, color: statusColor)),
+                                const SizedBox(width: 5),
+                                Text(statusText, style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.w600, color: statusColor)),
                               ],
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4.0),
+                      const SizedBox(height: 6.0),
                       Text(
                         eventKey.isNotEmpty
-                            ? 'Active Competition: ${eventKey.toUpperCase()}  •  User Role: $roleLabel'
+                            ? 'Active competition: ${eventKey.toUpperCase()}  •  Role: $roleLabel'
                             : 'Logged in as ${user?.username ?? "Operator"}  •  $roleLabel',
-                        style: TextStyle(fontSize: 13.0, color: secondaryTextColor),
+                        style: TextStyle(fontSize: 15.0, color: secondaryTextColor, height: 1.5),
                       ),
                     ],
                   ),
@@ -533,8 +536,8 @@ class DashboardScreen extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(left: 4.0, bottom: 8.0),
             child: Text(
-              'QUICK ACTIONS',
-              style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: tertiaryTextColor, letterSpacing: 1.0),
+              'Quick actions',
+              style: TextStyle(fontSize: 13.0, fontWeight: FontWeight.w500, color: tertiaryTextColor),
             ),
           ),
           LayoutBuilder(
@@ -558,8 +561,8 @@ class DashboardScreen extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(8.0),
                             decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: act.accentColor.withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(ObsidianTokens.radius),
+                              color: act.accentColor.withValues(alpha: 0.12),
                             ),
                             child: Icon(act.icon, color: act.accentColor, size: 20.0),
                           ),
@@ -607,8 +610,8 @@ class DashboardScreen extends StatelessWidget {
                     Icon(Icons.info_outline_rounded, color: ObsidianUITheme.primaryAccent, size: 18.0),
                     const SizedBox(width: 8.0),
                     Text(
-                      'STATION GUIDELINES & SYNC STATUS',
-                      style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: primaryTextColor, letterSpacing: 0.8),
+                      'Station guidelines & sync status',
+                      style: TextStyle(fontSize: 13.0, fontWeight: FontWeight.w600, color: primaryTextColor),
                     ),
                   ],
                 ),

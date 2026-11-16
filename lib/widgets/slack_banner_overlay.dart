@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../theme/obsidian_tokens.dart';
 import 'dart:collection';
 
 import 'package:flutter/material.dart';
@@ -191,7 +192,7 @@ class _SlackBannerCardState extends State<_SlackBannerCard> with SingleTickerPro
               clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
                 color: ObsidianUITheme.getSurfaceColor(context),
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                 border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
                 boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 6))],
               ),
@@ -210,7 +211,7 @@ class _SlackBannerCardState extends State<_SlackBannerCard> with SingleTickerPro
                               margin: const EdgeInsets.only(top: 2),
                               padding: const EdgeInsets.all(6),
                               decoration:
-                                  BoxDecoration(color: _slackAubergine.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(8)),
+                                  BoxDecoration(color: _slackAubergine.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill)),
                               child: Icon(Icons.tag_rounded, size: 16, color: accent),
                             ),
                             const SizedBox(width: 10),
@@ -230,7 +231,7 @@ class _SlackBannerCardState extends State<_SlackBannerCard> with SingleTickerPro
                                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                                           decoration:
                                               BoxDecoration(color: ObsidianUITheme.primaryAccent, borderRadius: BorderRadius.circular(6)),
-                                          child: Text(context.tr('slack.banner_mentioned', 'Mentioned').toUpperCase(),
+                                          child: Text(context.tr('slack.banner_mentioned', 'Mentioned'),
                                               style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.white)),
                                         ),
                                     ],

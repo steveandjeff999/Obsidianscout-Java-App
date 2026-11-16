@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/obsidian_tokens.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import '../l10n/app_localizations.dart';
@@ -299,7 +300,7 @@ class DynamicFieldWidget extends StatelessWidget {
             Container(
               decoration: BoxDecoration(
                 color: surfaceColor,
-                borderRadius: BorderRadius.circular(8.0),
+                borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                 border: Border.all(color: borderColor, width: 1.0),
               ),
               child: Row(
@@ -464,7 +465,7 @@ class DynamicFieldWidget extends StatelessWidget {
                   ),
                   icon: Icon(
                     isSelected ? Icons.star_rounded : Icons.star_border_rounded,
-                    color: isSelected ? Colors.amber : faintTextColor,
+                    color: isSelected ? ObsidianUITheme.warningOrange : faintTextColor,
                     size: isDesktop ? 22.0 : 32.0,
                   ),
                   onPressed: () {
@@ -685,11 +686,11 @@ class DynamicFieldWidget extends StatelessWidget {
             labelStyle: TextStyle(color: secondaryTextColor),
             enabledBorder: OutlineInputBorder(
               borderSide: BorderSide(color: borderColor),
-              borderRadius: const BorderRadius.all(Radius.circular(12.0)),
+              borderRadius: const BorderRadius.all(Radius.circular(ObsidianTokens.radius)),
             ),
             focusedBorder: OutlineInputBorder(
               borderSide: BorderSide(color: ObsidianUITheme.primaryAccent),
-              borderRadius: const BorderRadius.all(Radius.circular(12.0)),
+              borderRadius: const BorderRadius.all(Radius.circular(ObsidianTokens.radius)),
             ),
           ),
           onChanged: (text) => onChanged(text),
@@ -709,7 +710,7 @@ class DynamicFieldWidget extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
           decoration: BoxDecoration(
             color: surfaceColor.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(10.0),
+            borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
             border: Border.all(color: borderColor.withValues(alpha: 0.6)),
           ),
           child: Column(
@@ -857,7 +858,7 @@ class DynamicFieldWidget extends StatelessWidget {
         context: context,
         backgroundColor: surfaceColor,
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
         ),
         builder: (ctx) => SafeArea(
           child: Padding(
@@ -948,7 +949,7 @@ class DynamicFieldWidget extends StatelessWidget {
                   minScale: 0.5,
                   maxScale: 4.0,
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                     child: imgWidget,
                   ),
                 ),
@@ -967,7 +968,7 @@ class DynamicFieldWidget extends StatelessWidget {
       padding: const EdgeInsets.all(12.0),
       decoration: BoxDecoration(
         color: surfaceColor.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(12.0),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
         border: Border.all(color: borderColor),
       ),
       child: Column(
@@ -988,12 +989,12 @@ class DynamicFieldWidget extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.15),
+                    color: ObsidianUITheme.errorRed.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: const Text(
                     'Required',
-                    style: TextStyle(color: Colors.redAccent, fontSize: 11, fontWeight: FontWeight.w600),
+                    style: TextStyle(color: ObsidianUITheme.errorRed, fontSize: 11, fontWeight: FontWeight.w600),
                   ),
                 ),
             ],
@@ -1010,11 +1011,11 @@ class DynamicFieldWidget extends StatelessWidget {
                     width: double.infinity,
                     decoration: BoxDecoration(
                       color: Colors.black38,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                       border: Border.all(color: Colors.white12),
                     ),
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                       child: imgWidget,
                     ),
                   ),
@@ -1071,8 +1072,8 @@ class DynamicFieldWidget extends StatelessWidget {
                     const SizedBox(width: 8),
                     TextButton.icon(
                       onPressed: () => onChanged(null),
-                      icon: const Icon(Icons.delete_outline, size: 16, color: Colors.redAccent),
-                      label: const Text('Remove', style: TextStyle(fontSize: 12, color: Colors.redAccent)),
+                      icon: const Icon(Icons.delete_outline, size: 16, color: ObsidianUITheme.errorRed),
+                      label: const Text('Remove', style: TextStyle(fontSize: 12, color: ObsidianUITheme.errorRed)),
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         minimumSize: Size.zero,
@@ -1089,7 +1090,7 @@ class DynamicFieldWidget extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 12.0),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.02),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                 border: Border.all(color: borderColor.withValues(alpha: 0.4)),
               ),
               child: Column(

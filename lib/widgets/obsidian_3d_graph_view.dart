@@ -1,4 +1,6 @@
 import 'dart:convert';
+import '../theme/obsidian_ui_theme.dart';
+import '../theme/obsidian_tokens.dart';
 import 'dart:io' show Platform;
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
@@ -195,7 +197,7 @@ class _Obsidian3DGraphViewState extends State<Obsidian3DGraphView> {
         height: widget.height,
         width: double.infinity,
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(ObsidianTokens.radius),
           child: _winController == null
               ? const Center(child: CircularProgressIndicator())
               : win_wv.Webview(_winController!),
@@ -208,7 +210,7 @@ class _Obsidian3DGraphViewState extends State<Obsidian3DGraphView> {
         height: widget.height,
         width: double.infinity,
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(ObsidianTokens.radius),
           child: _mobileController == null
               ? const Center(child: CircularProgressIndicator())
               : WebViewWidget(
@@ -304,7 +306,7 @@ class _Fallback3DPainter extends CustomPainter {
     Color(0xFF7C3AED),
     Color(0xFF059669),
     Color(0xFFDB2777),
-    Color(0xFF0284C7),
+    ObsidianUITheme.defaultPrimaryAccent,
   ];
 
   @override

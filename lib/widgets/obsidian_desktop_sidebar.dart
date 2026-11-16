@@ -120,7 +120,7 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
     final headerTextColor = ObsidianUITheme.getPrimaryTextColor(context);
     final sectionLabelColor = ObsidianUITheme.getSecondaryTextColor(context);
     final primaryAccent = ObsidianUITheme.getPrimaryAccent(context);
-    final itemRadius = ObsidianUITheme.getButtonRadius(context, fallback: 10.0)
+    final itemRadius = ObsidianUITheme.getButtonRadius(context)
         .clamp(4.0, 16.0);
 
     final user = widget.apiService.currentUser;
@@ -799,12 +799,12 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
                         padding: const EdgeInsets.only(
                             left: 10.0, top: 12.0, bottom: 4.0),
                         child: Text(
-                          context.tr(titleKey).toUpperCase(),
+                          context.tr(titleKey),
                           style: TextStyle(
                             color: sectionLabelColor,
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1.0,
+                            fontSize: 12.0,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 0,
                           ),
                         ),
                       )
@@ -971,8 +971,8 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
                               : Icons.light_mode_rounded,
                           size: 18.0,
                           color: widget.apiService.themeMode == ThemeMode.light
-                              ? const Color(0xFF4F46E5)
-                              : const Color(0xFFFFB703),
+                              ? ObsidianUITheme.defaultPrimaryAccent
+                              : ObsidianUITheme.warningOrange,
                         ),
                         tooltip: widget.apiService.themeMode == ThemeMode.light
                             ? 'Switch to Dark Mode'
@@ -1010,8 +1010,8 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
                               : Icons.light_mode_rounded,
                           size: 18.0,
                           color: widget.apiService.themeMode == ThemeMode.light
-                              ? const Color(0xFF4F46E5)
-                              : const Color(0xFFFFB703),
+                              ? ObsidianUITheme.defaultPrimaryAccent
+                              : ObsidianUITheme.warningOrange,
                         ),
                         tooltip: widget.apiService.themeMode == ThemeMode.light
                             ? 'Switch to Dark Mode'

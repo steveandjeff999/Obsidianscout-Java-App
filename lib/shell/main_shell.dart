@@ -301,7 +301,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
         SnackBar(
           duration: const Duration(seconds: 5),
           behavior: SnackBarBehavior.floating,
-          backgroundColor: const Color(0xFFB91C1C),
+          backgroundColor: ObsidianUITheme.errorRed,
           content: Row(
             children: [
               const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
@@ -344,7 +344,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
         SnackBar(
           duration: const Duration(seconds: 6),
           behavior: SnackBarBehavior.floating,
-          backgroundColor: const Color(0xFFB91C1C),
+          backgroundColor: ObsidianUITheme.errorRed,
           content: Row(
             children: [
               const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 20),
@@ -591,7 +591,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
             backgroundColor: ObsidianUITheme.getSurfaceColor(context),
             content: Row(
               children: [
-                const Icon(Icons.chat_bubble_outline_rounded, color: Colors.cyanAccent, size: 20),
+                const Icon(Icons.chat_bubble_outline_rounded, color: ObsidianUITheme.defaultPrimaryAccent, size: 20),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
@@ -607,7 +607,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
             ),
             action: SnackBarAction(
               label: 'OPEN',
-              textColor: Colors.cyanAccent,
+              textColor: ObsidianUITheme.defaultPrimaryAccent,
               onPressed: () {
                 setState(() {
                   _pendingChatChannel = groupName;
@@ -655,7 +655,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
         const SnackBar(
           duration: Duration(seconds: 3),
           behavior: SnackBarBehavior.floating,
-          backgroundColor: Color(0xFFB91C1C),
+          backgroundColor: ObsidianUITheme.errorRed,
           content: Row(
             children: [
               Icon(Icons.lock_rounded, color: Colors.white, size: 20),
@@ -764,7 +764,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
           backgroundColor: ObsidianUITheme.getSurfaceColor(context),
           content: Row(
             children: [
-              const Icon(Icons.arrow_back_rounded, color: Colors.cyanAccent, size: 20),
+              const Icon(Icons.arrow_back_rounded, color: ObsidianUITheme.defaultPrimaryAccent, size: 20),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -793,7 +793,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
         const SnackBar(
           duration: Duration(seconds: 3),
           behavior: SnackBarBehavior.floating,
-          backgroundColor: Color(0xFFB91C1C),
+          backgroundColor: ObsidianUITheme.errorRed,
           content: Row(
             children: [
               Icon(Icons.lock_rounded, color: Colors.white, size: 20),
@@ -865,7 +865,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
       SnackBar(
         duration: const Duration(seconds: 4),
         behavior: SnackBarBehavior.floating,
-        backgroundColor: isError ? const Color(0xFFB91C1C) : ObsidianUITheme.getSurfaceColor(context),
+        backgroundColor: isError ? ObsidianUITheme.errorRed : ObsidianUITheme.getSurfaceColor(context),
         content: Text(
           message,
           style: TextStyle(
@@ -1195,8 +1195,8 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
                                         ? Icons.dark_mode_rounded
                                         : Icons.light_mode_rounded,
                                     color: widget.apiService.themeMode == ThemeMode.light
-                                        ? const Color(0xFF4F46E5)
-                                        : const Color(0xFFFFB703),
+                                        ? ObsidianUITheme.defaultPrimaryAccent
+                                        : ObsidianUITheme.warningOrange,
                                   ),
                                   tooltip: widget.apiService.themeMode == ThemeMode.light
                                       ? 'Switch to Dark Mode'
@@ -1225,8 +1225,8 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
                                     icon: Icon(
                                       Icons.qr_code_scanner_rounded,
                                       color: Theme.of(context).brightness == Brightness.dark
-                                          ? Colors.cyanAccent
-                                          : const Color(0xFF0284C7),
+                                          ? ObsidianUITheme.defaultPrimaryAccent
+                                          : ObsidianUITheme.defaultPrimaryAccent,
                                     ),
                                     tooltip: 'QR & Barcode Scanner',
                                     onPressed: _openQrScanner,

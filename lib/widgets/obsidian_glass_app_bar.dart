@@ -63,9 +63,10 @@ class ObsidianGlassAppBar extends StatelessWidget implements PreferredSizeWidget
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 10.5,
+                            height: 1.2,
                             fontWeight: FontWeight.w600,
                             color: ObsidianUITheme.getSecondaryTextColor(context),
-                            letterSpacing: 0.8,
+                            letterSpacing: 0,
                           ),
                         ),
                       ),
@@ -93,6 +94,7 @@ class ObsidianGlassAppBar extends StatelessWidget implements PreferredSizeWidget
                             isOnline ? 'ONLINE' : 'OFFLINE',
                             style: TextStyle(
                               fontSize: 9.0,
+                              height: 1.2,
                               fontWeight: FontWeight.w700,
                               color: statusColor,
                               letterSpacing: 0.4,
@@ -110,6 +112,7 @@ class ObsidianGlassAppBar extends StatelessWidget implements PreferredSizeWidget
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 20.0,
+                    height: 1.15,
                     fontWeight: FontWeight.w700,
                     color: titleColor,
                     letterSpacing: -0.3,

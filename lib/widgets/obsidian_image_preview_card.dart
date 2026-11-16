@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import '../theme/obsidian_tokens.dart';
 import 'package:flutter/material.dart';
 import '../services/image_utils.dart';
 import '../services/photo_values.dart';
@@ -26,7 +27,7 @@ class ObsidianImagePreviewCard extends StatelessWidget {
       builder: (dialogCtx) => Dialog(
         backgroundColor: Colors.black.withValues(alpha: 0.94),
         insetPadding: const EdgeInsets.all(12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -38,7 +39,7 @@ class ObsidianImagePreviewCard extends StatelessWidget {
                   Expanded(
                     child: Row(
                       children: [
-                        const Icon(Icons.camera_alt_rounded, color: Colors.cyanAccent, size: 20),
+                        const Icon(Icons.camera_alt_rounded, color: ObsidianUITheme.defaultPrimaryAccent, size: 20),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -67,7 +68,7 @@ class ObsidianImagePreviewCard extends StatelessWidget {
                 minScale: 0.5,
                 maxScale: 4.0,
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                   child: image,
                 ),
               ),
@@ -94,7 +95,7 @@ class ObsidianImagePreviewCard extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
         border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
       ),
       child: Column(
@@ -103,7 +104,7 @@ class ObsidianImagePreviewCard extends StatelessWidget {
           if (label.isNotEmpty) ...[
             Row(
               children: [
-                const Icon(Icons.photo_camera_rounded, size: 16, color: Colors.cyanAccent),
+                const Icon(Icons.photo_camera_rounded, size: 16, color: ObsidianUITheme.defaultPrimaryAccent),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
@@ -129,11 +130,11 @@ class ObsidianImagePreviewCard extends StatelessWidget {
                   width: double.infinity,
                   decoration: BoxDecoration(
                     color: Colors.black45,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                     border: Border.all(color: Colors.white12),
                   ),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                     child: image,
                   ),
                 ),
@@ -148,7 +149,7 @@ class ObsidianImagePreviewCard extends StatelessWidget {
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.zoom_in_rounded, size: 14, color: Colors.cyanAccent),
+                      Icon(Icons.zoom_in_rounded, size: 14, color: ObsidianUITheme.defaultPrimaryAccent),
                       SizedBox(width: 4),
                       Text(
                         'Tap to Zoom',
@@ -190,11 +191,11 @@ class ObsidianImageThumbnail extends StatelessWidget {
         height: size,
         decoration: BoxDecoration(
           color: Colors.black54,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.5), width: 1.2),
+          borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
+          border: Border.all(color: ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.5), width: 1.2),
           boxShadow: [
             BoxShadow(
-              color: Colors.cyanAccent.withValues(alpha: 0.2),
+              color: ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.2),
               blurRadius: 4,
               offset: const Offset(0, 1),
             ),
@@ -216,7 +217,7 @@ class ObsidianImageThumbnail extends StatelessWidget {
                   color: Colors.black87,
                   borderRadius: BorderRadius.circular(3),
                 ),
-                child: const Icon(Icons.zoom_in, color: Colors.cyanAccent, size: 10),
+                child: const Icon(Icons.zoom_in, color: ObsidianUITheme.defaultPrimaryAccent, size: 10),
               ),
             ),
           ],

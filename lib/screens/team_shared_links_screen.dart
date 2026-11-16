@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../theme/obsidian_ui_theme.dart';
+import '../theme/obsidian_tokens.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -67,7 +69,7 @@ class _TeamSharedLinksScreenState extends State<TeamSharedLinksScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(context.tr('common.cancel'))),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.errorRed),
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(context.tr('shares.revoke')),
           ),
@@ -128,11 +130,11 @@ class _TeamSharedLinksScreenState extends State<TeamSharedLinksScreen> {
             // Stats Row
             Row(
               children: [
-                _buildStatCard(context.tr('shares.active_links'), activeCount.toString(), Colors.green, theme),
+                _buildStatCard(context.tr('shares.active_links'), activeCount.toString(), ObsidianUITheme.successGreen, theme),
                 const SizedBox(width: 8),
                 _buildStatCard(context.tr('shares.total_views'), totalViews.toString(), Colors.blue, theme),
                 const SizedBox(width: 8),
-                _buildStatCard(context.tr('share_modal.expiration'), expiredCount.toString(), Colors.orange, theme),
+                _buildStatCard(context.tr('share_modal.expiration'), expiredCount.toString(), ObsidianUITheme.warningOrange, theme),
                 const SizedBox(width: 8),
                 _buildStatCard(context.tr('shares.status_revoked'), revokedCount.toString(), Colors.purple, theme),
               ],
@@ -224,13 +226,13 @@ class _TeamSharedLinksScreenState extends State<TeamSharedLinksScreen> {
         ? (link.shareUrl!.startsWith('http') ? link.shareUrl! : '${widget.apiService.serverUrl}${link.shareUrl}')
         : '${widget.apiService.serverUrl}/shared/${link.token}';
 
-    Color statusColor = Colors.green;
+    Color statusColor = ObsidianUITheme.successGreen;
     String statusText = 'ACTIVE';
     if (link.isRevoked) {
       statusColor = Colors.purple;
       statusText = 'REVOKED';
     } else if (link.isExpired) {
-      statusColor = Colors.red;
+      statusColor = ObsidianUITheme.errorRed;
       statusText = 'EXPIRED';
     }
 
@@ -271,9 +273,9 @@ class _TeamSharedLinksScreenState extends State<TeamSharedLinksScreen> {
               runSpacing: 4,
               children: [
                 _buildBadge(link.resourceType.toUpperCase(), Colors.blue),
-                _buildBadge(link.accessScope.toUpperCase(), Colors.orange),
+                _buildBadge(link.accessScope.toUpperCase(), ObsidianUITheme.warningOrange),
                 _buildBadge('${link.viewCount} ${context.tr('shares.views')}', Colors.teal),
-                if (link.hasPin) _buildBadge(context.tr('shares.scope_pin'), Colors.amber),
+                if (link.hasPin) _buildBadge(context.tr('shares.scope_pin'), ObsidianUITheme.warningOrange),
                 if (link.shareMode == 'frozen_snapshot') _buildBadge(context.tr('shares.mode_snapshot'), Colors.indigo),
               ],
             ),
@@ -320,7 +322,7 @@ class _TeamSharedLinksScreenState extends State<TeamSharedLinksScreen> {
                 ),
                 if (!link.isRevoked)
                   IconButton(
-                    icon: const Icon(Icons.block, size: 20, color: Colors.redAccent),
+                    icon: const Icon(Icons.block, size: 20, color: ObsidianUITheme.errorRed),
                     tooltip: context.tr('shares.revoke', 'Revoke'),
                     onPressed: () => _handleRevoke(link),
                   ),
@@ -361,7 +363,7 @@ class _TeamSharedLinksScreenState extends State<TeamSharedLinksScreen> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.1),
@@ -382,7 +384,7 @@ class _TeamSharedLinksScreenState extends State<TeamSharedLinksScreen> {
                           child: Text(
                             'Unable to render QR code',
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.red, fontSize: 12),
+                            style: TextStyle(color: ObsidianUITheme.errorRed, fontSize: 12),
                           ),
                         );
                       },

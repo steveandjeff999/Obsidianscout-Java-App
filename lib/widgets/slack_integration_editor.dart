@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import '../theme/obsidian_tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -316,7 +317,7 @@ class _SlackIntegrationEditorState extends State<SlackIntegrationEditor> {
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: ObsidianUITheme.getSurfaceColor(context),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(ObsidianTokens.radius),
           border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
         ),
         child: child,

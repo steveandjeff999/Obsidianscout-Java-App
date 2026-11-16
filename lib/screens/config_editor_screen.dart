@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../theme/obsidian_tokens.dart';
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
@@ -905,7 +906,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
         children: [
           Row(
             children: [
-              const Icon(Icons.trending_up_rounded, size: 18, color: Colors.amberAccent),
+              const Icon(Icons.trending_up_rounded, size: 18, color: ObsidianUITheme.warningOrange),
               const SizedBox(width: 8),
               Text(context.tr('config.recency_title', 'Recency Bias'),
                   style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primaryTextColor)),
@@ -1284,7 +1285,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
 
         return AlertDialog(
           backgroundColor: ObsidianUITheme.getSurfaceColor(dCtx),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
           title: Row(
             children: [
               Icon(Icons.code_rounded, color: ObsidianUITheme.primaryAccent, size: 22),
@@ -1299,7 +1300,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                 border: Border.all(color: ObsidianUITheme.getBorderColor(dCtx)),
               ),
               child: Scrollbar(
@@ -1374,7 +1375,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
               decoration: BoxDecoration(
                 color: bg,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
                 border: Border.all(color: ObsidianUITheme.getBorderColor(modalCtx)),
               ),
               child: Column(
@@ -1478,8 +1479,8 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                                         if (isLatest)
                                           Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                            decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(6)),
-                                            child: const Text('ACTIVE', style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
+                                            decoration: BoxDecoration(color: ObsidianUITheme.successGreen.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(6)),
+                                            child: const Text('Active', style: TextStyle(color: ObsidianUITheme.successGreen, fontSize: 10, fontWeight: FontWeight.bold)),
                                           ),
                                       ],
                                     ),
@@ -1619,7 +1620,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
               decoration: BoxDecoration(
                 color: bg,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
                 border: Border.all(color: borderColor),
               ),
               child: FutureBuilder<ConfigSchemaStatusModel?>(
@@ -1681,7 +1682,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                       // Metrics Overview Grid
                       Row(
                         children: [
-                          _buildMetricCard('Records', '${status.entryCount}', Colors.cyanAccent, modalCtx),
+                          _buildMetricCard('Records', '${status.entryCount}', ObsidianUITheme.defaultPrimaryAccent, modalCtx),
                           const SizedBox(width: 8),
                           _buildMetricCard('Legacy Keys', '${status.unmatchedDataKeys.length}', ObsidianUITheme.warningOrange, modalCtx),
                           const SizedBox(width: 8),
@@ -1731,7 +1732,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                                         padding: const EdgeInsets.all(10),
                                         decoration: BoxDecoration(
                                           color: ObsidianUITheme.getSurfaceColor(modalCtx),
-                                          borderRadius: BorderRadius.circular(10),
+                                          borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                                           border: Border.all(color: isUnmatched ? ObsidianUITheme.warningOrange.withValues(alpha: 0.5) : borderColor),
                                         ),
                                         child: Column(
@@ -1898,16 +1899,16 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                                             Container(
                                               width: 8,
                                               height: 8,
-                                              decoration: const BoxDecoration(color: Colors.greenAccent, shape: BoxShape.circle),
+                                              decoration: const BoxDecoration(color: ObsidianUITheme.successGreen, shape: BoxShape.circle),
                                             ),
                                             const SizedBox(width: 6),
-                                            const Text('Migrated Schema Output', style: TextStyle(color: Colors.greenAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                                            const Text('Migrated Schema Output', style: TextStyle(color: ObsidianUITheme.successGreen, fontSize: 11, fontWeight: FontWeight.bold)),
                                           ],
                                         ),
                                         const SizedBox(height: 8),
                                         SelectableText(
                                           const JsonEncoder.withIndent('  ').convert(previewData!.samples[previewIndex].after),
-                                          style: const TextStyle(fontFamily: 'monospace', fontSize: 11.5, color: Colors.greenAccent, height: 1.35),
+                                          style: const TextStyle(fontFamily: 'monospace', fontSize: 11.5, color: ObsidianUITheme.successGreen, height: 1.35),
                                         ),
                                       ],
                                     ),
@@ -1938,7 +1939,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                                     padding: const EdgeInsets.all(16),
                                     decoration: BoxDecoration(
                                       color: ObsidianUITheme.getSurfaceColor(modalCtx),
-                                      borderRadius: BorderRadius.circular(12),
+                                      borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                                       border: Border.all(color: borderColor),
                                     ),
                                     child: Row(
@@ -2031,7 +2032,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
         decoration: BoxDecoration(
           color: ObsidianUITheme.getSurfaceColor(context),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
           border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
         ),
         child: Column(
@@ -2152,7 +2153,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                   ),
                   child: Icon(Icons.tune_rounded, color: ObsidianUITheme.primaryAccent, size: 28),
                 ),
@@ -2249,7 +2250,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
         style: ElevatedButton.styleFrom(
           backgroundColor: ObsidianUITheme.primaryAccent,
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 18),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
         ),
         icon: saving
             ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
@@ -2322,7 +2323,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
           decoration: BoxDecoration(
             color: isActive ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.25) : ObsidianUITheme.getSurfaceColor(context),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(ObsidianTokens.radius),
             border: Border.all(
               color: isActive ? ObsidianUITheme.primaryAccent : ObsidianUITheme.getBorderColor(context),
               width: isActive ? 1.5 : 1,
@@ -2368,7 +2369,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
           decoration: BoxDecoration(
             color: isActive ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.2) : ObsidianUITheme.getSurfaceColor(context),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
             border: Border.all(
               color: isActive ? ObsidianUITheme.primaryAccent : ObsidianUITheme.getBorderColor(context),
               width: isActive ? 1.5 : 1,
@@ -2399,7 +2400,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
         border: Border.all(color: borderColor),
       ),
       child: Row(
@@ -2421,7 +2422,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 decoration: BoxDecoration(
                   color: !_isRawMode ? ObsidianUITheme.primaryAccent : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                 ),
                 alignment: Alignment.center,
                 child: Row(
@@ -2447,7 +2448,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 decoration: BoxDecoration(
                   color: _isRawMode ? ObsidianUITheme.primaryAccent : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                 ),
                 alignment: Alignment.center,
                 child: Row(
@@ -2482,7 +2483,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
             border: Border.all(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.2)),
           ),
           child: Row(
@@ -2594,7 +2595,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     side: BorderSide(color: ObsidianUITheme.getBorderColor(context)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill)),
                   ),
                   icon: Icon(Icons.title_rounded, size: 16, color: ObsidianUITheme.primaryAccent),
                   label: Text('+ Add Section Header', style: TextStyle(color: ObsidianUITheme.primaryAccent, fontSize: 11.5, fontWeight: FontWeight.bold)),
@@ -2677,7 +2678,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
           border: Border(left: BorderSide(color: ObsidianUITheme.primaryAccent, width: 3)),
         ),
         child: Row(
@@ -2699,8 +2700,8 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     final (Color dot, String text) = switch (_collabStatus) {
       CollabStatus.live => (Colors.greenAccent.shade400, 'Live — changes save automatically'),
       CollabStatus.readonly => (Colors.greenAccent.shade400, 'Live — view only'),
-      CollabStatus.connecting => (Colors.orangeAccent, 'Connecting to live editing…'),
-      CollabStatus.reconnecting => (Colors.orangeAccent, 'Reconnecting… your changes are kept'),
+      CollabStatus.connecting => (ObsidianUITheme.warningOrange, 'Connecting to live editing…'),
+      CollabStatus.reconnecting => (ObsidianUITheme.warningOrange, 'Reconnecting… your changes are kept'),
       CollabStatus.offline => (ObsidianUITheme.errorRed, 'Offline — your changes are kept; tap Save to save them'),
     };
     final mySid = _collab?.sid;
@@ -2708,7 +2709,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: ObsidianUITheme.getSurfaceColor(context),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
         border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
       ),
       child: Row(
@@ -2753,7 +2754,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: others.isEmpty ? Colors.transparent : Colors.orangeAccent.withValues(alpha: 0.8), width: 2),
+          border: Border.all(color: others.isEmpty ? Colors.transparent : ObsidianUITheme.warningOrange.withValues(alpha: 0.8), width: 2),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2764,7 +2765,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                 spacing: 6,
                 children: [
                   for (final e in others)
-                    Text('${e.username} is editing', style: const TextStyle(color: Colors.orangeAccent, fontSize: 11, fontWeight: FontWeight.w600)),
+                    Text('${e.username} is editing', style: const TextStyle(color: ObsidianUITheme.warningOrange, fontSize: 11, fontWeight: FontWeight.w600)),
                 ],
               ),
             ),
@@ -2787,13 +2788,13 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     switch (canonicalType) {
       case 'counter':
       case 'number':
-        badgeColor = Colors.cyanAccent;
+        badgeColor = ObsidianUITheme.defaultPrimaryAccent;
         break;
       case 'rating':
-        badgeColor = Colors.amberAccent;
+        badgeColor = ObsidianUITheme.warningOrange;
         break;
       case 'checkbox':
-        badgeColor = Colors.greenAccent;
+        badgeColor = ObsidianUITheme.successGreen;
         break;
       case 'select':
         badgeColor = Colors.purpleAccent;
@@ -2814,7 +2815,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
         color: isSection
             ? (isDark ? const Color(0xFF1E2640) : const Color(0xFFEEF2FF))
             : ObsidianUITheme.getSurfaceColor(context),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
         border: Border.all(
           color: isSection ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.5) : borderColor,
           width: isSection ? 1.5 : 1,
@@ -2949,11 +2950,11 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                   ),
                   items: const [
                     DropdownMenuItem(value: 'counter', child: Text('COUNTER (+ / -)')),
-                    DropdownMenuItem(value: 'number', child: Text('NUMBER')),
+                    DropdownMenuItem(value: 'number', child: Text('Number')),
                     DropdownMenuItem(value: 'rating', child: Text('RATING (1-5)')),
-                    DropdownMenuItem(value: 'checkbox', child: Text('CHECKBOX / TOGGLE')),
+                    DropdownMenuItem(value: 'checkbox', child: Text('Checkbox / toggle')),
                     DropdownMenuItem(value: 'select', child: Text('DROPDOWN (SELECT)')),
-                    DropdownMenuItem(value: 'section', child: Text('SECTION HEADER')),
+                    DropdownMenuItem(value: 'section', child: Text('Section header')),
                     DropdownMenuItem(value: 'text', child: Text('TEXT (STATIC DISPLAY)')),
                     DropdownMenuItem(value: 'textarea', child: Text('TEXTAREA (INPUT)')),
                     DropdownMenuItem(value: 'image', child: Text('IMAGE (PHOTO UPLOAD)')),
@@ -3496,7 +3497,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
             margin: const EdgeInsets.only(bottom: 10),
             decoration: BoxDecoration(
               color: ObsidianUITheme.errorRed.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
               border: Border.all(color: ObsidianUITheme.errorRed),
             ),
             child: Row(
@@ -3585,12 +3586,12 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                               side: BorderSide(color: ObsidianUITheme.getBorderColor(context)),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
                             ),
-                            icon: const Icon(Icons.transform_rounded, size: 16, color: Colors.cyanAccent),
+                            icon: const Icon(Icons.transform_rounded, size: 16, color: ObsidianUITheme.defaultPrimaryAccent),
                             label: const Text(
                               'Data Migration',
-                              style: TextStyle(color: Colors.cyanAccent, fontSize: 11.5, fontWeight: FontWeight.bold),
+                              style: TextStyle(color: ObsidianUITheme.defaultPrimaryAccent, fontSize: 11.5, fontWeight: FontWeight.bold),
                               overflow: TextOverflow.ellipsis,
                               maxLines: 1,
                             ),
@@ -3626,10 +3627,10 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
                       side: BorderSide(color: ObsidianUITheme.getBorderColor(context)),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
                     ),
-                    icon: const Icon(Icons.transform_rounded, size: 16, color: Colors.cyanAccent),
-                    label: const Text('Data Migration', style: TextStyle(color: Colors.cyanAccent, fontSize: 12, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis, maxLines: 1),
+                    icon: const Icon(Icons.transform_rounded, size: 16, color: ObsidianUITheme.defaultPrimaryAccent),
+                    label: const Text('Data Migration', style: TextStyle(color: ObsidianUITheme.defaultPrimaryAccent, fontSize: 12, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis, maxLines: 1),
                     onPressed: _showMigrationModal,
                   ),
                   const SizedBox(width: 10),
@@ -3819,7 +3820,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(ObsidianTokens.radius),
             border: Border.all(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.3)),
           ),
           child: Row(
@@ -3990,7 +3991,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
             children: [
               Row(
                 children: [
-                  const Icon(Icons.hub_rounded, size: 18, color: Colors.cyanAccent),
+                  const Icon(Icons.hub_rounded, size: 18, color: ObsidianUITheme.defaultPrimaryAccent),
                   const SizedBox(width: 8),
                   Text(isFtc ? 'FTC Scout' : 'The Blue Alliance (TBA)', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primaryTextColor)),
                 ],
@@ -4062,7 +4063,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
             children: [
               Row(
                 children: [
-                  const Icon(Icons.verified_user_rounded, size: 18, color: Colors.amberAccent),
+                  const Icon(Icons.verified_user_rounded, size: 18, color: ObsidianUITheme.warningOrange),
                   const SizedBox(width: 8),
                   Text(isFtc ? 'FIRST FTC API' : 'FIRST API', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primaryTextColor)),
                 ],
@@ -4131,7 +4132,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.analytics_rounded, size: 18, color: Colors.lightGreenAccent),
+                    const Icon(Icons.analytics_rounded, size: 18, color: ObsidianUITheme.successGreen),
                     const SizedBox(width: 8),
                     Text('Statbotics', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primaryTextColor)),
                   ],
@@ -4261,7 +4262,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(ObsidianTokens.radius),
             border: Border.all(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.3)),
           ),
           child: Row(

@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../theme/obsidian_tokens.dart';
 import 'package:flutter/material.dart';
 import '../models/api_response.dart';
 import '../models/scout_history_models.dart';
@@ -300,7 +301,7 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
         final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(ctx);
         return AlertDialog(
           backgroundColor: surfaceColor,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
           title: Text('Delete Record?',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryTextColor)),
           content: Text(
@@ -405,7 +406,7 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
         final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(ctx);
         return AlertDialog(
           backgroundColor: surfaceColor,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
           title: Text('Clear Synced Records?',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryTextColor)),
           content: Text(
@@ -447,7 +448,7 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
         final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(ctx);
         return AlertDialog(
           backgroundColor: surfaceColor,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
           title: Row(
             children: [
               const Icon(Icons.warning_amber_rounded, color: ObsidianUITheme.warningOrange, size: 26),
@@ -507,7 +508,7 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
       case 'qual':           return ObsidianUITheme.warningOrange;
       case 'prescout-match':
       case 'prescout-pit':
-      case 'prescout-qual':  return const Color(0xFF38BDF8);
+      case 'prescout-qual':  return ObsidianUITheme.defaultSecondaryAccent;
       default:               return Colors.white70;
     }
   }
@@ -638,7 +639,7 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
               ObsidianUITheme.warningOrange),
           const SizedBox(width: 6),
           _filterChip('Prescout', _typeFilter == 'prescout', () => setState(() => _typeFilter = 'prescout'),
-              const Color(0xFF38BDF8)),
+              ObsidianUITheme.defaultSecondaryAccent),
           const SizedBox(width: 16),
           _filterChip('Synced', _statusFilter == 'synced',
               () => setState(() => _statusFilter = _statusFilter == 'synced' ? 'all' : 'synced'),
@@ -664,7 +665,7 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: selected ? accent.withValues(alpha: 0.2) : ObsidianUITheme.getSurfaceColor(context),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(ObsidianTokens.radius),
           border: Border.all(
             color: selected ? accent : ObsidianUITheme.getBorderColor(context),
             width: selected ? 1.5 : 1.0,
@@ -752,12 +753,12 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
                   OutlinedButton.icon(
                     onPressed: _isSyncingServer ? null : () => _syncWithServer(showFeedback: true, forceRefresh: true),
                     icon: _isSyncingServer
-                        ? const SizedBox(width: 13, height: 13, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF38BDF8)))
+                        ? const SizedBox(width: 13, height: 13, child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianUITheme.defaultSecondaryAccent))
                         : const Icon(Icons.sync_rounded, size: 15),
                     label: Text(_isSyncingServer ? 'Checking...' : 'Verify Server', style: const TextStyle(fontSize: 12)),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF38BDF8),
-                      side: BorderSide(color: const Color(0xFF38BDF8).withValues(alpha: 0.5)),
+                      foregroundColor: ObsidianUITheme.defaultSecondaryAccent,
+                      side: BorderSide(color: ObsidianUITheme.defaultSecondaryAccent.withValues(alpha: 0.5)),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
                     ),
@@ -768,7 +769,7 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: ObsidianUITheme.successGreen,
                       side: BorderSide(color: ObsidianUITheme.successGreen.withValues(alpha: 0.5)),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill)),
                       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
                     ),
                     child: Text('Clear Synced ($syncedCount)', style: const TextStyle(fontSize: 12)),
@@ -779,7 +780,7 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: ObsidianUITheme.errorRed,
                       side: BorderSide(color: ObsidianUITheme.errorRed.withValues(alpha: 0.4)),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill)),
                       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
                     ),
                     child: const Icon(Icons.delete_sweep_rounded, size: 16),
@@ -822,7 +823,7 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
                   ),
                   child: Text(
                     _typeLabel(entry.type).toUpperCase(),
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: typeColor, letterSpacing: 0.5),
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: typeColor, letterSpacing: 0),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -902,7 +903,7 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
                       elevation: 0,
                       side: BorderSide(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.4)),
                       padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill)),
                     ),
                   ),
                 ),
@@ -922,7 +923,7 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
                       foregroundColor: ObsidianUITheme.secondaryAccent,
                       side: BorderSide(color: ObsidianUITheme.secondaryAccent.withValues(alpha: 0.5)),
                       padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill)),
                     ),
                   ),
                 ),

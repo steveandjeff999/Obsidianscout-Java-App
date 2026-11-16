@@ -1,4 +1,5 @@
 import 'package:fl_chart/fl_chart.dart';
+import '../../theme/obsidian_tokens.dart';
 import 'package:flutter/material.dart';
 import '../../models/config_models.dart';
 import '../../models/graph_models.dart';
@@ -126,7 +127,7 @@ class _TeamStrategyCardState extends State<TeamStrategyCard> with SingleTickerPr
         values: teamItems.map((e) => (e['val'] as num).toDouble()).toList(),
         title: 'Statbotics EPA',
         unit: 'EPA',
-        color: const Color(0xFF10B981),
+        color: ObsidianUITheme.successGreen,
       );
     }
 
@@ -151,7 +152,7 @@ class _TeamStrategyCardState extends State<TeamStrategyCard> with SingleTickerPr
         values: teamItems.map((e) => (e['val'] as num).toDouble()).toList(),
         title: 'Match 13 xP',
         unit: 'xP',
-        color: const Color(0xFFF59E0B),
+        color: ObsidianUITheme.warningOrange,
       );
     }
 
@@ -281,7 +282,7 @@ class _TeamStrategyCardState extends State<TeamStrategyCard> with SingleTickerPr
     return Container(
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.6) : Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
         border: Border.all(color: borderColor),
         boxShadow: [
           BoxShadow(
@@ -292,7 +293,7 @@ class _TeamStrategyCardState extends State<TeamStrategyCard> with SingleTickerPr
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -347,7 +348,7 @@ class _TeamStrategyCardState extends State<TeamStrategyCard> with SingleTickerPr
                     fontSize: 11,
                     fontWeight: FontWeight.w900,
                     color: pillText,
-                    letterSpacing: 0.5,
+                    letterSpacing: 0,
                   ),
                 ),
               ),
@@ -361,13 +362,13 @@ class _TeamStrategyCardState extends State<TeamStrategyCard> with SingleTickerPr
             spacing: 6,
             runSpacing: 6,
             children: [
-              _buildStatPill('Scouted Avg', calculatedAvg, const Color(0xFF10B981), isDark),
+              _buildStatPill('Scouted Avg', calculatedAvg, ObsidianUITheme.successGreen, isDark),
               if (!widget.isFtc && widget.useStatboticsEpa)
                 _buildStatPill('Statbotics EPA', epaStr, ObsidianUITheme.primaryAccent, isDark),
               if (!widget.isFtc && widget.useMatch13xP)
-                _buildStatPill('Match 13 xP', xPStr, const Color(0xFFF59E0B), isDark),
+                _buildStatPill('Match 13 xP', xPStr, ObsidianUITheme.warningOrange, isDark),
               if (widget.useTbaOpr)
-                _buildStatPill(widget.isFtc ? 'FTC OPR' : 'TBA OPR', oprStr, const Color(0xFF8B5CF6), isDark),
+                _buildStatPill(widget.isFtc ? 'FTC OPR' : 'TBA OPR', oprStr, ObsidianUITheme.defaultPrimaryAccent, isDark),
               _buildStatPill('Matches', '${teamMatches.length}', primaryTextColor, isDark),
             ],
           ),
@@ -653,14 +654,14 @@ class _TeamStrategyCardState extends State<TeamStrategyCard> with SingleTickerPr
                       decoration: BoxDecoration(
                         color: const Color(0x33EF4444),
                         borderRadius: BorderRadius.circular(4),
-                        border: isSelf ? Border.all(color: const Color(0xFFEF4444), width: 1.5) : null,
+                        border: isSelf ? Border.all(color: ObsidianUITheme.errorRed, width: 1.5) : null,
                       ),
                       child: Text(
                         numStr,
                         style: TextStyle(
                           fontSize: 10.5,
                           fontWeight: isSelf ? FontWeight.w900 : FontWeight.w600,
-                          color: const Color(0xFFF87171),
+                          color: ObsidianUITheme.errorRed,
                           decoration: isSelf ? TextDecoration.underline : null,
                         ),
                       ),
@@ -683,7 +684,7 @@ class _TeamStrategyCardState extends State<TeamStrategyCard> with SingleTickerPr
                       decoration: BoxDecoration(
                         color: const Color(0x333B82F6),
                         borderRadius: BorderRadius.circular(4),
-                        border: isSelf ? Border.all(color: const Color(0xFF3B82F6), width: 1.5) : null,
+                        border: isSelf ? Border.all(color: ObsidianUITheme.defaultPrimaryAccent, width: 1.5) : null,
                       ),
                       child: Text(
                         numStr,

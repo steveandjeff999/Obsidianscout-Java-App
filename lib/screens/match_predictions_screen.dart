@@ -271,7 +271,7 @@ class _MatchPredictionsScreenState extends State<MatchPredictionsScreen> with Si
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title.toUpperCase(), style: TextStyle(fontSize: 10.5, letterSpacing: 0.6, fontWeight: FontWeight.w600, color: muted)),
+          Text(title.toUpperCase(), style: TextStyle(fontSize: 10.5, letterSpacing: 0, fontWeight: FontWeight.w600, color: muted)),
           const SizedBox(height: 2),
           Text(value,
               maxLines: 1,
@@ -592,9 +592,9 @@ class _MatchPredictionsScreenState extends State<MatchPredictionsScreen> with Si
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.local_fire_department_rounded, size: 14, color: Color(0xFFF97316)),
+                    const Icon(Icons.local_fire_department_rounded, size: 14, color: ObsidianUITheme.warningOrange),
                     Text('${row.currentStreak}',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFFF97316))),
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: ObsidianUITheme.warningOrange)),
                   ],
                 ),
             ],

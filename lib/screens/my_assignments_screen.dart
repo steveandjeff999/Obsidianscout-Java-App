@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../theme/obsidian_tokens.dart';
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../models/assignment_models.dart';
@@ -405,7 +406,7 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
       case 'MATCH':
         return const Color(0xFF3B82F6); // Blue
       case 'PIT':
-        return const Color(0xFF8B5CF6); // Purple
+        return ObsidianUITheme.defaultPrimaryAccent; // Purple
       case 'QUALITATIVE':
         return const Color(0xFFEC4899); // Pink
       default:
@@ -429,14 +430,14 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
   Color _getStatusColor(String status) {
     switch (status.toUpperCase()) {
       case 'COMPLETED':
-        return const Color(0xFF10B981); // Green
+        return ObsidianUITheme.successGreen; // Green
       case 'IN_PROGRESS':
         return const Color(0xFF3B82F6); // Blue
       case 'SKIPPED':
       case 'MISSED':
         return const Color(0xFFEF4444); // Red
       default:
-        return const Color(0xFFF59E0B); // Amber
+        return ObsidianUITheme.warningOrange; // Amber
     }
   }
 
@@ -519,7 +520,7 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
                   height: 18,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.cyanAccent),
+                    valueColor: AlwaysStoppedAnimation<Color>(ObsidianUITheme.defaultPrimaryAccent),
                   ),
                 )
               : const Icon(Icons.refresh_rounded),
@@ -548,7 +549,7 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
         border: Border.all(
           color: typeColor.withValues(alpha: 0.6),
           width: 1.5,
@@ -571,7 +572,7 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: typeColor.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                   border: Border.all(color: typeColor),
                 ),
                 child: Row(
@@ -585,7 +586,7 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
                         color: typeColor,
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        letterSpacing: 0.8,
+                        letterSpacing: 0,
                       ),
                     ),
                   ],
@@ -596,12 +597,12 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: isImminent
-                      ? const Color(0xFFEF4444).withValues(alpha: 0.2)
+                      ? ObsidianUITheme.errorRed.withValues(alpha: 0.2)
                       : Colors.black26,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                   border: Border.all(
                     color: isImminent
-                        ? const Color(0xFFEF4444)
+                        ? ObsidianUITheme.errorRed
                         : Colors.white24,
                   ),
                 ),
@@ -611,7 +612,7 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
                     Text(
                       countdownStr,
                       style: TextStyle(
-                        color: isImminent ? const Color(0xFFEF4444) : Colors.white70,
+                        color: isImminent ? ObsidianUITheme.errorRed : Colors.white70,
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
@@ -689,7 +690,7 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
     return Container(
       decoration: BoxDecoration(
         color: ObsidianUITheme.getSurfaceColor(context).withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
         border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
       ),
       child: TabBar(
@@ -697,7 +698,7 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
         isScrollable: true,
         tabAlignment: TabAlignment.start,
         indicator: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
           color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.2),
           border: Border.all(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.6)),
         ),
@@ -832,7 +833,7 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: ObsidianUITheme.getSurfaceColor(context),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
         border: Border.all(
           color: ObsidianUITheme.getBorderColor(context),
         ),
@@ -845,7 +846,7 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
         child: IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -969,7 +970,7 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
                                   : typeColor.withValues(alpha: 0.6),
                             ),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                             ),
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 6),
@@ -1005,12 +1006,12 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
     final label = others.isEmpty ? a.scoutGroup!.trim() : '${a.scoutGroup!.trim()} · with ${others.join(', ')}';
     return Row(
       children: [
-        Icon(Icons.groups_rounded, size: fontSize + 3, color: const Color(0xFF8B5CF6)),
+        Icon(Icons.groups_rounded, size: fontSize + 3, color: ObsidianUITheme.defaultPrimaryAccent),
         const SizedBox(width: 6),
         Expanded(
           child: Text(
             label,
-            style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w600, color: const Color(0xFF8B5CF6)),
+            style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w600, color: ObsidianUITheme.defaultPrimaryAccent),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -1024,7 +1025,7 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
     final offsetMins = (offsetSeconds / 60).round();
     if (offsetMins.abs() < 1) return const SizedBox.shrink();
     final isLate = offsetMins > 0;
-    final color = isLate ? const Color(0xFFF59E0B) : const Color(0xFF06B6D4);
+    final color = isLate ? ObsidianUITheme.warningOrange : const Color(0xFF06B6D4);
     final sign = isLate ? '+' : '';
     return Container(
       margin: const EdgeInsets.only(left: 6),

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../theme/obsidian_tokens.dart';
 import 'dart:math';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -179,7 +180,7 @@ class _SharedViewScreenState extends State<SharedViewScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+                const Icon(Icons.error_outline, size: 48, color: ObsidianUITheme.errorRed),
                 const SizedBox(height: 16),
                 Text(context.tr('shared_viewer.link_not_found_desc'), style: const TextStyle(fontSize: 16)),
                 const SizedBox(height: 16),
@@ -221,7 +222,7 @@ class _SharedViewScreenState extends State<SharedViewScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.lock_outline, size: 48, color: Colors.amber),
+                    const Icon(Icons.lock_outline, size: 48, color: ObsidianUITheme.warningOrange),
                     const SizedBox(height: 16),
                     Text(context.tr('shared_viewer.pin_required_title'), style: theme.textTheme.titleLarge),
                     const SizedBox(height: 8),
@@ -302,12 +303,12 @@ class _SharedViewScreenState extends State<SharedViewScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: Colors.green.withValues(alpha: 0.15),
+                        color: ObsidianUITheme.successGreen.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         _payload!.shareMode == 'frozen_snapshot' ? 'SNAPSHOT' : 'LIVE FEED',
-                        style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 11),
+                        style: const TextStyle(color: ObsidianUITheme.successGreen, fontWeight: FontWeight.bold, fontSize: 11),
                       ),
                     ),
                   ],
@@ -345,7 +346,7 @@ class _SharedViewScreenState extends State<SharedViewScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.lock_clock, size: 48, color: Colors.orange),
+            const Icon(Icons.lock_clock, size: 48, color: ObsidianUITheme.warningOrange),
             const SizedBox(height: 16),
             Text(message, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16)),
           ],
@@ -439,8 +440,8 @@ class _SharedViewScreenState extends State<SharedViewScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(context.tr('dashboard.data_summary').toUpperCase(),
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, letterSpacing: 1.0)),
+              Text(context.tr('dashboard.data_summary'),
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, letterSpacing: 0)),
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -464,13 +465,13 @@ class _SharedViewScreenState extends State<SharedViewScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(context.tr('graphs.team_selection').toUpperCase(),
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.warningOrange, letterSpacing: 1.0)),
+                  Text(context.tr('graphs.team_selection'),
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.warningOrange, letterSpacing: 0)),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                     ),
                     child: Text(
                       _selectedTeams.isNotEmpty ? '${_selectedTeams.length} selected' : 'No teams selected',
@@ -563,8 +564,8 @@ class _SharedViewScreenState extends State<SharedViewScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(context.tr('graphs.graph_options').toUpperCase(),
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.secondaryAccent, letterSpacing: 1.0)),
+              Text(context.tr('graphs.graph_options'),
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.secondaryAccent, letterSpacing: 0)),
               const SizedBox(height: 12),
               if (showDatasource) ...[
                 DropdownButtonFormField<String>(
@@ -1157,8 +1158,8 @@ class _SharedViewScreenState extends State<SharedViewScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.red.withValues(alpha: 0.1),
-                        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                        color: ObsidianUITheme.errorRed.withValues(alpha: 0.1),
+                        border: Border.all(color: ObsidianUITheme.errorRed.withValues(alpha: 0.3)),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Column(
@@ -1229,7 +1230,7 @@ class _SharedViewScreenState extends State<SharedViewScreen> {
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: ObsidianUITheme.getSurfaceColor(context),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                         border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
                       ),
                       child: Column(

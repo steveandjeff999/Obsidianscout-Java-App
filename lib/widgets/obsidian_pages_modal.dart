@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/obsidian_tokens.dart';
 import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
@@ -56,7 +57,7 @@ class ObsidianPagesModal extends StatelessWidget {
         'name': context.tr('nav.event_info', 'Event Info'),
         'desc': 'Announcements, images and files from your admins',
         'tag': 'Main',
-        'color': Colors.orangeAccent,
+        'color': ObsidianUITheme.warningOrange,
       },
       {
         'pageId': 'scout',
@@ -65,7 +66,7 @@ class ObsidianPagesModal extends StatelessWidget {
         'name': context.tr('nav.scout', 'Scout'),
         'desc': 'Score autonomous, teleop, endgame, and driver notes',
         'tag': 'Form',
-        'color': Colors.amberAccent,
+        'color': ObsidianUITheme.warningOrange,
       },
       {
         'pageId': 'pit-scout',
@@ -74,7 +75,7 @@ class ObsidianPagesModal extends StatelessWidget {
         'name': context.tr('nav.pit-scout', 'Pit Scout'),
         'desc': 'Robot dimensions, drivetrain specs, intake, & photos',
         'tag': 'Form',
-        'color': Colors.cyanAccent,
+        'color': ObsidianUITheme.defaultPrimaryAccent,
       },
       {
         'pageId': 'qual-scout',
@@ -83,7 +84,7 @@ class ObsidianPagesModal extends StatelessWidget {
         'name': context.tr('nav.qual-scout', 'Qual Scout'),
         'desc': 'Driver agility ratings, defense impact, & notes',
         'tag': 'Form',
-        'color': Colors.lightGreenAccent,
+        'color': ObsidianUITheme.successGreen,
       },
       {
         'pageId': 'prescout',
@@ -92,7 +93,7 @@ class ObsidianPagesModal extends StatelessWidget {
         'name': context.tr('nav.prescout', 'Prescouting'),
         'desc': 'Match, pit, & qual prescouting for external events & teams',
         'tag': 'Form',
-        'color': Colors.cyanAccent,
+        'color': ObsidianUITheme.defaultPrimaryAccent,
       },
       {
         'pageId': 'scout-history',
@@ -101,7 +102,7 @@ class ObsidianPagesModal extends StatelessWidget {
         'name': context.tr('nav.scout_history', 'Scouting History'),
         'desc': 'Past scouting logs, offline entries, & sync records',
         'tag': 'Form',
-        'color': const Color(0xFF38BDF8),
+        'color': ObsidianUITheme.defaultSecondaryAccent,
       },
       // Listed only while the team has match predictions on (ApiService.hasPageAccess).
       {
@@ -158,7 +159,7 @@ class ObsidianPagesModal extends StatelessWidget {
         'name': context.tr('nav.custom_analytics', 'Custom Analytics'),
         'desc': 'Build custom metric queries, scatter plots, & breakdowns',
         'tag': 'Analytics',
-        'color': Colors.tealAccent,
+        'color': ObsidianUITheme.defaultPrimaryAccent,
       },
       {
         'pageId': 'all-data',
@@ -167,7 +168,7 @@ class ObsidianPagesModal extends StatelessWidget {
         'name': context.tr('nav.all_data', 'All Data'),
         'desc': 'Unified inspector for pit, match, and qualitative data',
         'tag': 'Data',
-        'color': Colors.blueAccent,
+        'color': ObsidianUITheme.defaultPrimaryAccent,
       },
       {
         'pageId': 'match-data',
@@ -176,7 +177,7 @@ class ObsidianPagesModal extends StatelessWidget {
         'name': context.tr('nav.match_data', 'Match Data'),
         'desc': 'Match scouting records, robot cycle scores, & conflicts',
         'tag': 'Data',
-        'color': Colors.amberAccent,
+        'color': ObsidianUITheme.warningOrange,
       },
       {
         'pageId': 'pit-data',
@@ -185,7 +186,7 @@ class ObsidianPagesModal extends StatelessWidget {
         'name': context.tr('nav.pit_data', 'Pit Data'),
         'desc': 'Robot specifications, pit coverage, & unscouted teams',
         'tag': 'Data',
-        'color': Colors.cyanAccent,
+        'color': ObsidianUITheme.defaultPrimaryAccent,
       },
       {
         'pageId': 'qual-data',
@@ -194,7 +195,7 @@ class ObsidianPagesModal extends StatelessWidget {
         'name': context.tr('nav.qual_data', 'Qual Data'),
         'desc': 'Driver agility ratings, rankings, & match observations',
         'tag': 'Data',
-        'color': Colors.lightGreenAccent,
+        'color': ObsidianUITheme.successGreen,
       },
       {
         'pageId': 'data-validation',
@@ -212,7 +213,7 @@ class ObsidianPagesModal extends StatelessWidget {
         'name': context.tr('nav.teams', 'Teams'),
         'desc': 'Roster, EPA rankings, pit specs, & team records',
         'tag': 'Data',
-        'color': Colors.tealAccent,
+        'color': ObsidianUITheme.defaultPrimaryAccent,
       },
       {
         'pageId': 'rankings',
@@ -221,7 +222,7 @@ class ObsidianPagesModal extends StatelessWidget {
         'name': context.tr('nav.rankings', 'Rankings'),
         'desc': 'Rank teams by scouted points, EPA, and OPR metrics',
         'tag': 'Data',
-        'color': Colors.amberAccent,
+        'color': ObsidianUITheme.warningOrange,
       },
       {
         'pageId': 'projected-rankings',
@@ -239,7 +240,7 @@ class ObsidianPagesModal extends StatelessWidget {
         'name': context.tr('nav.qual_rankings', 'Qual Rankings'),
         'desc': 'Rank teams based on qualitative scouting metrics & agility',
         'tag': 'Data',
-        'color': Colors.lightGreenAccent,
+        'color': ObsidianUITheme.successGreen,
       },
       {
         'pageId': 'events',
@@ -248,7 +249,7 @@ class ObsidianPagesModal extends StatelessWidget {
         'name': context.tr('nav.events', 'Events'),
         'desc': 'Sync season events & manage custom event definitions',
         'tag': 'Admin',
-        'color': Colors.blueAccent,
+        'color': ObsidianUITheme.defaultPrimaryAccent,
       },
       {
         'pageId': 'matches',
@@ -266,7 +267,7 @@ class ObsidianPagesModal extends StatelessWidget {
         'name': context.tr('nav.predictor', 'Predictor'),
         'desc': 'Head-to-head match prediction & alliance outcome simulator',
         'tag': 'Strategy',
-        'color': Colors.amberAccent,
+        'color': ObsidianUITheme.warningOrange,
       },
       {
         'pageId': 'alliances',
@@ -284,7 +285,7 @@ class ObsidianPagesModal extends StatelessWidget {
         'name': context.tr('nav.event_predictor', 'Event Predictor'),
         'desc': 'Simulate and forecast outcomes for all scheduled matches',
         'tag': 'Strategy',
-        'color': Colors.cyanAccent,
+        'color': ObsidianUITheme.defaultPrimaryAccent,
       },
       {
         'pageId': 'alliance-selection',
@@ -302,7 +303,7 @@ class ObsidianPagesModal extends StatelessWidget {
         'name': context.tr('nav.pick_list', 'Pick List'),
         'desc': 'Ranked pick order that skips your Do Not Pick teams',
         'tag': 'Strategy',
-        'color': Colors.tealAccent,
+        'color': ObsidianUITheme.defaultPrimaryAccent,
       },
       {
         'pageId': 'match-planning',
@@ -323,7 +324,7 @@ class ObsidianPagesModal extends StatelessWidget {
         'desc': context.tr('pages.match_checklist_desc',
             'Pre-match & on-the-field drive team checklists'),
         'tag': context.tr('pages.tag_non_scouting', 'Drive Team'),
-        'color': Colors.lightGreenAccent,
+        'color': ObsidianUITheme.successGreen,
       },
       {
         'pageId': 'battery-tracker',
@@ -333,7 +334,7 @@ class ObsidianPagesModal extends StatelessWidget {
         'desc': context.tr('pages.battery_tracker_desc',
             'Battery rotation for each match; pit batteries stay out'),
         'tag': context.tr('pages.tag_non_scouting', 'Drive Team'),
-        'color': Colors.lightGreenAccent,
+        'color': ObsidianUITheme.successGreen,
       },
       {
         'pageId': 'chat',
@@ -396,7 +397,7 @@ class ObsidianPagesModal extends StatelessWidget {
         'name': context.tr('nav.users', 'Users'),
         'desc': 'Manage team accounts, roles, permissions, & access',
         'tag': 'Admin',
-        'color': Colors.tealAccent,
+        'color': ObsidianUITheme.defaultPrimaryAccent,
       },
       {
         'pageId': 'scouter-report',
@@ -415,7 +416,7 @@ class ObsidianPagesModal extends StatelessWidget {
         'desc': context.tr('subtitle.server_insights',
             'Database pool, sockets, client fleet, JVM and security'),
         'tag': 'Admin',
-        'color': const Color(0xFF10B981),
+        'color': ObsidianUITheme.successGreen,
       },
       {
         'pageId': 'cluster-management',
@@ -424,7 +425,7 @@ class ObsidianPagesModal extends StatelessWidget {
         'name': context.tr('nav.cluster_management', 'Server Management'),
         'desc': 'Monitor cluster nodes, live server logs, & health metrics',
         'tag': 'Admin',
-        'color': Colors.redAccent,
+        'color': ObsidianUITheme.errorRed,
       },
       {
         'pageId': 'storage-manager',
@@ -442,7 +443,7 @@ class ObsidianPagesModal extends StatelessWidget {
         'name': context.tr('nav.error_reports', 'Error Reports'),
         'desc': 'Inspect server exceptions & client JavaScript bug reports',
         'tag': 'Admin',
-        'color': const Color(0xFFF87171),
+        'color': ObsidianUITheme.errorRed,
       },
       {
         'pageId': 'fcm-settings',
@@ -461,7 +462,7 @@ class ObsidianPagesModal extends StatelessWidget {
             context.tr('nav.load_profiler', 'Load Profiler')),
         'desc': 'Cluster load, requests/sec, live refresh and server times',
         'tag': 'Admin',
-        'color': const Color(0xFFF97316),
+        'color': ObsidianUITheme.warningOrange,
       },
       {
         'pageId': 'settings',
@@ -470,7 +471,7 @@ class ObsidianPagesModal extends StatelessWidget {
         'name': context.tr('nav.settings', 'Settings'),
         'desc': 'Manage offline storage, server IP, & account sync',
         'tag': 'System',
-        'color': Colors.orangeAccent,
+        'color': ObsidianUITheme.warningOrange,
       },
       {
         'pageId': 'backup',
@@ -498,7 +499,7 @@ class ObsidianPagesModal extends StatelessWidget {
             context.tr('nav.redis_status', 'Redis Cache')),
         'desc': 'Cluster cache, memory auto-sizing, failover & topology',
         'tag': 'Admin',
-        'color': const Color(0xFFEF4444),
+        'color': ObsidianUITheme.errorRed,
       },
       {
         'pageId': 'contact',
@@ -520,12 +521,12 @@ class ObsidianPagesModal extends StatelessWidget {
 
     return Material(
       color: const Color(0xF00C0F14),
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(28.0)),
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
       child: Container(
         constraints: BoxConstraints(
             maxHeight: MediaQuery.of(context).size.height * 0.82),
         decoration: BoxDecoration(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28.0)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
           border:
               Border.all(color: ObsidianUITheme.glassBorderLight, width: 1.2),
         ),
@@ -596,7 +597,7 @@ class ObsidianPagesModal extends StatelessWidget {
                               ? color.withValues(alpha: 0.15)
                               : const Color(0x15FFFFFF),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16.0),
+                            borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                             side: BorderSide(
                               color: isSelected ? color : Colors.white10,
                               width: isSelected ? 1.5 : 1.0,
@@ -610,7 +611,7 @@ class ObsidianPagesModal extends StatelessWidget {
                               padding: const EdgeInsets.all(10.0),
                               decoration: BoxDecoration(
                                 color: color.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(12.0),
+                                borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                               ),
                               child: Icon(page['icon'] as IconData,
                                   color: color, size: 22.0),
@@ -636,7 +637,7 @@ class ObsidianPagesModal extends StatelessWidget {
                                       horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
                                     color: Colors.white10,
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                                   ),
                                   child: Text(
                                     page['tag'] as String,
@@ -675,11 +676,11 @@ class ObsidianPagesModal extends StatelessWidget {
 
                       // Tool: QR Scanner
                       Material(
-                        color: Colors.cyanAccent.withValues(alpha: 0.1),
+                        color: ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.1),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16.0),
                           side: BorderSide(
-                              color: Colors.cyanAccent.withValues(alpha: 0.3),
+                              color: ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.3),
                               width: 1.0),
                         ),
                         clipBehavior: Clip.antiAlias,
@@ -689,11 +690,11 @@ class ObsidianPagesModal extends StatelessWidget {
                           leading: Container(
                             padding: const EdgeInsets.all(10.0),
                             decoration: BoxDecoration(
-                              color: Colors.cyanAccent.withValues(alpha: 0.2),
+                              color: ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(12.0),
                             ),
                             child: const Icon(Icons.qr_code_scanner_rounded,
-                                color: Colors.cyanAccent, size: 22.0),
+                                color: ObsidianUITheme.defaultPrimaryAccent, size: 22.0),
                           ),
                           title: const Text(
                             'QR & Barcode Scanner',
@@ -708,7 +709,7 @@ class ObsidianPagesModal extends StatelessWidget {
                                 color: Colors.white54, fontSize: 12.0),
                           ),
                           trailing: const Icon(Icons.open_in_new_rounded,
-                              color: Colors.cyanAccent, size: 20),
+                              color: ObsidianUITheme.defaultPrimaryAccent, size: 20),
                           onTap: () {
                             Navigator.of(context).pop();
                             onOpenQrScanner();

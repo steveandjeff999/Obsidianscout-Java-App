@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../theme/obsidian_tokens.dart';
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../models/assignment_models.dart';
@@ -423,13 +424,13 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _buildKpiChip('Total', _assignments.length, Colors.cyanAccent),
+                _buildKpiChip('Total', _assignments.length, ObsidianUITheme.defaultPrimaryAccent),
                 const SizedBox(width: 8),
-                _buildKpiChip('Pending', pendingCount, const Color(0xFFF59E0B)),
+                _buildKpiChip('Pending', pendingCount, ObsidianUITheme.warningOrange),
                 const SizedBox(width: 8),
-                _buildKpiChip('In Progress', inProgressCount, const Color(0xFF3B82F6)),
+                _buildKpiChip('In Progress', inProgressCount, ObsidianUITheme.defaultPrimaryAccent),
                 const SizedBox(width: 8),
-                _buildKpiChip('Completed', completedCount, const Color(0xFF10B981)),
+                _buildKpiChip('Completed', completedCount, ObsidianUITheme.successGreen),
                 if (conflictCount > 0) ...[
                   const SizedBox(width: 8),
                   Tooltip(
@@ -443,19 +444,19 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEF4444).withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xFFEF4444)),
+                          color: ObsidianUITheme.errorRed.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(ObsidianTokens.radius),
+                          border: Border.all(color: ObsidianUITheme.errorRed),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.warning_amber_rounded, size: 15, color: Color(0xFFEF4444)),
+                            const Icon(Icons.warning_amber_rounded, size: 15, color: ObsidianUITheme.errorRed),
                             const SizedBox(width: 4),
                             Text(
                               'Resolve Conflicts ($conflictCount)',
                               style: const TextStyle(
-                                color: Color(0xFFEF4444),
+                                color: ObsidianUITheme.errorRed,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 11,
                               ),
@@ -488,8 +489,8 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
               ),
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.cyanAccent,
-                  side: const BorderSide(color: Colors.cyanAccent),
+                  foregroundColor: ObsidianUITheme.defaultPrimaryAccent,
+                  side: const BorderSide(color: ObsidianUITheme.defaultPrimaryAccent),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
@@ -499,8 +500,8 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
               ),
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.cyanAccent,
-                  side: const BorderSide(color: Colors.cyanAccent),
+                  foregroundColor: ObsidianUITheme.defaultPrimaryAccent,
+                  side: const BorderSide(color: ObsidianUITheme.defaultPrimaryAccent),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
@@ -510,8 +511,8 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
               ),
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF8B5CF6),
-                  side: const BorderSide(color: Color(0xFF8B5CF6)),
+                  foregroundColor: ObsidianUITheme.defaultPrimaryAccent,
+                  side: const BorderSide(color: ObsidianUITheme.defaultPrimaryAccent),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
@@ -521,8 +522,8 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
               ),
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF8B5CF6),
-                  side: const BorderSide(color: Color(0xFF8B5CF6)),
+                  foregroundColor: ObsidianUITheme.defaultPrimaryAccent,
+                  side: const BorderSide(color: ObsidianUITheme.defaultPrimaryAccent),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
@@ -542,7 +543,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
         border: Border.all(color: color.withValues(alpha: 0.4)),
       ),
       child: Row(
@@ -571,13 +572,13 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
     return Container(
       decoration: BoxDecoration(
         color: ObsidianUITheme.getSurfaceColor(context).withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
         border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
       ),
       child: TabBar(
         controller: _tabController,
         indicator: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
           color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.2),
           border: Border.all(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.6)),
         ),
@@ -690,12 +691,12 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
                                       padding: const EdgeInsets.all(2),
                                       margin: const EdgeInsets.only(right: 4),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFEF4444).withValues(alpha: 0.2),
+                                        color: ObsidianUITheme.errorRed.withValues(alpha: 0.2),
                                         borderRadius: BorderRadius.circular(4),
                                       ),
                                       child: const Icon(
                                         Icons.warning_amber_rounded,
-                                        color: Color(0xFFEF4444),
+                                        color: ObsidianUITheme.errorRed,
                                         size: 14,
                                       ),
                                     ),
@@ -705,7 +706,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
                                   label,
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: hasConflict ? const Color(0xFFEF4444) : null,
+                                    color: hasConflict ? ObsidianUITheme.errorRed : null,
                                   ),
                                 ),
                               ],
@@ -765,9 +766,9 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
             : 'Team #$teamNum: Unassigned in ${match.shortLabel}\nClick to assign');
 
     final color = isConflict
-        ? const Color(0xFFEF4444)
+        ? ObsidianUITheme.errorRed
         : (isDone
-            ? const Color(0xFF10B981)
+            ? ObsidianUITheme.successGreen
             : (isAssigned ? (alliance == 'RED' ? Colors.redAccent : Colors.blueAccent) : Colors.grey));
 
     return DataCell(
@@ -804,7 +805,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (isConflict) ...[
-                      const Icon(Icons.warning_amber_rounded, size: 12, color: Color(0xFFEF4444)),
+                      const Icon(Icons.warning_amber_rounded, size: 12, color: ObsidianUITheme.errorRed),
                       const SizedBox(width: 3),
                     ],
                     Text(
@@ -896,12 +897,12 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
                                       padding: const EdgeInsets.all(2),
                                       margin: const EdgeInsets.only(right: 4),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFEF4444).withValues(alpha: 0.2),
+                                        color: ObsidianUITheme.errorRed.withValues(alpha: 0.2),
                                         borderRadius: BorderRadius.circular(4),
                                       ),
                                       child: const Icon(
                                         Icons.warning_amber_rounded,
-                                        color: Color(0xFFEF4444),
+                                        color: ObsidianUITheme.errorRed,
                                         size: 14,
                                       ),
                                     ),
@@ -911,7 +912,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
                                   label,
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: hasConflict ? const Color(0xFFEF4444) : null,
+                                    color: hasConflict ? ObsidianUITheme.errorRed : null,
                                   ),
                                 ),
                               ],
@@ -977,9 +978,9 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
                 : '$alliance Alliance: Unassigned in ${match.shortLabel}\nClick to assign whole alliance'));
 
     final color = isConflict
-        ? const Color(0xFFEF4444)
+        ? ObsidianUITheme.errorRed
         : (isDone
-            ? const Color(0xFF10B981)
+            ? ObsidianUITheme.successGreen
             : (isAssigned ? (alliance == 'RED' ? Colors.redAccent : Colors.blueAccent) : Colors.grey));
 
     return DataCell(
@@ -1017,7 +1018,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (isConflict) ...[
-                      const Icon(Icons.warning_amber_rounded, size: 12, color: Color(0xFFEF4444)),
+                      const Icon(Icons.warning_amber_rounded, size: 12, color: ObsidianUITheme.errorRed),
                       const SizedBox(width: 3),
                     ],
                     Text(
@@ -1100,9 +1101,9 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
                 : 'Team #$teamNum (Qual): Unassigned in ${match.shortLabel}\nClick to assign'));
 
     final color = isConflict
-        ? const Color(0xFFEF4444)
+        ? ObsidianUITheme.errorRed
         : (isDone
-            ? const Color(0xFF10B981)
+            ? ObsidianUITheme.successGreen
             : (isAssigned
                 ? (alliance == 'RED' ? Colors.redAccent : Colors.blueAccent)
                 : (isCoveredByAlliance ? Colors.grey : Colors.grey.shade600)));
@@ -1142,7 +1143,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (isConflict) ...[
-                      const Icon(Icons.warning_amber_rounded, size: 12, color: Color(0xFFEF4444)),
+                      const Icon(Icons.warning_amber_rounded, size: 12, color: ObsidianUITheme.errorRed),
                       const SizedBox(width: 3),
                     ],
                     Text(
@@ -1289,7 +1290,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
                 children: [
                   Text('Showing ${filtered.length} assignments', style: const TextStyle(fontWeight: FontWeight.bold)),
                   TextButton.icon(
-                    style: TextButton.styleFrom(foregroundColor: const Color(0xFFEF4444)),
+                    style: TextButton.styleFrom(foregroundColor: ObsidianUITheme.errorRed),
                     icon: const Icon(Icons.delete_sweep_rounded, size: 18),
                     label: Text(filtered.length != _assignments.length ? 'Delete Filtered' : 'Delete All'),
                     onPressed: () => _confirmDeleteFiltered(filtered),
@@ -1322,8 +1323,8 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
 
   Widget _buildAssignmentListTile(ScoutingAssignment a) {
     final statusColor = a.status == 'COMPLETED'
-        ? const Color(0xFF10B981)
-        : (a.status == 'IN_PROGRESS' ? const Color(0xFF3B82F6) : const Color(0xFFF59E0B));
+        ? ObsidianUITheme.successGreen
+        : (a.status == 'IN_PROGRESS' ? ObsidianUITheme.defaultPrimaryAccent : ObsidianUITheme.warningOrange);
 
     final isConflict = _index.conflictIdsToDelete.contains(a.id);
 
@@ -1331,9 +1332,9 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
       margin: const EdgeInsets.only(bottom: 8),
       color: ObsidianUITheme.getSurfaceColor(context),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
         side: isConflict
-            ? const BorderSide(color: Color(0xFFEF4444), width: 1.2)
+            ? const BorderSide(color: ObsidianUITheme.errorRed, width: 1.2)
             : BorderSide.none,
       ),
       child: ListTile(
@@ -1348,12 +1349,12 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
                   padding: const EdgeInsets.all(2),
                   margin: const EdgeInsets.only(right: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEF4444).withValues(alpha: 0.2),
+                    color: ObsidianUITheme.errorRed.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: const Icon(
                     Icons.warning_amber_rounded,
-                    color: Color(0xFFEF4444),
+                    color: ObsidianUITheme.errorRed,
                     size: 14,
                   ),
                 ),
@@ -1377,7 +1378,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 13,
-                color: isConflict ? const Color(0xFFEF4444) : null,
+                color: isConflict ? ObsidianUITheme.errorRed : null,
               ),
             ),
           ],
@@ -1398,7 +1399,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
               child: Text(a.status, style: TextStyle(fontSize: 10, color: statusColor, fontWeight: FontWeight.bold)),
             ),
             IconButton(
-              icon: const Icon(Icons.send_rounded, size: 16, color: Colors.cyanAccent),
+              icon: const Icon(Icons.send_rounded, size: 16, color: ObsidianUITheme.defaultPrimaryAccent),
               tooltip: 'Send reminder',
               onPressed: () async {
                 await widget.apiService.sendAssignmentReminder(a.id);
@@ -1414,7 +1415,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
               onPressed: () => _openCreateEditModal(asgn: a),
             ),
             IconButton(
-              icon: const Icon(Icons.delete_rounded, size: 16, color: Color(0xFFEF4444)),
+              icon: const Icon(Icons.delete_rounded, size: 16, color: ObsidianUITheme.errorRed),
               tooltip: 'Delete assignment',
               onPressed: () => _deleteSingleAssignment(a.id),
             ),
@@ -1497,7 +1498,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: progress == 1.0 ? const Color(0xFF10B981) : ObsidianUITheme.primaryAccent,
+                            color: progress == 1.0 ? ObsidianUITheme.successGreen : ObsidianUITheme.primaryAccent,
                           ),
                         ),
                       ],
@@ -1509,7 +1510,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
                         value: progress,
                         backgroundColor: Colors.white10,
                         valueColor: AlwaysStoppedAnimation<Color>(
-                          progress == 1.0 ? const Color(0xFF10B981) : ObsidianUITheme.primaryAccent,
+                          progress == 1.0 ? ObsidianUITheme.successGreen : ObsidianUITheme.primaryAccent,
                         ),
                         minHeight: 6,
                       ),
@@ -1544,14 +1545,14 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
                   children: [
                     _buildPitFilterChip('all', 'All ($totalTeams)'),
                     const SizedBox(width: 8),
-                    _buildPitFilterChip('unassigned', 'Unassigned ($unassignedCount)', const Color(0xFFF59E0B)),
+                    _buildPitFilterChip('unassigned', 'Unassigned ($unassignedCount)', ObsidianUITheme.warningOrange),
                     const SizedBox(width: 8),
-                    _buildPitFilterChip('assigned', 'Assigned ($assignedCount)', const Color(0xFF8B5CF6)),
+                    _buildPitFilterChip('assigned', 'Assigned ($assignedCount)', ObsidianUITheme.defaultPrimaryAccent),
                     const SizedBox(width: 8),
-                    _buildPitFilterChip('completed', 'Scouted ($completedCount)', const Color(0xFF10B981)),
+                    _buildPitFilterChip('completed', 'Scouted ($completedCount)', ObsidianUITheme.successGreen),
                     if (conflictCount > 0) ...[
                       const SizedBox(width: 8),
-                      _buildPitFilterChip('conflicts', 'Conflicts ($conflictCount)', const Color(0xFFEF4444)),
+                      _buildPitFilterChip('conflicts', 'Conflicts ($conflictCount)', ObsidianUITheme.errorRed),
                     ],
                   ],
                 ),
@@ -1622,10 +1623,10 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
             : (isAssigned ? (asgn?.status == 'IN_PROGRESS' ? 'In Progress' : 'Assigned') : 'Unassigned'));
 
     final color = isConflict
-        ? const Color(0xFFEF4444)
+        ? ObsidianUITheme.errorRed
         : (isDone
-            ? const Color(0xFF10B981)
-            : (isAssigned ? const Color(0xFF8B5CF6) : const Color(0xFFF59E0B)));
+            ? ObsidianUITheme.successGreen
+            : (isAssigned ? ObsidianUITheme.defaultPrimaryAccent : ObsidianUITheme.warningOrange));
 
     final pitSlotKey = 'PIT:${team.teamNumber}';
     final pitTooltip = isConflict
@@ -1649,7 +1650,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(ObsidianTokens.radius),
           onTap: () {
             if (isConflict) {
               _openConflictResolverModal(matching, title: 'Pit Scouting - Team #${team.teamNumber}');
@@ -1666,14 +1667,14 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
               color: ObsidianUITheme.getSurfaceColor(context),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(ObsidianTokens.radius),
               border: Border.all(
                 color: isConflict
-                    ? const Color(0xFFEF4444)
+                    ? ObsidianUITheme.errorRed
                     : (isDone
-                        ? const Color(0xFF10B981).withValues(alpha: 0.5)
+                        ? ObsidianUITheme.successGreen.withValues(alpha: 0.5)
                         : (isAssigned
-                            ? const Color(0xFF8B5CF6).withValues(alpha: 0.4)
+                            ? ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.4)
                             : ObsidianUITheme.getBorderColor(context).withValues(alpha: 0.6))),
                 width: isConflict ? 1.4 : 1.0,
               ),
@@ -1690,7 +1691,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (isConflict) ...[
-                          const Icon(Icons.warning_amber_rounded, size: 15, color: Color(0xFFEF4444)),
+                          const Icon(Icons.warning_amber_rounded, size: 15, color: ObsidianUITheme.errorRed),
                           const SizedBox(width: 4),
                         ],
                         Text(
@@ -1699,7 +1700,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
                             fontWeight: FontWeight.w800,
                             fontSize: 15,
                             color: isConflict
-                                ? const Color(0xFFEF4444)
+                                ? ObsidianUITheme.errorRed
                                 : ObsidianUITheme.getPrimaryTextColor(context),
                           ),
                         ),
@@ -1716,7 +1717,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           if (isDone) ...[
-                            const Icon(Icons.check_rounded, size: 11, color: Color(0xFF10B981)),
+                            const Icon(Icons.check_rounded, size: 11, color: ObsidianUITheme.successGreen),
                             const SizedBox(width: 2),
                           ],
                           Text(
@@ -1750,20 +1751,20 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: isConflict
-                        ? const Color(0xFFEF4444).withValues(alpha: 0.12)
+                        ? ObsidianUITheme.errorRed.withValues(alpha: 0.12)
                         : (isDone
-                            ? const Color(0xFF10B981).withValues(alpha: 0.08)
+                            ? ObsidianUITheme.successGreen.withValues(alpha: 0.08)
                             : (isAssigned
-                                ? const Color(0xFF8B5CF6).withValues(alpha: 0.12)
+                                ? ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.12)
                                 : ObsidianUITheme.primaryAccent.withValues(alpha: 0.08))),
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(
                       color: isConflict
-                          ? const Color(0xFFEF4444).withValues(alpha: 0.4)
+                          ? ObsidianUITheme.errorRed.withValues(alpha: 0.4)
                           : (isDone
-                              ? const Color(0xFF10B981).withValues(alpha: 0.25)
+                              ? ObsidianUITheme.successGreen.withValues(alpha: 0.25)
                               : (isAssigned
-                                  ? const Color(0xFF8B5CF6).withValues(alpha: 0.3)
+                                  ? ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.3)
                                   : ObsidianUITheme.primaryAccent.withValues(alpha: 0.25))),
                     ),
                   ),
@@ -1832,7 +1833,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
       isScrollControlled: true,
       backgroundColor: ObsidianUITheme.getSurfaceColor(context),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
       ),
       builder: (ctx) => _CreateEditAssignmentBottomSheet(
         apiService: widget.apiService,
@@ -1863,7 +1864,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
       isScrollControlled: true,
       backgroundColor: ObsidianUITheme.getSurfaceColor(context),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
       ),
       builder: (ctx) => _BulkWizardBottomSheet(
         apiService: widget.apiService,
@@ -1903,7 +1904,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
       isScrollControlled: true,
       backgroundColor: ObsidianUITheme.getSurfaceColor(context),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
       ),
       builder: (ctx) => _PlannedShiftsBottomSheet(
         apiService: widget.apiService,
@@ -1923,7 +1924,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
       isScrollControlled: true,
       backgroundColor: ObsidianUITheme.getSurfaceColor(context),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
       ),
       builder: (ctx) => _PitAutoBottomSheet(
         apiService: widget.apiService,
@@ -1947,7 +1948,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
       isScrollControlled: true,
       backgroundColor: ObsidianUITheme.getSurfaceColor(context),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
       ),
       builder: (ctx) => _PitGroupsBottomSheet(
         apiService: widget.apiService,
@@ -2023,7 +2024,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
         ),
         actions: [
           TextButton(
-            style: TextButton.styleFrom(foregroundColor: const Color(0xFFEF4444)),
+            style: TextButton.styleFrom(foregroundColor: ObsidianUITheme.errorRed),
             onPressed: () async {
               final toDelete = conflicted.map((i) => i.id).toList();
               try {
@@ -2074,7 +2075,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
+            style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.errorRed),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Delete'),
           ),
@@ -2127,7 +2128,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
+            style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.errorRed),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Confirm Delete'),
           ),
@@ -2740,18 +2741,18 @@ class _CreateEditAssignmentBottomSheetState
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEF4444).withValues(alpha: 0.15),
+                  color: ObsidianUITheme.errorRed.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFEF4444)),
+                  border: Border.all(color: ObsidianUITheme.errorRed),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.warning_amber_rounded, size: 16, color: Color(0xFFEF4444)),
+                    const Icon(Icons.warning_amber_rounded, size: 16, color: ObsidianUITheme.errorRed),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         conflictWarning,
-                        style: const TextStyle(color: Color(0xFFEF4444), fontSize: 11, fontWeight: FontWeight.bold),
+                        style: const TextStyle(color: ObsidianUITheme.errorRed, fontSize: 11, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
@@ -3106,7 +3107,7 @@ class _BulkWizardBottomSheetState extends State<_BulkWizardBottomSheet> {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: inBlock.isEmpty ? const Color(0xFFF59E0B) : ObsidianUITheme.primaryAccent,
+                            color: inBlock.isEmpty ? ObsidianUITheme.warningOrange : ObsidianUITheme.primaryAccent,
                           ),
                         ),
                       ],
@@ -3256,7 +3257,7 @@ class _PlannedShiftsBottomSheet extends StatefulWidget {
 
 class _PlannedShiftsBottomSheetState extends State<_PlannedShiftsBottomSheet> {
   static const _stageFallbacks = {'all': 'All stages', 'qm': 'Quals', 'pr': 'Practice', 'playoffs': 'Playoffs'};
-  static const _red = Color(0xFFEF4444);
+  static const _red = ObsidianUITheme.errorRed;
   static const _blue = Color(0xFF3B82F6);
 
   List<AssignmentShiftView> _shifts = [];
@@ -3506,7 +3507,7 @@ class _PlannedShiftsBottomSheetState extends State<_PlannedShiftsBottomSheet> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
         border: Border.all(color: secondary.withValues(alpha: 0.3)),
         color: _editingId == s.id ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.08) : null,
       ),
@@ -3531,7 +3532,7 @@ class _PlannedShiftsBottomSheetState extends State<_PlannedShiftsBottomSheet> {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: view.matchCount > 0 ? ObsidianUITheme.primaryAccent : const Color(0xFFF59E0B),
+                    color: view.matchCount > 0 ? ObsidianUITheme.primaryAccent : ObsidianUITheme.warningOrange,
                   ),
                 ),
               ],
@@ -3943,7 +3944,7 @@ class _PitAutoBottomSheetState extends State<_PitAutoBottomSheet> {
             const SizedBox(height: 8),
             Text(
               _summary,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF8B5CF6)),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ObsidianUITheme.defaultPrimaryAccent),
             ),
           ],
         ),
@@ -3953,7 +3954,7 @@ class _PitAutoBottomSheetState extends State<_PitAutoBottomSheet> {
               height: 44,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF8B5CF6),
+                  backgroundColor: ObsidianUITheme.defaultPrimaryAccent,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
@@ -4564,7 +4565,7 @@ class _PitGroupsBottomSheetState extends State<_PitGroupsBottomSheet> {
                         ),
                         IconButton(
                           tooltip: 'Remove group',
-                          icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444)),
+                          icon: const Icon(Icons.delete_outline_rounded, color: ObsidianUITheme.errorRed),
                           onPressed: () => setState(() {
                             _groups.remove(g);
                             g.name.dispose();
@@ -4585,7 +4586,7 @@ class _PitGroupsBottomSheetState extends State<_PitGroupsBottomSheet> {
                           label: Text(u.displayName.isNotEmpty ? u.displayName : u.username,
                               style: const TextStyle(fontSize: 11.5)),
                           selected: selected,
-                          selectedColor: const Color(0xFF8B5CF6).withValues(alpha: 0.25),
+                          selectedColor: ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.25),
                           onSelected: (v) => setState(() {
                             if (v) {
                               g.memberIds.add(u.id);
@@ -4613,7 +4614,7 @@ class _PitGroupsBottomSheetState extends State<_PitGroupsBottomSheet> {
               height: 44,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF8B5CF6),
+                  backgroundColor: ObsidianUITheme.defaultPrimaryAccent,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
@@ -4761,7 +4762,7 @@ class _SearchablePersonField extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: ObsidianUITheme.getSurfaceColor(context),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius))),
       builder: (ctx) => _PersonSearchSheet(
         title: label,
         users: users,
@@ -4781,7 +4782,7 @@ class _SearchablePersonField extends StatelessWidget {
         ? (showRole ? '${_name(selected)} (${selected.roleDisplayLabel})' : _name(selected))
         : (emptyOptionLabel ?? context.tr('assignments.select_member', 'Select team member...'));
     return InkWell(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
       onTap: () => _open(context),
       child: InputDecorator(
         decoration: InputDecoration(

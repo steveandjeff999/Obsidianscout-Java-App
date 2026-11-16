@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/obsidian_tokens.dart';
 import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
 import '../services/app_update_service.dart';
@@ -761,7 +762,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                   ),
                   child: Icon(Icons.settings_suggest_rounded,
                       color: ObsidianUITheme.primaryAccent, size: 32),
@@ -822,7 +823,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 8),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
+                            borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill)),
                       ),
                       icon: const Icon(Icons.tune_rounded, size: 16),
                       label: const Text('Theme Editor',
@@ -958,7 +959,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             color: ObsidianUITheme.getPrimaryAccent(context)
                                 .withValues(alpha: 0.5)),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                            borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
                         padding: const EdgeInsets.symmetric(
                             vertical: 12, horizontal: 16),
                       ),
@@ -1384,7 +1385,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     .withValues(alpha: 0.15)
                                 : ObsidianUITheme.warningOrange
                                     .withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -1786,10 +1787,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 borderRadius: BorderRadius.circular(10)),
                           ),
                           icon: const Icon(Icons.transform_rounded,
-                              size: 14, color: Colors.cyanAccent),
+                              size: 14, color: ObsidianUITheme.defaultPrimaryAccent),
                           label: const Text('Data Migration',
                               style: TextStyle(
-                                  color: Colors.cyanAccent,
+                                  color: ObsidianUITheme.defaultPrimaryAccent,
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold)),
                           onPressed: widget.onNavigateConfigEditor,
@@ -1942,7 +1943,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: Row(
                           children: [
                             const Icon(Icons.speed_rounded,
-                                color: Color(0xFFF97316)),
+                                color: ObsidianUITheme.warningOrange),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -1964,7 +1965,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       if (widget.onNavigateLoadProfiler != null)
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFF97316),
+                            backgroundColor: ObsidianUITheme.warningOrange,
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 8),
                             shape: RoundedRectangleBorder(
@@ -2005,7 +2006,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: Row(
                           children: [
                             const Icon(Icons.memory_rounded,
-                                color: Color(0xFFEF4444)),
+                                color: ObsidianUITheme.errorRed),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -2027,7 +2028,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       if (widget.onNavigateRedisStatus != null)
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFEF4444),
+                            backgroundColor: ObsidianUITheme.errorRed,
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 8),
                             shape: RoundedRectangleBorder(
@@ -2070,7 +2071,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: Row(
                           children: [
                             const Icon(Icons.insights_rounded,
-                                color: Color(0xFF10B981)),
+                                color: ObsidianUITheme.successGreen),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -2090,7 +2091,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       if (widget.onNavigateServerInsights != null)
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF10B981),
+                            backgroundColor: ObsidianUITheme.successGreen,
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 8),
                             shape: RoundedRectangleBorder(
@@ -2133,7 +2134,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: Row(
                           children: [
                             const Icon(Icons.bug_report_rounded,
-                                color: Color(0xFFF87171)),
+                                color: ObsidianUITheme.errorRed),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -2153,7 +2154,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       if (widget.onNavigateErrorReports != null)
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFEF4444),
+                            backgroundColor: ObsidianUITheme.errorRed,
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 8),
                             shape: RoundedRectangleBorder(
@@ -2250,7 +2251,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               child: Row(
                                 children: [
                                   const Icon(Icons.check_circle_outline_rounded,
-                                      color: Colors.greenAccent, size: 16),
+                                      color: ObsidianUITheme.successGreen, size: 16),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
@@ -2569,7 +2570,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   .withValues(alpha: 0.08)
                               : ObsidianUITheme.getSurfaceColor(context)
                                   .withValues(alpha: 0.5),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                           border: Border.all(
                             color: isCurrent
                                 ? ObsidianUITheme.primaryAccent
@@ -2586,7 +2587,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     ? ObsidianUITheme.primaryAccent
                                         .withValues(alpha: 0.2)
                                     : Colors.white.withValues(alpha: 0.05),
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                               ),
                               child: Icon(
                                 _getDeviceIcon(clientType, deviceName),
@@ -2621,12 +2622,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                           padding: const EdgeInsets.symmetric(
                                               horizontal: 6, vertical: 2),
                                           decoration: BoxDecoration(
-                                            color: Colors.greenAccent
+                                            color: ObsidianUITheme.successGreen
                                                 .withValues(alpha: 0.2),
                                             borderRadius:
                                                 BorderRadius.circular(6),
                                             border: Border.all(
-                                                color: Colors.greenAccent
+                                                color: ObsidianUITheme.successGreen
                                                     .withValues(alpha: 0.4)),
                                           ),
                                           child: const Text(
@@ -2634,7 +2635,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                             style: TextStyle(
                                               fontSize: 10,
                                               fontWeight: FontWeight.bold,
-                                              color: Colors.greenAccent,
+                                              color: ObsidianUITheme.successGreen,
                                             ),
                                           ),
                                         ),
@@ -2833,7 +2834,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     'Session: ${context.tr("connection.online")}',
                                     style: const TextStyle(
                                         fontSize: 12,
-                                        color: Colors.greenAccent)),
+                                        color: ObsidianUITheme.successGreen)),
                               ],
                             ),
                           ),

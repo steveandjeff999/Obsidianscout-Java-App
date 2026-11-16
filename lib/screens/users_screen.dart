@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../theme/obsidian_tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../l10n/app_localizations.dart';
@@ -282,7 +283,7 @@ class _UsersScreenState extends State<UsersScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          backgroundColor: Colors.redAccent,
+          backgroundColor: ObsidianUITheme.errorRed,
           content: Text(res.message ?? 'Failed to create user'),
         ),
       );
@@ -329,7 +330,7 @@ class _UsersScreenState extends State<UsersScreen> {
 
             return Dialog(
               backgroundColor: cardBg,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
               child: Container(
                 width: isDesktop ? 500 : double.infinity,
                 constraints: const BoxConstraints(maxWidth: 520, maxHeight: 720),
@@ -434,7 +435,7 @@ class _UsersScreenState extends State<UsersScreen> {
                                         const SizedBox(width: 8),
                                         TextButton.icon(
                                           style: TextButton.styleFrom(
-                                            foregroundColor: Colors.redAccent,
+                                            foregroundColor: ObsidianUITheme.errorRed,
                                             visualDensity: VisualDensity.compact,
                                           ),
                                           icon: const Icon(Icons.delete_outline_rounded, size: 16),
@@ -619,7 +620,7 @@ class _UsersScreenState extends State<UsersScreen> {
                                   } else {
                                     messenger.showSnackBar(
                                       SnackBar(
-                                        backgroundColor: Colors.redAccent,
+                                        backgroundColor: ObsidianUITheme.errorRed,
                                         content: Text(res.message ?? 'Failed to update user'),
                                       ),
                                     );
@@ -644,7 +645,7 @@ class _UsersScreenState extends State<UsersScreen> {
       builder: (ctx) => AlertDialog(
         title: Row(
           children: [
-            const Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+            const Icon(Icons.warning_amber_rounded, color: ObsidianUITheme.errorRed),
             const SizedBox(width: 8),
             Text(context.tr('users.delete_user', 'Delete User')),
           ],
@@ -658,7 +659,7 @@ class _UsersScreenState extends State<UsersScreen> {
             child: Text(context.tr('events.cancel', 'Cancel')),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.errorRed),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(context.tr('users.delete', 'Delete'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
@@ -689,7 +690,7 @@ class _UsersScreenState extends State<UsersScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          backgroundColor: Colors.redAccent,
+          backgroundColor: ObsidianUITheme.errorRed,
           content: Text(res.message ?? 'Failed to delete user'),
         ),
       );
@@ -734,7 +735,7 @@ class _UsersScreenState extends State<UsersScreen> {
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
                           color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                           border: Border.all(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.3)),
                         ),
                         child: Icon(Icons.manage_accounts_rounded, color: ObsidianUITheme.primaryAccent, size: 26),
@@ -785,7 +786,7 @@ class _UsersScreenState extends State<UsersScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 48),
+                          const Icon(Icons.error_outline_rounded, color: ObsidianUITheme.errorRed, size: 48),
                           const SizedBox(height: 12),
                           Text(
                             _errorMessage!,
@@ -869,10 +870,10 @@ class _UsersScreenState extends State<UsersScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.redAccent.withValues(alpha: 0.15),
+                    color: ObsidianUITheme.errorRed.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.lock_rounded, color: Colors.redAccent, size: 48),
+                  child: const Icon(Icons.lock_rounded, color: ObsidianUITheme.errorRed, size: 48),
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -908,7 +909,7 @@ class _UsersScreenState extends State<UsersScreen> {
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
             ),
             child: Icon(Icons.person_add_alt_1_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
           ),
@@ -1500,7 +1501,7 @@ class _UsersScreenState extends State<UsersScreen> {
                             onPressed: () => _openEditModal(user),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.redAccent),
+                            icon: const Icon(Icons.delete_outline_rounded, size: 18, color: ObsidianUITheme.errorRed),
                             tooltip: 'Delete User',
                             onPressed: () => _handleDeleteUser(user),
                           ),
@@ -1607,8 +1608,8 @@ class _UsersScreenState extends State<UsersScreen> {
                         OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
                             visualDensity: VisualDensity.compact,
-                            foregroundColor: Colors.redAccent,
-                            side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.4)),
+                            foregroundColor: ObsidianUITheme.errorRed,
+                            side: BorderSide(color: ObsidianUITheme.errorRed.withValues(alpha: 0.4)),
                           ),
                           icon: const Icon(Icons.delete_outline_rounded, size: 14),
                           label: Text(context.tr('users.delete', 'Delete')),
@@ -1639,24 +1640,24 @@ class _UsersScreenState extends State<UsersScreen> {
         label = 'Site Admin';
         break;
       case 'ADMIN':
-        bg = Colors.red.withValues(alpha: 0.2);
-        fg = Colors.redAccent;
+        bg = ObsidianUITheme.errorRed.withValues(alpha: 0.2);
+        fg = ObsidianUITheme.errorRed;
         label = 'Admin';
         break;
       case 'ANALYTICS':
-        bg = Colors.amber.withValues(alpha: 0.2);
-        fg = Colors.amber;
+        bg = ObsidianUITheme.warningOrange.withValues(alpha: 0.2);
+        fg = ObsidianUITheme.warningOrange;
         label = 'Analytics';
         break;
       case 'CUSTOM':
-        bg = Colors.green.withValues(alpha: 0.2);
-        fg = Colors.greenAccent;
+        bg = ObsidianUITheme.successGreen.withValues(alpha: 0.2);
+        fg = ObsidianUITheme.successGreen;
         label = '${context.tr('users.custom_role', 'Custom')} ($customPageCount ${context.tr('users.pages_count', 'pages')})';
         break;
       case 'SCOUT':
       default:
         bg = Colors.cyan.withValues(alpha: 0.2);
-        fg = Colors.cyanAccent;
+        fg = ObsidianUITheme.defaultPrimaryAccent;
         label = 'Scout';
         break;
     }

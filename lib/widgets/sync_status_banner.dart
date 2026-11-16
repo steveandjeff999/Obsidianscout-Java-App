@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import '../theme/obsidian_tokens.dart';
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
@@ -126,7 +127,7 @@ class _SyncStatusBannerState extends State<SyncStatusBanner> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(ObsidianTokens.radius),
           border: Border.all(color: color.withValues(alpha: 0.45)),
         ),
         child: Row(

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../theme/obsidian_tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
@@ -725,7 +726,7 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: surfaceColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
         title: Row(
           children: [
             const Icon(Icons.warning_amber_rounded, color: ObsidianUITheme.warningOrange, size: 28),
@@ -821,7 +822,7 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                     ),
                     child: Icon(Icons.history_edu_rounded, color: ObsidianUITheme.primaryAccent, size: 30),
                   ),
@@ -862,8 +863,8 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
         Padding(
           padding: const EdgeInsets.only(left: 4.0, bottom: 8.0),
           child: Text(
-            'SCOUTING CATEGORIES',
-            style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.w700, color: tertiaryTextColor, letterSpacing: 1.0),
+            'Scouting categories',
+            style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.w700, color: tertiaryTextColor, letterSpacing: 0),
           ),
         ),
 
@@ -890,10 +891,10 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color: Colors.amberAccent.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(12),
+                                color: ObsidianUITheme.warningOrange.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                               ),
-                              child: const Icon(Icons.sports_esports_rounded, color: Colors.amberAccent, size: 26),
+                              child: const Icon(Icons.sports_esports_rounded, color: ObsidianUITheme.warningOrange, size: 26),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -954,10 +955,10 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color: Colors.cyanAccent.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(12),
+                                color: ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                               ),
-                              child: const Icon(Icons.build_circle_rounded, color: Colors.cyanAccent, size: 26),
+                              child: const Icon(Icons.build_circle_rounded, color: ObsidianUITheme.defaultPrimaryAccent, size: 26),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -1018,10 +1019,10 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color: Colors.lightGreenAccent.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(12),
+                                color: ObsidianUITheme.successGreen.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                               ),
-                              child: const Icon(Icons.rate_review_rounded, color: Colors.lightGreenAccent, size: 26),
+                              child: const Icon(Icons.rate_review_rounded, color: ObsidianUITheme.successGreen, size: 26),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -1087,15 +1088,15 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
 
     if (_currentMode == PrescoutMode.match) {
       title = context.tr('prescout-scout.match_prescouting');
-      accentColor = Colors.amberAccent;
+      accentColor = ObsidianUITheme.warningOrange;
       modeIcon = Icons.sports_esports_rounded;
     } else if (_currentMode == PrescoutMode.pit) {
       title = context.tr('prescout-pit.pit_prescouting');
-      accentColor = Colors.cyanAccent;
+      accentColor = ObsidianUITheme.defaultPrimaryAccent;
       modeIcon = Icons.build_circle_rounded;
     } else if (_currentMode == PrescoutMode.qual) {
       title = context.tr('prescout-qual.qualitative_prescouting');
-      accentColor = Colors.lightGreenAccent;
+      accentColor = ObsidianUITheme.successGreen;
       modeIcon = Icons.rate_review_rounded;
     }
 
@@ -1144,7 +1145,7 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
                     hintText: 'e.g. 2024micmp',
                     isDense: true,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: borderColor)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius), borderSide: BorderSide(color: borderColor)),
                   ),
                   onChanged: (val) {
                     final teamNum = int.tryParse(_teamNumberController.text.trim()) ?? 0;
@@ -1169,7 +1170,7 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
                     hintText: 'e.g. 254',
                     isDense: true,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: borderColor)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius), borderSide: BorderSide(color: borderColor)),
                   ),
                   onChanged: _onTeamNumberChanged,
                 ),
@@ -1190,7 +1191,7 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
                       hintText: 'Auto',
                       isDense: true,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: borderColor)),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius), borderSide: BorderSide(color: borderColor)),
                     ),
                     onChanged: (val) {
                       final teamNum = int.tryParse(_teamNumberController.text.trim()) ?? 0;
@@ -1208,7 +1209,7 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
                   color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                   border: Border.all(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.3)),
                 ),
                 child: Row(
@@ -1293,7 +1294,7 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   ),
                   backgroundColor: ObsidianUITheme.getSurfaceColor(context),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
                 ),
               );
             }).toList(),
@@ -1350,8 +1351,8 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildPointMetric('Auto', points['auto'] ?? 0.0, Colors.blueAccent),
-                  _buildPointMetric('Teleop', points['teleop'] ?? 0.0, Colors.greenAccent),
+                  _buildPointMetric('Auto', points['auto'] ?? 0.0, ObsidianUITheme.defaultPrimaryAccent),
+                  _buildPointMetric('Teleop', points['teleop'] ?? 0.0, ObsidianUITheme.successGreen),
                   _buildPointMetric('Endgame', points['endgame'] ?? 0.0, Colors.purpleAccent),
                   _buildPointMetric('Total', points['total'] ?? 0.0, ObsidianUITheme.primaryAccent, isTotal: true),
                 ],
@@ -1376,7 +1377,7 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
       return ObsidianGlassCard(
         child: Row(
           children: [
-            const Icon(Icons.info_outline_rounded, color: Colors.cyanAccent, size: 24),
+            const Icon(Icons.info_outline_rounded, color: ObsidianUITheme.defaultPrimaryAccent, size: 24),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -1428,7 +1429,7 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
       return ObsidianGlassCard(
         child: Row(
           children: [
-            const Icon(Icons.info_outline_rounded, color: Colors.lightGreenAccent, size: 24),
+            const Icon(Icons.info_outline_rounded, color: ObsidianUITheme.successGreen, size: 24),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -1506,7 +1507,7 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: ObsidianUITheme.primaryAccent,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
                 ),
                 onPressed: _isSubmitting ? null : () => _handleSubmit(isOffline: false),
                 icon: _isSubmitting
@@ -1564,10 +1565,10 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: _handleGenerateQr,
-                icon: const Icon(Icons.qr_code_2_rounded, size: 18, color: Colors.cyanAccent),
+                icon: const Icon(Icons.qr_code_2_rounded, size: 18, color: ObsidianUITheme.defaultPrimaryAccent),
                 label: Text(
                   context.tr('pit-scout.generate_qr'),
-                  style: const TextStyle(fontSize: 12, color: Colors.cyanAccent),
+                  style: const TextStyle(fontSize: 12, color: ObsidianUITheme.defaultPrimaryAccent),
                 ),
               ),
             ),

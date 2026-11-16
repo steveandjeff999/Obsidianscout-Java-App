@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../theme/obsidian_tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/error_report_models.dart';
@@ -175,7 +176,7 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Failed to update report status'),
-            backgroundColor: Colors.redAccent,
+            backgroundColor: ObsidianUITheme.errorRed,
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -188,7 +189,7 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: ObsidianUITheme.getSurfaceColor(context),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
         title: const Text('Delete Error Report?'),
         content: Text(
           'Are you sure you want to permanently delete this error report? This cannot be undone.',
@@ -201,7 +202,7 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFEF4444),
+              backgroundColor: ObsidianUITheme.errorRed,
               foregroundColor: Colors.white,
             ),
             onPressed: () => Navigator.of(ctx).pop(true),
@@ -227,7 +228,7 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Failed to delete error report'),
-              backgroundColor: Colors.redAccent,
+              backgroundColor: ObsidianUITheme.errorRed,
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -260,7 +261,7 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: ObsidianUITheme.getSurfaceColor(context),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
         title: const Text('Delete Error Group?'),
         content: Text(
           'Are you sure you want to permanently delete all $count error report(s) in this group? This cannot be undone.',
@@ -273,7 +274,7 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFEF4444),
+              backgroundColor: ObsidianUITheme.errorRed,
               foregroundColor: Colors.white,
             ),
             onPressed: () => Navigator.of(ctx).pop(true),
@@ -316,7 +317,7 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
 
           return AlertDialog(
             backgroundColor: surface,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
             title: Text(
               'Clear Error Reports',
               style: TextStyle(color: textPrimary, fontWeight: FontWeight.bold),
@@ -378,20 +379,20 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
                       Container(
                         padding: const EdgeInsets.all(10.0),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEF4444).withValues(alpha: 0.12),
+                          color: ObsidianUITheme.errorRed.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(8.0),
                           border: Border.all(
-                            color: const Color(0xFFEF4444).withValues(alpha: 0.3),
+                            color: ObsidianUITheme.errorRed.withValues(alpha: 0.3),
                           ),
                         ),
                         child: const Row(
                           children: [
-                            Icon(Icons.warning_amber_rounded, color: Color(0xFFEF4444), size: 18),
+                            Icon(Icons.warning_amber_rounded, color: ObsidianUITheme.errorRed, size: 18),
                             SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 'Warning: This will delete ALL reports including open issues that have not been investigated.',
-                                style: TextStyle(color: Color(0xFFEF4444), fontSize: 12, fontWeight: FontWeight.w500),
+                                style: TextStyle(color: ObsidianUITheme.errorRed, fontSize: 12, fontWeight: FontWeight.w500),
                               ),
                             ),
                           ],
@@ -409,9 +410,9 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFEF4444),
+                  backgroundColor: ObsidianUITheme.errorRed,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill)),
                 ),
                 onPressed: isClearing
                     ? null
@@ -435,7 +436,7 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text('Failed to clear error reports'),
-                                backgroundColor: Colors.redAccent,
+                                backgroundColor: ObsidianUITheme.errorRed,
                                 behavior: SnackBarBehavior.floating,
                               ),
                             );
@@ -470,7 +471,7 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
 
           return Dialog(
             backgroundColor: surface,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
             insetPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 720.0, maxHeight: 680.0),
@@ -550,16 +551,16 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
                             width: double.infinity,
                             padding: const EdgeInsets.all(12.0),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFEF4444).withValues(alpha: 0.08),
+                              color: ObsidianUITheme.errorRed.withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(8.0),
                               border: Border.all(
-                                color: const Color(0xFFEF4444).withValues(alpha: 0.25),
+                                color: ObsidianUITheme.errorRed.withValues(alpha: 0.25),
                               ),
                             ),
                             child: SelectableText(
                               item.errorMessage.isNotEmpty ? item.errorMessage : 'No message provided.',
                               style: const TextStyle(
-                                color: Color(0xFFF87171),
+                                color: ObsidianUITheme.errorRed,
                                 fontWeight: FontWeight.w600,
                                 fontSize: 14.0,
                               ),
@@ -583,7 +584,7 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
                               dialogCtx,
                               'Resolution:',
                               'Resolved by ${item.resolvedBy ?? "Superadmin"} on ${_formatDate(item.resolvedAt ?? "")}',
-                              valueColor: const Color(0xFF10B981),
+                              valueColor: ObsidianUITheme.successGreen,
                             ),
 
                           const SizedBox(height: 16.0),
@@ -593,12 +594,12 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                'STACK TRACE',
+                                'Stack trace',
                                 style: TextStyle(
                                   color: textSecondary,
                                   fontSize: 11.0,
                                   fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.8,
+                                  letterSpacing: 0,
                                 ),
                               ),
                               if (item.errorStack != null && item.errorStack!.isNotEmpty)
@@ -671,9 +672,9 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
                       children: [
                         OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFFEF4444),
-                            side: BorderSide(color: const Color(0xFFEF4444).withValues(alpha: 0.3)),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                            foregroundColor: ObsidianUITheme.errorRed,
+                            side: BorderSide(color: ObsidianUITheme.errorRed.withValues(alpha: 0.3)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill)),
                           ),
                           icon: const Icon(Icons.delete_outline_rounded, size: 16),
                           label: const Text('Delete Report', style: TextStyle(fontSize: 12)),
@@ -687,9 +688,9 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
                           children: [
                             ElevatedButton.icon(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: isOpen ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                                backgroundColor: isOpen ? ObsidianUITheme.successGreen : ObsidianUITheme.warningOrange,
                                 foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill)),
                               ),
                               icon: Icon(isOpen ? Icons.check_circle_outline_rounded : Icons.replay_rounded, size: 16),
                               label: Text(
@@ -833,7 +834,7 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
                 const Icon(
                   Icons.shield_outlined,
                   size: 48.0,
-                  color: Color(0xFFEF4444),
+                  color: ObsidianUITheme.errorRed,
                 ),
                 const SizedBox(height: 16.0),
                 Text(
@@ -864,12 +865,12 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Row(
           children: [
-            const Icon(Icons.error_outline_rounded, color: Color(0xFFEF4444), size: 24),
+            const Icon(Icons.error_outline_rounded, color: ObsidianUITheme.errorRed, size: 24),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 _errorMessage ?? 'Failed to load error reports.',
-                style: const TextStyle(color: Color(0xFFEF4444), fontSize: 13, fontWeight: FontWeight.w500),
+                style: const TextStyle(color: ObsidianUITheme.errorRed, fontSize: 13, fontWeight: FontWeight.w500),
               ),
             ),
             TextButton(
@@ -927,7 +928,7 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill)),
                   ),
                   icon: const Icon(Icons.refresh_rounded, size: 16),
                   label: const Text('Refresh', style: TextStyle(fontSize: 12)),
@@ -935,8 +936,8 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
                 ),
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFFEF4444),
-                    side: BorderSide(color: const Color(0xFFEF4444).withValues(alpha: 0.3)),
+                    foregroundColor: ObsidianUITheme.errorRed,
+                    side: BorderSide(color: ObsidianUITheme.errorRed.withValues(alpha: 0.3)),
                     padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
                   ),
@@ -988,42 +989,42 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
               value: total.toString(),
               subtext: 'Logged exceptions',
               badgeText: 'Active',
-              badgeBg: const Color(0xFFF59E0B).withValues(alpha: 0.15),
-              badgeColor: const Color(0xFFF59E0B),
+              badgeBg: ObsidianUITheme.warningOrange.withValues(alpha: 0.15),
+              badgeColor: ObsidianUITheme.warningOrange,
             ),
             _buildStatCard(
               label: 'Open Issues',
               value: open.toString(),
               subtext: 'Requires review',
               badgeText: 'Unresolved',
-              badgeBg: const Color(0xFFEF4444).withValues(alpha: 0.15),
-              badgeColor: const Color(0xFFEF4444),
-              valueColor: const Color(0xFFEF4444),
+              badgeBg: ObsidianUITheme.errorRed.withValues(alpha: 0.15),
+              badgeColor: ObsidianUITheme.errorRed,
+              valueColor: ObsidianUITheme.errorRed,
             ),
             _buildStatCard(
               label: 'Resolved',
               value: resolved.toString(),
               subtext: 'Marked fixed',
               badgeText: 'Fixed',
-              badgeBg: const Color(0xFF10B981).withValues(alpha: 0.15),
-              badgeColor: const Color(0xFF10B981),
-              valueColor: const Color(0xFF10B981),
+              badgeBg: ObsidianUITheme.successGreen.withValues(alpha: 0.15),
+              badgeColor: ObsidianUITheme.successGreen,
+              valueColor: ObsidianUITheme.successGreen,
             ),
             _buildStatCard(
               label: 'Server Exceptions',
               value: server.toString(),
               subtext: 'JVM / backend crashes',
               badgeText: 'Backend',
-              badgeBg: const Color(0xFFF59E0B).withValues(alpha: 0.15),
-              badgeColor: const Color(0xFFF59E0B),
+              badgeBg: ObsidianUITheme.warningOrange.withValues(alpha: 0.15),
+              badgeColor: ObsidianUITheme.warningOrange,
             ),
             _buildStatCard(
               label: 'Client JS Errors',
               value: client.toString(),
               subtext: 'Frontend bug reports',
               badgeText: 'Frontend',
-              badgeBg: const Color(0xFF3B82F6).withValues(alpha: 0.15),
-              badgeColor: const Color(0xFF3B82F6),
+              badgeBg: ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.15),
+              badgeColor: ObsidianUITheme.defaultPrimaryAccent,
             ),
           ],
         );
@@ -1059,7 +1060,7 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
                     style: TextStyle(
                       fontSize: 9.5,
                       fontWeight: FontWeight.w700,
-                      letterSpacing: 0.6,
+                      letterSpacing: 0,
                       color: textSecondary,
                     ),
                     maxLines: 1,
@@ -1238,7 +1239,7 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
         color: ObsidianUITheme.isDark(context)
             ? Colors.white.withValues(alpha: 0.04)
             : Colors.black.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(8.0),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
         border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
       ),
       child: DropdownButtonHideUnderline(
@@ -1288,7 +1289,7 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.check_circle_outline_rounded, size: 40.0, color: Colors.green.withValues(alpha: 0.7)),
+            Icon(Icons.check_circle_outline_rounded, size: 40.0, color: ObsidianUITheme.successGreen.withValues(alpha: 0.7)),
             const SizedBox(height: 12.0),
             Text(
               'No error reports match the current filter criteria.',
@@ -1333,7 +1334,7 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
             // Header Row (Clickable)
             InkWell(
               onTap: () => _toggleGroupExpand(group.groupKey),
-              borderRadius: BorderRadius.circular(12.0),
+              borderRadius: BorderRadius.circular(ObsidianTokens.radius),
               child: Padding(
                 padding: const EdgeInsets.all(14.0),
                 child: Column(
@@ -1354,12 +1355,12 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
                               padding: const EdgeInsets.symmetric(horizontal: 7.0, vertical: 2.0),
                               decoration: BoxDecoration(
                                 color: group.count > 1
-                                    ? const Color(0xFFEF4444).withValues(alpha: 0.15)
+                                    ? ObsidianUITheme.errorRed.withValues(alpha: 0.15)
                                     : textSecondary.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(999.0),
                                 border: Border.all(
                                   color: group.count > 1
-                                      ? const Color(0xFFEF4444).withValues(alpha: 0.3)
+                                      ? ObsidianUITheme.errorRed.withValues(alpha: 0.3)
                                       : textSecondary.withValues(alpha: 0.2),
                                 ),
                               ),
@@ -1368,7 +1369,7 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
                                 style: TextStyle(
                                   fontSize: 10.0,
                                   fontWeight: FontWeight.bold,
-                                  color: group.count > 1 ? const Color(0xFFEF4444) : textSecondary,
+                                  color: group.count > 1 ? ObsidianUITheme.errorRed : textSecondary,
                                 ),
                               ),
                             ),
@@ -1471,7 +1472,7 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
                             ),
                             ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: isOpen ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                                backgroundColor: isOpen ? ObsidianUITheme.successGreen : ObsidianUITheme.warningOrange,
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
                                 visualDensity: VisualDensity.compact,
@@ -1485,8 +1486,8 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
                             ),
                             OutlinedButton(
                               style: OutlinedButton.styleFrom(
-                                foregroundColor: const Color(0xFFEF4444),
-                                side: BorderSide(color: const Color(0xFFEF4444).withValues(alpha: 0.3)),
+                                foregroundColor: ObsidianUITheme.errorRed,
+                                side: BorderSide(color: ObsidianUITheme.errorRed.withValues(alpha: 0.3)),
                                 padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
                                 visualDensity: VisualDensity.compact,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6.0)),
@@ -1525,7 +1526,7 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
                       style: TextStyle(
                         fontSize: 10.5,
                         fontWeight: FontWeight.bold,
-                        letterSpacing: 0.6,
+                        letterSpacing: 0,
                         color: textSecondary,
                       ),
                     ),
@@ -1558,7 +1559,7 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
       padding: const EdgeInsets.all(10.0),
       decoration: BoxDecoration(
         color: ObsidianUITheme.getSurfaceColor(context),
-        borderRadius: BorderRadius.circular(8.0),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
         border: Border.all(
           color: ObsidianUITheme.isDark(context)
               ? Colors.white.withValues(alpha: 0.05)
@@ -1627,7 +1628,7 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
                   ),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isOpen ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                      backgroundColor: isOpen ? ObsidianUITheme.successGreen : ObsidianUITheme.warningOrange,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
                       visualDensity: VisualDensity.compact,
@@ -1641,8 +1642,8 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
                   ),
                   OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFEF4444),
-                      side: BorderSide(color: const Color(0xFFEF4444).withValues(alpha: 0.3)),
+                      foregroundColor: ObsidianUITheme.errorRed,
+                      side: BorderSide(color: ObsidianUITheme.errorRed.withValues(alpha: 0.3)),
                       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
                       visualDensity: VisualDensity.compact,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6.0)),
@@ -1740,7 +1741,7 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
                       ),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: isOpen ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                          backgroundColor: isOpen ? ObsidianUITheme.successGreen : ObsidianUITheme.warningOrange,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
                           visualDensity: VisualDensity.compact,
@@ -1754,8 +1755,8 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
                       ),
                       OutlinedButton(
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFFEF4444),
-                          side: BorderSide(color: const Color(0xFFEF4444).withValues(alpha: 0.3)),
+                          foregroundColor: ObsidianUITheme.errorRed,
+                          side: BorderSide(color: ObsidianUITheme.errorRed.withValues(alpha: 0.3)),
                           padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
                           visualDensity: VisualDensity.compact,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6.0)),
@@ -1783,13 +1784,13 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 7.0, vertical: 2.0),
       decoration: BoxDecoration(
         color: isServer
-            ? const Color(0xFFEF4444).withValues(alpha: 0.15)
-            : const Color(0xFF3B82F6).withValues(alpha: 0.15),
+            ? ObsidianUITheme.errorRed.withValues(alpha: 0.15)
+            : ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(4.0),
         border: Border.all(
           color: isServer
-              ? const Color(0xFFEF4444).withValues(alpha: 0.3)
-              : const Color(0xFF3B82F6).withValues(alpha: 0.3),
+              ? ObsidianUITheme.errorRed.withValues(alpha: 0.3)
+              : ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.3),
         ),
       ),
       child: Text(
@@ -1797,8 +1798,8 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
         style: TextStyle(
           fontSize: 9.5,
           fontWeight: FontWeight.bold,
-          color: isServer ? const Color(0xFFEF4444) : const Color(0xFF3B82F6),
-          letterSpacing: 0.5,
+          color: isServer ? ObsidianUITheme.errorRed : ObsidianUITheme.defaultPrimaryAccent,
+          letterSpacing: 0,
         ),
       ),
     );
@@ -1809,8 +1810,8 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 7.0, vertical: 2.0),
       decoration: BoxDecoration(
         color: isOpen
-            ? const Color(0xFFEF4444).withValues(alpha: 0.12)
-            : const Color(0xFF10B981).withValues(alpha: 0.12),
+            ? ObsidianUITheme.errorRed.withValues(alpha: 0.12)
+            : ObsidianUITheme.successGreen.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(999.0),
       ),
       child: Text(
@@ -1818,7 +1819,7 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
         style: TextStyle(
           fontSize: 9.5,
           fontWeight: FontWeight.bold,
-          color: isOpen ? const Color(0xFFF87171) : const Color(0xFF34D399),
+          color: isOpen ? ObsidianUITheme.errorRed : const Color(0xFF34D399),
         ),
       ),
     );
@@ -1829,7 +1830,7 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 7.0, vertical: 2.0),
         decoration: BoxDecoration(
-          color: const Color(0xFFEF4444).withValues(alpha: 0.12),
+          color: ObsidianUITheme.errorRed.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(999.0),
         ),
         child: Text(
@@ -1837,7 +1838,7 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
           style: const TextStyle(
             fontSize: 9.5,
             fontWeight: FontWeight.bold,
-            color: Color(0xFFF87171),
+            color: ObsidianUITheme.errorRed,
           ),
         ),
       );

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../theme/obsidian_tokens.dart';
 import 'dart:io';
 import 'dart:typed_data' show BytesBuilder;
 import 'package:flutter/material.dart';
@@ -252,7 +253,7 @@ class _ObsidianBarcodeModalState extends State<ObsidianBarcodeModal> {
         color: isDark
             ? Colors.white.withValues(alpha: 0.1)
             : ObsidianUITheme.primaryAccent.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(16.0),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
         border: Border.all(
           color: isDark
               ? Colors.white.withValues(alpha: 0.2)
@@ -350,7 +351,7 @@ class _ObsidianBarcodeModalState extends State<ObsidianBarcodeModal> {
                                     color: ObsidianUITheme.primaryAccent,
                                     fontSize: 14.0,
                                     fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.2,
+                                    letterSpacing: 0,
                                   ),
                                 ),
                                 const SizedBox(height: 16.0),
@@ -369,7 +370,7 @@ class _ObsidianBarcodeModalState extends State<ObsidianBarcodeModal> {
                                           margin: const EdgeInsets.only(bottom: 8.0),
                                           decoration: BoxDecoration(
                                             color: ObsidianUITheme.primaryAccent,
-                                            borderRadius: BorderRadius.circular(8.0),
+                                            borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                                           ),
                                           child: Text(
                                             'PART ${idx + 1} OF ${_qrChunks.length}',
@@ -382,7 +383,7 @@ class _ObsidianBarcodeModalState extends State<ObsidianBarcodeModal> {
                                         padding: const EdgeInsets.all(16.0),
                                         decoration: BoxDecoration(
                                           color: Colors.white,
-                                          borderRadius: BorderRadius.circular(20.0),
+                                          borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                                           boxShadow: [
                                             BoxShadow(
                                               color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.4),
@@ -457,7 +458,7 @@ class _ObsidianBarcodeModalState extends State<ObsidianBarcodeModal> {
       ),
       decoration: BoxDecoration(
         color: surfaceColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28.0)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -545,7 +546,7 @@ class _ObsidianBarcodeModalState extends State<ObsidianBarcodeModal> {
                               padding: const EdgeInsets.all(10.0),
                               decoration: BoxDecoration(
                                 color: Colors.white,
-                                borderRadius: BorderRadius.circular(16.0),
+                                borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                                 boxShadow: [
                                   BoxShadow(
                                     color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.3),
@@ -605,7 +606,7 @@ class _ObsidianBarcodeModalState extends State<ObsidianBarcodeModal> {
       children: [
         Text(
           label,
-          style: TextStyle(fontSize: 10.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, letterSpacing: 1.0),
+          style: TextStyle(fontSize: 10.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, letterSpacing: 0),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 4.0),

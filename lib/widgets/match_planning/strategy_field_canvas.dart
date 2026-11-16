@@ -1,4 +1,5 @@
 import 'dart:ui' as ui;
+import '../../theme/obsidian_tokens.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import '../../models/match_planning_models.dart';
@@ -294,7 +295,7 @@ class _StrategyFieldCanvasState extends State<StrategyFieldCanvas> {
             height: canvasHeight,
             decoration: BoxDecoration(
               color: const Color(0xFF111827),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(ObsidianTokens.radius),
               border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
               boxShadow: const [
                 BoxShadow(
@@ -305,7 +306,7 @@ class _StrategyFieldCanvasState extends State<StrategyFieldCanvas> {
               ],
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(ObsidianTokens.radius),
               child: Stack(
                 children: [
                   // 1. Field Background & User Annotations Drawing Layer with Pointer Listener (Isolated in RepaintBoundary)
@@ -349,7 +350,7 @@ class _StrategyFieldCanvasState extends State<StrategyFieldCanvas> {
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: const Color(0xCC0F172A),
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                           border: Border.all(color: Colors.white12),
                         ),
                         child: const Row(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/obsidian_tokens.dart';
 import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
@@ -123,7 +124,7 @@ class _ObsidianNavItemState extends State<_ObsidianNavItem> {
                 color: widget.isSelected
                     ? primaryAccent.withValues(alpha: 0.14)
                     : Colors.transparent,
-                borderRadius: BorderRadius.circular(10.0),
+                borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
               ),
               child: Icon(
                 widget.icon,

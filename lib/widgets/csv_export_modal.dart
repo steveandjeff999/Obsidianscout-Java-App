@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../theme/obsidian_tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/csv_export_service.dart';
@@ -136,7 +137,7 @@ class _CsvExportModalState extends State<CsvExportModal> {
       ),
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24.0)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
         border: Border.all(color: borderColor, width: 1.0),
         boxShadow: [
           BoxShadow(
@@ -172,7 +173,7 @@ class _CsvExportModalState extends State<CsvExportModal> {
                   padding: const EdgeInsets.all(8.0),
                   decoration: BoxDecoration(
                     color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(10.0),
+                    borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                   ),
                   child: Icon(
                     Icons.table_chart_rounded,
@@ -244,7 +245,7 @@ class _CsvExportModalState extends State<CsvExportModal> {
                           icon: Icons.view_column_rounded,
                           label: 'Columns',
                           value: '${widget.exportData.columnCount}',
-                          color: Colors.cyanAccent,
+                          color: ObsidianUITheme.defaultPrimaryAccent,
                           cardColor: cardColor,
                           primaryTextColor: primaryTextColor,
                           secondaryTextColor: secondaryTextColor,
@@ -256,7 +257,7 @@ class _CsvExportModalState extends State<CsvExportModal> {
                           icon: Icons.data_usage_rounded,
                           label: 'Size',
                           value: widget.exportData.formattedSize,
-                          color: Colors.amberAccent,
+                          color: ObsidianUITheme.warningOrange,
                           cardColor: cardColor,
                           primaryTextColor: primaryTextColor,
                           secondaryTextColor: secondaryTextColor,
@@ -410,7 +411,7 @@ class _CsvExportModalState extends State<CsvExportModal> {
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                       ),
                       elevation: 2,
                     ),
@@ -473,7 +474,7 @@ class _CsvExportModalState extends State<CsvExportModal> {
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
       decoration: BoxDecoration(
         color: cardColor,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
         border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
       child: Column(

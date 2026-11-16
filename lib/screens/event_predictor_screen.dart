@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/obsidian_tokens.dart';
 import '../l10n/app_localizations.dart';
 import '../models/predictor_models.dart';
 import '../models/team_match_models.dart';
@@ -177,7 +178,7 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Failed to calculate event predictions: $e'),
-              backgroundColor: const Color(0xFFB91C1C),
+              backgroundColor: ObsidianUITheme.errorRed,
             ),
           );
         }
@@ -210,10 +211,10 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
             return Container(
               decoration: BoxDecoration(
                 color: ObsidianUITheme.getSurfaceColor(context),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20.0)),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
               ),
               child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20.0)),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
                 child: Column(
                   children: [
                     // Sheet Header
@@ -278,7 +279,7 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
           await _fetchPredictions(_selectedEventKey!);
         }
       },
-      color: Colors.cyanAccent,
+      color: ObsidianUITheme.defaultPrimaryAccent,
       backgroundColor: ObsidianUITheme.getSurfaceColor(context),
       child: ListView(
         padding: EdgeInsets.fromLTRB(
@@ -302,10 +303,10 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
                     Container(
                       padding: const EdgeInsets.all(8.0),
                       decoration: BoxDecoration(
-                        color: Colors.cyanAccent.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(10.0),
+                        color: ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                       ),
-                      child: const Icon(Icons.leaderboard_rounded, color: Colors.cyanAccent, size: 22.0),
+                      child: const Icon(Icons.leaderboard_rounded, color: ObsidianUITheme.defaultPrimaryAccent, size: 22.0),
                     ),
                     const SizedBox(width: 12.0),
                     Expanded(
@@ -473,13 +474,13 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
                             _fetchPredictions(_selectedEventKey!);
                           }
                         },
-                        borderRadius: BorderRadius.circular(8.0),
+                        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Checkbox(
                               value: _usePrescout,
-                              activeColor: Colors.cyanAccent,
+                              activeColor: ObsidianUITheme.defaultPrimaryAccent,
                               checkColor: Colors.black,
                               onChanged: (val) {
                                 setState(() => _usePrescout = val ?? false);
@@ -517,12 +518,12 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
                       borderSide: BorderSide(color: isDark ? Colors.white10 : Colors.black12),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10.0),
+                      borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                       borderSide: BorderSide(color: isDark ? Colors.white10 : Colors.black12),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10.0),
-                      borderSide: const BorderSide(color: Colors.cyanAccent, width: 1.5),
+                      borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
+                      borderSide: const BorderSide(color: ObsidianUITheme.defaultPrimaryAccent, width: 1.5),
                     ),
                   ),
                 ),
@@ -537,7 +538,7 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
               child: Center(
                 child: Column(
                   children: [
-                    const CircularProgressIndicator(color: Colors.cyanAccent),
+                    const CircularProgressIndicator(color: ObsidianUITheme.defaultPrimaryAccent),
                     const SizedBox(height: 16.0),
                     Text(
                       context.tr('event_predictor.calculating'),
@@ -588,7 +589,7 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
               padding: const EdgeInsets.only(left: 4.0, bottom: 8.0),
               child: Text(
                 '${filtered.length} matches forecasted',
-                style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: secondaryTextColor, letterSpacing: 0.5),
+                style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: secondaryTextColor, letterSpacing: 0),
               ),
             ),
             ...filtered.map((match) => _buildMatchCard(context, match, isDark, primaryTextColor, secondaryTextColor, effectiveEpa, effectiveOpr, effectivexP, isFtc)),
@@ -695,13 +696,13 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
       winnerColor = Colors.grey;
       winnerBadgeText = 'No Data';
     } else if (isRedWinner) {
-      winnerColor = const Color(0xFFEF4444);
+      winnerColor = ObsidianUITheme.errorRed;
       winnerBadgeText = '🏆 Red +${diff.toStringAsFixed(1)} $unit';
     } else if (isBlueWinner) {
-      winnerColor = const Color(0xFF3B82F6);
+      winnerColor = ObsidianUITheme.defaultPrimaryAccent;
       winnerBadgeText = '🏆 Blue +${diff.toStringAsFixed(1)} $unit';
     } else {
-      winnerColor = Colors.amberAccent;
+      winnerColor = ObsidianUITheme.warningOrange;
       winnerBadgeText = '⚖️ Split / Tie';
     }
 
@@ -712,12 +713,12 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
     return Container(
       margin: const EdgeInsets.only(bottom: 14.0),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16.0),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
         border: Border.all(
           color: isRedWinner
-              ? const Color(0xFFEF4444).withValues(alpha: 0.35)
+              ? ObsidianUITheme.errorRed.withValues(alpha: 0.35)
               : (isBlueWinner
-                  ? const Color(0xFF3B82F6).withValues(alpha: 0.35)
+                  ? ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.35)
                   : (isDark ? Colors.white12 : Colors.black12)),
           width: (isRedWinner || isBlueWinner) ? 1.5 : 1.0,
         ),
@@ -728,7 +729,7 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
         padding: const EdgeInsets.all(16.0),
         child: InkWell(
           onTap: () => _openMatchDetailModal(match),
-          borderRadius: BorderRadius.circular(16.0),
+          borderRadius: BorderRadius.circular(ObsidianTokens.radius),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -783,7 +784,7 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
                           child: Container(
                             decoration: const BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [Color(0xFFDC2626), Color(0xFFEF4444)],
+                                colors: [Color(0xFFDC2626), ObsidianUITheme.errorRed],
                               ),
                             ),
                           ),
@@ -794,7 +795,7 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
                           child: Container(
                             decoration: const BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
+                                colors: [ObsidianUITheme.defaultPrimaryAccent, Color(0xFF2563EB)],
                               ),
                             ),
                           ),
@@ -816,7 +817,7 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
                       padding: const EdgeInsets.all(10.0),
                       decoration: BoxDecoration(
                         color: const Color(0xFFEF4444).withValues(alpha: isRedWinner ? 0.14 : 0.06),
-                        borderRadius: BorderRadius.circular(10.0),
+                        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                         border: Border.all(
                           color: const Color(0xFFEF4444).withValues(alpha: isRedWinner ? 0.5 : 0.2),
                           width: isRedWinner ? 1.5 : 1.0,
@@ -830,23 +831,23 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
                               Container(
                                 width: 8.0,
                                 height: 8.0,
-                                decoration: const BoxDecoration(color: Color(0xFFEF4444), shape: BoxShape.circle),
+                                decoration: const BoxDecoration(color: ObsidianUITheme.errorRed, shape: BoxShape.circle),
                               ),
                               const SizedBox(width: 6.0),
                               const Text(
                                 'Red',
-                                style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFEF4444), fontSize: 13.0),
+                                style: TextStyle(fontWeight: FontWeight.bold, color: ObsidianUITheme.errorRed, fontSize: 13.0),
                               ),
                               if (isRedWinner) ...[
                                 const SizedBox(width: 4.0),
-                                const Icon(Icons.star_rounded, color: Colors.amberAccent, size: 14.0),
+                                const Icon(Icons.star_rounded, color: ObsidianUITheme.warningOrange, size: 14.0),
                               ],
                               const Spacer(),
                               Text(
                                 '${redPoints.toStringAsFixed(1)} $unit',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w800,
-                                  color: Color(0xFFEF4444),
+                                  color: ObsidianUITheme.errorRed,
                                   fontSize: 14.0,
                                 ),
                               ),
@@ -861,7 +862,7 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
                               return Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 3.0),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFEF4444).withValues(alpha: 0.18),
+                                  color: ObsidianUITheme.errorRed.withValues(alpha: 0.18),
                                   borderRadius: BorderRadius.circular(5.0),
                                 ),
                                 child: Text(
@@ -870,7 +871,7 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
                                       : '#${t.teamNumber}',
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w600,
-                                    color: Color(0xFFEF4444),
+                                    color: ObsidianUITheme.errorRed,
                                     fontSize: 11.5,
                                   ),
                                 ),
@@ -902,23 +903,23 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
                               Container(
                                 width: 8.0,
                                 height: 8.0,
-                                decoration: const BoxDecoration(color: Color(0xFF3B82F6), shape: BoxShape.circle),
+                                decoration: const BoxDecoration(color: ObsidianUITheme.defaultPrimaryAccent, shape: BoxShape.circle),
                               ),
                               const SizedBox(width: 6.0),
                               const Text(
                                 'Blue',
-                                style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF3B82F6), fontSize: 13.0),
+                                style: TextStyle(fontWeight: FontWeight.bold, color: ObsidianUITheme.defaultPrimaryAccent, fontSize: 13.0),
                               ),
                               if (isBlueWinner) ...[
                                 const SizedBox(width: 4.0),
-                                const Icon(Icons.star_rounded, color: Colors.amberAccent, size: 14.0),
+                                const Icon(Icons.star_rounded, color: ObsidianUITheme.warningOrange, size: 14.0),
                               ],
                               const Spacer(),
                               Text(
                                 '${bluePoints.toStringAsFixed(1)} $unit',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w800,
-                                  color: Color(0xFF3B82F6),
+                                  color: ObsidianUITheme.defaultPrimaryAccent,
                                   fontSize: 14.0,
                                 ),
                               ),
@@ -933,7 +934,7 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
                               return Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 3.0),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF3B82F6).withValues(alpha: 0.18),
+                                  color: ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.18),
                                   borderRadius: BorderRadius.circular(5.0),
                                 ),
                                 child: Text(
@@ -942,7 +943,7 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
                                       : '#${t.teamNumber}',
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w600,
-                                    color: Color(0xFF3B82F6),
+                                    color: ObsidianUITheme.defaultPrimaryAccent,
                                     fontSize: 11.5,
                                   ),
                                 ),
@@ -975,7 +976,7 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
                   ),
                   Text(
                     'Details →',
-                    style: TextStyle(fontSize: 11.5, color: Colors.cyanAccent.withValues(alpha: 0.8), fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 11.5, color: ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.8), fontWeight: FontWeight.bold),
                   ),
                 ],
               ),

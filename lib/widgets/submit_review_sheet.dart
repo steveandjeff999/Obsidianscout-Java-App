@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/obsidian_tokens.dart';
 import '../l10n/app_localizations.dart';
 import '../models/config_models.dart';
 import '../theme/obsidian_ui_theme.dart';
@@ -174,7 +175,7 @@ class _SubmitReviewSheet extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(22.0)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
           border: Border.all(color: border),
         ),
         child: Column(
@@ -222,7 +223,7 @@ class _SubmitReviewSheet extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
                             decoration: BoxDecoration(
                               color: accent.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(10.0),
+                              borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                               border: Border.all(color: accent.withValues(alpha: 0.35)),
                             ),
                             child: RichText(
@@ -252,7 +253,7 @@ class _SubmitReviewSheet extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 10.5,
                           fontWeight: FontWeight.w700,
-                          letterSpacing: 1.1,
+                          letterSpacing: 0,
                           color: secondaryText,
                         ),
                       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/obsidian_tokens.dart';
 import '../../theme/obsidian_ui_theme.dart';
 import 'canvas_toolbar.dart';
 
@@ -65,7 +66,7 @@ class StylusQuickPopup extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
             color: const Color(0xF20F172A), // Dark slate translucent
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(ObsidianTokens.radius),
             border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
             boxShadow: const [
               BoxShadow(
@@ -89,19 +90,19 @@ class StylusQuickPopup extends StatelessWidget {
                       Icon(Icons.edit_road_rounded, size: 14, color: Color(0xFF94A3B8)),
                       SizedBox(width: 6),
                       Text(
-                        'QUICK TOOLS',
+                        'Quick tools',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w800,
                           color: Color(0xFF94A3B8),
-                          letterSpacing: 0.6,
+                          letterSpacing: 0,
                         ),
                       ),
                     ],
                   ),
                   InkWell(
                     onTap: onClose,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                     child: const Padding(
                       padding: EdgeInsets.all(2),
                       child: Icon(Icons.close_rounded, size: 14, color: Color(0xFF94A3B8)),
@@ -248,14 +249,14 @@ class StylusQuickPopup extends StatelessWidget {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(vertical: 5),
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: isActive ? accentColor : Colors.white.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
           border: Border.all(
             color: isActive ? Colors.white38 : Colors.white12,
           ),

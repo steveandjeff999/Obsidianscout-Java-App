@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import '../theme/obsidian_tokens.dart';
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
@@ -151,7 +152,7 @@ class _IpBlockedScreenState extends State<IpBlockedScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(children: [
-                        const Icon(Icons.block_rounded, color: Color(0xFFEF4444), size: 32),
+                        const Icon(Icons.block_rounded, color: ObsidianUITheme.errorRed, size: 32),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(_t('blocked_title', 'Your network is temporarily blocked'),
@@ -176,7 +177,7 @@ class _IpBlockedScreenState extends State<IpBlockedScreen> {
                         _buildForm(primary, secondary),
                       if (_error != null) ...[
                         const SizedBox(height: 12),
-                        Text(_error!, style: const TextStyle(color: Color(0xFFEF4444))),
+                        Text(_error!, style: const TextStyle(color: ObsidianUITheme.errorRed)),
                       ],
                     ],
                   ),
@@ -249,18 +250,18 @@ class _IpBlockedScreenState extends State<IpBlockedScreen> {
 
   Widget _buildStatus(Color primary, Color secondary) {
     final (IconData icon, Color color, String title, String text) = switch (_requestStatus) {
-      'approved' => (Icons.check_circle_rounded, const Color(0xFF10B981), _t('approved', 'Approved'),
+      'approved' => (Icons.check_circle_rounded, ObsidianUITheme.successGreen, _t('approved', 'Approved'),
           _t('approved_desc', 'Your network has been unblocked.')),
-      'denied' => (Icons.cancel_rounded, const Color(0xFFEF4444), _t('denied', 'Not approved'),
+      'denied' => (Icons.cancel_rounded, ObsidianUITheme.errorRed, _t('denied', 'Not approved'),
           '${_reviewNote != null ? '$_reviewNote ' : ''}${_t('denied_desc', 'The block still lifts on its own when the timer runs out.')}'),
       'expired' => (Icons.schedule_rounded, secondary, _t('expired', 'The block has ended'), ''),
-      _ => (Icons.pending_actions_rounded, const Color(0xFFF59E0B), _t('request_sent', 'Request sent'),
+      _ => (Icons.pending_actions_rounded, ObsidianUITheme.warningOrange, _t('request_sent', 'Request sent'),
           _t('request_sent_desc', 'An administrator will review it. This screen updates on its own.')),
     };
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
         border: Border.all(color: color.withValues(alpha: 0.4)),
         color: color.withValues(alpha: 0.08),
       ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/obsidian_tokens.dart';
 import '../l10n/app_localizations.dart';
 import '../services/battery_rotation.dart';
 import '../theme/obsidian_ui_theme.dart';
@@ -44,7 +45,7 @@ class BatteryMatchBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
         border: Border.all(color: id == null ? ObsidianUITheme.errorRed : ObsidianUITheme.getBorderColor(context)),
       ),
       child: Column(

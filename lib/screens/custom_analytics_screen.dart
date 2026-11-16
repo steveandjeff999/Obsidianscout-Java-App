@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../theme/obsidian_tokens.dart';
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
@@ -297,7 +298,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> with Live
         constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
         decoration: BoxDecoration(
           color: ObsidianUITheme.getSurfaceColor(context),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
         ),
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -442,12 +443,12 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> with Live
     final isDark = ObsidianUITheme.isDark(context);
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(ObsidianTokens.radius),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(ObsidianTokens.radius),
           border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
         ),
         child: Row(
@@ -456,7 +457,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> with Live
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
               ),
               child: Icon(icon, color: ObsidianUITheme.primaryAccent, size: 28),
             ),
@@ -643,7 +644,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> with Live
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('VISUAL TYPE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.getSecondaryTextColor(context))),
+                    Text('Visual type', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.getSecondaryTextColor(context))),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
@@ -898,14 +899,14 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> with Live
     final isDark = ObsidianUITheme.isDark(context);
     return InkWell(
       onTap: onSelect,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected
               ? ObsidianUITheme.primaryAccent
               : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
           border: Border.all(color: isSelected ? ObsidianUITheme.primaryAccent : ObsidianUITheme.getBorderColor(context)),
         ),
         child: Row(
@@ -943,7 +944,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> with Live
           constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
           decoration: BoxDecoration(
             color: ObsidianUITheme.getSurfaceColor(context),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
           ),
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -971,7 +972,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> with Live
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('SAVE CURRENT DASHBOARD', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, letterSpacing: 0.5)),
+                          Text('Save current dashboard', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, letterSpacing: 0)),
                           const SizedBox(height: 10),
                           TextField(
                             controller: titleController,
@@ -1100,7 +1101,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> with Live
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: ObsidianUITheme.isDark(context) ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                             border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
                           ),
                           child: Row(
@@ -1215,7 +1216,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> with Live
         constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
         decoration: BoxDecoration(
           color: ObsidianUITheme.getSurfaceColor(context),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
         ),
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -1249,7 +1250,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> with Live
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
                             color: ObsidianUITheme.isDark(context) ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                             border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
                           ),
                           child: Column(
@@ -1263,7 +1264,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> with Live
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
                                       color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
-                                      borderRadius: BorderRadius.circular(8),
+                                      borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                                     ),
                                     child: Text('Total: ${totalScore.toStringAsFixed(1)} pts', style: TextStyle(color: ObsidianUITheme.primaryAccent, fontWeight: FontWeight.bold, fontSize: 12)),
                                   ),
@@ -1560,7 +1561,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> with Live
                 touchTooltipData: BarTouchTooltipData(
                   fitInsideHorizontally: true,
                   fitInsideVertically: true,
-                  tooltipBorderRadius: BorderRadius.circular(8),
+                  tooltipBorderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                   tooltipPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   tooltipBorder: ObsidianUITheme.getTooltipBorder(context),
                   getTooltipColor: (_) => ObsidianUITheme.getElevatedSurfaceColor(context),
@@ -1672,7 +1673,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> with Live
           touchTooltipData: LineTouchTooltipData(
             fitInsideHorizontally: true,
             fitInsideVertically: true,
-            tooltipBorderRadius: BorderRadius.circular(8),
+            tooltipBorderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
             tooltipPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             tooltipBorder: ObsidianUITheme.getTooltipBorder(context),
             getTooltipColor: (_) => ObsidianUITheme.getElevatedSurfaceColor(context),
@@ -1756,7 +1757,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> with Live
           touchTooltipData: ScatterTouchTooltipData(
             fitInsideHorizontally: true,
             fitInsideVertically: true,
-            tooltipBorderRadius: BorderRadius.circular(8),
+            tooltipBorderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
             tooltipPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             tooltipBorder: ObsidianUITheme.getTooltipBorder(context),
             getTooltipColor: (_) => ObsidianUITheme.getElevatedSurfaceColor(context),
@@ -2291,7 +2292,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> with Live
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('GLOBAL SLICERS & FILTERS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.getSecondaryTextColor(context), letterSpacing: 0.5)),
+                      Text('Global slicers & filters', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.getSecondaryTextColor(context), letterSpacing: 0)),
                       Text('${_currentReport.slicers.teamNumbers.isEmpty ? "All" : _currentReport.slicers.teamNumbers.length} teams selected', style: TextStyle(fontSize: 11, color: ObsidianUITheme.primaryAccent)),
                     ],
                   ),
@@ -2398,7 +2399,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> with Live
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
                 color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                 border: Border.all(color: ObsidianUITheme.primaryAccent),
               ),
               child: Row(
@@ -2450,14 +2451,14 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> with Live
   Widget _buildToolbarButton(String label, IconData icon, VoidCallback onTap, {bool isPrimary = false}) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
           color: isPrimary
               ? ObsidianUITheme.primaryAccent
               : (ObsidianUITheme.isDark(context) ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
           border: Border.all(color: isPrimary ? ObsidianUITheme.primaryAccent : ObsidianUITheme.getBorderColor(context)),
         ),
         child: Row(

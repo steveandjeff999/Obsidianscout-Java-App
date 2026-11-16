@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/obsidian_tokens.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/dynamic_field_widget.dart';
@@ -521,7 +522,7 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
 
         return AlertDialog(
           backgroundColor: surfaceColor,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
           title: Row(
             children: [
               const Icon(Icons.warning_amber_rounded, color: ObsidianUITheme.warningOrange, size: 28.0),
@@ -696,7 +697,7 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
 
             return AlertDialog(
               backgroundColor: surfaceColor,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
               title: Row(
                 children: [
                   const Icon(Icons.warning_amber_rounded, color: ObsidianUITheme.warningOrange, size: 28.0),
@@ -1089,7 +1090,7 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
                       fontSize: 12.0,
                       fontWeight: FontWeight.bold,
                       color: ObsidianUITheme.warningOrange,
-                      letterSpacing: 1.0,
+                      letterSpacing: 0,
                     ),
                   ),
                   const SizedBox(height: 10.0),
@@ -1114,7 +1115,7 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
                 children: [
                   Text(
                     (_scope == QualScoutScope.singleTeam ? context.tr('nav.qual_scout') : _getScopeLabel(_scope)).toUpperCase(),
-                    style: const TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.warningOrange, letterSpacing: 1.0),
+                    style: const TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.warningOrange, letterSpacing: 0),
                   ),
                   const SizedBox(height: 12.0),
                   if (_scope == QualScoutScope.singleTeam) ...[
@@ -1210,8 +1211,8 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          context.tr('subtitle.qual_scout').toUpperCase(),
-                          style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.getSecondaryTextColor(context), letterSpacing: 1.0),
+                          context.tr('subtitle.qual_scout'),
+                          style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.getSecondaryTextColor(context), letterSpacing: 0),
                         ),
                         const SizedBox(height: 12.0),
                         ...fields.map((field) => Padding(
@@ -1279,7 +1280,7 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
                                         padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
                                         decoration: BoxDecoration(
                                           color: accentColor.withValues(alpha: 0.12),
-                                          borderRadius: BorderRadius.circular(10.0),
+                                          borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                                           border: Border.all(color: accentColor.withValues(alpha: 0.3)),
                                         ),
                                         child: Row(
@@ -1340,7 +1341,7 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
                       const SizedBox(width: 10.0),
                       Text(
                         _scope == QualScoutScope.singleTeam
-                            ? context.tr('qr.button_label').toUpperCase()
+                            ? context.tr('qr.button_label')
                             : 'GENERATE ALLIANCE QR',
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.0, color: ObsidianUITheme.getPrimaryTextColor(context)),
                       ),
@@ -1440,13 +1441,13 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
           _scope = scope;
         });
       },
-      borderRadius: BorderRadius.circular(20.0),
+      borderRadius: BorderRadius.circular(ObsidianTokens.radius),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
         decoration: BoxDecoration(
           color: isSelected ? themeColor.withValues(alpha: 0.25) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20.0),
+          borderRadius: BorderRadius.circular(ObsidianTokens.radius),
           border: Border.all(
             color: isSelected ? themeColor : ObsidianUITheme.getBorderColor(context),
             width: isSelected ? 1.5 : 1.0,

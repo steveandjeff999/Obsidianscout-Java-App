@@ -357,8 +357,8 @@ class _AlliancesScreenState extends State<AlliancesScreen> with LiveRefresh<Alli
               Text(jsonStr(a['notes']), style: TextStyle(fontSize: 13, color: muted, height: 1.4)),
             ],
             const SizedBox(height: 10),
-            Text(context.tr('alliances.members', 'Members').toUpperCase(),
-                style: TextStyle(fontSize: 10.5, letterSpacing: 0.8, fontWeight: FontWeight.w700, color: muted)),
+            Text(context.tr('alliances.members', 'Members'),
+                style: TextStyle(fontSize: 10.5, letterSpacing: 0, fontWeight: FontWeight.w700, color: muted)),
             const SizedBox(height: 6),
             if (members.isEmpty)
               Text(context.tr('alliances.no_members', 'No members yet'), style: TextStyle(fontSize: 13, color: muted))

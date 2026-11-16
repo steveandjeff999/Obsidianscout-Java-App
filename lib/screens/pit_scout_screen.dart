@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../theme/obsidian_tokens.dart';
 import 'package:flutter/material.dart';
 import '../services/scouting_draft_service.dart';
 import '../widgets/draft_restore_banner.dart';
@@ -157,7 +158,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> with WidgetsBindingObse
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: surfaceColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
         title: Row(
           children: [
             const Icon(Icons.warning_amber_rounded, color: ObsidianUITheme.warningOrange, size: 28.0),
@@ -403,20 +404,20 @@ class _PitScoutScreenState extends State<PitScoutScreen> with WidgetsBindingObse
       margin: margin ?? const EdgeInsets.fromLTRB(16, 0, 16, 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF8B5CF6).withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF8B5CF6).withValues(alpha: 0.35)),
+        color: ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
+        border: Border.all(color: ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.35)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.groups_rounded, size: 18, color: Color(0xFF8B5CF6)),
+          const Icon(Icons.groups_rounded, size: 18, color: ObsidianUITheme.defaultPrimaryAccent),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               others.isEmpty
                   ? 'Group: ${asgn.scoutGroup!.trim()}. Only one of you needs to submit.'
                   : 'Group: ${asgn.scoutGroup!.trim()} with ${others.join(', ')}. Only one of you needs to submit.',
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF8B5CF6)),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ObsidianUITheme.defaultPrimaryAccent),
             ),
           ),
         ],
@@ -469,7 +470,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> with WidgetsBindingObse
 
         return AlertDialog(
           backgroundColor: surfaceColor,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
           title: Row(
             children: [
               const Icon(Icons.warning_amber_rounded, color: ObsidianUITheme.warningOrange, size: 28.0),
@@ -538,7 +539,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> with WidgetsBindingObse
 
           return AlertDialog(
             backgroundColor: surfaceColor,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
             title: Row(
               children: [
                 const Icon(Icons.warning_amber_rounded, color: ObsidianUITheme.warningOrange, size: 28.0),
@@ -819,7 +820,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> with WidgetsBindingObse
                                   Icon(Icons.qr_code_2_rounded, color: ObsidianUITheme.secondaryAccent, size: 20.0),
                                   const SizedBox(width: 8.0),
                                   Text(
-                                    context.tr('qr.button_label').toUpperCase(),
+                                    context.tr('qr.button_label'),
                                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.0, color: ObsidianUITheme.getPrimaryTextColor(context)),
                                   ),
                                 ],
@@ -850,7 +851,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> with WidgetsBindingObse
                                             ),
                                             const SizedBox(width: 8.0),
                                             Text(
-                                              isOnline ? context.tr('scout.save_entry').toUpperCase() : '${context.tr('scout.save_entry')} (OFFLINE)'.toUpperCase(),
+                                              isOnline ? context.tr('scout.save_entry') : '${context.tr('scout.save_entry')} (OFFLINE)'.toUpperCase(),
                                               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.0, color: primaryColor),
                                             ),
                                           ],
@@ -869,7 +870,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> with WidgetsBindingObse
                                   Icon(Icons.refresh_rounded, size: 16.0, color: ObsidianUITheme.getSecondaryTextColor(context)),
                                   const SizedBox(width: 6.0),
                                   Text(
-                                    'CLEAR FORM',
+                                    'Clear form',
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12.0,
@@ -893,8 +894,8 @@ class _PitScoutScreenState extends State<PitScoutScreen> with WidgetsBindingObse
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              context.tr('subtitle.pit_scout').toUpperCase(),
-                              style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.getSecondaryTextColor(context), letterSpacing: 1.0),
+                              context.tr('subtitle.pit_scout'),
+                              style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.getSecondaryTextColor(context), letterSpacing: 0),
                             ),
                             const SizedBox(height: 12.0),
                             LayoutBuilder(
@@ -953,8 +954,8 @@ class _PitScoutScreenState extends State<PitScoutScreen> with WidgetsBindingObse
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    context.tr('nav.pit_scout').toUpperCase(),
-                    style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.secondaryAccent, letterSpacing: 1.0),
+                    context.tr('nav.pit_scout'),
+                    style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.secondaryAccent, letterSpacing: 0),
                   ),
                   const SizedBox(height: 12.0),
                   DropdownButtonFormField<TeamModel>(
@@ -1013,8 +1014,8 @@ class _PitScoutScreenState extends State<PitScoutScreen> with WidgetsBindingObse
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        context.tr('subtitle.pit_scout').toUpperCase(),
-                        style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.getSecondaryTextColor(context), letterSpacing: 1.0),
+                        context.tr('subtitle.pit_scout'),
+                        style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.getSecondaryTextColor(context), letterSpacing: 0),
                       ),
                       const SizedBox(height: 12.0),
                       ...fields.map((field) => Padding(
@@ -1037,7 +1038,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> with WidgetsBindingObse
                       Icon(Icons.qr_code_2_rounded, color: ObsidianUITheme.secondaryAccent),
                       const SizedBox(width: 10.0),
                       Text(
-                        context.tr('qr.button_label').toUpperCase(),
+                        context.tr('qr.button_label'),
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.0, color: ObsidianUITheme.getPrimaryTextColor(context)),
                       ),
                     ],
@@ -1062,7 +1063,7 @@ class _PitScoutScreenState extends State<PitScoutScreen> with WidgetsBindingObse
                                 ),
                                 const SizedBox(width: 10.0),
                                 Text(
-                                  isOnline ? context.tr('scout.save_entry').toUpperCase() : '${context.tr('scout.save_entry')} (OFFLINE)'.toUpperCase(),
+                                  isOnline ? context.tr('scout.save_entry') : '${context.tr('scout.save_entry')} (OFFLINE)'.toUpperCase(),
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13.0,

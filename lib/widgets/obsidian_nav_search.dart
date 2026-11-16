@@ -111,7 +111,7 @@ class ObsidianNavSearchField extends StatelessWidget {
     final borderColor = ObsidianUITheme.getBorderColor(context);
     final primaryAccent = ObsidianUITheme.getPrimaryAccent(context);
     final secondaryText = ObsidianUITheme.getSecondaryTextColor(context);
-    final radius = ObsidianUITheme.getButtonRadius(context, fallback: 10.0).clamp(4.0, 16.0);
+    final radius = ObsidianUITheme.getButtonRadius(context).clamp(4.0, 16.0);
     final fontSize = compact ? 12.5 : 14.0;
 
     return Focus(

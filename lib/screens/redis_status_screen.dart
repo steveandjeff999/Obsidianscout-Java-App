@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../theme/obsidian_tokens.dart';
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../models/redis_models.dart';
@@ -13,11 +14,11 @@ import '../widgets/obsidian_glass_card.dart';
 // Strictly restricted to Superadministrators only with mobile responsiveness.
 // ============================================================================
 
-const Color _green = Color(0xFF10B981);
-const Color _red = Color(0xFFEF4444);
-const Color _orange = Color(0xFFF97316);
+const Color _green = ObsidianUITheme.successGreen;
+const Color _red = ObsidianUITheme.errorRed;
+const Color _orange = ObsidianUITheme.warningOrange;
 const Color _blue = Color(0xFF3B82F6);
-const Color _purple = Color(0xFF8B5CF6);
+const Color _purple = ObsidianUITheme.defaultPrimaryAccent;
 const Color _muted = Color(0xFF94A3B8);
 const Color _borderSubtle = Color(0xFF334155);
 
@@ -604,7 +605,7 @@ class _RedisStatusScreenState extends State<RedisStatusScreen> {
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: _red.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                   ),
                   child: const Icon(Icons.memory_rounded, color: _red, size: 24),
                 ),
@@ -660,7 +661,7 @@ class _RedisStatusScreenState extends State<RedisStatusScreen> {
                   decoration: BoxDecoration(
                     color: badgeColor.withOpacity(0.15),
                     border: Border.all(color: badgeColor.withOpacity(0.4)),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -816,7 +817,7 @@ class _RedisStatusScreenState extends State<RedisStatusScreen> {
                               contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 10),
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                                 borderSide: BorderSide(
                                     color: _borderSubtle),
                               ),
@@ -833,7 +834,7 @@ class _RedisStatusScreenState extends State<RedisStatusScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 12),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8)),
+                            borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill)),
                       ),
                       icon: _isInstalling
                           ? const SizedBox(
@@ -963,7 +964,7 @@ class _RedisStatusScreenState extends State<RedisStatusScreen> {
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
                 color: _muted,
-                letterSpacing: 0.5,
+                letterSpacing: 0,
               ),
               overflow: TextOverflow.ellipsis,
               maxLines: 1,
@@ -1537,7 +1538,7 @@ class _RedisStatusScreenState extends State<RedisStatusScreen> {
             fontSize: 10.5,
             fontWeight: FontWeight.w700,
             color: _muted,
-            letterSpacing: 0.5,
+            letterSpacing: 0,
           ),
         ),
         const SizedBox(height: 4),
@@ -1601,7 +1602,7 @@ class _RedisStatusScreenState extends State<RedisStatusScreen> {
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
               borderSide: BorderSide(color: _borderSubtle),
             ),
           ),

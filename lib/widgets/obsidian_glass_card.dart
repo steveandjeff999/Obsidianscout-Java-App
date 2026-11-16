@@ -26,12 +26,8 @@ class _ObsidianGlassCardState extends State<ObsidianGlassCard> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = ObsidianUITheme.isDark(context);
     final cardBgColor = ObsidianUITheme.getSurfaceColor(context);
     final borderColor = ObsidianUITheme.getBorderColor(context);
-    final shadowColor = isDark
-        ? Colors.black.withValues(alpha: 0.18)
-        : Colors.black.withValues(alpha: 0.03);
 
     final content = Material(
       color: Colors.transparent,
@@ -61,13 +57,6 @@ class _ObsidianGlassCardState extends State<ObsidianGlassCard> {
             color: borderColor,
             width: 1.0,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: shadowColor,
-              blurRadius: 3,
-              offset: const Offset(0, 1),
-            ),
-          ],
         ),
         child: content,
       );
@@ -96,13 +85,6 @@ class _ObsidianGlassCardState extends State<ObsidianGlassCard> {
                   : borderColor,
               width: 1.0,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: shadowColor,
-                blurRadius: _isPressed ? 1 : 3,
-                offset: _isPressed ? const Offset(0, 0.5) : const Offset(0, 1),
-              ),
-            ],
           ),
           child: content,
         ),

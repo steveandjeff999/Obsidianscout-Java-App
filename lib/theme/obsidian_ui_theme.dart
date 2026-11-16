@@ -1,23 +1,26 @@
 import 'dart:math' as math;
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../models/config_models.dart';
 import 'obsidian_page_transitions.dart';
+import 'obsidian_tokens.dart';
 
+/// App theme. Colors, type and corners mirror the website design layer
+/// (see [ObsidianTokens]). A server theme preset still overrides the tokens,
+/// except the "Default" preset, which means "use the site's own look".
 class ObsidianUITheme {
   // Brand default colors (Dark)
-  static const Color defaultBackground = Color(0xFF000000);
-  static const Color defaultSurface = Color(0xFF0E1014);
+  static const Color defaultBackground = Color(0xFF0E0E11);
+  static const Color defaultSurface = Color(0xFF16161A);
 
   // Brand default colors (Light)
-  static const Color defaultBackgroundLight = Color(0xFFF6F8FA);
+  static const Color defaultBackgroundLight = Color(0xFFF5F4F0);
   static const Color defaultSurfaceLight = Color(0xFFFFFFFF);
 
-  static const Color defaultPrimaryAccent = Color(0xFF388BFD); // Electric Blue/Violet
-  static const Color defaultSecondaryAccent = Color(0xFF38BDF8); // Glowing Purple
-  static const Color successGreen = Color(0xFF10B981);
-  static const Color warningOrange = Color(0xFFF59E0B);
-  static const Color errorRed = Color(0xFFEF4444);
+  static const Color defaultPrimaryAccent = Color(0xFF8B7CF6); // violet (dark)
+  static const Color defaultSecondaryAccent = Color(0xFFA39BD6);
+  static const Color successGreen = Color(0xFF1F9D6B);
+  static const Color warningOrange = Color(0xFFD9890B);
+  static const Color errorRed = Color(0xFFD23F3F);
 
   // Fallback / legacy constants
   static const Color background = defaultBackground;
@@ -34,82 +37,142 @@ class ObsidianUITheme {
     _customThemeEnabled = enabled;
   }
 
-  static ThemePresetModel? get activeCustomTheme => _customThemeEnabled ? _customTheme : null;
-  static bool get isCustomThemeActive => _customThemeEnabled && _customTheme != null;
+  static bool _isDefaultPreset(ThemePresetModel t) => t.name == 'Default' || t.name.isEmpty;
 
-  static bool get isCustomThemeActiveAndNonDefault {
-    if (!_customThemeEnabled || _customTheme == null) return false;
-    final t = _customTheme!;
-    if (t.name == 'Default') {
-      return t.darkCard.isNotEmpty || t.lightCard.isNotEmpty ||
-          (t.darkBg.isNotEmpty && t.darkBg != '#09090b' && t.darkBg != '#000000' && t.darkBg != '#0A0C10') ||
-          (t.lightBg.isNotEmpty && t.lightBg != '#ffffff' && t.lightBg != '#F4F6FB');
-    }
-    return true;
+  /// Values that older "Default" presets shipped with (old app and site defaults).
+  /// A Default preset holding only these means "never chose a color".
+  static const Set<String> _shippedDefaultHex = {
+    '', '09090b', '000000', '0a0c10', 'ffffff', 'f8fafc', 'f4f6fb', 'f6f8fa', 'f4f4f5', '18181b',
+    '111116', '0e1014', '0b8f88', 'f28b35', '255a9c', '1d1a17', '5f5b55', '3ccfc0', 'f2a353',
+    '6aa2ff', 'f4f2ed', 'c3bfb8', '388bfd', '38bdf8', '0f172a', '334155',
+    // current site tokens
+    '0e0e11', '16161a', 'f5f4f0', '5b4ec7', '8b7cf6',
+  };
+
+  static bool _isShippedDefault(String hex) =>
+      _shippedDefaultHex.contains(hex.trim().replaceAll('#', '').toLowerCase());
+
+  /// True when the Default preset carries only shipped defaults (the site's check, widened
+  /// to the colors older presets stored), so the site-style tokens apply.
+  static bool _isExplicitDefault(ThemePresetModel t) {
+    if (!_isDefaultPreset(t)) return false;
+    final colors = [
+      t.darkBg, t.lightBg, t.darkCard, t.lightCard,
+      t.darkAccent, t.lightAccent, t.darkAccent2, t.lightAccent2,
+      t.darkAccent3, t.lightAccent3, t.darkInk, t.lightInk, t.darkMuted, t.lightMuted,
+    ];
+    return colors.every(_isShippedDefault);
   }
 
+  /// The preset whose colors apply, or null when the site's own look should be used.
+  static ThemePresetModel? get activeCustomTheme {
+    if (!_customThemeEnabled || _customTheme == null) return null;
+    return _isExplicitDefault(_customTheme!) ? null : _customTheme;
+  }
+
+  static bool get isCustomThemeActive => activeCustomTheme != null;
+
+  static bool get isCustomThemeActiveAndNonDefault => activeCustomTheme != null;
+
   static Color deriveDarkCardSurface(Color bg, {Color? accent}) {
-    Color elevated = Color.alphaBlend(Colors.white.withValues(alpha: 0.08), bg);
+    Color elevated = Color.alphaBlend(Colors.white.withValues(alpha: 0.05), bg);
     if (accent != null) {
-      elevated = Color.alphaBlend(accent.withValues(alpha: 0.04), elevated);
+      elevated = Color.alphaBlend(accent.withValues(alpha: 0.03), elevated);
     }
     return elevated;
   }
 
   // Dynamic Accents (Context-free fallback)
   static Color get primaryAccent {
-    if (_customThemeEnabled && _customTheme != null) {
-      final parsed = parseHex(_customTheme!.darkAccent);
+    final c = activeCustomTheme;
+    if (c != null) {
+      final parsed = parseHex(c.darkAccent);
       if (parsed != null) return parsed;
     }
     return defaultPrimaryAccent;
   }
 
   static Color get secondaryAccent {
-    if (_customThemeEnabled && _customTheme != null) {
-      final parsed = parseHex(_customTheme!.darkAccent2);
+    final c = activeCustomTheme;
+    if (c != null) {
+      final parsed = parseHex(c.darkAccent2);
       if (parsed != null) return parsed;
     }
     return defaultSecondaryAccent;
   }
 
   static Color get tertiaryAccent {
-    if (_customThemeEnabled && _customTheme != null) {
-      final parsed = parseHex(_customTheme!.darkAccent3);
+    final c = activeCustomTheme;
+    if (c != null) {
+      final parsed = parseHex(c.darkAccent3);
       if (parsed != null) return parsed;
     }
-    return const Color(0xFF6AA2FF);
+    return ObsidianTokens.dark.accent3;
   }
 
-  static double get buttonRadius {
-    if (_customThemeEnabled && _customTheme != null) {
-      return parseRadius(_customTheme!.btnRadius, fallback: 8.0);
-    }
-    return 12.0;
+  // ---- Corners -------------------------------------------------------------
+  // Site: containers 6, controls 4, chips 5. A preset's corner setting overrides them
+  // (see js/layout/theme.js); the Default preset ignores the old 999px "pill" default.
+
+  /// Radius string a preset asks for in the given mode, or null for the site's own corners.
+  static String? _presetRadius({required bool dark}) {
+    if (!_customThemeEnabled || _customTheme == null) return null;
+    final t = _customTheme!;
+    var r = dark
+        ? (t.darkRadius.isNotEmpty ? t.darkRadius : t.btnRadius)
+        : (t.lightRadius.isNotEmpty ? t.lightRadius : t.btnRadius);
+    if (r.trim().isEmpty) return null;
+    if (_isDefaultPreset(t) && parseRadius(r, fallback: 0) >= 999) return null;
+    return r;
   }
 
-  static double getButtonRadius(BuildContext context, {double fallback = 12.0}) {
-    final custom = activeCustomTheme;
-    if (custom != null) {
-      final rStr = isDark(context)
-          ? (custom.darkRadius.isNotEmpty ? custom.darkRadius : custom.btnRadius)
-          : (custom.lightRadius.isNotEmpty ? custom.lightRadius : custom.btnRadius);
-      return parseRadius(rStr, fallback: fallback);
-    }
-    return fallback;
+  /// Button / control radius.
+  static double controlRadius({required bool dark}) {
+    final r = _presetRadius(dark: dark);
+    if (r == null) return ObsidianTokens.radiusSm;
+    return parseRadius(r, fallback: ObsidianTokens.radiusSm);
   }
 
-  // Glassmorphism translucent fills & borders (Dark Mode)
-  static const Color glassSurface = Color(0xFF0E1014);
-  static const Color glassSurfaceHover = Color(0xFF16181D);
-  static const Color glassBorderLight = Color(0xFF20232A);
-  static const Color glassBorderDark = Color(0xFF16181D);
-  static const Color glassInputBackground = Color(0xFF16181D);
+  /// Card / dialog / sheet radius.
+  static double containerRadius({required bool dark}) {
+    final r = _presetRadius(dark: dark);
+    if (r == null) return ObsidianTokens.radius;
+    final v = parseRadius(r, fallback: ObsidianTokens.radius);
+    return v >= 999 ? 12.0 : v.clamp(0.0, 16.0).toDouble();
+  }
 
-  // Glassmorphism translucent fills & borders (Light Mode)
+  /// Input / small-control radius.
+  static double smallRadius({required bool dark}) {
+    final r = _presetRadius(dark: dark);
+    if (r == null) return ObsidianTokens.radiusSm;
+    return (containerRadius(dark: dark) * 0.6).roundToDouble();
+  }
+
+  /// Chip / badge radius.
+  static double pillRadius({required bool dark}) {
+    final r = _presetRadius(dark: dark);
+    if (r != null && parseRadius(r, fallback: 0) >= 999) return 999.0;
+    return ObsidianTokens.radiusPill;
+  }
+
+  static double get buttonRadius => controlRadius(dark: true);
+
+  static double getButtonRadius(BuildContext context, {double fallback = ObsidianTokens.radiusSm}) {
+    return _presetRadius(dark: isDark(context)) == null
+        ? fallback
+        : controlRadius(dark: isDark(context));
+  }
+
+  // Surfaces & borders (kept under the old "glass" names for existing call sites).
+  static const Color glassSurface = Color(0xFF16161A);
+  static const Color glassSurfaceHover = Color(0xFF1C1C21);
+  static const Color glassBorderLight = Color(0xFF2A2A2E);
+  static const Color glassBorderDark = Color(0xFF212125);
+  static const Color glassInputBackground = Color(0xFF1C1C21);
+
   static const Color glassSurfaceLightMode = Color(0xFFFFFFFF);
-  static const Color glassBorderLightMode = Color(0xFFD0D7DE);
-  static const Color glassInputBackgroundLightMode = Color(0xFFF6F8FA);
+  static const Color glassBorderLightMode = Color(0xFFE2DFD8);
+  static const Color glassInputBackgroundLightMode = Color(0xFFF7F6F2);
 
   static const PageTransitionsTheme _pageTransitionsTheme = PageTransitionsTheme(
     builders: {
@@ -175,335 +238,278 @@ class ObsidianUITheme {
     return null;
   }
 
-  static ThemeData get darkTheme {
-    final custom = activeCustomTheme;
-    final accent = (custom != null ? parseHex(custom.darkAccent) : null) ?? defaultPrimaryAccent;
-    final accent2 = (custom != null ? parseHex(custom.darkAccent2) : null) ?? defaultSecondaryAccent;
-    final accent3 = (custom != null ? parseHex(custom.darkAccent3) : null) ?? const Color(0xFF6AA2FF);
-    final bgSolid = (custom != null ? parseHex(custom.darkBg) : null) ?? defaultBackground;
-    final ink = (custom != null ? parseHex(custom.darkInk) : null) ?? Colors.white;
-    final muted = (custom != null ? parseHex(custom.darkMuted) : null) ?? Colors.white70;
-    final radiusStr = custom != null
-        ? (custom.darkRadius.isNotEmpty ? custom.darkRadius : custom.btnRadius)
-        : '8px';
-    final radius = parseRadius(radiusStr, fallback: 8.0);
-    final cardRadius = custom != null
-        ? (parseRadius(radiusStr, fallback: 12.0) >= 999.0
-            ? 20.0
-            : parseRadius(radiusStr, fallback: 12.0).clamp(0.0, 16.0))
-        : 20.0;
+  static ThemeData get darkTheme => _buildTheme(Brightness.dark);
+  static ThemeData get lightTheme => _buildTheme(Brightness.light);
 
-    final surfaceColor = () {
-      if (custom != null) {
-        if (custom.darkCard.isNotEmpty) {
-          final parsed = parseHex(custom.darkCard);
-          if (parsed != null) return parsed;
-        }
-        if (isCustomThemeActiveAndNonDefault) {
-          return deriveDarkCardSurface(bgSolid, accent: accent);
-        }
-      }
-      return defaultSurface;
-    }();
-
-    return ThemeData(
-      useMaterial3: true,
-      brightness: Brightness.dark,
-      scaffoldBackgroundColor: bgSolid,
-      primaryColor: accent,
-      pageTransitionsTheme: _pageTransitionsTheme,
-      colorScheme: ColorScheme.dark(
-        primary: accent,
-        secondary: accent2,
-        tertiary: accent3,
-        surface: surfaceColor,
-        error: errorRed,
-        onSurface: ink,
-        onPrimary: Colors.white,
-      ),
-      fontFamily: 'Roboto',
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: accent,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius)),
-          elevation: 0,
-        ),
-      ),
-      filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          backgroundColor: accent,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius)),
-        ),
-      ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          foregroundColor: accent,
-          side: BorderSide(color: accent.withValues(alpha: 0.6)),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius)),
-        ),
-      ),
-      textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          foregroundColor: accent,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius)),
-        ),
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: glassInputBackground,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(radius.clamp(4.0, 16.0)),
-          borderSide: const BorderSide(color: Color(0xFF20232A)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(radius.clamp(4.0, 16.0)),
-          borderSide: const BorderSide(color: Color(0xFF20232A)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(radius.clamp(4.0, 16.0)),
-          borderSide: BorderSide(color: accent, width: 2.0),
-        ),
-      ),
-      cardTheme: CardThemeData(
-        color: surfaceColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(cardRadius)),
-        elevation: 0,
-      ),
-      chipTheme: ChipThemeData(
-        backgroundColor: accent.withValues(alpha: 0.15),
-        labelStyle: TextStyle(color: ink),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius)),
-        side: BorderSide(color: accent.withValues(alpha: 0.3)),
-      ),
-      floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: accent,
-        foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius)),
-      ),
-      progressIndicatorTheme: ProgressIndicatorThemeData(
-        color: accent,
-        linearTrackColor: accent.withValues(alpha: 0.2),
-        circularTrackColor: accent.withValues(alpha: 0.2),
-      ),
-      switchTheme: SwitchThemeData(
-        thumbColor: WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.selected) ? Colors.white : null),
-        trackColor: WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.selected) ? accent : null),
-      ),
-      checkboxTheme: CheckboxThemeData(
-        fillColor: WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.selected) ? accent : null),
-        checkColor: WidgetStateProperty.all(Colors.white),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius.clamp(2.0, 6.0))),
-      ),
-      radioTheme: RadioThemeData(
-        fillColor: WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.selected) ? accent : null),
-      ),
-      tabBarTheme: TabBarThemeData(
-        labelColor: accent,
-        unselectedLabelColor: muted,
-        indicatorColor: accent,
-        indicatorSize: TabBarIndicatorSize.tab,
-        dividerColor: const Color(0xFF20232A),
-      ),
-      drawerTheme: DrawerThemeData(
-        backgroundColor: bgSolid,
-        scrimColor: Colors.black54,
-        shape: const RoundedRectangleBorder(),
-      ),
-      navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: bgSolid,
-        indicatorColor: accent.withValues(alpha: 0.2),
-      ),
-      textTheme: TextTheme(
-        headlineLarge: TextStyle(
-          fontSize: 32.0,
-          fontWeight: FontWeight.bold,
+  static TextTheme _textTheme(ObsidianTokens t, Color ink, Color muted) {
+    TextStyle serif(double size, FontWeight w) => TextStyle(
+          fontFamily: ObsidianTokens.fontSerif,
+          fontFamilyFallback: const ['Georgia', 'Times New Roman', 'serif'],
+          fontSize: size,
+          fontWeight: w,
           color: ink,
-          letterSpacing: -0.5,
-        ),
-        headlineMedium: TextStyle(
-          fontSize: 24.0,
-          fontWeight: FontWeight.w700,
-          color: ink,
-        ),
-        titleLarge: TextStyle(
-          fontSize: 18.0,
-          fontWeight: FontWeight.w600,
-          color: ink,
-        ),
-        bodyLarge: TextStyle(
-          fontSize: 16.0,
-          color: muted,
-        ),
-        bodyMedium: TextStyle(
-          fontSize: 14.0,
-          color: muted.withValues(alpha: 0.8),
-        ),
-      ),
+          letterSpacing: -0.012 * size,
+          height: 1.15,
+        );
+    TextStyle sans(double size, FontWeight w, Color c, {double ls = 0, double? h}) => TextStyle(
+          fontFamily: ObsidianTokens.fontSans,
+          fontFamilyFallback: ObsidianTokens.fontFallback,
+          fontSize: size,
+          fontWeight: w,
+          color: c,
+          letterSpacing: ls,
+          height: h,
+        );
+    return TextTheme(
+      displayLarge: serif(48, FontWeight.w500),
+      displayMedium: serif(40, FontWeight.w500),
+      displaySmall: serif(34, FontWeight.w500),
+      headlineLarge: serif(32, FontWeight.w500),
+      headlineMedium: serif(26, FontWeight.w500),
+      headlineSmall: serif(22, FontWeight.w500),
+      titleLarge: sans(18, FontWeight.w600, ink, ls: -0.09),
+      titleMedium: sans(16, FontWeight.w600, ink, ls: -0.08),
+      titleSmall: sans(14, FontWeight.w600, ink, ls: -0.07),
+      bodyLarge: sans(16, FontWeight.w400, ink, h: 1.5),
+      bodyMedium: sans(15, FontWeight.w400, ink, h: 1.5),
+      bodySmall: sans(13, FontWeight.w400, muted, h: 1.45),
+      labelLarge: sans(14, FontWeight.w500, ink),
+      labelMedium: sans(13, FontWeight.w500, muted),
+      labelSmall: sans(12, FontWeight.w500, muted),
     );
   }
 
-  static ThemeData get lightTheme {
+  static ThemeData _buildTheme(Brightness brightness) {
+    final dark = brightness == Brightness.dark;
+    final tokens = dark ? ObsidianTokens.dark : ObsidianTokens.light;
     final custom = activeCustomTheme;
-    final accent = (custom != null ? parseHex(custom.lightAccent) : null) ?? defaultPrimaryAccent;
-    final accent2 = (custom != null ? parseHex(custom.lightAccent2) : null) ?? defaultSecondaryAccent;
-    final accent3 = (custom != null ? parseHex(custom.lightAccent3) : null) ?? const Color(0xFF255A9C);
-    final bgSolid = (custom != null ? parseHex(custom.lightBg) : null) ?? defaultBackgroundLight;
-    final ink = (custom != null ? parseHex(custom.lightInk) : null) ?? const Color(0xFF0F172A);
-    final muted = (custom != null ? parseHex(custom.lightMuted) : null) ?? const Color(0xFF334155);
-    final radiusStr = custom != null
-        ? (custom.lightRadius.isNotEmpty ? custom.lightRadius : custom.btnRadius)
-        : '8px';
-    final radius = parseRadius(radiusStr, fallback: 8.0);
-    final cardRadius = custom != null
-        ? (parseRadius(radiusStr, fallback: 12.0) >= 999.0
-            ? 20.0
-            : parseRadius(radiusStr, fallback: 12.0).clamp(0.0, 16.0))
-        : 20.0;
+
+    Color pick(String? hex, Color fallback) => (custom != null ? parseHex(hex) : null) ?? fallback;
+
+    final accent = pick(dark ? custom?.darkAccent : custom?.lightAccent, tokens.accent);
+    final accent2 = pick(dark ? custom?.darkAccent2 : custom?.lightAccent2, tokens.accent2);
+    final accent3 = pick(dark ? custom?.darkAccent3 : custom?.lightAccent3, tokens.accent3);
+    final bgSolid = pick(dark ? custom?.darkBg : custom?.lightBg, tokens.bg);
+    final ink = pick(dark ? custom?.darkInk : custom?.lightInk, tokens.ink);
+    final muted = pick(dark ? custom?.darkMuted : custom?.lightMuted, tokens.muted);
 
     final surfaceColor = () {
-      if (custom != null && custom.lightCard.isNotEmpty) {
-        final parsed = parseHex(custom.lightCard);
+      if (custom != null) {
+        final hex = dark ? custom.darkCard : custom.lightCard;
+        final parsed = parseHex(hex);
         if (parsed != null) return parsed;
+        if (dark) return deriveDarkCardSurface(bgSolid, accent: accent);
       }
-      return defaultSurfaceLight;
+      return tokens.surface;
     }();
+
+    final borderColor = custom != null && dark
+        ? Color.alphaBlend(Colors.white.withValues(alpha: 0.085), surfaceColor)
+        : tokens.border;
+    final borderSubtle = custom != null && dark
+        ? Color.alphaBlend(Colors.white.withValues(alpha: 0.05), surfaceColor)
+        : tokens.borderSubtle;
+
+    final radius = controlRadius(dark: dark);
+    final smallR = smallRadius(dark: dark);
+    final cardR = containerRadius(dark: dark);
+    final pillR = pillRadius(dark: dark);
+    final textTheme = _textTheme(tokens, ink, muted);
+
+    final effective = tokens.copyWith(
+      ink: ink,
+      muted: muted,
+      bg: bgSolid,
+      surface: surfaceColor,
+      accent: accent,
+      accent2: accent2,
+      accent3: accent3,
+      border: borderColor,
+      borderSubtle: borderSubtle,
+    );
+
+    RoundedRectangleBorder shape(double r, {BorderSide side = BorderSide.none}) =>
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(r), side: side);
+    OutlineInputBorder inputBorder(Color c, double w) => OutlineInputBorder(
+          borderRadius: BorderRadius.circular(smallR),
+          borderSide: BorderSide(color: c, width: w),
+        );
+    final containerSide = BorderSide(color: borderColor);
 
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.light,
+      brightness: brightness,
       scaffoldBackgroundColor: bgSolid,
       primaryColor: accent,
       pageTransitionsTheme: _pageTransitionsTheme,
-      colorScheme: ColorScheme.light(
+      extensions: [effective],
+      fontFamily: ObsidianTokens.fontSans,
+      fontFamilyFallback: ObsidianTokens.fontFallback,
+      colorScheme: (dark ? const ColorScheme.dark() : const ColorScheme.light()).copyWith(
         primary: accent,
+        onPrimary: Colors.white,
         secondary: accent2,
         tertiary: accent3,
         surface: surfaceColor,
-        error: errorRed,
         onSurface: ink,
-        onPrimary: Colors.white,
+        onSurfaceVariant: muted,
+        surfaceContainerLowest: bgSolid,
+        surfaceContainerLow: tokens.surface2,
+        surfaceContainer: tokens.surface2,
+        surfaceContainerHigh: tokens.surface3,
+        surfaceContainerHighest: tokens.surface3,
+        outline: borderColor,
+        outlineVariant: borderSubtle,
+        error: tokens.danger,
+        onError: Colors.white,
       ),
-      fontFamily: 'Roboto',
+      textTheme: textTheme,
+      dividerTheme: DividerThemeData(color: borderColor, thickness: 1, space: 1),
+      appBarTheme: AppBarTheme(
+        backgroundColor: bgSolid,
+        foregroundColor: ink,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        titleTextStyle: ObsidianTokens.serif(base: TextStyle(color: ink), size: 20, weight: FontWeight.w600),
+        shape: Border(bottom: BorderSide(color: borderColor)),
+      ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: accent,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius)),
+          shape: shape(radius),
           elevation: 0,
+          shadowColor: Colors.transparent,
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: accent,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius)),
+          shape: shape(radius),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: accent,
-          side: BorderSide(color: accent.withValues(alpha: 0.6)),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius)),
+          foregroundColor: ink,
+          side: BorderSide(color: borderColor),
+          shape: shape(radius),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: accent,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius)),
+          shape: shape(radius),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: glassInputBackgroundLightMode,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(radius.clamp(4.0, 16.0)),
-          borderSide: const BorderSide(color: Color(0xFFD0D7DE)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(radius.clamp(4.0, 16.0)),
-          borderSide: const BorderSide(color: Color(0xFFD0D7DE)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(radius.clamp(4.0, 16.0)),
-          borderSide: BorderSide(color: accent, width: 2.0),
-        ),
+        fillColor: dark ? tokens.surface2 : tokens.surface,
+        border: inputBorder(borderColor, 1),
+        enabledBorder: inputBorder(borderColor, 1),
+        focusedBorder: inputBorder(accent, 1.5),
+        errorBorder: inputBorder(tokens.danger, 1),
+        focusedErrorBorder: inputBorder(tokens.danger, 1.5),
+        labelStyle: TextStyle(color: muted, fontSize: 13, fontWeight: FontWeight.w500),
+        hintStyle: TextStyle(color: muted.withValues(alpha: 0.8)),
       ),
       cardTheme: CardThemeData(
         color: surfaceColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(cardRadius)),
+        surfaceTintColor: Colors.transparent,
+        shadowColor: Colors.transparent,
+        shape: shape(cardR, side: containerSide),
         elevation: 0,
       ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: surfaceColor,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        shape: shape(cardR, side: containerSide),
+        titleTextStyle: ObsidianTokens.serif(base: TextStyle(color: ink), size: 22, weight: FontWeight.w600),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: surfaceColor,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(cardR)),
+          side: containerSide,
+        ),
+      ),
+      popupMenuTheme: PopupMenuThemeData(
+        color: surfaceColor,
+        surfaceTintColor: Colors.transparent,
+        elevation: 2,
+        shape: shape(cardR, side: containerSide),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: dark ? tokens.surface3 : tokens.ink,
+        contentTextStyle: TextStyle(color: dark ? tokens.ink : Colors.white),
+        shape: shape(cardR),
+      ),
       chipTheme: ChipThemeData(
-        backgroundColor: accent.withValues(alpha: 0.12),
-        labelStyle: TextStyle(color: ink),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius)),
-        side: BorderSide(color: accent.withValues(alpha: 0.25)),
+        backgroundColor: tokens.surface2,
+        labelStyle: TextStyle(color: ink, fontSize: 13, fontWeight: FontWeight.w500),
+        shape: shape(pillR, side: BorderSide(color: borderColor)),
+        side: BorderSide(color: borderColor),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: accent,
         foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius)),
+        elevation: 1,
+        shape: shape(cardR),
       ),
       progressIndicatorTheme: ProgressIndicatorThemeData(
         color: accent,
-        linearTrackColor: accent.withValues(alpha: 0.2),
-        circularTrackColor: accent.withValues(alpha: 0.2),
+        linearTrackColor: tokens.surface3,
+        circularTrackColor: tokens.surface3,
       ),
       switchTheme: SwitchThemeData(
-        thumbColor: WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.selected) ? Colors.white : null),
-        trackColor: WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.selected) ? accent : null),
+        thumbColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? Colors.white : null),
+        trackColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? accent : null),
       ),
       checkboxTheme: CheckboxThemeData(
-        fillColor: WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.selected) ? accent : null),
+        fillColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? accent : null),
         checkColor: WidgetStateProperty.all(Colors.white),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius.clamp(2.0, 6.0))),
+        shape: shape(radius.clamp(2.0, 6.0).toDouble()),
       ),
       radioTheme: RadioThemeData(
-        fillColor: WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.selected) ? accent : null),
+        fillColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? accent : null),
       ),
       tabBarTheme: TabBarThemeData(
-        labelColor: accent,
+        labelColor: ink,
         unselectedLabelColor: muted,
         indicatorColor: accent,
         indicatorSize: TabBarIndicatorSize.tab,
-        dividerColor: const Color(0xFFD0D7DE),
+        dividerColor: borderColor,
+        labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
       ),
       drawerTheme: DrawerThemeData(
         backgroundColor: bgSolid,
         scrimColor: Colors.black54,
+        surfaceTintColor: Colors.transparent,
         shape: const RoundedRectangleBorder(),
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: bgSolid,
-        indicatorColor: accent.withValues(alpha: 0.15),
+        surfaceTintColor: Colors.transparent,
+        indicatorColor: accent.withValues(alpha: 0.12),
+        indicatorShape: shape(cardR),
       ),
-      textTheme: TextTheme(
-        headlineLarge: TextStyle(
-          fontSize: 32.0,
-          fontWeight: FontWeight.bold,
-          color: ink,
-          letterSpacing: -0.5,
+      navigationRailTheme: NavigationRailThemeData(
+        backgroundColor: bgSolid,
+        indicatorColor: accent.withValues(alpha: 0.12),
+        indicatorShape: shape(cardR),
+      ),
+      tooltipTheme: TooltipThemeData(
+        decoration: BoxDecoration(
+          color: dark ? tokens.surface3 : tokens.ink,
+          borderRadius: BorderRadius.circular(smallR),
         ),
-        headlineMedium: TextStyle(
-          fontSize: 24.0,
-          fontWeight: FontWeight.w700,
-          color: ink,
-        ),
-        titleLarge: TextStyle(
-          fontSize: 18.0,
-          fontWeight: FontWeight.w600,
-          color: ink,
-        ),
-        bodyLarge: TextStyle(
-          fontSize: 16.0,
-          color: muted,
-        ),
-        bodyMedium: TextStyle(
-          fontSize: 14.0,
-          color: muted.withValues(alpha: 0.8),
-        ),
+        textStyle: TextStyle(color: dark ? tokens.ink : Colors.white, fontSize: 12),
       ),
     );
   }
@@ -512,135 +518,112 @@ class ObsidianUITheme {
     return Theme.of(context).brightness == Brightness.dark;
   }
 
+  static ObsidianTokens _tokens(BuildContext context) =>
+      isDark(context) ? ObsidianTokens.dark : ObsidianTokens.light;
+
   static Color getPrimaryAccent(BuildContext context) {
     final custom = activeCustomTheme;
     if (custom != null) {
-      final hex = isDark(context) ? custom.darkAccent : custom.lightAccent;
-      final parsed = parseHex(hex);
+      final parsed = parseHex(isDark(context) ? custom.darkAccent : custom.lightAccent);
       if (parsed != null) return parsed;
     }
-    return defaultPrimaryAccent;
+    return _tokens(context).accent;
   }
 
   static Color getSecondaryAccent(BuildContext context) {
     final custom = activeCustomTheme;
     if (custom != null) {
-      final hex = isDark(context) ? custom.darkAccent2 : custom.lightAccent2;
-      final parsed = parseHex(hex);
+      final parsed = parseHex(isDark(context) ? custom.darkAccent2 : custom.lightAccent2);
       if (parsed != null) return parsed;
     }
-    return defaultSecondaryAccent;
+    return _tokens(context).accent2;
   }
 
   static Color getTertiaryAccent(BuildContext context) {
     final custom = activeCustomTheme;
     if (custom != null) {
-      final hex = isDark(context) ? custom.darkAccent3 : custom.lightAccent3;
-      final parsed = parseHex(hex);
+      final parsed = parseHex(isDark(context) ? custom.darkAccent3 : custom.lightAccent3);
       if (parsed != null) return parsed;
     }
-    return isDark(context) ? const Color(0xFF6AA2FF) : const Color(0xFF255A9C);
+    return _tokens(context).accent3;
   }
 
-  static Color getGlassSurfaceColor(BuildContext context) {
-    return isDark(context) ? glassSurface : glassSurfaceLightMode;
-  }
+  // Semantic status colors that follow light / dark mode.
+  static Color success(BuildContext context) => _tokens(context).success;
+  static Color warning(BuildContext context) => _tokens(context).warning;
+  static Color danger(BuildContext context) => _tokens(context).danger;
 
-  static Color getGlassBorderColor(BuildContext context) {
-    return isDark(context) ? glassBorderLight : glassBorderLightMode;
-  }
+  static Color getGlassSurfaceColor(BuildContext context) => getSurfaceColor(context);
+
+  static Color getGlassBorderColor(BuildContext context) => getBorderColor(context);
 
   static Color getPrimaryTextColor(BuildContext context) {
     final custom = activeCustomTheme;
     if (custom != null) {
-      final hex = isDark(context) ? custom.darkInk : custom.lightInk;
-      final parsed = parseHex(hex);
+      final parsed = parseHex(isDark(context) ? custom.darkInk : custom.lightInk);
       if (parsed != null) return parsed;
     }
-    return isDark(context) ? Colors.white : const Color(0xFF0F172A);
+    return _tokens(context).ink;
   }
 
   static Color getSecondaryTextColor(BuildContext context) {
     final custom = activeCustomTheme;
     if (custom != null) {
-      final hex = isDark(context) ? custom.darkMuted : custom.lightMuted;
-      final parsed = parseHex(hex);
+      final parsed = parseHex(isDark(context) ? custom.darkMuted : custom.lightMuted);
       if (parsed != null) return parsed;
     }
-    return isDark(context) ? Colors.white70 : const Color(0xFF334155);
+    return _tokens(context).muted;
   }
 
-  static Color getTertiaryTextColor(BuildContext context) {
-    return isDark(context) ? Colors.white54 : const Color(0xFF64748B);
-  }
+  static Color getTertiaryTextColor(BuildContext context) =>
+      getSecondaryTextColor(context).withValues(alpha: 0.8);
 
-  static Color getFaintTextColor(BuildContext context) {
-    return isDark(context) ? Colors.white38 : const Color(0xFF94A3B8);
-  }
+  static Color getFaintTextColor(BuildContext context) =>
+      getSecondaryTextColor(context).withValues(alpha: 0.55);
 
   static Color getBorderColor(BuildContext context) {
-    if (isDark(context)) {
-      if (isCustomThemeActiveAndNonDefault) {
-        final accent = getPrimaryAccent(context);
-        return Color.alphaBlend(accent.withValues(alpha: 0.12), Colors.white.withValues(alpha: 0.08));
-      }
-      return const Color(0xFF20232A);
+    if (isDark(context) && isCustomThemeActiveAndNonDefault) {
+      return Color.alphaBlend(Colors.white.withValues(alpha: 0.085), getSurfaceColor(context));
     }
-    return const Color(0xFFD0D7DE);
+    return _tokens(context).border;
   }
 
   static Color getInputFillColor(BuildContext context) {
-    return isDark(context) ? glassInputBackground : glassInputBackgroundLightMode;
+    final t = _tokens(context);
+    return isDark(context) ? t.surface2 : t.surface;
   }
 
   static Color getSurfaceColor(BuildContext context) {
-    if (isDark(context)) {
-      final custom = activeCustomTheme;
-      if (custom != null) {
-        if (custom.darkCard.isNotEmpty) {
-          final parsed = parseHex(custom.darkCard);
-          if (parsed != null) return parsed;
-        }
-        if (isCustomThemeActiveAndNonDefault) {
-          final bg = getBackgroundColor(context);
-          final accent = getPrimaryAccent(context);
-          return deriveDarkCardSurface(bg, accent: accent);
-        }
+    final dark = isDark(context);
+    final custom = activeCustomTheme;
+    if (custom != null) {
+      final parsed = parseHex(dark ? custom.darkCard : custom.lightCard);
+      if (parsed != null) return parsed;
+      if (dark) {
+        return deriveDarkCardSurface(getBackgroundColor(context), accent: getPrimaryAccent(context));
       }
-      return defaultSurface;
-    } else {
-      final custom = activeCustomTheme;
-      if (custom != null && custom.lightCard.isNotEmpty) {
-        final parsed = parseHex(custom.lightCard);
-        if (parsed != null) return parsed;
-      }
-      return defaultSurfaceLight;
     }
+    return _tokens(context).surface;
   }
 
   static Color getElevatedSurfaceColor(BuildContext context) {
     if (isDark(context)) {
-      final surface = getSurfaceColor(context);
-      return Color.alphaBlend(Colors.white.withValues(alpha: 0.06), surface);
+      return Color.alphaBlend(Colors.white.withValues(alpha: 0.04), getSurfaceColor(context));
     }
-    return Colors.white;
+    return _tokens(context).surface;
   }
 
   static BorderSide getTooltipBorder(BuildContext context) {
-    return BorderSide(
-      color: isDark(context) ? const Color(0xFF3B4863) : const Color(0xFFCBD5E1),
-      width: 1.0,
-    );
+    return BorderSide(color: getBorderColor(context), width: 1.0);
   }
 
   static Color getBackgroundColor(BuildContext context) {
     final custom = activeCustomTheme;
     if (custom != null) {
-      final bgStr = isDark(context) ? custom.darkBg : custom.lightBg;
-      final parsed = parseHex(bgStr);
+      final parsed = parseHex(isDark(context) ? custom.darkBg : custom.lightBg);
       if (parsed != null) return parsed;
     }
-    return isDark(context) ? defaultBackground : defaultBackgroundLight;
+    return _tokens(context).bg;
   }
 
   static Decoration getBackgroundDecoration(BuildContext context) {
@@ -656,27 +639,20 @@ class ObsidianUITheme {
         return BoxDecoration(color: solid);
       }
     }
-    return BoxDecoration(color: isDark(context) ? defaultBackground : defaultBackgroundLight);
+    return BoxDecoration(color: _tokens(context).bg);
   }
 
-  static double getCardBorderRadius(BuildContext context, {double defaultRadius = 12.0}) {
-    final custom = activeCustomTheme;
-    if (custom != null) {
-      final rStr = isDark(context)
-          ? (custom.darkRadius.isNotEmpty ? custom.darkRadius : custom.btnRadius)
-          : (custom.lightRadius.isNotEmpty ? custom.lightRadius : custom.btnRadius);
-      final parsed = parseRadius(rStr, fallback: defaultRadius);
-      if (parsed >= 999.0) {
-        return defaultRadius.clamp(0.0, 16.0);
-      }
-      return parsed.clamp(0.0, 16.0);
-    }
-    return defaultRadius.clamp(0.0, 16.0);
+  /// Card corner radius. [defaultRadius] is only used when a screen wants to override the
+  /// site's container radius; most callers should omit it.
+  static double getCardBorderRadius(BuildContext context, {double? defaultRadius}) {
+    final dark = isDark(context);
+    if (_presetRadius(dark: dark) != null) return containerRadius(dark: dark);
+    return (defaultRadius ?? ObsidianTokens.radius).clamp(0.0, 16.0).toDouble();
   }
 
   static TextStyle tabularFigures({TextStyle? style}) {
     return (style ?? const TextStyle()).copyWith(
-      fontFeatures: const [ui.FontFeature.tabularFigures()],
+      fontFeatures: const [FontFeature.tabularFigures()],
     );
   }
 }

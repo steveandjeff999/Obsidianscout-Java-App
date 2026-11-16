@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/obsidian_tokens.dart';
 import '../l10n/app_localizations.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
@@ -250,7 +251,7 @@ class _RankingsScreenState extends State<RankingsScreen> with LiveRefresh<Rankin
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
                                   color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                                 ),
                                 child: Icon(Icons.leaderboard_rounded, color: ObsidianUITheme.primaryAccent, size: 24),
                               ),

@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../theme/obsidian_tokens.dart';
 import 'package:flutter/material.dart';
 import '../models/api_response.dart';
 import '../theme/obsidian_ui_theme.dart';
@@ -187,7 +188,7 @@ class ObsidianFeedback {
         duration: duration,
         backgroundColor: const Color(0xFF161B26),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14.0),
+          borderRadius: BorderRadius.circular(ObsidianTokens.radius),
           side: BorderSide(color: accentColor.withValues(alpha: 0.8), width: 1.6),
         ),
         content: Row(
@@ -388,7 +389,7 @@ class _TopBannerWidgetState extends State<_TopBannerWidget>
                   child: Container(
                     decoration: BoxDecoration(
                       color: const Color(0xFF161B26),
-                      borderRadius: BorderRadius.circular(16.0),
+                      borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                       border: Border.all(
                         color: widget.accentColor.withValues(alpha: 0.85),
                         width: 1.8,

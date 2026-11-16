@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/obsidian_tokens.dart';
 import '../l10n/app_localizations.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
@@ -154,11 +155,11 @@ class _MatchListScreenState extends State<MatchListScreen> with LiveRefresh<Matc
       case 'qm':
         return ObsidianUITheme.primaryAccent;
       case 'qf':
-        return Colors.orange;
+        return ObsidianUITheme.warningOrange;
       case 'sf':
         return Colors.deepOrangeAccent;
       case 'f':
-        return Colors.amber;
+        return ObsidianUITheme.warningOrange;
       default:
         return Colors.white54;
     }
@@ -217,12 +218,12 @@ class _MatchListScreenState extends State<MatchListScreen> with LiveRefresh<Matc
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            context.tr('nav.matches').toUpperCase(),
+                            context.tr('nav.matches'),
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: primaryTextColor,
-                              letterSpacing: 0.5,
+                              letterSpacing: 0,
                             ),
                           ),
                           Text(
@@ -272,7 +273,7 @@ class _MatchListScreenState extends State<MatchListScreen> with LiveRefresh<Matc
                       borderSide: BorderSide(color: borderColor),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                       borderSide: BorderSide(color: ObsidianUITheme.secondaryAccent),
                     ),
                   ),
@@ -388,7 +389,7 @@ class _MatchListScreenState extends State<MatchListScreen> with LiveRefresh<Matc
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: levelColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                   border: Border.all(color: levelColor.withValues(alpha: 0.5)),
                 ),
                 child: Text(
@@ -397,7 +398,7 @@ class _MatchListScreenState extends State<MatchListScreen> with LiveRefresh<Matc
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
                     color: levelColor,
-                    letterSpacing: 0.8,
+                    letterSpacing: 0,
                   ),
                 ),
               ),
@@ -431,7 +432,7 @@ class _MatchListScreenState extends State<MatchListScreen> with LiveRefresh<Matc
                     children: [
                       Row(
                         children: [
-                          Container(width: 8, height: 8, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.redAccent)),
+                          Container(width: 8, height: 8, decoration: const BoxDecoration(shape: BoxShape.circle, color: ObsidianUITheme.errorRed)),
                           const SizedBox(width: 4),
                           Text('Red Alliance', style: TextStyle(fontSize: 10, color: Colors.redAccent.withValues(alpha: 0.8), fontWeight: FontWeight.bold)),
                         ],
@@ -444,11 +445,11 @@ class _MatchListScreenState extends State<MatchListScreen> with LiveRefresh<Matc
                             .map((t) => Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                   decoration: BoxDecoration(
-                                    color: Colors.red.withValues(alpha: 0.15),
+                                    color: ObsidianUITheme.errorRed.withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(color: Colors.red.withValues(alpha: 0.4)),
+                                    border: Border.all(color: ObsidianUITheme.errorRed.withValues(alpha: 0.4)),
                                   ),
-                                  child: Text(t, style: const TextStyle(fontSize: 12, color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                                  child: Text(t, style: const TextStyle(fontSize: 12, color: ObsidianUITheme.errorRed, fontWeight: FontWeight.bold)),
                                 ))
                             .toList(),
                       ),
@@ -464,7 +465,7 @@ class _MatchListScreenState extends State<MatchListScreen> with LiveRefresh<Matc
                     children: [
                       Row(
                         children: [
-                          Container(width: 8, height: 8, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.blueAccent)),
+                          Container(width: 8, height: 8, decoration: const BoxDecoration(shape: BoxShape.circle, color: ObsidianUITheme.defaultPrimaryAccent)),
                           const SizedBox(width: 4),
                           Text('Blue Alliance', style: TextStyle(fontSize: 10, color: Colors.blueAccent.withValues(alpha: 0.8), fontWeight: FontWeight.bold)),
                         ],
@@ -481,7 +482,7 @@ class _MatchListScreenState extends State<MatchListScreen> with LiveRefresh<Matc
                                     borderRadius: BorderRadius.circular(6),
                                     border: Border.all(color: Colors.blue.withValues(alpha: 0.4)),
                                   ),
-                                  child: Text(t, style: const TextStyle(fontSize: 12, color: Colors.blueAccent, fontWeight: FontWeight.bold)),
+                                  child: Text(t, style: const TextStyle(fontSize: 12, color: ObsidianUITheme.defaultPrimaryAccent, fontWeight: FontWeight.bold)),
                                 ))
                             .toList(),
                       ),

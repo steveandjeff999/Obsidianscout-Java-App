@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/obsidian_tokens.dart';
 import '../models/config_models.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
@@ -373,7 +374,7 @@ class _MatchDataScreenState extends State<MatchDataScreen> with LiveRefresh<Matc
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline_rounded, size: 48, color: Colors.redAccent),
+              const Icon(Icons.error_outline_rounded, size: 48, color: ObsidianUITheme.errorRed),
               const SizedBox(height: 12),
               Text(
                 'Failed to load match scouting data',
@@ -410,7 +411,7 @@ class _MatchDataScreenState extends State<MatchDataScreen> with LiveRefresh<Matc
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.sports_esports_rounded, color: Colors.amberAccent, size: 26),
+                    const Icon(Icons.sports_esports_rounded, color: ObsidianUITheme.warningOrange, size: 26),
                     const SizedBox(width: 10),
                     Text(
                       'Match Scouting Data',
@@ -437,23 +438,23 @@ class _MatchDataScreenState extends State<MatchDataScreen> with LiveRefresh<Matc
                         children: [
                           Row(
                             children: [
-                              Expanded(child: _buildMetricTile('Match Entries', totalMatches.toString(), Colors.amberAccent, isDark)),
+                              Expanded(child: _buildMetricTile('Match Entries', totalMatches.toString(), ObsidianUITheme.warningOrange, isDark)),
                               const SizedBox(width: 8),
                               Expanded(child: _buildMetricTile('Teams Scouted', uniqueTeams.toString(), Colors.tealAccent, isDark)),
                             ],
                           ),
                           const SizedBox(height: 8),
-                          _buildMetricTile('Conflicts', discrepancyCount.toString(), discrepancyCount > 0 ? Colors.orangeAccent : Colors.greenAccent, isDark),
+                          _buildMetricTile('Conflicts', discrepancyCount.toString(), discrepancyCount > 0 ? ObsidianUITheme.warningOrange : ObsidianUITheme.successGreen, isDark),
                         ],
                       );
                     }
                     return Row(
                       children: [
-                        Expanded(child: _buildMetricTile('Match Entries', totalMatches.toString(), Colors.amberAccent, isDark)),
+                        Expanded(child: _buildMetricTile('Match Entries', totalMatches.toString(), ObsidianUITheme.warningOrange, isDark)),
                         const SizedBox(width: 8),
                         Expanded(child: _buildMetricTile('Teams Scouted', uniqueTeams.toString(), Colors.tealAccent, isDark)),
                         const SizedBox(width: 8),
-                        Expanded(child: _buildMetricTile('Conflicts', discrepancyCount.toString(), discrepancyCount > 0 ? Colors.orangeAccent : Colors.greenAccent, isDark)),
+                        Expanded(child: _buildMetricTile('Conflicts', discrepancyCount.toString(), discrepancyCount > 0 ? ObsidianUITheme.warningOrange : ObsidianUITheme.successGreen, isDark)),
                       ],
                     );
                   },
@@ -555,15 +556,15 @@ class _MatchDataScreenState extends State<MatchDataScreen> with LiveRefresh<Matc
                         showCheckmark: true,
                         checkmarkColor: Colors.black87,
                         label: const Text('Conflicts Only'),
-                        avatar: const Icon(Icons.warning_amber_rounded, size: 16, color: Colors.orangeAccent),
+                        avatar: const Icon(Icons.warning_amber_rounded, size: 16, color: ObsidianUITheme.warningOrange),
                         labelStyle: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: _discrepanciesOnly ? Colors.black87 : Colors.orangeAccent,
+                          color: _discrepanciesOnly ? Colors.black87 : ObsidianUITheme.warningOrange,
                         ),
-                        selectedColor: Colors.orangeAccent,
+                        selectedColor: ObsidianUITheme.warningOrange,
                         backgroundColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.04),
-                        side: BorderSide(color: Colors.orangeAccent.withValues(alpha: 0.4)),
+                        side: BorderSide(color: ObsidianUITheme.warningOrange.withValues(alpha: 0.4)),
                         onSelected: (val) => setState(() => _discrepanciesOnly = val),
                       ),
                     ),
@@ -618,16 +619,16 @@ class _MatchDataScreenState extends State<MatchDataScreen> with LiveRefresh<Matc
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.amberAccent.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.amberAccent.withValues(alpha: 0.3)),
+                        color: ObsidianUITheme.warningOrange.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
+                        border: Border.all(color: ObsidianUITheme.warningOrange.withValues(alpha: 0.3)),
                       ),
                       child: Text(
                         '${filtered.length} matches',
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: Colors.amberAccent,
+                          color: ObsidianUITheme.warningOrange,
                         ),
                       ),
                     ),
@@ -678,17 +679,17 @@ class _MatchDataScreenState extends State<MatchDataScreen> with LiveRefresh<Matc
                       _showMatchDetailBottomSheet(context, record);
                     }
                   },
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: isDark ? const Color(0x731E293B) : Colors.white.withValues(alpha: 0.85),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                       border: Border.all(
                         color: hasConflict
-                            ? Colors.orangeAccent.withValues(alpha: 0.7)
+                            ? ObsidianUITheme.warningOrange.withValues(alpha: 0.7)
                             : (isSelected
-                                ? Colors.amberAccent
+                                ? ObsidianUITheme.warningOrange
                                 : (isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.08))),
                         width: hasConflict || isSelected ? 1.8 : 1.0,
                       ),
@@ -701,14 +702,14 @@ class _MatchDataScreenState extends State<MatchDataScreen> with LiveRefresh<Matc
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
-                                color: Colors.amberAccent.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.amberAccent.withValues(alpha: 0.5)),
+                                color: ObsidianUITheme.warningOrange.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
+                                border: Border.all(color: ObsidianUITheme.warningOrange.withValues(alpha: 0.5)),
                               ),
                               child: Text(
                                 'MATCH ${record.matchNumber}',
                                 style: const TextStyle(
-                                  color: Colors.amberAccent,
+                                  color: ObsidianUITheme.warningOrange,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
                                 ),
@@ -727,25 +728,25 @@ class _MatchDataScreenState extends State<MatchDataScreen> with LiveRefresh<Matc
                             if (hasConflict && widget.apiService.isAdmin) ...[
                               InkWell(
                                 onTap: () => _openConflictResolver(record),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: Colors.orangeAccent.withValues(alpha: 0.2),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: Colors.orangeAccent),
+                                    color: ObsidianUITheme.warningOrange.withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
+                                    border: Border.all(color: ObsidianUITheme.warningOrange),
                                   ),
                                   child: const Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(Icons.warning_amber_rounded, size: 14, color: Colors.orangeAccent),
+                                      Icon(Icons.warning_amber_rounded, size: 14, color: ObsidianUITheme.warningOrange),
                                       SizedBox(width: 4),
                                       Text(
                                         'Resolve',
                                         style: TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.bold,
-                                          color: Colors.orangeAccent,
+                                          color: ObsidianUITheme.warningOrange,
                                         ),
                                       ),
                                     ],
@@ -802,7 +803,7 @@ class _MatchDataScreenState extends State<MatchDataScreen> with LiveRefresh<Matc
             child: const Text('Cancel'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            style: FilledButton.styleFrom(backgroundColor: ObsidianUITheme.errorRed),
             onPressed: () => Navigator.of(dCtx).pop(true),
             child: const Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
@@ -865,7 +866,7 @@ class _MatchDataScreenState extends State<MatchDataScreen> with LiveRefresh<Matc
             return Container(
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xF50F172A) : const Color(0xF8F8FAFC),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
                 border: Border.all(color: isDark ? Colors.white12 : Colors.black12),
               ),
               child: Column(
@@ -888,10 +889,10 @@ class _MatchDataScreenState extends State<MatchDataScreen> with LiveRefresh<Matc
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: Colors.amberAccent.withValues(alpha: 0.15),
+                            color: ObsidianUITheme.warningOrange.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Icon(Icons.sports_esports_rounded, color: Colors.amberAccent, size: 24),
+                          child: const Icon(Icons.sports_esports_rounded, color: ObsidianUITheme.warningOrange, size: 24),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -932,7 +933,7 @@ class _MatchDataScreenState extends State<MatchDataScreen> with LiveRefresh<Matc
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             decoration: BoxDecoration(
                               color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03),
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                               border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
                             ),
                             child: Row(
@@ -942,7 +943,7 @@ class _MatchDataScreenState extends State<MatchDataScreen> with LiveRefresh<Matc
                                     style: OutlinedButton.styleFrom(
                                       padding: const EdgeInsets.symmetric(vertical: 8),
                                       side: BorderSide(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.6)),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill)),
                                     ),
                                     onPressed: () {
                                       Navigator.of(ctx).pop();
@@ -972,12 +973,12 @@ class _MatchDataScreenState extends State<MatchDataScreen> with LiveRefresh<Matc
                                   child: OutlinedButton.icon(
                                     style: OutlinedButton.styleFrom(
                                       padding: const EdgeInsets.symmetric(vertical: 8),
-                                      side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.6)),
+                                      side: BorderSide(color: ObsidianUITheme.errorRed.withValues(alpha: 0.6)),
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                     ),
                                     onPressed: () => _confirmAndDeleteMatchRecord(ctx, record),
-                                    icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Colors.redAccent),
-                                    label: const Text('Delete Entry', style: TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.bold)),
+                                    icon: const Icon(Icons.delete_outline_rounded, size: 16, color: ObsidianUITheme.errorRed),
+                                    label: const Text('Delete Entry', style: TextStyle(color: ObsidianUITheme.errorRed, fontSize: 13, fontWeight: FontWeight.bold)),
                                   ),
                                 ),
                               ],
@@ -988,25 +989,25 @@ class _MatchDataScreenState extends State<MatchDataScreen> with LiveRefresh<Matc
                             margin: const EdgeInsets.only(bottom: 12),
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.orangeAccent.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.orangeAccent.withValues(alpha: 0.4)),
+                              color: ObsidianUITheme.warningOrange.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(ObsidianTokens.radius),
+                              border: Border.all(color: ObsidianUITheme.warningOrange.withValues(alpha: 0.4)),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.warning_amber_rounded, color: Colors.orangeAccent, size: 22),
+                                const Icon(Icons.warning_amber_rounded, color: ObsidianUITheme.warningOrange, size: 22),
                                 const SizedBox(width: 10),
                                 const Expanded(
                                   child: Text(
                                     'Different match scouting data was recorded for this match.',
-                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.orangeAccent),
+                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: ObsidianUITheme.warningOrange),
                                   ),
                                 ),
                                 // Resolving edits and deletes entries, which takes an admin.
                                 if (widget.apiService.isAdmin)
                                 ElevatedButton.icon(
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.orangeAccent,
+                                    backgroundColor: ObsidianUITheme.warningOrange,
                                     foregroundColor: Colors.black87,
                                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                     textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
@@ -1027,7 +1028,7 @@ class _MatchDataScreenState extends State<MatchDataScreen> with LiveRefresh<Matc
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                           ),
                           child: Column(
                             children: [
@@ -1037,7 +1038,7 @@ class _MatchDataScreenState extends State<MatchDataScreen> with LiveRefresh<Matc
                               if (record.createdAt != null)
                                 _buildDetailRow('Timestamp', record.createdAt!, primaryTextColor, secondaryTextColor),
                               if (record.hasDiscrepancy)
-                                _buildDetailRow('Discrepancy Status', 'Conflict Flagged', Colors.orangeAccent, secondaryTextColor),
+                                _buildDetailRow('Discrepancy Status', 'Conflict Flagged', ObsidianUITheme.warningOrange, secondaryTextColor),
                             ],
                           ),
                         ),
@@ -1045,13 +1046,13 @@ class _MatchDataScreenState extends State<MatchDataScreen> with LiveRefresh<Matc
 
                         // Phase Breakdown
                         if (autoFields.isNotEmpty)
-                          _buildPhaseSection('Autonomous Phase', autoFields, record.data, Colors.cyanAccent, isDark, primaryTextColor, secondaryTextColor),
+                          _buildPhaseSection('Autonomous Phase', autoFields, record.data, ObsidianUITheme.defaultPrimaryAccent, isDark, primaryTextColor, secondaryTextColor),
                         if (teleopFields.isNotEmpty)
-                          _buildPhaseSection('Teleop Phase', teleopFields, record.data, Colors.amberAccent, isDark, primaryTextColor, secondaryTextColor),
+                          _buildPhaseSection('Teleop Phase', teleopFields, record.data, ObsidianUITheme.warningOrange, isDark, primaryTextColor, secondaryTextColor),
                         if (endgameFields.isNotEmpty)
                           _buildPhaseSection('Endgame Phase', endgameFields, record.data, Colors.pinkAccent, isDark, primaryTextColor, secondaryTextColor),
                         if (otherFields.isNotEmpty)
-                          _buildPhaseSection('Post-Match & Notes', otherFields, record.data, Colors.lightGreenAccent, isDark, primaryTextColor, secondaryTextColor),
+                          _buildPhaseSection('Post-Match & Notes', otherFields, record.data, ObsidianUITheme.successGreen, isDark, primaryTextColor, secondaryTextColor),
 
                         // If no schema fields matched, show raw data map
                         if (autoFields.isEmpty && teleopFields.isEmpty && endgameFields.isEmpty && otherFields.isEmpty)
@@ -1061,7 +1062,7 @@ class _MatchDataScreenState extends State<MatchDataScreen> with LiveRefresh<Matc
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                               decoration: BoxDecoration(
                                 color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02),
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                                 border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
                               ),
                               child: Row(
@@ -1070,7 +1071,7 @@ class _MatchDataScreenState extends State<MatchDataScreen> with LiveRefresh<Matc
                                   Text(item.key, style: TextStyle(fontWeight: FontWeight.w600, color: primaryTextColor)),
                                   Text(
                                     _formatVal(item.value),
-                                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.amberAccent),
+                                    style: const TextStyle(fontWeight: FontWeight.bold, color: ObsidianUITheme.warningOrange),
                                   ),
                                 ],
                               ),
@@ -1125,7 +1126,7 @@ class _MatchDataScreenState extends State<MatchDataScreen> with LiveRefresh<Matc
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
               color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
               border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
             ),
             child: Row(
@@ -1180,7 +1181,7 @@ class _MatchDataScreenState extends State<MatchDataScreen> with LiveRefresh<Matc
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: isDark ? const Color(0x521E293B) : Colors.white.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
         border: Border.all(color: accent.withValues(alpha: 0.3)),
       ),
       child: Column(

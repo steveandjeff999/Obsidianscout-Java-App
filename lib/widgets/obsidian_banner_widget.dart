@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../theme/obsidian_tokens.dart';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
@@ -143,7 +144,7 @@ class _ObsidianBannerWidgetState extends State<ObsidianBannerWidget> {
 
           switch (bannerType) {
             case 'warning':
-              bannerColor = Colors.amber;
+              bannerColor = ObsidianUITheme.warningOrange;
               bannerIcon = Icons.warning_amber_rounded;
               break;
             case 'danger':
@@ -152,7 +153,7 @@ class _ObsidianBannerWidgetState extends State<ObsidianBannerWidget> {
               bannerIcon = Icons.error_outline_rounded;
               break;
             case 'success':
-              bannerColor = Colors.greenAccent;
+              bannerColor = ObsidianUITheme.successGreen;
               bannerIcon = Icons.check_circle_outline_rounded;
               break;
             case 'info':
@@ -165,7 +166,7 @@ class _ObsidianBannerWidgetState extends State<ObsidianBannerWidget> {
           return Container(
             margin: const EdgeInsets.only(bottom: 8.0),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14.0),
+              borderRadius: BorderRadius.circular(ObsidianTokens.radius),
               color: bannerColor.withValues(alpha: 0.15),
               border: Border.all(color: bannerColor.withValues(alpha: 0.5), width: 1.2),
             ),
@@ -237,7 +238,7 @@ class _ObsidianBannerWidgetState extends State<ObsidianBannerWidget> {
                             padding: const EdgeInsets.all(10.0),
                             decoration: BoxDecoration(
                               color: bannerColor.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8.0),
+                              borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                               border: Border.all(
                                 color: bannerColor.withValues(alpha: 0.25),
                                 width: 1.0,

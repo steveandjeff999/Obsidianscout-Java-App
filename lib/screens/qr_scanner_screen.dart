@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../theme/obsidian_tokens.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:camera/camera.dart';
@@ -1066,7 +1067,7 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
                   padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
                   decoration: BoxDecoration(
                     color: isDone ? ObsidianUITheme.successGreen.withValues(alpha: 0.2) : ObsidianUITheme.getBorderColor(context),
-                    borderRadius: BorderRadius.circular(16.0),
+                    borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                     border: Border.all(color: color),
                   ),
                   child: Row(
@@ -1162,7 +1163,7 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
         padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
         decoration: BoxDecoration(
           color: ObsidianUITheme.getInputFillColor(context),
-          borderRadius: BorderRadius.circular(12.0),
+          borderRadius: BorderRadius.circular(ObsidianTokens.radius),
           border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
         ),
         child: Row(
@@ -1300,7 +1301,7 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
                   _buildCameraDeviceSelector(),
                   if (!_showManualInput) ...[
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(16.0),
+                      borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                       child: SizedBox(
                         height: 340,
                         child: Stack(
@@ -1438,8 +1439,8 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
                                   child: Padding(
                                     padding: EdgeInsets.only(bottom: 6.0),
                                     child: Text(
-                                      'ALIGN QR CODE HERE',
-                                      style: TextStyle(color: ObsidianUITheme.primaryAccent, fontSize: 10.0, fontWeight: FontWeight.bold, letterSpacing: 0.8),
+                                      'Align QR code here',
+                                      style: TextStyle(color: ObsidianUITheme.primaryAccent, fontSize: 10.0, fontWeight: FontWeight.bold, letterSpacing: 0),
                                     ),
                                   ),
                                 ),
@@ -1505,7 +1506,7 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
                               }
                             },
                             icon: const Icon(Icons.qr_code_scanner_rounded, color: Colors.white),
-                            label: const Text('PROCESS DATA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                            label: const Text('Process data', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -1516,7 +1517,7 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
                           ),
                           onPressed: _pasteFromClipboard,
                           icon: Icon(Icons.assignment_turned_in_rounded, color: primaryTextColor),
-                          label: Text('PASTE CLIPBOARD', style: TextStyle(color: primaryTextColor, fontSize: 12)),
+                          label: Text('Paste clipboard', style: TextStyle(color: primaryTextColor, fontSize: 12)),
                         ),
                       ],
                     ),
@@ -1531,8 +1532,8 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'SCANNED QUEUE',
-                  style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, letterSpacing: 1.0),
+                  'Scanned queue',
+                  style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, letterSpacing: 0),
                 ),
                 Row(
                   children: [

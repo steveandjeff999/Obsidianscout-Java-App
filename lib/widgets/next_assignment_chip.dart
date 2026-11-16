@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/obsidian_tokens.dart';
 import '../models/assignment_models.dart';
 import '../services/assignment_advance_service.dart';
 import '../theme/obsidian_ui_theme.dart';
@@ -111,7 +112,7 @@ class NextAssignmentChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
         border: Border.all(color: accent.withValues(alpha: 0.3)),
       ),
       child: Wrap(

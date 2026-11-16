@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/obsidian_tokens.dart';
 import '../models/config_models.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
@@ -470,11 +471,11 @@ class _AllDataScreenState extends State<AllDataScreen> with LiveRefresh<AllDataS
   Color _getTypeColor(String type) {
     switch (type) {
       case 'Match':
-        return Colors.amberAccent;
+        return ObsidianUITheme.warningOrange;
       case 'Pit':
-        return Colors.cyanAccent;
+        return ObsidianUITheme.defaultPrimaryAccent;
       case 'Qualitative':
-        return Colors.lightGreenAccent;
+        return ObsidianUITheme.successGreen;
       default:
         return Colors.white70;
     }
@@ -510,7 +511,7 @@ class _AllDataScreenState extends State<AllDataScreen> with LiveRefresh<AllDataS
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline_rounded, size: 48, color: Colors.redAccent),
+              const Icon(Icons.error_outline_rounded, size: 48, color: ObsidianUITheme.errorRed),
               const SizedBox(height: 12),
               Text(
                 'Failed to load scouting data',
@@ -604,8 +605,8 @@ class _AllDataScreenState extends State<AllDataScreen> with LiveRefresh<AllDataS
                       tooltip: 'Export CSV',
                       icon: const Icon(Icons.download_rounded, size: 20),
                       style: IconButton.styleFrom(
-                        backgroundColor: Colors.blueAccent.withValues(alpha: 0.15),
-                        foregroundColor: Colors.blueAccent,
+                        backgroundColor: ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.15),
+                        foregroundColor: ObsidianUITheme.defaultPrimaryAccent,
                       ),
                       onPressed: _exportCsv,
                     ),
@@ -626,17 +627,17 @@ class _AllDataScreenState extends State<AllDataScreen> with LiveRefresh<AllDataS
                         children: [
                           Row(
                             children: [
-                              Expanded(child: _buildMetricTile('Total Entries', totalCount.toString(), Colors.blueAccent, isDark)),
+                              Expanded(child: _buildMetricTile('Total Entries', totalCount.toString(), ObsidianUITheme.defaultPrimaryAccent, isDark)),
                               const SizedBox(width: 8),
-                              Expanded(child: _buildMetricTile('Pit Entries', pitCount.toString(), Colors.cyanAccent, isDark)),
+                              Expanded(child: _buildMetricTile('Pit Entries', pitCount.toString(), ObsidianUITheme.defaultPrimaryAccent, isDark)),
                             ],
                           ),
                           const SizedBox(height: 8),
                           Row(
                             children: [
-                              Expanded(child: _buildMetricTile('Match Entries', matchCount.toString(), Colors.amberAccent, isDark)),
+                              Expanded(child: _buildMetricTile('Match Entries', matchCount.toString(), ObsidianUITheme.warningOrange, isDark)),
                               const SizedBox(width: 8),
-                              Expanded(child: _buildMetricTile('Qualitative', qualCount.toString(), Colors.lightGreenAccent, isDark)),
+                              Expanded(child: _buildMetricTile('Qualitative', qualCount.toString(), ObsidianUITheme.successGreen, isDark)),
                             ],
                           ),
                         ],
@@ -644,13 +645,13 @@ class _AllDataScreenState extends State<AllDataScreen> with LiveRefresh<AllDataS
                     }
                     return Row(
                       children: [
-                        Expanded(child: _buildMetricTile('Total Entries', totalCount.toString(), Colors.blueAccent, isDark)),
+                        Expanded(child: _buildMetricTile('Total Entries', totalCount.toString(), ObsidianUITheme.defaultPrimaryAccent, isDark)),
                         const SizedBox(width: 8),
-                        Expanded(child: _buildMetricTile('Pit Entries', pitCount.toString(), Colors.cyanAccent, isDark)),
+                        Expanded(child: _buildMetricTile('Pit Entries', pitCount.toString(), ObsidianUITheme.defaultPrimaryAccent, isDark)),
                         const SizedBox(width: 8),
-                        Expanded(child: _buildMetricTile('Match Entries', matchCount.toString(), Colors.amberAccent, isDark)),
+                        Expanded(child: _buildMetricTile('Match Entries', matchCount.toString(), ObsidianUITheme.warningOrange, isDark)),
                         const SizedBox(width: 8),
-                        Expanded(child: _buildMetricTile('Qualitative', qualCount.toString(), Colors.lightGreenAccent, isDark)),
+                        Expanded(child: _buildMetricTile('Qualitative', qualCount.toString(), ObsidianUITheme.successGreen, isDark)),
                       ],
                     );
                   },
@@ -677,15 +678,15 @@ class _AllDataScreenState extends State<AllDataScreen> with LiveRefresh<AllDataS
                       showCheckmark: true,
                       checkmarkColor: Colors.black87,
                       label: const Text('Conflicts Only'),
-                      avatar: const Icon(Icons.warning_amber_rounded, size: 16, color: Colors.amberAccent),
+                      avatar: const Icon(Icons.warning_amber_rounded, size: 16, color: ObsidianUITheme.warningOrange),
                       labelStyle: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: _conflictsOnly ? Colors.black87 : Colors.amberAccent,
+                        color: _conflictsOnly ? Colors.black87 : ObsidianUITheme.warningOrange,
                       ),
-                      selectedColor: Colors.amberAccent,
+                      selectedColor: ObsidianUITheme.warningOrange,
                       backgroundColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.04),
-                      side: BorderSide(color: Colors.amberAccent.withValues(alpha: 0.4)),
+                      side: BorderSide(color: ObsidianUITheme.warningOrange.withValues(alpha: 0.4)),
                       onSelected: (val) => setState(() => _conflictsOnly = val),
                     ),
                   ],
@@ -774,7 +775,7 @@ class _AllDataScreenState extends State<AllDataScreen> with LiveRefresh<AllDataS
                           labelText: 'Type',
                           filled: true,
                           fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         ),
                         items: const [
@@ -840,7 +841,7 @@ class _AllDataScreenState extends State<AllDataScreen> with LiveRefresh<AllDataS
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
                         color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                         border: Border.all(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.3)),
                       ),
                       child: Text(
@@ -904,15 +905,15 @@ class _AllDataScreenState extends State<AllDataScreen> with LiveRefresh<AllDataS
                       _showEntryDetailBottomSheet(context, entry);
                     }
                   },
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: isDark ? const Color(0x731E293B) : Colors.white.withValues(alpha: 0.85),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                       border: Border.all(
                         color: hasConflict
-                            ? Colors.amberAccent.withValues(alpha: 0.6)
+                            ? ObsidianUITheme.warningOrange.withValues(alpha: 0.6)
                             : (isSelected
                                 ? ObsidianUITheme.primaryAccent
                                 : (isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.08))),
@@ -942,7 +943,7 @@ class _AllDataScreenState extends State<AllDataScreen> with LiveRefresh<AllDataS
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
                                       color: typeColor.withValues(alpha: 0.2),
-                                      borderRadius: BorderRadius.circular(8),
+                                      borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                                       border: Border.all(color: typeColor.withValues(alpha: 0.5)),
                                     ),
                                     child: Row(
@@ -976,7 +977,7 @@ class _AllDataScreenState extends State<AllDataScreen> with LiveRefresh<AllDataS
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                       decoration: BoxDecoration(
-                                        color: Colors.blueAccent.withValues(alpha: 0.15),
+                                        color: ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.15),
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: Text(
@@ -984,7 +985,7 @@ class _AllDataScreenState extends State<AllDataScreen> with LiveRefresh<AllDataS
                                         style: const TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w600,
-                                          color: Colors.blueAccent,
+                                          color: ObsidianUITheme.defaultPrimaryAccent,
                                         ),
                                       ),
                                     ),
@@ -993,25 +994,25 @@ class _AllDataScreenState extends State<AllDataScreen> with LiveRefresh<AllDataS
                                   if (hasConflict && widget.apiService.isAdmin) ...[
                                     InkWell(
                                       onTap: () => _openConflictResolver(entry),
-                                      borderRadius: BorderRadius.circular(8),
+                                      borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                         decoration: BoxDecoration(
-                                          color: Colors.amberAccent.withValues(alpha: 0.2),
-                                          borderRadius: BorderRadius.circular(8),
-                                          border: Border.all(color: Colors.amberAccent),
+                                          color: ObsidianUITheme.warningOrange.withValues(alpha: 0.2),
+                                          borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
+                                          border: Border.all(color: ObsidianUITheme.warningOrange),
                                         ),
                                         child: const Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            Icon(Icons.warning_amber_rounded, size: 14, color: Colors.amberAccent),
+                                            Icon(Icons.warning_amber_rounded, size: 14, color: ObsidianUITheme.warningOrange),
                                             SizedBox(width: 4),
                                             Text(
                                               'Resolve',
                                               style: TextStyle(
                                                 fontSize: 11,
                                                 fontWeight: FontWeight.bold,
-                                                color: Colors.amberAccent,
+                                                color: ObsidianUITheme.warningOrange,
                                               ),
                                             ),
                                           ],
@@ -1079,7 +1080,7 @@ class _AllDataScreenState extends State<AllDataScreen> with LiveRefresh<AllDataS
             child: const Text('Cancel'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            style: FilledButton.styleFrom(backgroundColor: ObsidianUITheme.errorRed),
             onPressed: () => Navigator.of(dCtx).pop(true),
             child: const Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
@@ -1127,7 +1128,7 @@ class _AllDataScreenState extends State<AllDataScreen> with LiveRefresh<AllDataS
             return Container(
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xF50F172A) : const Color(0xF8F8FAFC),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
                 border: Border.all(color: isDark ? Colors.white12 : Colors.black12),
               ),
               child: Column(
@@ -1195,7 +1196,7 @@ class _AllDataScreenState extends State<AllDataScreen> with LiveRefresh<AllDataS
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             decoration: BoxDecoration(
                               color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03),
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                               border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
                             ),
                             child: Row(
@@ -1205,7 +1206,7 @@ class _AllDataScreenState extends State<AllDataScreen> with LiveRefresh<AllDataS
                                     style: OutlinedButton.styleFrom(
                                       padding: const EdgeInsets.symmetric(vertical: 8),
                                       side: BorderSide(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.6)),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill)),
                                     ),
                                     onPressed: () {
                                       Navigator.of(ctx).pop();
@@ -1240,12 +1241,12 @@ class _AllDataScreenState extends State<AllDataScreen> with LiveRefresh<AllDataS
                                   child: OutlinedButton.icon(
                                     style: OutlinedButton.styleFrom(
                                       padding: const EdgeInsets.symmetric(vertical: 8),
-                                      side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.6)),
+                                      side: BorderSide(color: ObsidianUITheme.errorRed.withValues(alpha: 0.6)),
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                     ),
                                     onPressed: () => _confirmAndDeleteAllRecord(ctx, entry),
-                                    icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Colors.redAccent),
-                                    label: const Text('Delete Entry', style: TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.bold)),
+                                    icon: const Icon(Icons.delete_outline_rounded, size: 16, color: ObsidianUITheme.errorRed),
+                                    label: const Text('Delete Entry', style: TextStyle(color: ObsidianUITheme.errorRed, fontSize: 13, fontWeight: FontWeight.bold)),
                                   ),
                                 ),
                               ],
@@ -1256,25 +1257,25 @@ class _AllDataScreenState extends State<AllDataScreen> with LiveRefresh<AllDataS
                             margin: const EdgeInsets.only(bottom: 12),
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.amberAccent.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.amberAccent.withValues(alpha: 0.4)),
+                              color: ObsidianUITheme.warningOrange.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(ObsidianTokens.radius),
+                              border: Border.all(color: ObsidianUITheme.warningOrange.withValues(alpha: 0.4)),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.warning_amber_rounded, color: Colors.amberAccent, size: 22),
+                                const Icon(Icons.warning_amber_rounded, color: ObsidianUITheme.warningOrange, size: 22),
                                 const SizedBox(width: 10),
                                 const Expanded(
                                   child: Text(
                                     'Discrepancy detected for this entry across submissions.',
-                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.amberAccent),
+                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: ObsidianUITheme.warningOrange),
                                   ),
                                 ),
                                 // Resolving edits and deletes entries, which takes an admin.
                                 if (widget.apiService.isAdmin)
                                 ElevatedButton.icon(
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.amberAccent,
+                                    backgroundColor: ObsidianUITheme.warningOrange,
                                     foregroundColor: Colors.black87,
                                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                     textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
@@ -1295,7 +1296,7 @@ class _AllDataScreenState extends State<AllDataScreen> with LiveRefresh<AllDataS
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                           ),
                           child: Column(
                             children: [
@@ -1307,7 +1308,7 @@ class _AllDataScreenState extends State<AllDataScreen> with LiveRefresh<AllDataS
                               if (entry.createdAt != null)
                                 _buildDetailRow('Timestamp', entry.createdAt!, primaryTextColor, secondaryTextColor),
                               if (entry.isPrescout)
-                                _buildDetailRow('Prescout', 'Yes', Colors.cyanAccent, secondaryTextColor),
+                                _buildDetailRow('Prescout', 'Yes', ObsidianUITheme.defaultPrimaryAccent, secondaryTextColor),
                             ],
                           ),
                         ),
@@ -1351,7 +1352,7 @@ class _AllDataScreenState extends State<AllDataScreen> with LiveRefresh<AllDataS
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                               decoration: BoxDecoration(
                                 color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02),
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                                 border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
                               ),
                               child: Row(
@@ -1424,7 +1425,7 @@ class _AllDataScreenState extends State<AllDataScreen> with LiveRefresh<AllDataS
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: isDark ? const Color(0x521E293B) : Colors.white.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
         border: Border.all(color: accent.withValues(alpha: 0.3)),
       ),
       child: Column(

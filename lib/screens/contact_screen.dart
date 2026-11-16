@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/obsidian_tokens.dart';
 import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
@@ -262,7 +263,7 @@ class _ContactScreenState extends State<ContactScreen> {
                               borderSide: BorderSide(color: borderColor),
                             ),
                             focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.0),
+                              borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                               borderSide: BorderSide(color: ObsidianUITheme.primaryAccent, width: 1.5),
                             ),
                           ),
@@ -300,7 +301,7 @@ class _ContactScreenState extends State<ContactScreen> {
                               borderSide: BorderSide(color: borderColor),
                             ),
                             focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.0),
+                              borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                               borderSide: BorderSide(color: ObsidianUITheme.primaryAccent, width: 1.5),
                             ),
                           ),
@@ -344,7 +345,7 @@ class _ContactScreenState extends State<ContactScreen> {
                               borderSide: BorderSide(color: borderColor),
                             ),
                             disabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.0),
+                              borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                               borderSide: BorderSide(color: borderColor.withValues(alpha: 0.5)),
                             ),
                           ),
@@ -375,7 +376,7 @@ class _ContactScreenState extends State<ContactScreen> {
                               borderSide: BorderSide(color: borderColor),
                             ),
                             focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.0),
+                              borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                               borderSide: BorderSide(color: ObsidianUITheme.primaryAccent, width: 1.5),
                             ),
                           ),
@@ -422,15 +423,15 @@ class _ContactScreenState extends State<ContactScreen> {
                             fillColor: cardBg,
                             contentPadding: const EdgeInsets.all(14.0),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.0),
+                              borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                               borderSide: BorderSide(color: borderColor),
                             ),
                             enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.0),
+                              borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                               borderSide: BorderSide(color: borderColor),
                             ),
                             focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.0),
+                              borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                               borderSide: BorderSide(color: ObsidianUITheme.primaryAccent, width: 1.5),
                             ),
                           ),

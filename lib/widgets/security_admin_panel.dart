@@ -8,10 +8,10 @@ import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
 import 'obsidian_glass_card.dart';
 
-const Color _red = Color(0xFFEF4444);
-const Color _amber = Color(0xFFF59E0B);
-const Color _green = Color(0xFF10B981);
-const Color _sky = Color(0xFF38BDF8);
+const Color _red = ObsidianUITheme.errorRed;
+const Color _amber = ObsidianUITheme.warningOrange;
+const Color _green = ObsidianUITheme.successGreen;
+const Color _sky = ObsidianUITheme.defaultSecondaryAccent;
 const Color _slate = Color(0xFF94A3B8);
 
 /// Intrusion detection for superadmins, shown in the Security tab of Server Insights: mode switch, unblock requests,

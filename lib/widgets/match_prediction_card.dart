@@ -81,7 +81,7 @@ class MatchPickButtons extends StatelessWidget {
     final winner = status.result == side;
     final enabled = !status.locked && !busy;
     final teams = _teamNumbers(side == 'red' ? match.redTeams : match.blueTeams);
-    final radius = ObsidianUITheme.getButtonRadius(context, fallback: 12.0).clamp(4.0, 16.0);
+    final radius = ObsidianUITheme.getButtonRadius(context).clamp(4.0, 16.0);
     final fg = selected ? Colors.white : color;
     return Opacity(
       opacity: enabled || selected ? 1.0 : 0.55,
@@ -154,11 +154,11 @@ class MatchPickStatusLine extends StatelessWidget {
           text = '$won - ${context.tr('predictions.no_pick', 'no pick')}';
         } else if (pick == result) {
           icon = Icons.check_circle_rounded;
-          color = const Color(0xFF10B981);
+          color = ObsidianUITheme.successGreen;
           text = '$won - ${context.tr('predictions.called_it', 'you called it')}';
         } else {
           icon = Icons.cancel_rounded;
-          color = const Color(0xFFEF4444);
+          color = ObsidianUITheme.errorRed;
           text = '$won - ${context.tr('predictions.missed', 'not this time')}';
         }
       }

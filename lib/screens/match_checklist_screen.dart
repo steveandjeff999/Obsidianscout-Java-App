@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../theme/obsidian_tokens.dart';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -712,7 +713,7 @@ class _MatchChecklistScreenState extends State<MatchChecklistScreen> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: ObsidianUITheme.warningOrange.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
         border: Border.all(color: ObsidianUITheme.warningOrange.withValues(alpha: 0.6)),
       ),
       child: Row(
@@ -792,8 +793,8 @@ class _MatchChecklistScreenState extends State<MatchChecklistScreen> {
     final (Color dot, String text) = switch (status) {
       CollabStatus.live => (Colors.greenAccent.shade400, context.tr('checklist.status.live', 'Live — changes save automatically')),
       CollabStatus.readonly => (Colors.greenAccent.shade400, context.tr('checklist.status.readonly', 'Live — view only')),
-      CollabStatus.connecting => (Colors.orangeAccent, context.tr('checklist.status.connecting', 'Connecting to live editing…')),
-      CollabStatus.reconnecting => (Colors.orangeAccent, context.tr('checklist.status.reconnecting', 'Reconnecting… your changes are kept')),
+      CollabStatus.connecting => (ObsidianUITheme.warningOrange, context.tr('checklist.status.connecting', 'Connecting to live editing…')),
+      CollabStatus.reconnecting => (ObsidianUITheme.warningOrange, context.tr('checklist.status.reconnecting', 'Reconnecting… your changes are kept')),
       CollabStatus.offline => (ObsidianUITheme.errorRed, context.tr('checklist.status.offline', 'Offline — your changes are kept on this device')),
     };
     final mySid = room?.session.sid;
@@ -801,7 +802,7 @@ class _MatchChecklistScreenState extends State<MatchChecklistScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: ObsidianUITheme.getSurfaceColor(context),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
         border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
       ),
       child: Row(
@@ -1372,8 +1373,8 @@ class _MatchChecklistScreenState extends State<MatchChecklistScreen> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: others.isEmpty ? EdgeInsets.zero : const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: others.isEmpty ? Colors.transparent : Colors.orangeAccent.withValues(alpha: 0.8), width: 2),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
+        border: Border.all(color: others.isEmpty ? Colors.transparent : ObsidianUITheme.warningOrange.withValues(alpha: 0.8), width: 2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1383,7 +1384,7 @@ class _MatchChecklistScreenState extends State<MatchChecklistScreen> {
               padding: const EdgeInsets.only(bottom: 4),
               child: Text(
                 others.map((e) => context.tr('checklist.is_editing', {'name': e.username})).join(' · '),
-                style: const TextStyle(color: Colors.orangeAccent, fontSize: 11, fontWeight: FontWeight.w600),
+                style: const TextStyle(color: ObsidianUITheme.warningOrange, fontSize: 11, fontWeight: FontWeight.w600),
               ),
             ),
           TextField(

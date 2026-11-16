@@ -1,4 +1,5 @@
 import 'package:camera/camera.dart';
+import '../theme/obsidian_tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -204,7 +205,7 @@ class _InlineCameraCaptureDialogState extends State<InlineCameraCaptureDialog> {
       backgroundColor: surfaceColor,
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
         side: BorderSide(color: borderColor),
       ),
       child: Container(
@@ -220,7 +221,7 @@ class _InlineCameraCaptureDialogState extends State<InlineCameraCaptureDialog> {
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                   ),
                   child: Icon(Icons.camera_alt_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
                 ),
@@ -253,7 +254,7 @@ class _InlineCameraCaptureDialogState extends State<InlineCameraCaptureDialog> {
                   border: Border.all(color: Colors.white12),
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                   child: _buildCameraBody(),
                 ),
               ),
@@ -285,7 +286,7 @@ class _InlineCameraCaptureDialogState extends State<InlineCameraCaptureDialog> {
                       backgroundColor: ObsidianUITheme.primaryAccent,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
                       elevation: 0,
                     ),
                     icon: _isCapturing
@@ -330,7 +331,7 @@ class _InlineCameraCaptureDialogState extends State<InlineCameraCaptureDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.videocam_off_rounded, size: 40, color: Colors.redAccent),
+              const Icon(Icons.videocam_off_rounded, size: 40, color: ObsidianUITheme.errorRed),
               const SizedBox(height: 10),
               Text(
                 _errorMessage ?? 'Camera preview unavailable.',
@@ -372,7 +373,7 @@ class _InlineCameraCaptureDialogState extends State<InlineCameraCaptureDialog> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.circle, color: Colors.greenAccent, size: 8),
+                const Icon(Icons.circle, color: ObsidianUITheme.successGreen, size: 8),
                 const SizedBox(width: 6),
                 Text(
                   _formatCameraName(_cameras[_selectedCameraIndex].name),

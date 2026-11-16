@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../theme/obsidian_tokens.dart';
 import 'package:flutter/material.dart';
 import '../models/config_models.dart';
 import '../services/api_service.dart';
@@ -43,9 +44,9 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
   late TextEditingController _lightBgCtrl;
   String _lightRadius = '999px';
   String _lightBgMode = 'solid'; // solid, gradient, preset
-  String _lightBgSolid = '#ffffff';
-  String _lightBgGrad1 = '#ffffff';
-  String _lightBgGrad2 = '#f4f4f5';
+  String _lightBgSolid = '#f5f4f0';
+  String _lightBgGrad1 = '#f5f4f0';
+  String _lightBgGrad2 = '#f7f6f2';
   double _lightBgAngle = 135.0;
 
   late TextEditingController _darkAccentCtrl;
@@ -57,9 +58,9 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
   late TextEditingController _darkBgCtrl;
   String _darkRadius = '999px';
   String _darkBgMode = 'solid'; // solid, gradient, preset
-  String _darkBgSolid = '#09090b';
-  String _darkBgGrad1 = '#09090b';
-  String _darkBgGrad2 = '#18181b';
+  String _darkBgSolid = '#0e0e11';
+  String _darkBgGrad1 = '#0e0e11';
+  String _darkBgGrad2 = '#1c1c21';
   double _darkBgAngle = 135.0;
 
   bool _previewIsDark = true;
@@ -72,21 +73,21 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
   }
 
   void _initControllers() {
-    _lightAccentCtrl = TextEditingController(text: '#0b8f88');
-    _lightAccent2Ctrl = TextEditingController(text: '#f28b35');
-    _lightAccent3Ctrl = TextEditingController(text: '#255a9c');
-    _lightInkCtrl = TextEditingController(text: '#1d1a17');
-    _lightMutedCtrl = TextEditingController(text: '#5f5b55');
+    _lightAccentCtrl = TextEditingController(text: '#5b4ec7');
+    _lightAccent2Ctrl = TextEditingController(text: '#7065a2');
+    _lightAccent3Ctrl = TextEditingController(text: '#7d71dc');
+    _lightInkCtrl = TextEditingController(text: '#1b1a17');
+    _lightMutedCtrl = TextEditingController(text: '#6e6b64');
     _lightCardCtrl = TextEditingController(text: '#ffffff');
-    _lightBgCtrl = TextEditingController(text: '#ffffff');
+    _lightBgCtrl = TextEditingController(text: '#f5f4f0');
 
-    _darkAccentCtrl = TextEditingController(text: '#3ccfc0');
-    _darkAccent2Ctrl = TextEditingController(text: '#f2a353');
-    _darkAccent3Ctrl = TextEditingController(text: '#6aa2ff');
-    _darkInkCtrl = TextEditingController(text: '#f4f2ed');
-    _darkMutedCtrl = TextEditingController(text: '#c3bfb8');
-    _darkCardCtrl = TextEditingController(text: '#111116');
-    _darkBgCtrl = TextEditingController(text: '#09090b');
+    _darkAccentCtrl = TextEditingController(text: '#8b7cf6');
+    _darkAccent2Ctrl = TextEditingController(text: '#a39bd6');
+    _darkAccent3Ctrl = TextEditingController(text: '#b3a8fa');
+    _darkInkCtrl = TextEditingController(text: '#ececf1');
+    _darkMutedCtrl = TextEditingController(text: '#9b9ba6');
+    _darkCardCtrl = TextEditingController(text: '#16161a');
+    _darkBgCtrl = TextEditingController(text: '#0e0e11');
   }
 
   @override
@@ -178,21 +179,21 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
   }
 
   void _populateFormFromPreset(ThemePresetModel preset) {
-    _lightAccentCtrl.text = preset.lightAccent.isNotEmpty ? preset.lightAccent : '#0b8f88';
-    _lightAccent2Ctrl.text = preset.lightAccent2.isNotEmpty ? preset.lightAccent2 : '#f28b35';
-    _lightAccent3Ctrl.text = preset.lightAccent3.isNotEmpty ? preset.lightAccent3 : '#255a9c';
-    _lightInkCtrl.text = preset.lightInk.isNotEmpty ? preset.lightInk : '#1d1a17';
-    _lightMutedCtrl.text = preset.lightMuted.isNotEmpty ? preset.lightMuted : '#5f5b55';
+    _lightAccentCtrl.text = preset.lightAccent.isNotEmpty ? preset.lightAccent : '#5b4ec7';
+    _lightAccent2Ctrl.text = preset.lightAccent2.isNotEmpty ? preset.lightAccent2 : '#7065a2';
+    _lightAccent3Ctrl.text = preset.lightAccent3.isNotEmpty ? preset.lightAccent3 : '#7d71dc';
+    _lightInkCtrl.text = preset.lightInk.isNotEmpty ? preset.lightInk : '#1b1a17';
+    _lightMutedCtrl.text = preset.lightMuted.isNotEmpty ? preset.lightMuted : '#6e6b64';
     _lightCardCtrl.text = preset.lightCard.isNotEmpty ? preset.lightCard : '#ffffff';
     _lightRadius = preset.lightRadius.isNotEmpty ? preset.lightRadius : (preset.btnRadius.isNotEmpty ? preset.btnRadius : '999px');
     _parseAndPopulateBg(isDark: false, bgValue: preset.lightBg);
 
-    _darkAccentCtrl.text = preset.darkAccent.isNotEmpty ? preset.darkAccent : '#3ccfc0';
-    _darkAccent2Ctrl.text = preset.darkAccent2.isNotEmpty ? preset.darkAccent2 : '#f2a353';
-    _darkAccent3Ctrl.text = preset.darkAccent3.isNotEmpty ? preset.darkAccent3 : '#6aa2ff';
-    _darkInkCtrl.text = preset.darkInk.isNotEmpty ? preset.darkInk : '#f4f2ed';
-    _darkMutedCtrl.text = preset.darkMuted.isNotEmpty ? preset.darkMuted : '#c3bfb8';
-    _darkCardCtrl.text = preset.darkCard.isNotEmpty ? preset.darkCard : '#111116';
+    _darkAccentCtrl.text = preset.darkAccent.isNotEmpty ? preset.darkAccent : '#8b7cf6';
+    _darkAccent2Ctrl.text = preset.darkAccent2.isNotEmpty ? preset.darkAccent2 : '#a39bd6';
+    _darkAccent3Ctrl.text = preset.darkAccent3.isNotEmpty ? preset.darkAccent3 : '#b3a8fa';
+    _darkInkCtrl.text = preset.darkInk.isNotEmpty ? preset.darkInk : '#ececf1';
+    _darkMutedCtrl.text = preset.darkMuted.isNotEmpty ? preset.darkMuted : '#9b9ba6';
+    _darkCardCtrl.text = preset.darkCard.isNotEmpty ? preset.darkCard : '#16161a';
     _darkRadius = preset.darkRadius.isNotEmpty ? preset.darkRadius : (preset.btnRadius.isNotEmpty ? preset.btnRadius : '999px');
     _parseAndPopulateBg(isDark: true, bgValue: preset.darkBg);
   }
@@ -200,32 +201,32 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
   void _parseAndPopulateBg({required bool isDark, required String bgValue}) {
     final clean = bgValue.trim();
     if (isDark) {
-      _darkBgCtrl.text = clean.isNotEmpty ? clean : '#09090b';
+      _darkBgCtrl.text = clean.isNotEmpty ? clean : '#0e0e11';
       if (clean.contains('gradient')) {
         _darkBgMode = 'gradient';
         final match = RegExp(r'linear-gradient\((\d+)deg,\s*(#[a-fA-F0-9]{3,8})\s*(?:\d+%)?,\s*(#[a-fA-F0-9]{3,8})').firstMatch(clean);
         if (match != null) {
           _darkBgAngle = double.tryParse(match.group(1) ?? '135') ?? 135.0;
-          _darkBgGrad1 = match.group(2) ?? '#09090b';
-          _darkBgGrad2 = match.group(3) ?? '#18181b';
+          _darkBgGrad1 = match.group(2) ?? '#0e0e11';
+          _darkBgGrad2 = match.group(3) ?? '#1c1c21';
         }
       } else {
         _darkBgMode = 'solid';
-        _darkBgSolid = clean.isNotEmpty ? clean : '#09090b';
+        _darkBgSolid = clean.isNotEmpty ? clean : '#0e0e11';
       }
     } else {
-      _lightBgCtrl.text = clean.isNotEmpty ? clean : '#ffffff';
+      _lightBgCtrl.text = clean.isNotEmpty ? clean : '#f5f4f0';
       if (clean.contains('gradient')) {
         _lightBgMode = 'gradient';
         final match = RegExp(r'linear-gradient\((\d+)deg,\s*(#[a-fA-F0-9]{3,8})\s*(?:\d+%)?,\s*(#[a-fA-F0-9]{3,8})').firstMatch(clean);
         if (match != null) {
           _lightBgAngle = double.tryParse(match.group(1) ?? '135') ?? 135.0;
-          _lightBgGrad1 = match.group(2) ?? '#ffffff';
-          _lightBgGrad2 = match.group(3) ?? '#f4f4f5';
+          _lightBgGrad1 = match.group(2) ?? '#f5f4f0';
+          _lightBgGrad2 = match.group(3) ?? '#f7f6f2';
         }
       } else {
         _lightBgMode = 'solid';
-        _lightBgSolid = clean.isNotEmpty ? clean : '#ffffff';
+        _lightBgSolid = clean.isNotEmpty ? clean : '#f5f4f0';
       }
     }
   }
@@ -306,7 +307,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: ObsidianUITheme.getSurfaceColor(ctx),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
         title: Text('New Theme Preset', style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(ctx))),
         content: TextField(
           controller: nameCtrl,
@@ -317,7 +318,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
             hintStyle: TextStyle(color: ObsidianUITheme.getTertiaryTextColor(ctx)),
             filled: true,
             fillColor: ObsidianUITheme.getInputFillColor(ctx),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill)),
           ),
         ),
         actions: [
@@ -373,7 +374,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: ObsidianUITheme.getSurfaceColor(ctx),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
         title: Text('Rename Preset', style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(ctx))),
         content: TextField(
           controller: nameCtrl,
@@ -383,7 +384,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
             hintText: 'Enter new preset name',
             filled: true,
             fillColor: ObsidianUITheme.getInputFillColor(ctx),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill)),
           ),
         ),
         actions: [
@@ -444,7 +445,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: ObsidianUITheme.getSurfaceColor(ctx),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
         title: Text('Delete Preset', style: TextStyle(color: ObsidianUITheme.getPrimaryTextColor(ctx))),
         content: Text('Are you sure you want to delete preset "${current.name}"?',
             style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(ctx))),
@@ -481,27 +482,27 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
 
   void _handleResetPreset() {
     setState(() {
-      _lightAccentCtrl.text = '#0b8f88';
-      _lightAccent2Ctrl.text = '#f28b35';
-      _lightAccent3Ctrl.text = '#255a9c';
-      _lightInkCtrl.text = '#1d1a17';
-      _lightMutedCtrl.text = '#5f5b55';
+      _lightAccentCtrl.text = '#5b4ec7';
+      _lightAccent2Ctrl.text = '#7065a2';
+      _lightAccent3Ctrl.text = '#7d71dc';
+      _lightInkCtrl.text = '#1b1a17';
+      _lightMutedCtrl.text = '#6e6b64';
       _lightCardCtrl.text = '#ffffff';
       _lightRadius = '999px';
       _lightBgMode = 'solid';
-      _lightBgSolid = '#ffffff';
-      _lightBgCtrl.text = '#ffffff';
+      _lightBgSolid = '#f5f4f0';
+      _lightBgCtrl.text = '#f5f4f0';
 
-      _darkAccentCtrl.text = '#3ccfc0';
-      _darkAccent2Ctrl.text = '#f2a353';
-      _darkAccent3Ctrl.text = '#6aa2ff';
-      _darkInkCtrl.text = '#f4f2ed';
-      _darkMutedCtrl.text = '#c3bfb8';
-      _darkCardCtrl.text = '#111116';
+      _darkAccentCtrl.text = '#8b7cf6';
+      _darkAccent2Ctrl.text = '#a39bd6';
+      _darkAccent3Ctrl.text = '#b3a8fa';
+      _darkInkCtrl.text = '#ececf1';
+      _darkMutedCtrl.text = '#9b9ba6';
+      _darkCardCtrl.text = '#16161a';
       _darkRadius = '999px';
       _darkBgMode = 'solid';
-      _darkBgSolid = '#09090b';
-      _darkBgCtrl.text = '#09090b';
+      _darkBgSolid = '#0e0e11';
+      _darkBgCtrl.text = '#0e0e11';
     });
 
     ObsidianFeedback.showSuccess(
@@ -530,15 +531,15 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
             const Color(0xFF5B6CFF),
             const Color(0xFF0B8F88),
             const Color(0xFF3CCFC0),
-            const Color(0xFF3B82F6),
-            const Color(0xFF38BDF8),
+            ObsidianUITheme.defaultPrimaryAccent,
+            ObsidianUITheme.defaultSecondaryAccent,
             const Color(0xFF9D4EDD),
             const Color(0xFFA855F7),
             const Color(0xFFF28B35),
             const Color(0xFFF2A353),
             const Color(0xFFFF9100),
-            const Color(0xFFEF4444),
-            const Color(0xFF10B981),
+            ObsidianUITheme.errorRed,
+            ObsidianUITheme.successGreen,
             const Color(0xFFF43F5E),
             const Color(0xFF09090B),
             const Color(0xFF18181B),
@@ -549,7 +550,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
 
           return AlertDialog(
             backgroundColor: surface,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
             title: Text(title, style: TextStyle(color: textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
             content: SingleChildScrollView(
               child: Column(
@@ -562,7 +563,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
                     width: double.infinity,
                     decoration: BoxDecoration(
                       color: tempColor,
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                       border: Border.all(color: Colors.white24, width: 1.5),
                     ),
                   ),
@@ -675,7 +676,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
                         style: OutlinedButton.styleFrom(
                           foregroundColor: primaryTextColor,
                           side: BorderSide(color: ObsidianUITheme.getBorderColor(context)),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
                         ),
                         onPressed: _isSaving ? null : _handleResetPreset,
                         icon: const Icon(Icons.restart_alt_rounded, size: 18),
@@ -709,7 +710,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
                               foregroundColor: primaryTextColor,
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                               visualDensity: VisualDensity.compact,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill)),
                             ),
                             onPressed: widget.onBack,
                             icon: const Icon(Icons.arrow_back_rounded, size: 18),
@@ -976,7 +977,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
                   color: ObsidianUITheme.getInputFillColor(context),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                   border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
                 ),
                 child: DropdownButtonHideUnderline(
@@ -1041,7 +1042,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
 
     final solidPresets = isDarkModeConfig
         ? [
-            {'val': '#09090b', 'title': 'True Obsidian'},
+            {'val': '#0e0e11', 'title': 'True Obsidian'},
             {'val': 'linear-gradient(135deg, #09090b 0%, #18181b 100%)', 'title': 'Onyx Depth'},
             {'val': 'linear-gradient(135deg, #1f1c2c 0%, #928dab 100%)', 'title': 'Deep Space'},
             {'val': 'linear-gradient(135deg, #141e30 0%, #243b55 100%)', 'title': 'Midnight Slate'},
@@ -1057,7 +1058,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
         border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
       ),
       child: Column(
@@ -1301,7 +1302,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
 
   Widget _buildVisualPreviewSandbox(Color surface, Color primaryText, Color secondaryText) {
     final accent = ObsidianUITheme.parseHex(_previewIsDark ? _darkAccentCtrl.text : _lightAccentCtrl.text) ?? Colors.teal;
-    final accent2 = ObsidianUITheme.parseHex(_previewIsDark ? _darkAccent2Ctrl.text : _lightAccent2Ctrl.text) ?? Colors.orange;
+    final accent2 = ObsidianUITheme.parseHex(_previewIsDark ? _darkAccent2Ctrl.text : _lightAccent2Ctrl.text) ?? ObsidianUITheme.warningOrange;
     final accent3 = ObsidianUITheme.parseHex(_previewIsDark ? _darkAccent3Ctrl.text : _lightAccent3Ctrl.text) ?? Colors.blue;
     final ink = ObsidianUITheme.parseHex(_previewIsDark ? _darkInkCtrl.text : _lightInkCtrl.text) ?? (_previewIsDark ? Colors.white : Colors.black);
     final muted = ObsidianUITheme.parseHex(_previewIsDark ? _darkMutedCtrl.text : _lightMutedCtrl.text) ?? (_previewIsDark ? Colors.white60 : Colors.black54);
@@ -1328,7 +1329,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: primaryText,
                   side: BorderSide(color: ObsidianUITheme.getBorderColor(context)),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill)),
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   visualDensity: VisualDensity.compact,
                 ),

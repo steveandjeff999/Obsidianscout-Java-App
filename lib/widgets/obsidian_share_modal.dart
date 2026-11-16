@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../theme/obsidian_ui_theme.dart';
+import '../theme/obsidian_tokens.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -351,7 +353,7 @@ class _ObsidianShareModalState extends State<ObsidianShareModal> {
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.04),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                       border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
                     ),
                     child: Column(
@@ -394,7 +396,7 @@ class _ObsidianShareModalState extends State<ObsidianShareModal> {
                                   return const Center(
                                     child: Text(
                                       'QR unavailable',
-                                      style: TextStyle(color: Colors.red, fontSize: 10),
+                                      style: TextStyle(color: ObsidianUITheme.errorRed, fontSize: 10),
                                     ),
                                   );
                                 },

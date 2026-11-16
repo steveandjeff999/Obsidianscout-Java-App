@@ -1,4 +1,5 @@
 import 'dart:math';
+import '../theme/obsidian_tokens.dart';
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../models/config_models.dart';
@@ -421,11 +422,11 @@ class _QualRankingsScreenState extends State<QualRankingsScreen> with LiveRefres
                                 Icon(Icons.filter_alt_outlined, size: 16, color: secondaryTextColor),
                                 const SizedBox(width: 6),
                                 Text(
-                                  'FILTER BY ROBOT ROLE',
+                                  'Filter BY robot role',
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
-                                    letterSpacing: 1.1,
+                                    letterSpacing: 0,
                                     color: secondaryTextColor,
                                   ),
                                 ),
@@ -465,7 +466,7 @@ class _QualRankingsScreenState extends State<QualRankingsScreen> with LiveRefres
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
                                   color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                                 ),
                                 child: Icon(Icons.stars_rounded, color: ObsidianUITheme.primaryAccent, size: 24),
                               ),
@@ -746,7 +747,7 @@ class _QualRankingsScreenState extends State<QualRankingsScreen> with LiveRefres
 
     return InkWell(
       onTap: () => _toggleRoleFilter(roleId),
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(ObsidianTokens.radius),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -754,7 +755,7 @@ class _QualRankingsScreenState extends State<QualRankingsScreen> with LiveRefres
           color: isSelected
               ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.2)
               : ObsidianUITheme.getSurfaceColor(context),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(ObsidianTokens.radius),
           border: Border.all(
             color: isSelected
                 ? ObsidianUITheme.primaryAccent
@@ -843,8 +844,8 @@ class _QualRankingsScreenState extends State<QualRankingsScreen> with LiveRefres
                 ),
               );
             }),
-            if (showRoles) const DataColumn(label: Text('APPEARANCES')),
-            if (showRoles) const DataColumn(label: Text('ROLES')),
+            if (showRoles) const DataColumn(label: Text('Appearances')),
+            if (showRoles) const DataColumn(label: Text('Roles')),
           ],
           rows: teams.asMap().entries.map((entry) {
             final index = entry.key;
@@ -976,7 +977,7 @@ class _QualRankingsScreenState extends State<QualRankingsScreen> with LiveRefres
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: ObsidianUITheme.primaryAccent),
                       ),
                       const SizedBox(width: 4),
-                      Icon(Icons.star_rounded, size: 16, color: Colors.amberAccent),
+                      Icon(Icons.star_rounded, size: 16, color: ObsidianUITheme.warningOrange),
                     ],
                     const SizedBox(width: 4),
                     Icon(Icons.chevron_right_rounded, size: 18, color: secondaryTextColor),
@@ -1036,18 +1037,18 @@ class _QualRankingsScreenState extends State<QualRankingsScreen> with LiveRefres
   }
 
   Widget _buildRoleBadge(String role) {
-    Color color = Colors.cyanAccent;
+    Color color = ObsidianUITheme.defaultPrimaryAccent;
     final rLower = role.toLowerCase();
     if (rLower.contains('cycl')) {
-      color = Colors.lightGreenAccent;
+      color = ObsidianUITheme.successGreen;
     } else if (rLower.contains('steal')) {
-      color = Colors.orangeAccent;
+      color = ObsidianUITheme.warningOrange;
     } else if (rLower.contains('scor')) {
-      color = Colors.amberAccent;
+      color = ObsidianUITheme.warningOrange;
     } else if (rLower.contains('feed')) {
-      color = Colors.cyanAccent;
+      color = ObsidianUITheme.defaultPrimaryAccent;
     } else if (rLower.contains('defend')) {
-      color = Colors.redAccent;
+      color = ObsidianUITheme.errorRed;
     } else if (rLower.contains('n/c')) {
       color = Colors.blueGrey;
     }

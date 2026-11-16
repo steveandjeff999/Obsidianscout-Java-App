@@ -20,10 +20,10 @@ class BannersScreen extends StatefulWidget {
 }
 
 const _bannerColors = {
-  'info': Color(0xFF3B82F6),
-  'warning': Color(0xFFF59E0B),
-  'success': Color(0xFF10B981),
-  'danger': Color(0xFFEF4444),
+  'info': ObsidianUITheme.defaultPrimaryAccent,
+  'warning': ObsidianUITheme.warningOrange,
+  'success': ObsidianUITheme.successGreen,
+  'danger': ObsidianUITheme.errorRed,
 };
 
 class _BannersScreenState extends State<BannersScreen> {

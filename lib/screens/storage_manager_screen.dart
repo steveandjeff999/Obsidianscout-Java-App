@@ -149,12 +149,12 @@ class _StorageManagerScreenState extends State<StorageManagerScreen> with Single
     final chatAccountRecords = (jsonInt(o['chatRecords']) ?? 0) + (jsonInt(o['accountsRecords']) ?? 0);
     final total = (jsonDouble(o['totalEstimatedBytes']) ?? 0) > 0 ? jsonDouble(o['totalEstimatedBytes'])! : 1.0;
     final segments = <(String, String, Color)>[
-      ('apiCacheBytes', context.tr('storage.legend_api', 'API Event Caches'), const Color(0xFF3B82F6)),
-      ('userScoutingBytes', context.tr('storage.legend_scout', 'User Scouting Records'), const Color(0xFF10B981)),
+      ('apiCacheBytes', context.tr('storage.legend_api', 'API Event Caches'), ObsidianUITheme.defaultPrimaryAccent),
+      ('userScoutingBytes', context.tr('storage.legend_scout', 'User Scouting Records'), ObsidianUITheme.successGreen),
       ('chatBytes', context.tr('storage.legend_chat', 'Team Chat Messages'), const Color(0xFFF59E0B)),
-      ('accountsBytes', context.tr('storage.legend_accounts', 'Accounts & Sessions'), const Color(0xFF8B5CF6)),
+      ('accountsBytes', context.tr('storage.legend_accounts', 'Accounts & Sessions'), ObsidianUITheme.defaultPrimaryAccent),
       ('systemConfigBytes', context.tr('storage.legend_config', 'Configurations & System'), const Color(0xFF64748B)),
-      ('errorReportsBytes', context.tr('storage.legend_errors', 'Error & Bug Reports'), const Color(0xFFEF4444)),
+      ('errorReportsBytes', context.tr('storage.legend_errors', 'Error & Bug Reports'), ObsidianUITheme.errorRed),
     ];
     return PortedSection(
       title: context.tr('storage.title', 'Site Storage Management'),

@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../theme/obsidian_tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
@@ -178,7 +179,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: surfaceColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
         title: Row(
           children: [
             const Icon(Icons.warning_amber_rounded, color: ObsidianUITheme.warningOrange, size: 28.0),
@@ -703,7 +704,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
 
           return AlertDialog(
             backgroundColor: surfaceColor,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
             title: Row(
               children: [
                 const Icon(Icons.warning_amber_rounded, color: ObsidianUITheme.warningOrange, size: 28.0),
@@ -873,7 +874,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
 
         return AlertDialog(
           backgroundColor: surfaceColor,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
           title: Row(
             children: [
               const Icon(Icons.warning_amber_rounded, color: ObsidianUITheme.warningOrange, size: 28.0),
@@ -1158,7 +1159,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
                   HapticFeedback.mediumImpact();
                   setState(() => _activeTab = tab['key']!);
                 },
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
                   padding: const EdgeInsets.symmetric(vertical: 10.0),
@@ -1166,7 +1167,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
                     color: isSelected
                         ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.16)
                         : ObsidianUITheme.getSurfaceColor(context),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                     border: Border.all(
                       color: isSelected
                           ? ObsidianUITheme.primaryAccent
@@ -1227,7 +1228,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
                   fontSize: 12.0,
                   fontWeight: FontWeight.bold,
                   color: ObsidianUITheme.primaryAccent,
-                  letterSpacing: 1.0,
+                  letterSpacing: 0,
                 ),
               ),
               Icon(Icons.analytics_outlined, size: 16.0, color: ObsidianUITheme.primaryAccent),
@@ -1246,7 +1247,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
                 child: _buildMetricItem('Endgame', formatPt(points['endgame'] ?? 0.0), ObsidianUITheme.successGreen, primaryTextColor, secondaryTextColor),
               ),
               Expanded(
-                child: _buildMetricItem('Total', formatPt(points['total'] ?? 0.0), Colors.amberAccent, primaryTextColor, secondaryTextColor),
+                child: _buildMetricItem('Total', formatPt(points['total'] ?? 0.0), ObsidianUITheme.warningOrange, primaryTextColor, secondaryTextColor),
               ),
             ],
           ),
@@ -1330,17 +1331,17 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
       textStyle: const TextStyle(fontSize: 12, color: Colors.white, fontFamily: 'monospace'),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
         border: Border.all(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.5)),
       ),
       child: InkWell(
         onTap: () => _showGamepadCheatSheetModal(context, activeProfile),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
             color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
             border: Border.all(
               color: isControllerConnected
                   ? ObsidianUITheme.successGreen.withValues(alpha: 0.6)
@@ -1393,7 +1394,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
         return Container(
           decoration: BoxDecoration(
             color: surfaceColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
           ),
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
           constraints: BoxConstraints(
@@ -1471,7 +1472,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
         children: [
           Text(
             title,
-            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: accentColor, letterSpacing: 0.8),
+            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: accentColor, letterSpacing: 0),
           ),
           const SizedBox(height: 6),
           ...bindings.map((b) {
@@ -1556,7 +1557,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
                   fontSize: 12.0,
                   fontWeight: FontWeight.bold,
                   color: accentColor,
-                  letterSpacing: 1.0,
+                  letterSpacing: 0,
                 ),
               ),
               _buildGamepadCheatSheetButton(),
@@ -1767,7 +1768,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
                                         Icon(Icons.qr_code_2_rounded, color: ObsidianUITheme.secondaryAccent, size: 20.0),
                                         const SizedBox(width: 8.0),
                                         Text(
-                                          context.tr('qr.button_label').toUpperCase(),
+                                          context.tr('qr.button_label'),
                                           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.0, color: ObsidianUITheme.getPrimaryTextColor(context)),
                                         ),
                                         if (qrBinding != null) ...[
@@ -1815,7 +1816,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
                                               ),
                                               const SizedBox(width: 8.0),
                                               Text(
-                                                isOnline ? context.tr('scout.save_entry').toUpperCase() : '${context.tr('scout.save_entry')} (OFFLINE)'.toUpperCase(),
+                                                isOnline ? context.tr('scout.save_entry') : '${context.tr('scout.save_entry')} (OFFLINE)'.toUpperCase(),
                                                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.0, color: primaryColor),
                                               ),
                                               if (submitBinding != null) ...[
@@ -1849,7 +1850,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
                                         Icon(Icons.refresh_rounded, size: 16.0, color: ObsidianUITheme.getSecondaryTextColor(context)),
                                         const SizedBox(width: 6.0),
                                         Text(
-                                          'CLEAR FORM',
+                                          'Clear form',
                                           style: TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 12.0,
@@ -1912,8 +1913,8 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    context.tr('dashboard.event_context').toUpperCase(),
-                    style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, letterSpacing: 1.0),
+                    context.tr('dashboard.event_context'),
+                    style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, letterSpacing: 0),
                   ),
                   const SizedBox(height: 12.0),
                   DropdownButtonFormField<TeamModel>(
@@ -2030,7 +2031,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
                             Icon(Icons.qr_code_2_rounded, color: ObsidianUITheme.secondaryAccent),
                             const SizedBox(width: 10.0),
                             Text(
-                              context.tr('qr.button_label').toUpperCase(),
+                              context.tr('qr.button_label'),
                               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.0, color: ObsidianUITheme.getPrimaryTextColor(context)),
                             ),
                             if (qrBinding != null) ...[
@@ -2074,7 +2075,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
                                   ),
                                   const SizedBox(width: 10.0),
                                   Text(
-                                    isOnline ? context.tr('scout.save_entry').toUpperCase() : '${context.tr('scout.save_entry')} (OFFLINE)'.toUpperCase(),
+                                    isOnline ? context.tr('scout.save_entry') : '${context.tr('scout.save_entry')} (OFFLINE)'.toUpperCase(),
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 13.0,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/obsidian_tokens.dart';
 import '../l10n/app_localizations.dart';
 import '../models/config_models.dart';
 import '../services/api_service.dart';
@@ -175,7 +176,7 @@ class _EditScoutingEntryModalState extends State<EditScoutingEntryModal> {
         return Material(
           color: isDark ? const Color(0xF80F172A) : const Color(0xF8F8FAFC),
           shape: RoundedRectangleBorder(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
             side: BorderSide(color: isDark ? Colors.white12 : Colors.black12),
           ),
           clipBehavior: Clip.antiAlias,
@@ -201,7 +202,7 @@ class _EditScoutingEntryModalState extends State<EditScoutingEntryModal> {
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
                         color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                       ),
                       child: Icon(Icons.edit_note_rounded, color: ObsidianUITheme.primaryAccent, size: 24),
                     ),

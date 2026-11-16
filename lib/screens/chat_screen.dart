@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../theme/obsidian_tokens.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -369,7 +370,7 @@ class _ChatScreenState extends State<ChatScreen> {
             child: Text(context.tr('chat.cancel'), style: TextStyle(color: secondaryTextColor)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.errorRed),
             onPressed: () async {
               Navigator.of(ctx).pop();
               final success = await widget.apiService.deleteChatGroup(group);
@@ -415,7 +416,7 @@ class _ChatScreenState extends State<ChatScreen> {
       isScrollControlled: true,
       backgroundColor: surfaceColor,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
       ),
       builder: (sheetCtx) {
         List<String>? selectedRoles;
@@ -598,18 +599,18 @@ class _ChatScreenState extends State<ChatScreen> {
                                 margin: const EdgeInsets.only(bottom: 12),
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                 decoration: BoxDecoration(
-                                  color: Colors.redAccent.withValues(alpha: 0.12),
-                                  border: Border.all(color: Colors.redAccent.withValues(alpha: 0.5)),
+                                  color: ObsidianUITheme.errorRed.withValues(alpha: 0.12),
+                                  border: Border.all(color: ObsidianUITheme.errorRed.withValues(alpha: 0.5)),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.admin_panel_settings_rounded, color: Colors.redAccent, size: 16),
+                                    const Icon(Icons.admin_panel_settings_rounded, color: ObsidianUITheme.errorRed, size: 16),
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
                                         adminError!,
-                                        style: const TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.w500),
+                                        style: const TextStyle(color: ObsidianUITheme.errorRed, fontSize: 12, fontWeight: FontWeight.w500),
                                       ),
                                     ),
                                   ],
@@ -666,7 +667,7 @@ class _ChatScreenState extends State<ChatScreen> {
                             // Danger Zone
                             Text(
                               context.tr('chat.danger_zone'),
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.redAccent),
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: ObsidianUITheme.errorRed),
                             ),
                             const SizedBox(height: 8),
                             Row(
@@ -689,8 +690,8 @@ class _ChatScreenState extends State<ChatScreen> {
                                 Expanded(
                                   child: OutlinedButton.icon(
                                     style: OutlinedButton.styleFrom(
-                                      foregroundColor: Colors.redAccent,
-                                      side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.5)),
+                                      foregroundColor: ObsidianUITheme.errorRed,
+                                      side: BorderSide(color: ObsidianUITheme.errorRed.withValues(alpha: 0.5)),
                                     ),
                                     icon: const Icon(Icons.delete_outline_rounded, size: 18),
                                     label: Text(context.tr('chat.delete_channel'), style: const TextStyle(fontSize: 12)),
@@ -809,7 +810,7 @@ class _ChatScreenState extends State<ChatScreen> {
       context: context,
       backgroundColor: ObsidianUITheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
       ),
       builder: (ctx) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -825,7 +826,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Colors.white10,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                 ),
                 child: Text(emoji, style: const TextStyle(fontSize: 28)),
               ),
@@ -845,7 +846,7 @@ class _ChatScreenState extends State<ChatScreen> {
       context: context,
       backgroundColor: surfaceColor,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
       ),
       builder: (ctx) => SafeArea(
         child: Padding(
@@ -1083,7 +1084,7 @@ class _ChatScreenState extends State<ChatScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF1E3A8A), Color(0xFF3B82F6)],
+                colors: [Color(0xFF1E3A8A), ObsidianUITheme.defaultPrimaryAccent],
               ),
             ),
             child: Row(
@@ -1176,8 +1177,8 @@ class _ChatScreenState extends State<ChatScreen> {
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                   margin: const EdgeInsets.only(left: 6),
                                   decoration: BoxDecoration(
-                                    color: Colors.redAccent,
-                                    borderRadius: BorderRadius.circular(10),
+                                    color: ObsidianUITheme.errorRed,
+                                    borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                                   ),
                                   child: Text('$mentionCount', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
                                 )
@@ -1187,7 +1188,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                   height: 8,
                                   margin: const EdgeInsets.only(left: 6),
                                   decoration: const BoxDecoration(
-                                    color: Colors.redAccent,
+                                    color: ObsidianUITheme.errorRed,
                                     shape: BoxShape.circle,
                                   ),
                                 ),
@@ -1197,7 +1198,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                     Navigator.of(ctx).pop();
                                     _showChannelSettingsModal(context, group);
                                   },
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                                   child: Padding(
                                     padding: EdgeInsets.all(4),
                                     child: Icon(Icons.settings_outlined, size: 18, color: ObsidianUITheme.primaryAccent),
@@ -1212,7 +1213,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                     borderRadius: BorderRadius.circular(12),
                                     child: const Padding(
                                       padding: EdgeInsets.all(4),
-                                      child: Icon(Icons.delete_outline_rounded, size: 18, color: Colors.redAccent),
+                                      child: Icon(Icons.delete_outline_rounded, size: 18, color: ObsidianUITheme.errorRed),
                                     ),
                                   ),
                               ],
@@ -1287,8 +1288,8 @@ class _ChatScreenState extends State<ChatScreen> {
                                         ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.25)
                                         : (ObsidianUITheme.isDark(context) ? const Color(0x25FFFFFF) : ObsidianUITheme.getSurfaceColor(context)),
                                     borderRadius: BorderRadius.only(
-                                      topLeft: const Radius.circular(16),
-                                      topRight: const Radius.circular(16),
+                                      topLeft: const Radius.circular(ObsidianTokens.radius),
+                                      topRight: const Radius.circular(ObsidianTokens.radius),
                                       bottomLeft: Radius.circular(isMe ? 16 : 2),
                                       bottomRight: Radius.circular(isMe ? 2 : 16),
                                     ),
@@ -1384,7 +1385,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                                   decoration: BoxDecoration(
                                                     color: hasReacted ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.3) : ObsidianUITheme.getBorderColor(context),
-                                                    borderRadius: BorderRadius.circular(12),
+                                                    borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                                                     border: Border.all(
                                                       color: hasReacted ? ObsidianUITheme.primaryAccent : Colors.transparent,
                                                       width: 1,
@@ -1403,7 +1404,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                                 decoration: BoxDecoration(
                                                   color: ObsidianUITheme.getBorderColor(context),
-                                                  borderRadius: BorderRadius.circular(12),
+                                                  borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                                                 ),
                                                 child: Text('+', style: TextStyle(fontSize: 11, color: secondaryTextColor, fontWeight: FontWeight.bold)),
                                               ),
@@ -1439,7 +1440,7 @@ class _ChatScreenState extends State<ChatScreen> {
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               decoration: BoxDecoration(
                 color: ObsidianUITheme.surface,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                 border: Border.all(color: ObsidianUITheme.glassBorderLight, width: 1),
                 boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 10)],
               ),
@@ -1487,7 +1488,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       fillColor: surfaceColor,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                         borderSide: BorderSide.none,
                       ),
                     ),

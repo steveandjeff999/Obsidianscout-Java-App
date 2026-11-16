@@ -1,4 +1,5 @@
 import 'dart:math';
+import '../theme/obsidian_tokens.dart';
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../models/config_models.dart';
@@ -352,12 +353,12 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
               margin: const EdgeInsets.symmetric(horizontal: 16.0),
               decoration: BoxDecoration(
                 color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.04),
-                borderRadius: BorderRadius.circular(16.0),
+                borderRadius: BorderRadius.circular(ObsidianTokens.radius),
               ),
               child: TabBar(
                 controller: _tabController,
                 indicator: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14.0),
+                  borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                   color: ObsidianUITheme.primaryAccent,
                 ),
                 indicatorSize: TabBarIndicatorSize.tab,
@@ -630,7 +631,7 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
                           color: ObsidianUITheme.isDark(context) ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03),
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -686,7 +687,7 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Column(
@@ -724,7 +725,7 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
         context: context,
         backgroundColor: ObsidianUITheme.getSurfaceColor(context),
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
         ),
         builder: (ctx) {
           final autoPct = item.totalPoints > 0 ? (item.autoPoints / item.totalPoints) * 100 : 0.0;
@@ -764,7 +765,7 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
                           color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                           border: Border.all(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.4)),
                         ),
                         child: Text(
@@ -779,11 +780,11 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
                     ],
                   ),
                   const SizedBox(height: 18),
-                  _buildPhaseScoreBar('Auto Phase', item.autoPoints, autoPct, Colors.blueAccent),
+                  _buildPhaseScoreBar('Auto Phase', item.autoPoints, autoPct, ObsidianUITheme.defaultPrimaryAccent),
                   const SizedBox(height: 10),
                   _buildPhaseScoreBar('Teleop Phase', item.teleopPoints, teleopPct, Colors.deepPurpleAccent),
                   const SizedBox(height: 10),
-                  _buildPhaseScoreBar('Endgame Phase', item.endgamePoints, endgamePct, Colors.tealAccent),
+                  _buildPhaseScoreBar('Endgame Phase', item.endgamePoints, endgamePct, ObsidianUITheme.defaultPrimaryAccent),
                 ],
               ),
             ),
@@ -842,9 +843,9 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
-                                  if (endgameHeight > 0) Container(height: endgameHeight, color: Colors.tealAccent),
+                                  if (endgameHeight > 0) Container(height: endgameHeight, color: ObsidianUITheme.defaultPrimaryAccent),
                                   if (teleopHeight > 0) Container(height: teleopHeight, color: Colors.deepPurpleAccent),
-                                  if (autoHeight > 0) Container(height: autoHeight, color: Colors.blueAccent),
+                                  if (autoHeight > 0) Container(height: autoHeight, color: ObsidianUITheme.defaultPrimaryAccent),
                                 ],
                               ),
                             ),
@@ -874,7 +875,7 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
         border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
       ),
       child: Column(
@@ -963,7 +964,7 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
               ),
               child: Text(
                 'Avg: ${metric.average!.toStringAsFixed(1)}',
@@ -1087,7 +1088,7 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
                       levelColor = Colors.teal;
                       levelText = 'PRACTICE';
                     } else if (lvl == 'qf' || lvl == 'sf' || lvl == 'f' || lvl == 'playoff') {
-                      levelColor = Colors.orangeAccent;
+                      levelColor = ObsidianUITheme.warningOrange;
                       levelText = lvl.toUpperCase();
                     }
 
@@ -1476,9 +1477,9 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
   Color _recordTypeColor(String type) {
     switch (type) {
       case 'Match':
-        return Colors.blueAccent;
+        return ObsidianUITheme.defaultPrimaryAccent;
       case 'Pit':
-        return Colors.amber;
+        return ObsidianUITheme.warningOrange;
       case 'Qualitative':
         return ObsidianUITheme.secondaryAccent;
       default:

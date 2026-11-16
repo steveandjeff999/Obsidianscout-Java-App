@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/obsidian_tokens.dart';
 import '../models/config_models.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
@@ -191,7 +192,7 @@ class _ConflictResolutionModalState extends State<ConflictResolutionModal> {
           const SnackBar(
             content: Row(
               children: [
-                Icon(Icons.check_circle_rounded, color: Colors.greenAccent),
+                Icon(Icons.check_circle_rounded, color: ObsidianUITheme.successGreen),
                 SizedBox(width: 10),
                 Text('Conflict resolved successfully!'),
               ],
@@ -280,7 +281,7 @@ class _ConflictResolutionModalState extends State<ConflictResolutionModal> {
           const SnackBar(
             content: Row(
               children: [
-                Icon(Icons.check_circle_rounded, color: Colors.greenAccent),
+                Icon(Icons.check_circle_rounded, color: ObsidianUITheme.successGreen),
                 SizedBox(width: 10),
                 Text('Consensus merged entry saved!'),
               ],
@@ -312,7 +313,7 @@ class _ConflictResolutionModalState extends State<ConflictResolutionModal> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.errorRed),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Delete'),
           ),
@@ -388,7 +389,7 @@ class _ConflictResolutionModalState extends State<ConflictResolutionModal> {
         return Container(
           decoration: BoxDecoration(
             color: isDark ? const Color(0xF80F172A) : const Color(0xF8F8FAFC),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
             border: Border.all(color: isDark ? Colors.white12 : Colors.black12),
           ),
           child: Column(
@@ -412,10 +413,10 @@ class _ConflictResolutionModalState extends State<ConflictResolutionModal> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.amberAccent.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
+                        color: ObsidianUITheme.warningOrange.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                       ),
-                      child: const Icon(Icons.compare_arrows_rounded, color: Colors.amberAccent, size: 24),
+                      child: const Icon(Icons.compare_arrows_rounded, color: ObsidianUITheme.warningOrange, size: 24),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -452,13 +453,13 @@ class _ConflictResolutionModalState extends State<ConflictResolutionModal> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color: Colors.amberAccent.withValues(alpha: 0.12),
+                    color: ObsidianUITheme.warningOrange.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.amberAccent.withValues(alpha: 0.3)),
+                    border: Border.all(color: ObsidianUITheme.warningOrange.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.warning_amber_rounded, color: Colors.amberAccent, size: 20),
+                      const Icon(Icons.warning_amber_rounded, color: ObsidianUITheme.warningOrange, size: 20),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
@@ -466,17 +467,17 @@ class _ConflictResolutionModalState extends State<ConflictResolutionModal> {
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: Colors.amberAccent,
+                            color: ObsidianUITheme.warningOrange,
                           ),
                         ),
                       ),
                       ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.amberAccent,
+                          backgroundColor: ObsidianUITheme.warningOrange,
                           foregroundColor: Colors.black87,
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill)),
                         ),
                         onPressed: _isProcessing ? null : _saveAveragedMerge,
                         icon: const Icon(Icons.merge_type_rounded, size: 16),
@@ -544,7 +545,7 @@ class _ConflictResolutionModalState extends State<ConflictResolutionModal> {
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
                               color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                               border: Border.all(color: isDark ? Colors.white12 : Colors.black12),
                             ),
                             child: Column(
@@ -562,7 +563,7 @@ class _ConflictResolutionModalState extends State<ConflictResolutionModal> {
                                     IconButton(
                                       padding: EdgeInsets.zero,
                                       constraints: const BoxConstraints(),
-                                      icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.redAccent),
+                                      icon: const Icon(Icons.delete_outline_rounded, size: 18, color: ObsidianUITheme.errorRed),
                                       onPressed: () => _deleteEntry(entry),
                                       tooltip: 'Delete this submission',
                                     ),
@@ -575,8 +576,8 @@ class _ConflictResolutionModalState extends State<ConflictResolutionModal> {
                                   width: double.infinity,
                                   child: ElevatedButton(
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.blueAccent.withValues(alpha: 0.2),
-                                      foregroundColor: Colors.blueAccent,
+                                      backgroundColor: ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.2),
+                                      foregroundColor: ObsidianUITheme.defaultPrimaryAccent,
                                       elevation: 0,
                                       padding: const EdgeInsets.symmetric(vertical: 6),
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -609,12 +610,12 @@ class _ConflictResolutionModalState extends State<ConflictResolutionModal> {
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: isConflict
-                              ? Colors.amberAccent.withValues(alpha: isDark ? 0.08 : 0.06)
+                              ? ObsidianUITheme.warningOrange.withValues(alpha: isDark ? 0.08 : 0.06)
                               : (isDark ? Colors.white.withValues(alpha: 0.02) : Colors.black.withValues(alpha: 0.01)),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                           border: Border.all(
                             color: isConflict
-                                ? Colors.amberAccent.withValues(alpha: 0.4)
+                                ? ObsidianUITheme.warningOrange.withValues(alpha: 0.4)
                                 : (isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.06)),
                           ),
                         ),
@@ -628,7 +629,7 @@ class _ConflictResolutionModalState extends State<ConflictResolutionModal> {
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,
-                                    color: isConflict ? Colors.amberAccent : primaryTextColor,
+                                    color: isConflict ? ObsidianUITheme.warningOrange : primaryTextColor,
                                   ),
                                 ),
                                 const Spacer(),
@@ -636,12 +637,12 @@ class _ConflictResolutionModalState extends State<ConflictResolutionModal> {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: Colors.amberAccent.withValues(alpha: 0.2),
+                                      color: ObsidianUITheme.warningOrange.withValues(alpha: 0.2),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: const Text(
                                       'DIFF',
-                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.amberAccent),
+                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: ObsidianUITheme.warningOrange),
                                     ),
                                   ),
                               ],
@@ -659,7 +660,7 @@ class _ConflictResolutionModalState extends State<ConflictResolutionModal> {
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
                                       color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.02),
-                                      borderRadius: BorderRadius.circular(8),
+                                      borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                                     ),
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -674,7 +675,7 @@ class _ConflictResolutionModalState extends State<ConflictResolutionModal> {
                                             style: TextStyle(
                                               fontSize: 13,
                                               fontWeight: FontWeight.bold,
-                                              color: isConflict ? Colors.amberAccent : primaryTextColor,
+                                              color: isConflict ? ObsidianUITheme.warningOrange : primaryTextColor,
                                             ),
                                           ),
                                       ],

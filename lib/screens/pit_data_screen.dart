@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/obsidian_tokens.dart';
 import '../models/config_models.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
@@ -412,7 +413,7 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline_rounded, size: 48, color: Colors.redAccent),
+              const Icon(Icons.error_outline_rounded, size: 48, color: ObsidianUITheme.errorRed),
               const SizedBox(height: 12),
               Text(
                 'Failed to load pit scouting data',
@@ -449,7 +450,7 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.build_circle_rounded, color: Colors.cyanAccent, size: 26),
+                    const Icon(Icons.build_circle_rounded, color: ObsidianUITheme.defaultPrimaryAccent, size: 26),
                     const SizedBox(width: 10),
                     Text(
                       'Pit Scouting Data',
@@ -478,7 +479,7 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
                             children: [
                               Expanded(child: _buildMetricTile('Teams Scouted', '$scoutedCount / $totalTeams', Colors.cyanAccent, isDark)),
                               const SizedBox(width: 8),
-                              Expanded(child: _buildMetricTile('Coverage', '$coveragePercent%', coveragePercent == '100' ? Colors.greenAccent : Colors.tealAccent, isDark)),
+                              Expanded(child: _buildMetricTile('Coverage', '$coveragePercent%', coveragePercent == '100' ? ObsidianUITheme.successGreen : ObsidianUITheme.defaultPrimaryAccent, isDark)),
                             ],
                           ),
                           const SizedBox(height: 8),
@@ -490,7 +491,7 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
                       children: [
                         Expanded(child: _buildMetricTile('Teams Scouted', '$scoutedCount / $totalTeams', Colors.cyanAccent, isDark)),
                         const SizedBox(width: 8),
-                        Expanded(child: _buildMetricTile('Coverage', '$coveragePercent%', coveragePercent == '100' ? Colors.greenAccent : Colors.tealAccent, isDark)),
+                        Expanded(child: _buildMetricTile('Coverage', '$coveragePercent%', coveragePercent == '100' ? ObsidianUITheme.successGreen : ObsidianUITheme.defaultPrimaryAccent, isDark)),
                         const SizedBox(width: 8),
                         Expanded(child: _buildMetricTile('Missing', '${totalTeams - scoutedCount}', (totalTeams - scoutedCount) > 0 ? Colors.orangeAccent : Colors.greenAccent, isDark)),
                       ],
@@ -589,15 +590,15 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
                       showCheckmark: true,
                       checkmarkColor: Colors.black87,
                       label: const Text('Needs Pit Scouting'),
-                      avatar: const Icon(Icons.incomplete_circle_rounded, size: 16, color: Colors.orangeAccent),
+                      avatar: const Icon(Icons.incomplete_circle_rounded, size: 16, color: ObsidianUITheme.warningOrange),
                       labelStyle: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: _missingOnly ? Colors.black87 : Colors.orangeAccent,
+                        color: _missingOnly ? Colors.black87 : ObsidianUITheme.warningOrange,
                       ),
-                      selectedColor: Colors.orangeAccent,
+                      selectedColor: ObsidianUITheme.warningOrange,
                       backgroundColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.04),
-                      side: BorderSide(color: Colors.orangeAccent.withValues(alpha: 0.4)),
+                      side: BorderSide(color: ObsidianUITheme.warningOrange.withValues(alpha: 0.4)),
                       onSelected: (val) => setState(() => _missingOnly = val),
                     ),
                     FilterChip(
@@ -605,15 +606,15 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
                       showCheckmark: true,
                       checkmarkColor: Colors.black87,
                       label: const Text('Conflicts Only'),
-                      avatar: const Icon(Icons.warning_amber_rounded, size: 16, color: Colors.amberAccent),
+                      avatar: const Icon(Icons.warning_amber_rounded, size: 16, color: ObsidianUITheme.warningOrange),
                       labelStyle: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: _conflictsOnly ? Colors.black87 : Colors.amberAccent,
+                        color: _conflictsOnly ? Colors.black87 : ObsidianUITheme.warningOrange,
                       ),
-                      selectedColor: Colors.amberAccent,
+                      selectedColor: ObsidianUITheme.warningOrange,
                       backgroundColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.04),
-                      side: BorderSide(color: Colors.amberAccent.withValues(alpha: 0.4)),
+                      side: BorderSide(color: ObsidianUITheme.warningOrange.withValues(alpha: 0.4)),
                       onSelected: (val) => setState(() => _conflictsOnly = val),
                     ),
                   ],
@@ -645,16 +646,16 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.cyanAccent.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.3)),
+                        color: ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
+                        border: Border.all(color: ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.3)),
                       ),
                       child: Text(
                         '${filtered.length} teams',
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: Colors.cyanAccent,
+                          color: ObsidianUITheme.defaultPrimaryAccent,
                         ),
                       ),
                     ),
@@ -713,17 +714,17 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
                       );
                     }
                   },
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: isDark ? const Color(0x731E293B) : Colors.white.withValues(alpha: 0.85),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                       border: Border.all(
                         color: hasConflict
-                            ? Colors.amberAccent.withValues(alpha: 0.7)
+                            ? ObsidianUITheme.warningOrange.withValues(alpha: 0.7)
                             : (isSelected
-                                ? Colors.cyanAccent
+                                ? ObsidianUITheme.defaultPrimaryAccent
                                 : (isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.08))),
                         width: hasConflict || isSelected ? 1.8 : 1.0,
                       ),
@@ -749,16 +750,16 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: item.hasPitData ? Colors.tealAccent.withValues(alpha: 0.2) : Colors.orangeAccent.withValues(alpha: 0.2),
-                                      borderRadius: BorderRadius.circular(8),
+                                      color: item.hasPitData ? ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.2) : ObsidianUITheme.warningOrange.withValues(alpha: 0.2),
+                                      borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                                       border: Border.all(
-                                        color: item.hasPitData ? Colors.tealAccent.withValues(alpha: 0.5) : Colors.orangeAccent.withValues(alpha: 0.5),
+                                        color: item.hasPitData ? ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.5) : ObsidianUITheme.warningOrange.withValues(alpha: 0.5),
                                       ),
                                     ),
                                     child: Text(
                                       item.hasPitData ? 'COMPLETE' : 'MISSING',
                                       style: TextStyle(
-                                        color: item.hasPitData ? Colors.tealAccent : Colors.orangeAccent,
+                                        color: item.hasPitData ? ObsidianUITheme.defaultPrimaryAccent : ObsidianUITheme.warningOrange,
                                         fontWeight: FontWeight.bold,
                                         fontSize: 11,
                                       ),
@@ -777,25 +778,25 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
                                   if (hasConflict && widget.apiService.isAdmin) ...[
                                     InkWell(
                                       onTap: () => _openConflictResolver(item),
-                                      borderRadius: BorderRadius.circular(8),
+                                      borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                         decoration: BoxDecoration(
-                                          color: Colors.amberAccent.withValues(alpha: 0.2),
-                                          borderRadius: BorderRadius.circular(8),
-                                          border: Border.all(color: Colors.amberAccent),
+                                          color: ObsidianUITheme.warningOrange.withValues(alpha: 0.2),
+                                          borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
+                                          border: Border.all(color: ObsidianUITheme.warningOrange),
                                         ),
                                         child: const Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            Icon(Icons.warning_amber_rounded, size: 14, color: Colors.amberAccent),
+                                            Icon(Icons.warning_amber_rounded, size: 14, color: ObsidianUITheme.warningOrange),
                                             SizedBox(width: 4),
                                             Text(
                                               'Resolve',
                                               style: TextStyle(
                                                 fontSize: 11,
                                                 fontWeight: FontWeight.bold,
-                                                color: Colors.amberAccent,
+                                                color: ObsidianUITheme.warningOrange,
                                               ),
                                             ),
                                           ],
@@ -822,7 +823,7 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                       decoration: BoxDecoration(
-                                        color: Colors.cyanAccent.withValues(alpha: 0.12),
+                                        color: ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.12),
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: Text(
@@ -830,7 +831,7 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
                                         style: const TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w600,
-                                          color: Colors.cyanAccent,
+                                          color: ObsidianUITheme.defaultPrimaryAccent,
                                         ),
                                       ),
                                     ),
@@ -867,7 +868,7 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
             child: const Text('Cancel'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            style: FilledButton.styleFrom(backgroundColor: ObsidianUITheme.errorRed),
             onPressed: () => Navigator.of(dCtx).pop(true),
             child: const Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
@@ -908,7 +909,7 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
             return Container(
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xF50F172A) : const Color(0xF8F8FAFC),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
                 border: Border.all(color: isDark ? Colors.white12 : Colors.black12),
               ),
               child: Column(
@@ -931,10 +932,10 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: Colors.cyanAccent.withValues(alpha: 0.15),
+                            color: ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Icon(Icons.build_circle_rounded, color: Colors.cyanAccent, size: 24),
+                          child: const Icon(Icons.build_circle_rounded, color: ObsidianUITheme.defaultPrimaryAccent, size: 24),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -975,7 +976,7 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             decoration: BoxDecoration(
                               color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03),
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                               border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
                             ),
                             child: Row(
@@ -985,7 +986,7 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
                                     style: OutlinedButton.styleFrom(
                                       padding: const EdgeInsets.symmetric(vertical: 8),
                                       side: BorderSide(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.6)),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill)),
                                     ),
                                     onPressed: () {
                                       Navigator.of(ctx).pop();
@@ -1012,12 +1013,12 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
                                   child: OutlinedButton.icon(
                                     style: OutlinedButton.styleFrom(
                                       padding: const EdgeInsets.symmetric(vertical: 8),
-                                      side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.6)),
+                                      side: BorderSide(color: ObsidianUITheme.errorRed.withValues(alpha: 0.6)),
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                     ),
                                     onPressed: () => _confirmAndDeletePitRecord(ctx, item),
-                                    icon: const Icon(Icons.delete_outline_rounded, size: 16, color: Colors.redAccent),
-                                    label: const Text('Delete Entry', style: TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.bold)),
+                                    icon: const Icon(Icons.delete_outline_rounded, size: 16, color: ObsidianUITheme.errorRed),
+                                    label: const Text('Delete Entry', style: TextStyle(color: ObsidianUITheme.errorRed, fontSize: 13, fontWeight: FontWeight.bold)),
                                   ),
                                 ),
                               ],
@@ -1028,25 +1029,25 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
                             margin: const EdgeInsets.only(bottom: 12),
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.amberAccent.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.amberAccent.withValues(alpha: 0.4)),
+                              color: ObsidianUITheme.warningOrange.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(ObsidianTokens.radius),
+                              border: Border.all(color: ObsidianUITheme.warningOrange.withValues(alpha: 0.4)),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.warning_amber_rounded, color: Colors.amberAccent, size: 22),
+                                const Icon(Icons.warning_amber_rounded, color: ObsidianUITheme.warningOrange, size: 22),
                                 const SizedBox(width: 10),
                                 const Expanded(
                                   child: Text(
                                     'Multiple pit scouting submissions exist for this team.',
-                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.amberAccent),
+                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: ObsidianUITheme.warningOrange),
                                   ),
                                 ),
                                 // Resolving edits and deletes entries, which takes an admin.
                                 if (widget.apiService.isAdmin)
                                 ElevatedButton.icon(
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.amberAccent,
+                                    backgroundColor: ObsidianUITheme.warningOrange,
                                     foregroundColor: Colors.black87,
                                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                     textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
@@ -1067,11 +1068,11 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                           ),
                           child: Column(
                             children: [
-                              _buildDetailRow('Status', 'Complete', Colors.tealAccent, secondaryTextColor),
+                              _buildDetailRow('Status', 'Complete', ObsidianUITheme.defaultPrimaryAccent, secondaryTextColor),
                               if (item.scoutUsername != null)
                                 _buildDetailRow('Scouted By', item.scoutUsername!, primaryTextColor, secondaryTextColor),
                               if (item.lastUpdated != null)
@@ -1096,8 +1097,8 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
                                   style: const TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.cyanAccent,
-                                    letterSpacing: 0.8,
+                                    color: ObsidianUITheme.defaultPrimaryAccent,
+                                    letterSpacing: 0,
                                   ),
                                 ),
                               );
@@ -1119,7 +1120,7 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                               decoration: BoxDecoration(
                                 color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02),
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                                 border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
                               ),
                               child: Row(
@@ -1141,7 +1142,7 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
                                       style: const TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.cyanAccent,
+                                        color: ObsidianUITheme.defaultPrimaryAccent,
                                       ),
                                     ),
                                   ),
@@ -1156,7 +1157,7 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                               decoration: BoxDecoration(
                                 color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02),
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                                 border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
                               ),
                               child: Row(
@@ -1165,7 +1166,7 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
                                   Text(entry.key, style: TextStyle(fontWeight: FontWeight.w600, color: primaryTextColor)),
                                   Text(
                                     _formatVal(entry.value),
-                                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.cyanAccent),
+                                    style: const TextStyle(fontWeight: FontWeight.bold, color: ObsidianUITheme.defaultPrimaryAccent),
                                   ),
                                 ],
                               ),
@@ -1209,7 +1210,7 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: isDark ? const Color(0x521E293B) : Colors.white.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
         border: Border.all(color: accent.withValues(alpha: 0.3)),
       ),
       child: Column(

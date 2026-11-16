@@ -1,4 +1,5 @@
 import 'dart:isolate';
+import '../theme/obsidian_tokens.dart';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart' show GZipEncoder;
@@ -276,7 +277,7 @@ class _EventInfoScreenState extends State<EventInfoScreen> with LiveRefresh<Even
                 children: [
                   for (final img in images)
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                       child: InkWell(
                         onTap: () => _openImage(img),
                         child: CachedServerImage(

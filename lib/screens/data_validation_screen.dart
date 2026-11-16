@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/obsidian_tokens.dart';
 import '../l10n/app_localizations.dart';
 import '../models/team_match_models.dart';
 import '../models/validation_models.dart';
@@ -290,12 +291,12 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
 
                   // Event Selector Dropdown
                   Text(
-                    'EVENT',
+                    'Event',
                     style: TextStyle(
                       fontSize: 11.0,
                       fontWeight: FontWeight.w700,
                       color: tertiaryTextColor,
-                      letterSpacing: 1.0,
+                      letterSpacing: 0,
                     ),
                   ),
                   const SizedBox(height: 6.0),
@@ -362,12 +363,12 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'ANOMALY THRESHOLD',
+                              'Anomaly threshold',
                               style: TextStyle(
                                 fontSize: 10.0,
                                 fontWeight: FontWeight.w700,
                                 color: tertiaryTextColor,
-                                letterSpacing: 0.8,
+                                letterSpacing: 0,
                               ),
                             ),
                             const SizedBox(height: 6.0),
@@ -411,12 +412,12 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'FILTER STATUS',
+                              'Filter status',
                               style: TextStyle(
                                 fontSize: 10.0,
                                 fontWeight: FontWeight.w700,
                                 color: tertiaryTextColor,
-                                letterSpacing: 0.8,
+                                letterSpacing: 0,
                               ),
                             ),
                             const SizedBox(height: 6.0),
@@ -512,11 +513,11 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
                         borderSide: BorderSide(color: isDark ? Colors.white12 : Colors.black12),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12.0),
+                        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                         borderSide: BorderSide(color: isDark ? Colors.white12 : Colors.black12),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12.0),
+                        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                         borderSide: BorderSide(color: ObsidianUITheme.primaryAccent, width: 1.5),
                       ),
                     ),
@@ -560,7 +561,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
                     padding: const EdgeInsets.symmetric(vertical: 24.0),
                     child: Column(
                       children: [
-                        const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 36.0),
+                        const Icon(Icons.error_outline_rounded, color: ObsidianUITheme.errorRed, size: 36.0),
                         const SizedBox(height: 10.0),
                         Text(
                           _errorMessage!,
@@ -620,7 +621,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
               title: 'FULLY SCOUTED',
               value: '${summary.fullyScoutedMatches}',
               subtitle: 'All teams recorded',
-              color: const Color(0xFF4ADE80),
+              color: ObsidianUITheme.successGreen,
               width: cardWidth,
               bg: cardBg,
               border: borderColor,
@@ -629,7 +630,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
               title: 'INCOMPLETE',
               value: '${summary.incompleteMatches}',
               subtitle: 'Missing 1+ teams',
-              color: const Color(0xFFFBBF24),
+              color: ObsidianUITheme.warningOrange,
               width: cardWidth,
               bg: cardBg,
               border: borderColor,
@@ -638,7 +639,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
               title: 'MATCH ANOMALIES',
               value: '${summary.matchesWithAnomalies}',
               subtitle: 'Score delta >= threshold',
-              color: const Color(0xFFF87171),
+              color: ObsidianUITheme.errorRed,
               width: cardWidth,
               bg: cardBg,
               border: borderColor,
@@ -672,7 +673,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
       padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(14.0),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
         border: Border.all(color: border),
       ),
       child: Column(
@@ -684,7 +685,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
               fontSize: 10.0,
               fontWeight: FontWeight.w700,
               color: ObsidianUITheme.getTertiaryTextColor(context),
-              letterSpacing: 0.8,
+              letterSpacing: 0,
             ),
           ),
           const SizedBox(height: 4.0),
@@ -717,7 +718,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
       padding: const EdgeInsets.all(4.0),
       decoration: BoxDecoration(
         color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16.0),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
         border: Border.all(color: isDark ? Colors.white12 : Colors.black12),
       ),
       child: Row(
@@ -725,12 +726,12 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
           Expanded(
             child: InkWell(
               onTap: () => setState(() => _currentTab = 0),
-              borderRadius: BorderRadius.circular(12.0),
+              borderRadius: BorderRadius.circular(ObsidianTokens.radius),
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 10.0),
                 decoration: BoxDecoration(
                   color: _currentTab == 0 ? ObsidianUITheme.primaryAccent : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12.0),
+                  borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                   boxShadow: _currentTab == 0
                       ? [
                           BoxShadow(
@@ -897,14 +898,14 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
   Widget _buildAllianceBox(BuildContext context, AllianceValidationModel alliance, {required bool isRed}) {
     final borderColor = isRed ? const Color(0xFFEF4444) : const Color(0xFF3B82F6);
     final allianceBg = isRed
-        ? const Color(0xFFEF4444).withValues(alpha: 0.08)
-        : const Color(0xFF3B82F6).withValues(alpha: 0.08);
+        ? ObsidianUITheme.errorRed.withValues(alpha: 0.08)
+        : ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.08);
 
     return Container(
       padding: const EdgeInsets.all(10.0),
       decoration: BoxDecoration(
         color: allianceBg,
-        borderRadius: BorderRadius.circular(10.0),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
         border: Border.all(color: borderColor.withValues(alpha: 0.4), width: 1.2),
       ),
       child: Column(
@@ -920,13 +921,13 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
                 padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
                 decoration: BoxDecoration(
                   color: isScouted
-                      ? const Color(0xFF22C55E).withValues(alpha: 0.18)
-                      : const Color(0xFFF59E0B).withValues(alpha: 0.22),
+                      ? ObsidianUITheme.successGreen.withValues(alpha: 0.18)
+                      : ObsidianUITheme.warningOrange.withValues(alpha: 0.22),
                   borderRadius: BorderRadius.circular(6.0),
                   border: Border.all(
                     color: isScouted
-                        ? const Color(0xFF22C55E).withValues(alpha: 0.4)
-                        : const Color(0xFFF59E0B).withValues(alpha: 0.5),
+                        ? ObsidianUITheme.successGreen.withValues(alpha: 0.4)
+                        : ObsidianUITheme.warningOrange.withValues(alpha: 0.5),
                   ),
                 ),
                 child: Row(
@@ -935,7 +936,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
                     Icon(
                       isScouted ? Icons.check_circle_outline_rounded : Icons.warning_amber_rounded,
                       size: 13.0,
-                      color: isScouted ? const Color(0xFF4ADE80) : const Color(0xFFFBBF24),
+                      color: isScouted ? ObsidianUITheme.successGreen : ObsidianUITheme.warningOrange,
                     ),
                     const SizedBox(width: 4.0),
                     Text(
@@ -943,7 +944,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
                       style: TextStyle(
                         fontSize: 12.0,
                         fontWeight: FontWeight.bold,
-                        color: isScouted ? const Color(0xFF4ADE80) : const Color(0xFFFBBF24),
+                        color: isScouted ? ObsidianUITheme.successGreen : ObsidianUITheme.warningOrange,
                       ),
                     ),
                   ],
@@ -992,12 +993,12 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
             const SizedBox(height: 4.0),
             Row(
               children: [
-                const Icon(Icons.warning_amber_rounded, size: 13.0, color: Color(0xFFFBBF24)),
+                const Icon(Icons.warning_amber_rounded, size: 13.0, color: ObsidianUITheme.warningOrange),
                 const SizedBox(width: 4.0),
                 Expanded(
                   child: Text(
                     'Missing: ${alliance.missingTeams.join(", ")}',
-                    style: const TextStyle(fontSize: 11.0, color: Color(0xFFFBBF24), fontWeight: FontWeight.w500),
+                    style: const TextStyle(fontSize: 11.0, color: ObsidianUITheme.warningOrange, fontWeight: FontWeight.w500),
                   ),
                 ),
               ],
@@ -1017,24 +1018,24 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
     Color border;
 
     if (isAnomaly) {
-      bg = const Color(0xFFEF4444).withValues(alpha: 0.2);
-      fg = const Color(0xFFF87171);
-      border = const Color(0xFFEF4444).withValues(alpha: 0.5);
+      bg = ObsidianUITheme.errorRed.withValues(alpha: 0.2);
+      fg = ObsidianUITheme.errorRed;
+      border = ObsidianUITheme.errorRed.withValues(alpha: 0.5);
     } else if (absDiff > 8.0) {
-      bg = const Color(0xFFF59E0B).withValues(alpha: 0.18);
-      fg = const Color(0xFFFBBF24);
-      border = const Color(0xFFF59E0B).withValues(alpha: 0.4);
+      bg = ObsidianUITheme.warningOrange.withValues(alpha: 0.18);
+      fg = ObsidianUITheme.warningOrange;
+      border = ObsidianUITheme.warningOrange.withValues(alpha: 0.4);
     } else {
-      bg = const Color(0xFF22C55E).withValues(alpha: 0.15);
-      fg = const Color(0xFF4ADE80);
-      border = const Color(0xFF22C55E).withValues(alpha: 0.35);
+      bg = ObsidianUITheme.successGreen.withValues(alpha: 0.15);
+      fg = ObsidianUITheme.successGreen;
+      border = ObsidianUITheme.successGreen.withValues(alpha: 0.35);
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7.0, vertical: 2.5),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(12.0),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
         border: Border.all(color: border, width: 0.8),
       ),
       child: Text(
@@ -1053,9 +1054,9 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.5),
         decoration: BoxDecoration(
-          color: const Color(0xFFEF4444).withValues(alpha: 0.2),
-          borderRadius: BorderRadius.circular(8.0),
-          border: Border.all(color: const Color(0xFFEF4444).withValues(alpha: 0.4)),
+          color: ObsidianUITheme.errorRed.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
+          border: Border.all(color: ObsidianUITheme.errorRed.withValues(alpha: 0.4)),
         ),
         child: const Row(
           mainAxisSize: MainAxisSize.min,
@@ -1064,7 +1065,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
             SizedBox(width: 4.0),
             Text(
               'Score Anomaly',
-              style: TextStyle(fontSize: 11.0, fontWeight: FontWeight.bold, color: Color(0xFFF87171)),
+              style: TextStyle(fontSize: 11.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.errorRed),
             ),
           ],
         ),
@@ -1075,18 +1076,18 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.5),
         decoration: BoxDecoration(
-          color: const Color(0xFF22C55E).withValues(alpha: 0.18),
-          borderRadius: BorderRadius.circular(8.0),
-          border: Border.all(color: const Color(0xFF22C55E).withValues(alpha: 0.35)),
+          color: ObsidianUITheme.successGreen.withValues(alpha: 0.18),
+          borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
+          border: Border.all(color: ObsidianUITheme.successGreen.withValues(alpha: 0.35)),
         ),
         child: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.check_circle_rounded, size: 12.0, color: Color(0xFF4ADE80)),
+            Icon(Icons.check_circle_rounded, size: 12.0, color: ObsidianUITheme.successGreen),
             SizedBox(width: 4.0),
             Text(
               'Fully Scouted',
-              style: TextStyle(fontSize: 11.0, fontWeight: FontWeight.bold, color: Color(0xFF4ADE80)),
+              style: TextStyle(fontSize: 11.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.successGreen),
             ),
           ],
         ),
@@ -1099,7 +1100,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
         padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.5),
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(8.0),
+          borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
           border: Border.all(color: Colors.white12),
         ),
         child: const Text(
@@ -1113,18 +1114,18 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.5),
       decoration: BoxDecoration(
-        color: const Color(0xFFF59E0B).withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(8.0),
-        border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.35)),
+        color: ObsidianUITheme.warningOrange.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
+        border: Border.all(color: ObsidianUITheme.warningOrange.withValues(alpha: 0.35)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.warning_amber_rounded, size: 12.0, color: Color(0xFFFBBF24)),
+          const Icon(Icons.warning_amber_rounded, size: 12.0, color: ObsidianUITheme.warningOrange),
           const SizedBox(width: 4.0),
           Text(
             'Incomplete ($missingCount missing)',
-            style: const TextStyle(fontSize: 11.0, fontWeight: FontWeight.bold, color: Color(0xFFFBBF24)),
+            style: const TextStyle(fontSize: 11.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.warningOrange),
           ),
         ],
       ),
@@ -1220,7 +1221,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
                     padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
                     decoration: BoxDecoration(
                       color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8.0),
+                      borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                       border: Border.all(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.3)),
                     ),
                     child: Text(
@@ -1247,7 +1248,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
                 padding: const EdgeInsets.symmetric(horizontal: 7.0, vertical: 2.0),
                 decoration: BoxDecoration(
                   color: isDark ? Colors.white10 : Colors.black12,
-                  borderRadius: BorderRadius.circular(8.0),
+                  borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                 ),
                 child: Text(
                   '${team.scoutedMatchCount} matches',
@@ -1267,7 +1268,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'SCOUTED AVG',
+                      'Scouted AVG',
                       style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700, color: secondaryTextColor),
                     ),
                     const SizedBox(height: 2.0),
@@ -1317,7 +1318,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'STATBOTICS EPA',
+                        'Statbotics EPA',
                         style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700, color: secondaryTextColor),
                       ),
                       const SizedBox(height: 2.0),
@@ -1372,9 +1373,9 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
               decoration: BoxDecoration(
-                color: const Color(0xFFEF4444).withValues(alpha: 0.12),
+                color: ObsidianUITheme.errorRed.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8.0),
-                border: Border.all(color: const Color(0xFFEF4444).withValues(alpha: 0.3)),
+                border: Border.all(color: ObsidianUITheme.errorRed.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
@@ -1383,7 +1384,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
                   Expanded(
                     child: Text(
                       team.anomalyReason!,
-                      style: const TextStyle(fontSize: 11.5, color: Color(0xFFF87171), fontWeight: FontWeight.w600),
+                      style: const TextStyle(fontSize: 11.5, color: ObsidianUITheme.errorRed, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ],
@@ -1393,9 +1394,9 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
             const SizedBox(height: 6.0),
             const Row(
               children: [
-                Icon(Icons.check_circle_rounded, size: 13.0, color: Color(0xFF4ADE80)),
+                Icon(Icons.check_circle_rounded, size: 13.0, color: ObsidianUITheme.successGreen),
                 SizedBox(width: 4.0),
-                Text('In Expected Range', style: TextStyle(fontSize: 11.0, color: Color(0xFF4ADE80), fontWeight: FontWeight.w500)),
+                Text('In Expected Range', style: TextStyle(fontSize: 11.0, color: ObsidianUITheme.successGreen, fontWeight: FontWeight.w500)),
               ],
             ),
           ],
@@ -1424,7 +1425,7 @@ class _MatchInspectionBottomSheet extends StatelessWidget {
       constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24.0)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
         border: Border.all(color: isDark ? Colors.white12 : Colors.black12, width: 1.2),
       ),
       child: SafeArea(
@@ -1500,13 +1501,13 @@ class _MatchInspectionBottomSheet extends StatelessWidget {
   }) {
     final borderColor = isRed ? const Color(0xFFEF4444) : const Color(0xFF3B82F6);
     final bg = isRed
-        ? const Color(0xFFEF4444).withValues(alpha: 0.07)
-        : const Color(0xFF3B82F6).withValues(alpha: 0.07);
+        ? ObsidianUITheme.errorRed.withValues(alpha: 0.07)
+        : ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.07);
 
     return Container(
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(16.0),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
         border: Border.all(color: borderColor.withValues(alpha: 0.3)),
       ),
       padding: const EdgeInsets.all(14.0),
@@ -1523,7 +1524,7 @@ class _MatchInspectionBottomSheet extends StatelessWidget {
                   fontSize: 13.0,
                   fontWeight: FontWeight.w800,
                   color: borderColor,
-                  letterSpacing: 0.5,
+                  letterSpacing: 0,
                 ),
               ),
               Row(
@@ -1548,11 +1549,11 @@ class _MatchInspectionBottomSheet extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
               decoration: BoxDecoration(
                 color: ObsidianUITheme.isDark(context) ? const Color(0x18FFFFFF) : Colors.white,
-                borderRadius: BorderRadius.circular(10.0),
+                borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                 border: Border.all(
                   color: isScouted
-                      ? const Color(0xFF22C55E).withValues(alpha: 0.3)
-                      : const Color(0xFFF59E0B).withValues(alpha: 0.3),
+                      ? ObsidianUITheme.successGreen.withValues(alpha: 0.3)
+                      : ObsidianUITheme.warningOrange.withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
@@ -1572,8 +1573,8 @@ class _MatchInspectionBottomSheet extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 1.5),
                             decoration: BoxDecoration(
                               color: isScouted
-                                  ? const Color(0xFF22C55E).withValues(alpha: 0.15)
-                                  : const Color(0xFFF59E0B).withValues(alpha: 0.2),
+                                  ? ObsidianUITheme.successGreen.withValues(alpha: 0.15)
+                                  : ObsidianUITheme.warningOrange.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(6.0),
                             ),
                             child: Text(
@@ -1581,7 +1582,7 @@ class _MatchInspectionBottomSheet extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 10.0,
                                 fontWeight: FontWeight.bold,
-                                color: isScouted ? const Color(0xFF4ADE80) : const Color(0xFFFBBF24),
+                                color: isScouted ? ObsidianUITheme.successGreen : ObsidianUITheme.warningOrange,
                               ),
                             ),
                           ),
@@ -1590,12 +1591,12 @@ class _MatchInspectionBottomSheet extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 1.5),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFEF4444).withValues(alpha: 0.15),
+                                color: ObsidianUITheme.errorRed.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(4.0),
                               ),
                               child: const Text(
                                 'Conflict',
-                                style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Color(0xFFF87171)),
+                                style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: ObsidianUITheme.errorRed),
                               ),
                             ),
                           ],

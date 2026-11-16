@@ -1,4 +1,5 @@
 import 'package:fl_chart/fl_chart.dart';
+import '../../theme/obsidian_tokens.dart';
 import 'package:flutter/material.dart';
 import '../../models/team_match_models.dart';
 import '../../theme/obsidian_ui_theme.dart';
@@ -79,7 +80,7 @@ class _FullscreenGraphModalState extends State<FullscreenGraphModal> {
         height: screenSize.height < 640 ? screenSize.height * 0.88 : 540,
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF1E293B) : const Color(0xFFFFFFFF),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(ObsidianTokens.radius),
           border: Border.all(
             color: isDark ? Colors.white.withValues(alpha: 0.15) : Colors.black12,
           ),
@@ -202,7 +203,7 @@ class _FullscreenGraphModalState extends State<FullscreenGraphModal> {
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
         border: Border.all(color: Colors.white12),
       ),
       child: Row(

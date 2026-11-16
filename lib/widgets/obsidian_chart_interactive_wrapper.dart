@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../theme/obsidian_tokens.dart';
 import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/gestures.dart';
@@ -355,7 +356,7 @@ class _ObsidianChartInteractiveWrapperState
             final overflows = targetWidth > availableWidth + 1.0;
 
             return ClipRRect(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
               child: Listener(
                 onPointerSignal: (pointerSignal) {
                   if (pointerSignal is PointerScrollEvent && HardwareKeyboard.instance.isControlPressed) {
@@ -795,7 +796,7 @@ class _FullscreenChartModalState extends State<_FullscreenChartModal> {
       ),
       backgroundColor: ObsidianUITheme.getSurfaceColor(context),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
         side: BorderSide(
           color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.5),
           width: 1.5,
@@ -820,7 +821,7 @@ class _FullscreenChartModalState extends State<_FullscreenChartModal> {
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                     ),
                     child: Icon(Icons.fullscreen_rounded,
                         color: ObsidianUITheme.primaryAccent, size: 20),
@@ -1071,7 +1072,7 @@ class ObsidianTeamQuickInspect {
         builder: (ctx) => Dialog(
           backgroundColor: ObsidianUITheme.getSurfaceColor(context),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(ObsidianTokens.radius),
             side: BorderSide(
               color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.5),
               width: 1.5,
@@ -1106,7 +1107,7 @@ class ObsidianTeamQuickInspect {
         isScrollControlled: true,
         backgroundColor: ObsidianUITheme.getSurfaceColor(context),
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
         ),
         builder: (ctx) => SafeArea(
           child: Padding(
@@ -1174,7 +1175,7 @@ class ObsidianTeamQuickInspect {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
                 color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                 border: Border.all(
                   color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.4),
                 ),
@@ -1212,7 +1213,7 @@ class ObsidianTeamQuickInspect {
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    color: Colors.tealAccent,
+                    color: ObsidianUITheme.defaultPrimaryAccent,
                   ),
                 ),
               ),
@@ -1355,7 +1356,7 @@ class ObsidianTeamQuickInspect {
           color: isHighlight
               ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.12)
               : Colors.white.withValues(alpha: 0.03),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
           border: Border.all(
             color: isHighlight
                 ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.3)

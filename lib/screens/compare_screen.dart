@@ -342,7 +342,7 @@ class _CompareScreenState extends State<CompareScreen> with LiveRefresh<CompareS
                 final team = _teams.where((x) => x.teamNumber == n).firstOrNull;
                 final teamxP = t['xP'] ?? t['exp'];
                 final badges = <Widget>[
-                  if (showEpa && t['epa'] != null) PortedBadge('EPA ${fmtNum(t['epa'], digits: 1)}', color: const Color(0xFF38BDF8)),
+                  if (showEpa && t['epa'] != null) PortedBadge('EPA ${fmtNum(t['epa'], digits: 1)}', color: ObsidianUITheme.defaultSecondaryAccent),
                   if (showxP && teamxP != null) PortedBadge('xP ${fmtNum(teamxP, digits: 1)}', color: const Color(0xFF10B981)),
                   if (showOpr && t['opr'] != null) PortedBadge('OPR ${fmtNum(t['opr'], digits: 1)}', color: const Color(0xFFC084FC)),
                 ];

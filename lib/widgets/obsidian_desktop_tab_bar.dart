@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/obsidian_tokens.dart';
 import '../models/desktop_tab_model.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
@@ -65,7 +66,7 @@ class _ObsidianDesktopTabBarState extends State<ObsidianDesktopTabBar> {
         : ObsidianUITheme.getSurfaceColor(context).withValues(alpha: 0.85);
     final borderColor = ObsidianUITheme.getBorderColor(context);
     final primaryAccent = ObsidianUITheme.getPrimaryAccent(context);
-    final tabRadius = ObsidianUITheme.getButtonRadius(context, fallback: 8.0).clamp(4.0, 14.0);
+    final tabRadius = ObsidianUITheme.getButtonRadius(context).clamp(4.0, 14.0);
     final eventKey = widget.apiService.currentSettings?.eventKey ?? '';
 
     return Container(
@@ -138,7 +139,7 @@ class _ObsidianDesktopTabBarState extends State<ObsidianDesktopTabBar> {
                         fontSize: 10.5,
                         fontWeight: FontWeight.bold,
                         color: primaryAccent,
-                        letterSpacing: 0.5,
+                        letterSpacing: 0,
                       ),
                     ),
                   ],
@@ -151,10 +152,10 @@ class _ObsidianDesktopTabBarState extends State<ObsidianDesktopTabBar> {
             padding: const EdgeInsets.symmetric(horizontal: 7.0, vertical: 2.5),
             margin: const EdgeInsets.only(right: 6.0),
             decoration: BoxDecoration(
-              color: widget.isOnline ? Colors.green.withValues(alpha: 0.12) : Colors.red.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12.0),
+              color: widget.isOnline ? ObsidianUITheme.successGreen.withValues(alpha: 0.12) : ObsidianUITheme.errorRed.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(ObsidianTokens.radius),
               border: Border.all(
-                color: widget.isOnline ? Colors.green.withValues(alpha: 0.3) : Colors.red.withValues(alpha: 0.4),
+                color: widget.isOnline ? ObsidianUITheme.successGreen.withValues(alpha: 0.3) : ObsidianUITheme.errorRed.withValues(alpha: 0.4),
                 width: 0.8,
               ),
             ),
@@ -166,7 +167,7 @@ class _ObsidianDesktopTabBarState extends State<ObsidianDesktopTabBar> {
                   height: 5.5,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: widget.isOnline ? ObsidianUITheme.successGreen : Colors.redAccent,
+                    color: widget.isOnline ? ObsidianUITheme.successGreen : ObsidianUITheme.errorRed,
                   ),
                 ),
                 const SizedBox(width: 5.0),
@@ -175,8 +176,8 @@ class _ObsidianDesktopTabBarState extends State<ObsidianDesktopTabBar> {
                   style: TextStyle(
                     fontSize: 9.5,
                     fontWeight: FontWeight.bold,
-                    color: widget.isOnline ? ObsidianUITheme.successGreen : Colors.redAccent,
-                    letterSpacing: 0.5,
+                    color: widget.isOnline ? ObsidianUITheme.successGreen : ObsidianUITheme.errorRed,
+                    letterSpacing: 0,
                   ),
                 ),
               ],
@@ -189,7 +190,7 @@ class _ObsidianDesktopTabBarState extends State<ObsidianDesktopTabBar> {
               icon: Icon(
                 Icons.qr_code_scanner_rounded,
                 size: 17.0,
-                color: isDark ? Colors.cyanAccent : const Color(0xFF0284C7),
+                color: isDark ? ObsidianUITheme.defaultPrimaryAccent : ObsidianUITheme.defaultPrimaryAccent,
               ),
               tooltip: 'QR & Barcode Scanner (Ctrl+Q)',
               onPressed: widget.onOpenQrScanner,
@@ -205,8 +206,8 @@ class _ObsidianDesktopTabBarState extends State<ObsidianDesktopTabBar> {
                   : Icons.light_mode_rounded,
               size: 17.0,
               color: widget.apiService.themeMode == ThemeMode.light
-                  ? const Color(0xFF4F46E5)
-                  : const Color(0xFFFFB703),
+                  ? ObsidianUITheme.defaultPrimaryAccent
+                  : ObsidianUITheme.warningOrange,
             ),
             tooltip: widget.apiService.themeMode == ThemeMode.light
                 ? 'Switch to Dark Mode (Ctrl+T)'

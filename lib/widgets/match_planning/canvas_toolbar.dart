@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/obsidian_tokens.dart';
 import '../../theme/obsidian_ui_theme.dart';
 
 class CanvasToolbar extends StatelessWidget {
@@ -93,7 +94,7 @@ class CanvasToolbar extends StatelessWidget {
               padding: const EdgeInsets.all(2),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                 border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
               ),
               child: Row(
@@ -106,7 +107,7 @@ class CanvasToolbar extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 1),
                     child: InkWell(
                       onTap: () => onPhaseChanged?.call(id),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 150),
                         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
@@ -214,7 +215,7 @@ class CanvasToolbar extends StatelessWidget {
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
                     color: Color(0xFF94A3B8),
-                    letterSpacing: 0.5,
+                    letterSpacing: 0,
                   ),
                 ),
                 const SizedBox(width: 4),
@@ -312,13 +313,13 @@ class CanvasToolbar extends StatelessWidget {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
         decoration: BoxDecoration(
           color: isActive ? accentColor : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
           border: Border.all(
             color: isActive ? Colors.white.withValues(alpha: 0.3) : Colors.transparent,
           ),
@@ -395,7 +396,7 @@ class CanvasToolbar extends StatelessWidget {
       badgeIcon = Icons.sync_rounded;
       badgeText = 'Saving...';
     } else if (saveStatus == 'error') {
-      badgeColor = const Color(0xFFEF4444);
+      badgeColor = ObsidianUITheme.errorRed;
       badgeBg = const Color(0x20EF4444);
       badgeIcon = Icons.warning_amber_rounded;
       badgeText = 'Failed';

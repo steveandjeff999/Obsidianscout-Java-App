@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../theme/obsidian_tokens.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
@@ -31,7 +32,7 @@ class PickListScreen extends StatefulWidget {
 
 class _PickListScreenState extends State<PickListScreen>
     with SingleTickerProviderStateMixin, LiveRefresh<PickListScreen> {
-  static const Color _dnpRed = Color(0xFFEF4444);
+  static const Color _dnpRed = ObsidianUITheme.errorRed;
 
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
@@ -271,7 +272,7 @@ class _PickListScreenState extends State<PickListScreen>
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(_t('pick_list.cancel', 'Cancel'))),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.errorRed),
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(_t('pick_list.clear_button', 'Clear'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
@@ -348,8 +349,8 @@ class _PickListScreenState extends State<PickListScreen>
         _buildHeader(context),
         TabBar(
           controller: _tabController,
-          indicatorColor: Colors.cyanAccent,
-          labelColor: Colors.cyanAccent,
+          indicatorColor: ObsidianUITheme.defaultPrimaryAccent,
+          labelColor: ObsidianUITheme.defaultPrimaryAccent,
           unselectedLabelColor: Colors.white54,
           labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
           tabs: [
@@ -360,7 +361,7 @@ class _PickListScreenState extends State<PickListScreen>
         ),
         Expanded(
           child: _isLoading
-              ? const Center(child: CircularProgressIndicator(color: Colors.cyanAccent))
+              ? const Center(child: CircularProgressIndicator(color: ObsidianUITheme.defaultPrimaryAccent))
               : TabBarView(
                   controller: _tabController,
                   children: [
@@ -422,11 +423,11 @@ class _PickListScreenState extends State<PickListScreen>
                 if (_pendingSaves > 0)
                   const Padding(
                     padding: EdgeInsets.all(12),
-                    child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.cyanAccent)),
+                    child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianUITheme.defaultPrimaryAccent)),
                   )
                 else
                   IconButton(
-                    icon: const Icon(Icons.sync_rounded, color: Colors.cyanAccent, size: 20),
+                    icon: const Icon(Icons.sync_rounded, color: ObsidianUITheme.defaultPrimaryAccent, size: 20),
                     tooltip: _t('pick_list.sync', 'Sync'),
                     onPressed: () => _refresh(force: true),
                   ),
@@ -530,7 +531,7 @@ class _PickListScreenState extends State<PickListScreen>
                 onPressed: _ranking.isEmpty ? null : _confirmClear,
                 icon: const Icon(Icons.clear_all_rounded, size: 16),
                 label: Text(_t('pick_list.clear_button', 'Clear'), style: const TextStyle(fontSize: 12)),
-                style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+                style: TextButton.styleFrom(foregroundColor: ObsidianUITheme.errorRed),
               ),
             ],
           ),
@@ -565,9 +566,9 @@ class _PickListScreenState extends State<PickListScreen>
       margin: const EdgeInsets.only(bottom: 6),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
         border: Border(
-          left: const BorderSide(color: Colors.cyanAccent, width: 4),
+          left: const BorderSide(color: ObsidianUITheme.defaultPrimaryAccent, width: 4),
           top: BorderSide(color: isNext ? ObsidianUITheme.successGreen : Colors.transparent),
           right: BorderSide(color: isNext ? ObsidianUITheme.successGreen : Colors.transparent),
           bottom: BorderSide(color: isNext ? ObsidianUITheme.successGreen : Colors.transparent),
@@ -682,9 +683,9 @@ class _PickListScreenState extends State<PickListScreen>
                 icon: const Icon(Icons.playlist_add_rounded, size: 16),
                 label: Text(_t('pick_list.add_all_short', 'Add all'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.cyanAccent.withValues(alpha: 0.15),
-                  foregroundColor: Colors.cyanAccent,
-                  side: const BorderSide(color: Colors.cyanAccent),
+                  backgroundColor: ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.15),
+                  foregroundColor: ObsidianUITheme.defaultPrimaryAccent,
+                  side: const BorderSide(color: ObsidianUITheme.defaultPrimaryAccent),
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 ),
               ),
@@ -711,7 +712,7 @@ class _PickListScreenState extends State<PickListScreen>
                         if (pickedLabel != null) _statusChip(pickedLabel, Colors.white24, Colors.white70),
                         _scoreChip(teamNumber),
                         IconButton(
-                          icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.cyanAccent, size: 22),
+                          icon: const Icon(Icons.add_circle_outline_rounded, color: ObsidianUITheme.defaultPrimaryAccent, size: 22),
                           tooltip: _t('pick_list.add_end', 'Add to end of ranking'),
                           onPressed: () => _addToRanking(teamNumber),
                         ),
@@ -772,7 +773,7 @@ class _PickListScreenState extends State<PickListScreen>
       padding: const EdgeInsets.only(left: 12),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
         border: Border(left: BorderSide(color: borderColor, width: 4)),
       ),
       child: Row(children: children),
@@ -791,7 +792,7 @@ class _PickListScreenState extends State<PickListScreen>
             children: [
               Text(
                 '$teamNumber',
-                style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.w900, fontSize: 14, decoration: decoration),
+                style: TextStyle(color: ObsidianUITheme.defaultPrimaryAccent, fontWeight: FontWeight.w900, fontSize: 14, decoration: decoration),
               ),
               const SizedBox(width: 8),
               Expanded(

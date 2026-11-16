@@ -165,7 +165,7 @@ class _DefaultConfigsScreenState extends State<DefaultConfigsScreen> {
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: ObsidianUITheme.getPrimaryTextColor(context))),
           const SizedBox(height: 6),
           Wrap(spacing: 6, runSpacing: 4, children: [
-            PortedBadge(jsonStr(p['program']), color: p['program'] == 'FTC' ? const Color(0xFFF97316) : const Color(0xFF38BDF8)),
+            PortedBadge(jsonStr(p['program']), color: p['program'] == 'FTC' ? ObsidianUITheme.warningOrange : ObsidianUITheme.defaultSecondaryAccent),
             PortedBadge(jsonStr(p['configType'])),
             if (isDefault) PortedBadge('Active Default', color: ObsidianUITheme.successGreen),
           ]),

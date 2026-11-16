@@ -40,7 +40,7 @@ class _AccountSwitcherDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final surface = ObsidianUITheme.getElevatedSurfaceColor(context);
     final borderColor = ObsidianUITheme.getBorderColor(context);
-    final radius = ObsidianUITheme.getButtonRadius(context, fallback: 16.0).clamp(8.0, 24.0);
+    final radius = ObsidianUITheme.getButtonRadius(context).clamp(4.0, 24.0);
 
     return Dialog(
       alignment: alignLeft ? Alignment.topLeft : Alignment.topCenter,

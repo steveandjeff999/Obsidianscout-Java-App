@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/obsidian_tokens.dart';
 import '../l10n/app_localizations.dart';
 import '../models/predictor_models.dart';
 import '../models/team_match_models.dart';
@@ -178,7 +179,7 @@ class _PredictorScreenState extends State<PredictorScreen> with LiveRefresh<Pred
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Failed to calculate prediction: $e'),
-              backgroundColor: const Color(0xFFB91C1C),
+              backgroundColor: ObsidianUITheme.errorRed,
             ),
           );
         }
@@ -207,7 +208,7 @@ class _PredictorScreenState extends State<PredictorScreen> with LiveRefresh<Pred
           await _fetchPrediction(_selectedMatchKey!);
         }
       },
-      color: Colors.cyanAccent,
+      color: ObsidianUITheme.defaultPrimaryAccent,
       backgroundColor: ObsidianUITheme.getSurfaceColor(context),
       child: ListView(
         padding: EdgeInsets.fromLTRB(
@@ -231,10 +232,10 @@ class _PredictorScreenState extends State<PredictorScreen> with LiveRefresh<Pred
                     Container(
                       padding: const EdgeInsets.all(8.0),
                       decoration: BoxDecoration(
-                        color: Colors.amberAccent.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(10.0),
+                        color: ObsidianUITheme.warningOrange.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                       ),
-                      child: const Icon(Icons.auto_awesome_rounded, color: Colors.amberAccent, size: 22.0),
+                      child: const Icon(Icons.auto_awesome_rounded, color: ObsidianUITheme.warningOrange, size: 22.0),
                     ),
                     const SizedBox(width: 12.0),
                     Expanded(
@@ -423,13 +424,13 @@ class _PredictorScreenState extends State<PredictorScreen> with LiveRefresh<Pred
                             _fetchPrediction(_selectedMatchKey!);
                           }
                         },
-                        borderRadius: BorderRadius.circular(8.0),
+                        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Checkbox(
                               value: _usePrescout,
-                              activeColor: Colors.cyanAccent,
+                              activeColor: ObsidianUITheme.defaultPrimaryAccent,
                               checkColor: Colors.black,
                               onChanged: (val) {
                                 setState(() => _usePrescout = val ?? false);
@@ -459,7 +460,7 @@ class _PredictorScreenState extends State<PredictorScreen> with LiveRefresh<Pred
               child: Center(
                 child: Column(
                   children: [
-                    const CircularProgressIndicator(color: Colors.cyanAccent),
+                    const CircularProgressIndicator(color: ObsidianUITheme.defaultPrimaryAccent),
                     const SizedBox(height: 16.0),
                     Text(
                       context.tr('event_predictor.calculating'),
@@ -536,7 +537,7 @@ class _PredictorScreenState extends State<PredictorScreen> with LiveRefresh<Pred
           context: context,
           title: context.tr('predictor.scouted_prediction'),
           icon: Icons.sports_score_rounded,
-          accentColor: Colors.amberAccent,
+          accentColor: ObsidianUITheme.warningOrange,
           redScore: redScouted,
           blueScore: blueScouted,
           unit: 'pts',
@@ -557,7 +558,7 @@ class _PredictorScreenState extends State<PredictorScreen> with LiveRefresh<Pred
           context: context,
           title: context.tr('predictor.epa_prediction'),
           icon: Icons.bolt_rounded,
-          accentColor: Colors.cyanAccent,
+          accentColor: ObsidianUITheme.defaultPrimaryAccent,
           redScore: redEpa,
           blueScore: blueEpa,
           unit: 'EPA',
@@ -586,7 +587,7 @@ class _PredictorScreenState extends State<PredictorScreen> with LiveRefresh<Pred
           children: [
             Row(
               children: [
-                const Icon(Icons.compare_arrows_rounded, color: Colors.cyanAccent, size: 20.0),
+                const Icon(Icons.compare_arrows_rounded, color: ObsidianUITheme.defaultPrimaryAccent, size: 20.0),
                 const SizedBox(width: 8.0),
                 Text(
                   context.tr('predictor.alliance_comparison'),
@@ -687,15 +688,15 @@ class _PredictorScreenState extends State<PredictorScreen> with LiveRefresh<Pred
       final diff = (redScore - blueScore).abs();
       if (redScore > blueScore) {
         winnerText = context.tr('predictor.red_alliance');
-        winnerColor = const Color(0xFFEF4444);
+        winnerColor = ObsidianUITheme.errorRed;
         subtext = 'Predicted to win by ${diff.toStringAsFixed(1)} $unit';
       } else if (blueScore > redScore) {
         winnerText = context.tr('predictor.blue_alliance');
-        winnerColor = const Color(0xFF3B82F6);
+        winnerColor = ObsidianUITheme.defaultPrimaryAccent;
         subtext = 'Predicted to win by ${diff.toStringAsFixed(1)} $unit';
       } else {
         winnerText = context.tr('predictor.dead_heat');
-        winnerColor = Colors.amberAccent;
+        winnerColor = ObsidianUITheme.warningOrange;
         subtext = 'Alliances have identical combined $unit values.';
       }
     }
@@ -710,7 +711,7 @@ class _PredictorScreenState extends State<PredictorScreen> with LiveRefresh<Pred
             padding: const EdgeInsets.all(10.0),
             decoration: BoxDecoration(
               color: winnerColor.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12.0),
+              borderRadius: BorderRadius.circular(ObsidianTokens.radius),
               border: Border.all(color: winnerColor.withValues(alpha: 0.3)),
             ),
             child: Icon(icon, color: winnerColor, size: 28.0),
@@ -765,16 +766,16 @@ class _PredictorScreenState extends State<PredictorScreen> with LiveRefresh<Pred
     } else if (redWinProb > 0.5) {
       final probPct = (redWinProb * 100).toStringAsFixed(0);
       winnerText = '${context.tr('predictor.red_alliance')} ($probPct% Win Prob)';
-      winnerColor = const Color(0xFFEF4444);
+      winnerColor = ObsidianUITheme.errorRed;
       subtext = 'Predicted score: ${redScore.toStringAsFixed(1)} - ${blueScore.toStringAsFixed(1)} xP';
     } else if (blueWinProb > 0.5) {
       final probPct = (blueWinProb * 100).toStringAsFixed(0);
       winnerText = '${context.tr('predictor.blue_alliance')} ($probPct% Win Prob)';
-      winnerColor = const Color(0xFF3B82F6);
+      winnerColor = ObsidianUITheme.defaultPrimaryAccent;
       subtext = 'Predicted score: ${blueScore.toStringAsFixed(1)} - ${redScore.toStringAsFixed(1)} xP';
     } else {
       winnerText = context.tr('predictor.dead_heat');
-      winnerColor = Colors.amberAccent;
+      winnerColor = ObsidianUITheme.warningOrange;
       subtext = 'Predicted score: ${redScore.toStringAsFixed(1)} - ${blueScore.toStringAsFixed(1)} xP';
     }
 
@@ -792,11 +793,11 @@ class _PredictorScreenState extends State<PredictorScreen> with LiveRefresh<Pred
               Container(
                 padding: const EdgeInsets.all(10.0),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12.0),
-                  border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+                  color: ObsidianUITheme.successGreen.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(ObsidianTokens.radius),
+                  border: Border.all(color: ObsidianUITheme.successGreen.withValues(alpha: 0.3)),
                 ),
-                child: const Icon(Icons.flash_on_rounded, color: Color(0xFF10B981), size: 28.0),
+                child: const Icon(Icons.flash_on_rounded, color: ObsidianUITheme.successGreen, size: 28.0),
               ),
               const SizedBox(width: 14.0),
               Expanded(
@@ -837,9 +838,9 @@ class _PredictorScreenState extends State<PredictorScreen> with LiveRefresh<Pred
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+                      color: ObsidianUITheme.errorRed.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8.0),
-                      border: Border.all(color: const Color(0xFFEF4444).withValues(alpha: 0.2)),
+                      border: Border.all(color: ObsidianUITheme.errorRed.withValues(alpha: 0.2)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -859,9 +860,9 @@ class _PredictorScreenState extends State<PredictorScreen> with LiveRefresh<Pred
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
+                      color: ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8.0),
-                      border: Border.all(color: const Color(0xFF3B82F6).withValues(alpha: 0.2)),
+                      border: Border.all(color: ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.2)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -903,7 +904,7 @@ class _PredictorScreenState extends State<PredictorScreen> with LiveRefresh<Pred
           children: [
             Text(
               'Red: ${redVal.toStringAsFixed(1)} $unit',
-              style: const TextStyle(color: Color(0xFFEF4444), fontSize: 12.0, fontWeight: FontWeight.bold),
+              style: const TextStyle(color: ObsidianUITheme.errorRed, fontSize: 12.0, fontWeight: FontWeight.bold),
             ),
             Text(
               title,
@@ -911,7 +912,7 @@ class _PredictorScreenState extends State<PredictorScreen> with LiveRefresh<Pred
             ),
             Text(
               'Blue: ${blueVal.toStringAsFixed(1)} $unit',
-              style: const TextStyle(color: Color(0xFF3B82F6), fontSize: 12.0, fontWeight: FontWeight.bold),
+              style: const TextStyle(color: ObsidianUITheme.defaultPrimaryAccent, fontSize: 12.0, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -927,7 +928,7 @@ class _PredictorScreenState extends State<PredictorScreen> with LiveRefresh<Pred
                   child: Container(
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Color(0xFFDC2626), Color(0xFFEF4444)],
+                        colors: [Color(0xFFDC2626), ObsidianUITheme.errorRed],
                       ),
                     ),
                   ),
@@ -938,7 +939,7 @@ class _PredictorScreenState extends State<PredictorScreen> with LiveRefresh<Pred
                   child: Container(
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
+                        colors: [ObsidianUITheme.defaultPrimaryAccent, Color(0xFF2563EB)],
                       ),
                     ),
                   ),
@@ -1075,7 +1076,7 @@ class _PredictorScreenState extends State<PredictorScreen> with LiveRefresh<Pred
                 padding: const EdgeInsets.all(12.0),
                 decoration: BoxDecoration(
                   color: isDark ? Colors.black26 : Colors.white.withValues(alpha: 0.7),
-                  borderRadius: BorderRadius.circular(10.0),
+                  borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                   border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
                 ),
                 child: Column(

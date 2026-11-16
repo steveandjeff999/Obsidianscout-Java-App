@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../theme/obsidian_tokens.dart';
 import 'package:flutter/material.dart';
 import '../models/cluster_models.dart';
 import '../services/api_service.dart';
@@ -248,7 +249,7 @@ class _LoadProfilerScreenState extends State<LoadProfilerScreen> {
                 const Icon(
                   Icons.shield_outlined,
                   size: 48.0,
-                  color: Color(0xFFEF4444),
+                  color: ObsidianUITheme.errorRed,
                 ),
                 const SizedBox(height: 16.0),
                 Text(
@@ -319,12 +320,12 @@ class _LoadProfilerScreenState extends State<LoadProfilerScreen> {
                     Container(
                       padding: const EdgeInsets.all(8.0),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF97316).withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(10.0),
+                        color: ObsidianUITheme.warningOrange.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                       ),
                       child: const Icon(
                         Icons.speed_rounded,
-                        color: Color(0xFFF97316),
+                        color: ObsidianUITheme.warningOrange,
                         size: 24.0,
                       ),
                     ),
@@ -366,7 +367,7 @@ class _LoadProfilerScreenState extends State<LoadProfilerScreen> {
                           side: BorderSide(
                               color: ObsidianUITheme.getBorderColor(context)),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8.0)),
+                              borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill)),
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12.0, vertical: 8.0),
                         ),
@@ -418,7 +419,7 @@ class _LoadProfilerScreenState extends State<LoadProfilerScreen> {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor.withValues(alpha: 0.6),
         border: Border.all(color: borderColor),
-        borderRadius: BorderRadius.circular(8.0),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -460,7 +461,7 @@ class _LoadProfilerScreenState extends State<LoadProfilerScreen> {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor.withValues(alpha: 0.6),
         border: Border.all(color: borderColor),
-        borderRadius: BorderRadius.circular(8.0),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -502,20 +503,20 @@ class _LoadProfilerScreenState extends State<LoadProfilerScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
       decoration: BoxDecoration(
-        color: const Color(0xFFEF4444).withValues(alpha: 0.15),
-        border: Border.all(color: const Color(0xFFEF4444)),
-        borderRadius: BorderRadius.circular(8.0),
+        color: ObsidianUITheme.errorRed.withValues(alpha: 0.15),
+        border: Border.all(color: ObsidianUITheme.errorRed),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
       ),
       child: Row(
         children: [
           const Icon(Icons.error_outline_rounded,
-              color: Color(0xFFEF4444), size: 18.0),
+              color: ObsidianUITheme.errorRed, size: 18.0),
           const SizedBox(width: 8.0),
           Expanded(
             child: Text(
               message,
               style: const TextStyle(
-                color: Color(0xFFEF4444),
+                color: ObsidianUITheme.errorRed,
                 fontSize: 12.0,
                 fontWeight: FontWeight.w600,
               ),
@@ -530,20 +531,20 @@ class _LoadProfilerScreenState extends State<LoadProfilerScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
       decoration: BoxDecoration(
-        color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
-        border: Border.all(color: const Color(0xFFF59E0B)),
-        borderRadius: BorderRadius.circular(8.0),
+        color: ObsidianUITheme.warningOrange.withValues(alpha: 0.15),
+        border: Border.all(color: ObsidianUITheme.warningOrange),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
       ),
       child: Row(
         children: [
           const Icon(Icons.warning_amber_rounded,
-              color: Color(0xFFF59E0B), size: 18.0),
+              color: ObsidianUITheme.warningOrange, size: 18.0),
           const SizedBox(width: 8.0),
           Expanded(
             child: Text(
               'No figures from ${unreachableNodes.join(", ")}, so the totals here are missing that traffic.',
               style: const TextStyle(
-                color: Color(0xFFF59E0B),
+                color: ObsidianUITheme.warningOrange,
                 fontSize: 12.0,
                 fontWeight: FontWeight.w500,
               ),
@@ -566,14 +567,14 @@ class _LoadProfilerScreenState extends State<LoadProfilerScreen> {
         value: formatLoadRate(summary.requestsPerSecond),
         detail: 'Peak minute ${formatLoadRate(summary.peakPerSecond)}/s',
         icon: Icons.speed_rounded,
-        color: const Color(0xFF3B82F6),
+        color: ObsidianUITheme.defaultPrimaryAccent,
       ),
       _StatItem(
         label: 'Live refresh per second',
         value: formatLoadRate(summary.livePerSecond),
         detail: '${formatLoadPercent(summary.liveShare)} of requests',
         icon: Icons.sync_rounded,
-        color: const Color(0xFFF97316),
+        color: ObsidianUITheme.warningOrange,
       ),
       _StatItem(
         label: 'Live refresh server time',
@@ -587,14 +588,14 @@ class _LoadProfilerScreenState extends State<LoadProfilerScreen> {
         value: formatLoadMs(summary.averageMs),
         detail: '${_formatCount(summary.errors)} server errors',
         icon: Icons.access_time_filled_rounded,
-        color: const Color(0xFF10B981),
+        color: ObsidianUITheme.successGreen,
       ),
       _StatItem(
         label: 'Data sent per minute',
         value: formatLoadBytes(summary.bytesPerMinute),
         detail: '${formatLoadBytes(summary.liveBytes)} from live refresh',
         icon: Icons.cloud_upload_rounded,
-        color: const Color(0xFF8B5CF6),
+        color: ObsidianUITheme.defaultPrimaryAccent,
       ),
       _StatItem(
         label: 'Users connected',
@@ -1328,7 +1329,7 @@ class _LoadChartWidget extends StatelessWidget {
           decoration: BoxDecoration(
             color: Theme.of(context).cardColor,
             border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
-            borderRadius: BorderRadius.circular(8.0),
+            borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.2),

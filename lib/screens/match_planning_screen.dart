@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../theme/obsidian_tokens.dart';
 import 'dart:io' show Platform;
 import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
@@ -787,7 +788,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
               height: 36,
               child: CircularProgressIndicator(
                 strokeWidth: 3,
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF38BDF8)),
+                valueColor: AlwaysStoppedAnimation<Color>(ObsidianUITheme.defaultSecondaryAccent),
               ),
             ),
             const SizedBox(height: 16),
@@ -856,7 +857,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                         decoration: InputDecoration(
                           labelText: context.tr('events.title', 'Event'),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill)),
                           isDense: true,
                         ),
                         items: eventItems,
@@ -900,7 +901,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                         decoration: InputDecoration(
                           labelText: context.tr('nav.matches', 'Select Match'),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill)),
                           isDense: true,
                         ),
                         items: matchItems,
@@ -1207,7 +1208,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
         border: Border.all(color: borderColor),
       ),
       child: Column(
@@ -1219,7 +1220,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
               fontSize: 11,
               fontWeight: FontWeight.w900,
               color: headerColor,
-              letterSpacing: 0.5,
+              letterSpacing: 0,
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -1238,7 +1239,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                 border: Border.all(color: headerColor.withValues(alpha: 0.35), width: 1.0),
               ),
               child: Column(

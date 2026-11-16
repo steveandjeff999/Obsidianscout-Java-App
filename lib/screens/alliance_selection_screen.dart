@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../theme/obsidian_tokens.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
@@ -363,10 +364,10 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('CANCEL', style: TextStyle(color: ObsidianUITheme.getTertiaryTextColor(context))),
+            child: Text('Cancel', style: TextStyle(color: ObsidianUITheme.getTertiaryTextColor(context))),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            style: ElevatedButton.styleFrom(backgroundColor: ObsidianUITheme.errorRed),
             onPressed: () {
               Navigator.pop(ctx);
               setState(() {
@@ -378,7 +379,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen>
               }
               _catchUpAndSyncWithServer();
             },
-            child: const Text('RESET BOARD', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: const Text('Reset board', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -440,7 +441,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen>
       isScrollControlled: true,
       backgroundColor: ObsidianUITheme.getSurfaceColor(context),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
       ),
       builder: (ctx) {
         return StatefulBuilder(
@@ -456,7 +457,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen>
                     children: [
                       Text(
                         '${context.tr("alliance-selection.select_team")} — ${context.tr("alliances.alliances")} $allianceNum (${_formatSlotLabel(context, slotName)})',
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.cyanAccent),
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: ObsidianUITheme.defaultPrimaryAccent),
                       ),
                       IconButton(
                         icon: Icon(Icons.close_rounded, color: ObsidianUITheme.getTertiaryTextColor(context)),
@@ -475,7 +476,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen>
                       filled: true,
                       fillColor: ObsidianUITheme.getInputFillColor(context),
                       contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill), borderSide: BorderSide.none),
                     ),
                     onChanged: (val) {
                       setModalState(() {
@@ -495,7 +496,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen>
                               return Card(
                                 color: ObsidianUITheme.getBorderColor(context),
                                 margin: const EdgeInsets.only(bottom: 8.0),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill)),
                                 child: ListTile(
                                   onTap: () {
                                     Navigator.pop(ctx);
@@ -523,12 +524,12 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen>
                                   trailing: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: Colors.cyanAccent.withValues(alpha: 0.15),
+                                      color: ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.15),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(
                                       'W: ${team.calculatedWeighted.toStringAsFixed(1)}',
-                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.cyanAccent),
+                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: ObsidianUITheme.defaultPrimaryAccent),
                                     ),
                                   ),
                                 ),
@@ -550,7 +551,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen>
       context: context,
       backgroundColor: ObsidianUITheme.getSurfaceColor(context),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
       ),
       builder: (ctx) {
         return Container(
@@ -613,7 +614,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen>
                     const SizedBox(height: 4),
                     Text(
                       'Score = (Avg × 1.0 + xP × 0.9 + EPA × 0.8 + OPR × 0.6) / Weights = ${team.calculatedWeighted.toStringAsFixed(1)}',
-                      style: const TextStyle(color: Colors.cyanAccent, fontSize: 12, fontWeight: FontWeight.bold),
+                      style: const TextStyle(color: ObsidianUITheme.defaultPrimaryAccent, fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -630,7 +631,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen>
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
         border: Border.all(color: color.withValues(alpha: 0.4)),
       ),
       child: Column(
@@ -698,10 +699,10 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen>
                       icon: const Icon(Icons.refresh_rounded, size: 14),
                       label: Text(context.tr('graphs.clear_all'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.redAccent.withValues(alpha: 0.2),
-                        foregroundColor: Colors.redAccent,
+                        backgroundColor: ObsidianUITheme.errorRed.withValues(alpha: 0.2),
+                        foregroundColor: ObsidianUITheme.errorRed,
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        side: const BorderSide(color: Colors.redAccent),
+                        side: const BorderSide(color: ObsidianUITheme.errorRed),
                       ),
                     ),
                   ],
@@ -709,9 +710,9 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen>
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    const Icon(Icons.event_note_rounded, color: Colors.cyanAccent, size: 20),
+                    const Icon(Icons.event_note_rounded, color: ObsidianUITheme.defaultPrimaryAccent, size: 20),
                     const SizedBox(width: 8),
-                    Text('${context.tr("events.event").toUpperCase()}:', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white70, fontSize: 11)),
+                    Text('${context.tr("events.event")}:', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white70, fontSize: 11)),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Container(
@@ -763,10 +764,10 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen>
                     ),
                     const SizedBox(width: 8),
                     if (_isSaving)
-                      const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.cyanAccent))
+                      const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianUITheme.defaultPrimaryAccent))
                     else
                       IconButton(
-                        icon: const Icon(Icons.sync_rounded, color: Colors.cyanAccent, size: 20),
+                        icon: const Icon(Icons.sync_rounded, color: ObsidianUITheme.defaultPrimaryAccent, size: 20),
                         tooltip: context.tr('dashboard.quick_sync'),
                         onPressed: () => _catchUpAndSyncWithServer(),
                       ),
@@ -797,7 +798,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen>
                                   border: Border.all(color: ObsidianUITheme.warningOrange, width: 0.8),
                                 ),
                                 child: Text(
-                                  context.tr('connection.pending').toUpperCase(),
+                                  context.tr('connection.pending'),
                                   style: const TextStyle(color: ObsidianUITheme.warningOrange, fontSize: 9, fontWeight: FontWeight.bold),
                                 ),
                               ),
@@ -853,7 +854,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen>
                           margin: const EdgeInsets.symmetric(horizontal: 16.0),
                           decoration: BoxDecoration(
                             color: ObsidianUITheme.getInputFillColor(context),
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                           ),
                           child: TabBar(
                             controller: _tabController,
@@ -934,7 +935,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen>
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: isFull ? ObsidianUITheme.successGreen : Colors.cyanAccent,
+                        color: isFull ? ObsidianUITheme.successGreen : ObsidianUITheme.defaultPrimaryAccent,
                       ),
                     ),
                   ),
@@ -989,7 +990,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen>
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
           color: isEmpty ? borderColor.withValues(alpha: 0.3) : accentColor.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
           border: Border.all(color: isEmpty ? borderColor : accentColor.withValues(alpha: 0.4)),
         ),
         child: Column(
@@ -1101,7 +1102,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen>
                       return DropdownButton<String>(
                         value: effectiveMetric,
                         dropdownColor: surfaceColor,
-                        style: const TextStyle(color: Colors.cyanAccent, fontSize: 11, fontWeight: FontWeight.bold),
+                        style: const TextStyle(color: ObsidianUITheme.defaultPrimaryAccent, fontSize: 11, fontWeight: FontWeight.bold),
                         items: metricItems,
                         onChanged: (val) {
                           if (val != null) {
@@ -1152,7 +1153,7 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen>
                         child: Material(
                           color: borderColor.withValues(alpha: 0.3),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                             side: BorderSide(color: borderColor),
                           ),
                           clipBehavior: Clip.antiAlias,
@@ -1183,12 +1184,12 @@ class _AllianceSelectionScreenState extends State<AllianceSelectionScreen>
                             trailing: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
-                                color: Colors.cyanAccent.withValues(alpha: 0.15),
+                                color: ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
                                 scoreDisplay,
-                                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.cyanAccent, fontSize: 11),
+                                style: const TextStyle(fontWeight: FontWeight.bold, color: ObsidianUITheme.defaultPrimaryAccent, fontSize: 11),
                               ),
                             ),
                           ),

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import '../theme/obsidian_tokens.dart';
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
@@ -184,7 +185,7 @@ class _ObsidianActionBarState extends State<ObsidianActionBar> {
         padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
         decoration: BoxDecoration(
           color: surface,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(ObsidianTokens.radius),
           border: Border.all(color: edgeColor, width: state == ObsidianSaveState.dirty || state == ObsidianSaveState.failed ? 1.5 : 1),
           boxShadow: [
             BoxShadow(

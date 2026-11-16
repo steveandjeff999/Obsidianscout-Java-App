@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/obsidian_tokens.dart';
 import '../l10n/app_localizations.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
@@ -170,12 +171,12 @@ class _TeamsListScreenState extends State<TeamsListScreen> with LiveRefresh<Team
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            context.tr('nav.teams').toUpperCase(),
+                            context.tr('nav.teams'),
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: primaryTextColor,
-                              letterSpacing: 0.5,
+                              letterSpacing: 0,
                             ),
                           ),
                           Text(
@@ -211,7 +212,7 @@ class _TeamsListScreenState extends State<TeamsListScreen> with LiveRefresh<Team
                       borderSide: BorderSide(color: borderColor),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                       borderSide: BorderSide(color: ObsidianUITheme.primaryAccent),
                     ),
                   ),
@@ -417,7 +418,7 @@ class _TeamsListScreenState extends State<TeamsListScreen> with LiveRefresh<Team
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
         border: Border.all(color: color.withValues(alpha: 0.4)),
       ),
       child: Text(

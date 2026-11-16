@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/obsidian_tokens.dart';
 import '../models/config_models.dart';
 import '../models/gamepad_models.dart';
 import '../services/api_service.dart';
@@ -232,7 +233,7 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
                     color: (devices.isNotEmpty && isEnabled)
                         ? ObsidianUITheme.successGreen.withValues(alpha: 0.15)
                         : ObsidianUITheme.warningOrange.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                   ),
                   child: Icon(
                     Icons.sports_esports_rounded,
@@ -558,7 +559,7 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
                               minimumSize: Size.zero,
                               visualDensity: VisualDensity.compact,
                               side: BorderSide(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.6)),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill)),
                             ),
                             icon: const Icon(Icons.play_arrow_rounded, size: 16),
                             label: const Text('Test', style: TextStyle(fontSize: 12)),
@@ -652,7 +653,7 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
                   color: isActive
                       ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.12)
                       : surfaceColor.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                   border: Border.all(
                     color: isActive
                         ? ObsidianUITheme.primaryAccent
@@ -692,7 +693,7 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
                             border: Border.all(color: ObsidianUITheme.successGreen.withValues(alpha: 0.4)),
                           ),
                           child: const Text(
-                            'ACTIVE',
+                            'Active',
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
@@ -785,9 +786,9 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
                               value: 'delete',
                               child: Row(
                                 children: [
-                                  Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),
+                                  Icon(Icons.delete_outline_rounded, color: ObsidianUITheme.errorRed, size: 18),
                                   SizedBox(width: 8),
-                                  Text('Delete', style: TextStyle(color: Colors.redAccent)),
+                                  Text('Delete', style: TextStyle(color: ObsidianUITheme.errorRed)),
                                 ],
                               ),
                             ),
@@ -889,7 +890,7 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
           children: [
             InkWell(
               onTap: () => setState(() => _showLiveTester = !_showLiveTester),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
               child: Row(
                 children: [
                   Icon(
@@ -973,7 +974,7 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
                       color: isPressed
                           ? ObsidianUITheme.primaryAccent
                           : ObsidianUITheme.getSurfaceColor(context).withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                       border: Border.all(
                         color: isPressed
                             ? ObsidianUITheme.primaryAccent
@@ -1015,7 +1016,7 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: ObsidianUITheme.getSurfaceColor(context).withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
         border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
       ),
       child: Column(
@@ -1101,7 +1102,7 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
               const SizedBox(width: 6),
               _buildPhaseFilterChip('endgame', 'Endgame ($endgameCount)', ObsidianUITheme.successGreen),
               const SizedBox(width: 6),
-              _buildPhaseFilterChip('global', 'Global ($globalCount)', Colors.amber),
+              _buildPhaseFilterChip('global', 'Global ($globalCount)', ObsidianUITheme.warningOrange),
             ],
           ),
         ),
@@ -1208,7 +1209,7 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
     switch (binding.triggerMode) {
       case GamepadTriggerMode.singlePress:
         modeDesc = 'Single Tap';
-        modeColor = Colors.blueAccent;
+        modeColor = ObsidianUITheme.defaultPrimaryAccent;
         break;
       case GamepadTriggerMode.continuousHold:
         modeDesc = 'Hold (${binding.repeatFrequencyHz.toStringAsFixed(1)} Hz)';
@@ -1240,7 +1241,7 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
         phaseLabel = 'POST';
         break;
       default:
-        phaseColor = Colors.amber;
+        phaseColor = ObsidianUITheme.warningOrange;
         phaseLabel = 'GLOBAL';
         break;
     }
@@ -1257,12 +1258,12 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: hasConflict
-                      ? Colors.redAccent.withValues(alpha: 0.25)
+                      ? ObsidianUITheme.errorRed.withValues(alpha: 0.25)
                       : ObsidianUITheme.primaryAccent.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                   border: Border.all(
                     color: hasConflict
-                        ? Colors.redAccent
+                        ? ObsidianUITheme.errorRed
                         : ObsidianUITheme.primaryAccent.withValues(alpha: 0.6),
                   ),
                 ),
@@ -1271,7 +1272,7 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
-                    color: hasConflict ? Colors.redAccent : ObsidianUITheme.primaryAccent,
+                    color: hasConflict ? ObsidianUITheme.errorRed : ObsidianUITheme.primaryAccent,
                   ),
                 ),
               ),
@@ -1340,21 +1341,21 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                               decoration: BoxDecoration(
-                                color: Colors.redAccent.withValues(alpha: 0.2),
+                                color: ObsidianUITheme.errorRed.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(5),
-                                border: Border.all(color: Colors.redAccent.withValues(alpha: 0.8), width: 0.8),
+                                border: Border.all(color: ObsidianUITheme.errorRed.withValues(alpha: 0.8), width: 0.8),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: const [
-                                  Icon(Icons.warning_amber_rounded, size: 10, color: Colors.redAccent),
+                                  Icon(Icons.warning_amber_rounded, size: 10, color: ObsidianUITheme.errorRed),
                                   SizedBox(width: 3),
                                   Text(
-                                    'CONFLICT',
+                                    'Conflict',
                                     style: TextStyle(
                                       fontSize: 9,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.redAccent,
+                                      color: ObsidianUITheme.errorRed,
                                     ),
                                   ),
                                 ],
@@ -1382,7 +1383,7 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.delete_outline_rounded, size: 18),
-                    color: Colors.redAccent.withValues(alpha: 0.8),
+                    color: ObsidianUITheme.errorRed.withValues(alpha: 0.8),
                     padding: const EdgeInsets.all(6),
                     constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                     splashRadius: 18,
@@ -1448,7 +1449,7 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: surfaceColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
         title: Row(
           children: [
             Icon(Icons.file_upload_outlined, color: ObsidianUITheme.primaryAccent),
@@ -1544,7 +1545,7 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: surfaceColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
         title: Row(
           children: [
             Icon(Icons.file_download_outlined, color: ObsidianUITheme.primaryAccent),
@@ -1683,7 +1684,7 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: ObsidianUITheme.getSurfaceColor(context),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
           title: const Text('New Controller Profile'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1761,7 +1762,7 @@ class _GamepadSettingsScreenState extends State<GamepadSettingsScreen> {
         context: context,
         builder: (ctx) => AlertDialog(
           backgroundColor: ObsidianUITheme.getSurfaceColor(context),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
           title: const Text('Rename Profile'),
           content: TextField(
             controller: nameController,
@@ -2044,7 +2045,7 @@ class _AddEditBindingSheetState extends State<_AddEditBindingSheet> {
     return Container(
       decoration: BoxDecoration(
         color: surfaceColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
       ),
       padding: EdgeInsets.fromLTRB(
         20,
@@ -2082,14 +2083,14 @@ class _AddEditBindingSheetState extends State<_AddEditBindingSheet> {
                 margin: const EdgeInsets.only(bottom: 14),
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
-                  color: Colors.redAccent.withValues(alpha: 0.15),
+                  color: ObsidianUITheme.errorRed.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.redAccent.withValues(alpha: 0.6)),
+                  border: Border.all(color: ObsidianUITheme.errorRed.withValues(alpha: 0.6)),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 20),
+                    const Icon(Icons.warning_amber_rounded, color: ObsidianUITheme.errorRed, size: 20),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Column(
@@ -2097,7 +2098,7 @@ class _AddEditBindingSheetState extends State<_AddEditBindingSheet> {
                         children: [
                           Text(
                             'Button Conflict Warning',
-                            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: Colors.redAccent),
+                            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: ObsidianUITheme.errorRed),
                           ),
                           const SizedBox(height: 2),
                           Text(
@@ -2118,14 +2119,14 @@ class _AddEditBindingSheetState extends State<_AddEditBindingSheet> {
                 margin: const EdgeInsets.only(bottom: 14),
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
-                  color: Colors.amber.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.amber.withValues(alpha: 0.6)),
+                  color: ObsidianUITheme.warningOrange.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
+                  border: Border.all(color: ObsidianUITheme.warningOrange.withValues(alpha: 0.6)),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.info_outline_rounded, color: Colors.amber, size: 20),
+                    const Icon(Icons.info_outline_rounded, color: ObsidianUITheme.warningOrange, size: 20),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Column(
@@ -2133,7 +2134,7 @@ class _AddEditBindingSheetState extends State<_AddEditBindingSheet> {
                         children: [
                           Text(
                             'Existing Field Action Mapping',
-                            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: Colors.amber),
+                            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: ObsidianUITheme.warningOrange),
                           ),
                           const SizedBox(height: 2),
                           Text(
@@ -2151,7 +2152,7 @@ class _AddEditBindingSheetState extends State<_AddEditBindingSheet> {
             // 1. INPUT CAPTURE BUTTON
             InkWell(
               onTap: _startListeningForInput,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(ObsidianTokens.radius),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -2159,7 +2160,7 @@ class _AddEditBindingSheetState extends State<_AddEditBindingSheet> {
                   color: _isListening
                       ? ObsidianUITheme.primaryAccent.withValues(alpha: 0.2)
                       : ObsidianUITheme.getSurfaceColor(context).withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                   border: Border.all(
                     color: _isListening
                         ? ObsidianUITheme.primaryAccent
@@ -2173,7 +2174,7 @@ class _AddEditBindingSheetState extends State<_AddEditBindingSheet> {
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
                         color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.25),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                       ),
                       child: Text(
                         shortBadge,
@@ -2318,18 +2319,18 @@ class _AddEditBindingSheetState extends State<_AddEditBindingSheet> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         decoration: BoxDecoration(
-                          color: Colors.amber.withValues(alpha: 0.15),
+                          color: ObsidianUITheme.warningOrange.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
+                          border: Border.all(color: ObsidianUITheme.warningOrange.withValues(alpha: 0.5)),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 18),
+                            const Icon(Icons.warning_amber_rounded, color: ObsidianUITheme.warningOrange, size: 18),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 _getEmptyFieldWarning(_actionType),
-                                style: const TextStyle(fontSize: 12, color: Colors.amber),
+                                style: const TextStyle(fontSize: 12, color: ObsidianUITheme.warningOrange),
                               ),
                             ),
                           ],
@@ -2342,7 +2343,7 @@ class _AddEditBindingSheetState extends State<_AddEditBindingSheet> {
                         dropdownColor: surfaceColor,
                         isExpanded: true,
                         decoration: InputDecoration(
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill)),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                           hintText: 'Select a form field',
                         ),
@@ -2539,7 +2540,7 @@ class _AddEditBindingSheetState extends State<_AddEditBindingSheet> {
                     onPressed: () => Navigator.of(context).pop(),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
                     ),
                     child: const Text('Cancel'),
                   ),
@@ -2569,7 +2570,7 @@ class _AddEditBindingSheetState extends State<_AddEditBindingSheet> {
                       backgroundColor: ObsidianUITheme.primaryAccent,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
                     ),
                     child: const Text('Save Mapping', style: TextStyle(fontWeight: FontWeight.bold)),
                   ),

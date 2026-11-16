@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../theme/obsidian_tokens.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -981,8 +982,8 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(context.tr('dashboard.data_summary').toUpperCase(),
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, letterSpacing: 1.0)),
+                Text(context.tr('dashboard.data_summary'),
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent, letterSpacing: 0)),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -1004,13 +1005,13 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(context.tr('graphs.team_selection').toUpperCase(),
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.warningOrange, letterSpacing: 1.0)),
+                    Text(context.tr('graphs.team_selection'),
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.warningOrange, letterSpacing: 0)),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                       ),
                       child: Text(
                         _selectedTeams.isNotEmpty ? '${_selectedTeams.length} selected' : 'No teams selected',
@@ -1180,13 +1181,13 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(context.tr('graphs.graph_options').toUpperCase(),
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.secondaryAccent, letterSpacing: 1.0)),
+                    Text(context.tr('graphs.graph_options'),
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ObsidianUITheme.secondaryAccent, letterSpacing: 0)),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: ObsidianUITheme.secondaryAccent.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                       ),
                       child: Text(
                         '${_selectedGraphTypes.length} selected',
@@ -1339,7 +1340,7 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
                 ],
 
                 // Graph Types multi-select
-                Text('GRAPH TYPES', style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context), fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                Text('Graph types', style: TextStyle(color: ObsidianUITheme.getSecondaryTextColor(context), fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0)),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
@@ -1410,10 +1411,10 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
                 Expanded(
                   child: Material(
                     color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                     child: InkWell(
                       onTap: _generateGraphs,
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                       child: Ink(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
@@ -1421,7 +1422,7 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                           boxShadow: [
                             BoxShadow(
                               color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.35),
@@ -1438,12 +1439,12 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
                               const Icon(Icons.auto_graph_rounded, color: Colors.white, size: 20),
                               const SizedBox(width: 10),
                               Text(
-                                context.tr('graphs.generate').toUpperCase(),
+                                context.tr('graphs.generate'),
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 15.0,
                                   color: Colors.white,
-                                  letterSpacing: 0.8,
+                                  letterSpacing: 0,
                                 ),
                               ),
                             ],
@@ -1528,7 +1529,7 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: ObsidianUITheme.getGlassSurfaceColor(context),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                         border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
                       ),
                       child: Icon(
@@ -1565,7 +1566,7 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
             decoration: BoxDecoration(
               color: const Color(0xFFEAB308).withValues(alpha: 0.12),
               border: Border.all(color: const Color(0xFFEAB308)),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
             ),
             child: const Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1998,7 +1999,7 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
       context: context,
       backgroundColor: ObsidianUITheme.getSurfaceColor(context),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
       ),
       builder: (ctx) {
         return SafeArea(
@@ -2069,7 +2070,7 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.03),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                             border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
                           ),
                           child: Row(
@@ -2144,7 +2145,7 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
               fitInsideHorizontally: true,
               fitInsideVertically: true,
               tooltipMargin: 8,
-              tooltipBorderRadius: BorderRadius.circular(8),
+              tooltipBorderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
               tooltipPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               tooltipBorder: ObsidianUITheme.getTooltipBorder(context),
               getTooltipColor: (_) => ObsidianUITheme.getElevatedSurfaceColor(context),
@@ -2403,7 +2404,7 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
               fitInsideHorizontally: true,
               fitInsideVertically: true,
               tooltipMargin: 8,
-              tooltipBorderRadius: BorderRadius.circular(8),
+              tooltipBorderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
               tooltipPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               tooltipBorder: ObsidianUITheme.getTooltipBorder(context),
               getTooltipColor: (_) => ObsidianUITheme.getElevatedSurfaceColor(context),
@@ -2686,7 +2687,7 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
               fitInsideHorizontally: true,
               fitInsideVertically: true,
               tooltipMargin: 10,
-              tooltipBorderRadius: BorderRadius.circular(8),
+              tooltipBorderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
               tooltipPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               tooltipBorder: ObsidianUITheme.getTooltipBorder(context),
               getTooltipColor: (_) => ObsidianUITheme.getElevatedSurfaceColor(context),
@@ -2879,7 +2880,7 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
                 color: ObsidianUITheme.getSecondaryTextColor(context),
-                letterSpacing: 0.5,
+                letterSpacing: 0,
               ),
             ),
             children: statsList.map((stats) {
@@ -2889,7 +2890,7 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
                 decoration: BoxDecoration(
                   color: ObsidianUITheme.getSurfaceColor(context),
                   border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -2954,7 +2955,7 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
               fitInsideHorizontally: true,
               fitInsideVertically: true,
               tooltipMargin: 8,
-              tooltipBorderRadius: BorderRadius.circular(8),
+              tooltipBorderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
               tooltipPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               tooltipBorder: ObsidianUITheme.getTooltipBorder(context),
               getTooltipColor: (_) => ObsidianUITheme.getElevatedSurfaceColor(context),
@@ -3384,7 +3385,7 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
           Icon(icon, size: 20, color: ObsidianUITheme.primaryAccent),
           const SizedBox(height: 4),
           Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: ObsidianUITheme.getPrimaryTextColor(context))),
-          Text(label, style: TextStyle(fontSize: 10, color: ObsidianUITheme.getSecondaryTextColor(context), letterSpacing: 0.5)),
+          Text(label, style: TextStyle(fontSize: 10, color: ObsidianUITheme.getSecondaryTextColor(context), letterSpacing: 0)),
         ],
       ),
     );
@@ -3570,7 +3571,7 @@ class _ObsidianDistributionChartState extends State<ObsidianDistributionChart> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: ObsidianUITheme.getSurfaceColor(context),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
         border: Border.all(color: color, width: 1.5),
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 6, offset: const Offset(0, 3)),

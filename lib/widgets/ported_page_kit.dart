@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/obsidian_tokens.dart';
 import '../l10n/app_localizations.dart';
 import '../models/api_response.dart';
 import '../services/file_download_helper.dart';
@@ -192,7 +193,7 @@ class PortedStatGrid extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(s.label.toUpperCase(),
-                      style: TextStyle(fontSize: 10.5, letterSpacing: 0.6, fontWeight: FontWeight.w600, color: muted)),
+                      style: TextStyle(fontSize: 10.5, letterSpacing: 0, fontWeight: FontWeight.w600, color: muted)),
                   const SizedBox(height: 2),
                   Text(s.value,
                       maxLines: 1,
@@ -319,7 +320,7 @@ class PortedBadge extends StatelessWidget {
     final c = color ?? ObsidianUITheme.primaryAccent;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(color: c.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
+      decoration: BoxDecoration(color: c.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill)),
       child: Text(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: c)),
     );
   }

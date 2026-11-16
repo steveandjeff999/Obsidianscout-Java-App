@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/obsidian_tokens.dart';
 import '../l10n/app_localizations.dart';
 import '../models/api_response.dart';
 import '../models/team_match_models.dart';
@@ -113,7 +114,7 @@ class _EventsScreenState extends State<EventsScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: ObsidianUITheme.getSurfaceColor(ctx),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(ObsidianTokens.radius),
           side: BorderSide(color: ObsidianUITheme.getBorderColor(ctx)),
         ),
         title: Row(
@@ -141,7 +142,7 @@ class _EventsScreenState extends State<EventsScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: ObsidianUITheme.errorRed,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill)),
             ),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(context.tr('common.delete', 'Delete'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -197,7 +198,7 @@ class _EventsScreenState extends State<EventsScreen> {
             return AlertDialog(
               backgroundColor: ObsidianUITheme.getSurfaceColor(ctx),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                 side: BorderSide(color: ObsidianUITheme.getBorderColor(ctx)),
               ),
               title: Row(
@@ -415,7 +416,7 @@ class _EventsScreenState extends State<EventsScreen> {
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: ObsidianUITheme.primaryAccent,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill)),
                   ),
                   onPressed: isSaving
                       ? null
@@ -520,7 +521,7 @@ class _EventsScreenState extends State<EventsScreen> {
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
                                   color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                                 ),
                                 child: Icon(Icons.event_rounded, color: ObsidianUITheme.primaryAccent, size: 24),
                               ),
@@ -559,7 +560,7 @@ class _EventsScreenState extends State<EventsScreen> {
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: ObsidianUITheme.primaryAccent,
                                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill)),
                                   ),
                                   onPressed: _isSyncing ? null : _handleSyncEvents,
                                   icon: _isSyncing

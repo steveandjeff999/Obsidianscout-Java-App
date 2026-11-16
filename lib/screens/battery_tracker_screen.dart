@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../theme/obsidian_tokens.dart';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -347,7 +348,7 @@ class _BatteryTrackerScreenState extends State<BatteryTrackerScreen> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: ObsidianUITheme.warningOrange.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radius),
         border: Border.all(color: ObsidianUITheme.warningOrange.withValues(alpha: 0.6)),
       ),
       child: Row(
@@ -403,8 +404,8 @@ class _BatteryTrackerScreenState extends State<BatteryTrackerScreen> {
     final (Color dot, String text) = switch (status) {
       CollabStatus.live => (Colors.greenAccent.shade400, context.tr('checklist.status.live', 'Live — changes save automatically')),
       CollabStatus.readonly => (Colors.greenAccent.shade400, context.tr('checklist.status.readonly', 'Live — view only')),
-      CollabStatus.connecting => (Colors.orangeAccent, context.tr('checklist.status.connecting', 'Connecting to live editing…')),
-      CollabStatus.reconnecting => (Colors.orangeAccent, context.tr('checklist.status.reconnecting', 'Reconnecting… your changes are kept')),
+      CollabStatus.connecting => (ObsidianUITheme.warningOrange, context.tr('checklist.status.connecting', 'Connecting to live editing…')),
+      CollabStatus.reconnecting => (ObsidianUITheme.warningOrange, context.tr('checklist.status.reconnecting', 'Reconnecting… your changes are kept')),
       CollabStatus.offline => (ObsidianUITheme.errorRed, context.tr('checklist.status.offline', 'Offline — your changes are kept on this device')),
     };
     final mySid = room?.session.sid;
@@ -413,7 +414,7 @@ class _BatteryTrackerScreenState extends State<BatteryTrackerScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: ObsidianUITheme.getSurfaceColor(context),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
         border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
       ),
       child: Row(
@@ -528,7 +529,7 @@ class _BatteryTrackerScreenState extends State<BatteryTrackerScreen> {
                 Padding(
                   padding: const EdgeInsets.only(top: 14, bottom: 6),
                   child: Text('${title.toUpperCase()} · ${list.length}',
-                      style: TextStyle(color: secondary, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                      style: TextStyle(color: secondary, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0)),
                 ),
                 if (list.isEmpty)
                   empty(id == 'match'
@@ -594,7 +595,7 @@ class _BatteryTrackerScreenState extends State<BatteryTrackerScreen> {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.fromLTRB(4, 8, 4, 8),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
           border: Border.all(
             color: editors.isNotEmpty ? ObsidianUITheme.warningOrange : ObsidianUITheme.getBorderColor(context),
             width: editors.isNotEmpty ? 2 : 1,
@@ -842,7 +843,7 @@ class _BatteryTrackerScreenState extends State<BatteryTrackerScreen> {
         margin: const EdgeInsets.only(top: 8),
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(ObsidianTokens.radius),
           border: Border.all(
             color: isNext ? ObsidianUITheme.primaryAccent : ObsidianUITheme.getBorderColor(context),
             width: isNext ? 2 : 1,
@@ -857,7 +858,7 @@ class _BatteryTrackerScreenState extends State<BatteryTrackerScreen> {
                 if (alliance != null) ...[
                   const SizedBox(width: 8),
                   Text(
-                    context.tr('checklist.alliance_short_$alliance', alliance == 'red' ? 'Red' : 'Blue').toUpperCase(),
+                    context.tr('checklist.alliance_short_$alliance', alliance == 'red' ? 'Red' : 'Blue'),
                     style: TextStyle(
                       color: alliance == 'red' ? Colors.redAccent : Colors.lightBlueAccent,
                       fontSize: 11,
