@@ -376,6 +376,8 @@ class ObsidianUITheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
           backgroundColor: accent,
           foregroundColor: Colors.white,
           shape: shape(radius),
@@ -385,6 +387,8 @@ class ObsidianUITheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
           backgroundColor: accent,
           foregroundColor: Colors.white,
           shape: shape(radius),
@@ -392,6 +396,8 @@ class ObsidianUITheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
           foregroundColor: ink,
           side: BorderSide(color: borderColor),
           shape: shape(radius),
@@ -400,6 +406,7 @@ class ObsidianUITheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: accent,
+          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
           shape: shape(radius),
         ),
       ),

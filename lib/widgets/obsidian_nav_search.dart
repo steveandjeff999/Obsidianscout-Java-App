@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/obsidian_tokens.dart';
 import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/obsidian_ui_theme.dart';
@@ -111,7 +112,8 @@ class ObsidianNavSearchField extends StatelessWidget {
     final borderColor = ObsidianUITheme.getBorderColor(context);
     final primaryAccent = ObsidianUITheme.getPrimaryAccent(context);
     final secondaryText = ObsidianUITheme.getSecondaryTextColor(context);
-    final radius = ObsidianUITheme.getButtonRadius(context).clamp(4.0, 16.0);
+    final radius = ObsidianUITheme.smallRadius(dark: isDark);
+    final tokens = ObsidianTokens.of(context);
     final fontSize = compact ? 12.5 : 14.0;
 
     return Focus(
@@ -167,17 +169,18 @@ class ObsidianNavSearchField extends StatelessWidget {
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 1.5),
                               decoration: BoxDecoration(
+                                color: tokens.surface3,
                                 borderRadius: BorderRadius.circular(4.0),
                                 border: Border.all(color: borderColor),
                               ),
-                              child: Text(shortcutHint!, style: TextStyle(fontSize: 10.0, color: secondaryText)),
+                              child: Text(shortcutHint!, style: TextStyle(fontSize: 10.0, fontWeight: FontWeight.w600, color: secondaryText)),
                             ),
                           ),
                         )
                       : null),
               filled: true,
-              fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
-              contentPadding: EdgeInsets.symmetric(vertical: compact ? 9.0 : 12.0),
+              fillColor: tokens.surface2,
+              contentPadding: EdgeInsets.symmetric(vertical: compact ? 8.0 : 12.0),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(radius),
                 borderSide: BorderSide(color: borderColor),
@@ -188,7 +191,7 @@ class ObsidianNavSearchField extends StatelessWidget {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(radius),
-                borderSide: BorderSide(color: primaryAccent, width: 1.4),
+                borderSide: BorderSide(color: primaryAccent, width: 1.0),
               ),
             ),
           );

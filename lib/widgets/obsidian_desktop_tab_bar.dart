@@ -62,8 +62,8 @@ class _ObsidianDesktopTabBarState extends State<ObsidianDesktopTabBar> {
   Widget build(BuildContext context) {
     final isDark = ObsidianUITheme.isDark(context);
     final barBg = isDark
-        ? ObsidianUITheme.getSurfaceColor(context).withValues(alpha: 0.65)
-        : ObsidianUITheme.getSurfaceColor(context).withValues(alpha: 0.85);
+        ? ObsidianUITheme.getBackgroundColor(context)
+        : ObsidianUITheme.getSurfaceColor(context);
     final borderColor = ObsidianUITheme.getBorderColor(context);
     final primaryAccent = ObsidianUITheme.getPrimaryAccent(context);
     final tabRadius = ObsidianUITheme.getButtonRadius(context).clamp(4.0, 14.0);
@@ -237,8 +237,8 @@ class _ObsidianDesktopTabBarState extends State<ObsidianDesktopTabBar> {
     required double tabRadius,
     required Color primaryAccent,
   }) {
-    final activeBg = isDark ? ObsidianUITheme.getSurfaceColor(context) : Colors.white;
-    final inactiveBg = isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.04);
+    final activeBg = ObsidianUITheme.getSurfaceColor(context);
+    final inactiveBg = ObsidianTokens.of(context).surface2;
     final activeBorderColor = primaryAccent;
     final titleText = title.isNotEmpty && !title.startsWith('nav.') ? title : 'Tab ${widget.tabs.indexOf(tab) + 1}';
     final tabBorderColor = isActive
@@ -300,7 +300,7 @@ class _ObsidianDesktopTabBarState extends State<ObsidianDesktopTabBar> {
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 12.0,
-                                  fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
                                   color: isActive
                                       ? ObsidianUITheme.getPrimaryTextColor(context)
                                       : ObsidianUITheme.getSecondaryTextColor(context),
@@ -335,7 +335,7 @@ class _ObsidianDesktopTabBarState extends State<ObsidianDesktopTabBar> {
                     top: 0,
                     left: 0,
                     right: 0,
-                    height: 2.5,
+                    height: 2.0,
                     child: Container(color: activeBorderColor),
                   ),
               ],

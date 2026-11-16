@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/obsidian_tokens.dart';
 import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
@@ -113,15 +114,15 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
   @override
   Widget build(BuildContext context) {
     final isDark = ObsidianUITheme.isDark(context);
+    final tokens = ObsidianTokens.of(context);
     final sidebarBg = isDark
-        ? ObsidianUITheme.getSurfaceColor(context).withValues(alpha: 0.88)
-        : ObsidianUITheme.getSurfaceColor(context).withValues(alpha: 0.95);
+        ? ObsidianUITheme.getBackgroundColor(context)
+        : ObsidianUITheme.getSurfaceColor(context);
     final borderColor = ObsidianUITheme.getBorderColor(context);
     final headerTextColor = ObsidianUITheme.getPrimaryTextColor(context);
     final sectionLabelColor = ObsidianUITheme.getSecondaryTextColor(context);
     final primaryAccent = ObsidianUITheme.getPrimaryAccent(context);
-    final itemRadius = ObsidianUITheme.getButtonRadius(context)
-        .clamp(4.0, 16.0);
+    final itemRadius = ObsidianUITheme.smallRadius(dark: isDark);
 
     final user = widget.apiService.currentUser;
     final username = user?.username.isNotEmpty == true
@@ -587,7 +588,7 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
         ? null
         : _matches[_selectedMatch.clamp(0, _matches.length - 1)];
 
-    final width = _collapsed ? 72.0 : 240.0;
+    final width = _collapsed ? 72.0 : 260.0;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
@@ -601,11 +602,8 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
         children: [
           // Header: Brand & Collapse Toggle
           Container(
-            height: 60.0,
-            padding: EdgeInsets.symmetric(horizontal: _collapsed ? 12.0 : 16.0),
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: borderColor)),
-            ),
+            height: 64.0,
+            padding: EdgeInsets.symmetric(horizontal: _collapsed ? 12.0 : 18.0),
             child: Row(
               mainAxisAlignment: _collapsed
                   ? MainAxisAlignment.center
@@ -617,10 +615,10 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
                       children: [
                         Image.asset(
                           'assets/images/obsidian-512.png',
-                          width: 28.0,
-                          height: 28.0,
-                          cacheWidth: 56,
-                          cacheHeight: 56,
+                          width: 22.0,
+                          height: 22.0,
+                          cacheWidth: 44,
+                          cacheHeight: 44,
                           fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) => Icon(
                             Icons.shield_rounded,
@@ -634,11 +632,10 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
                             program.isNotEmpty
                                 ? 'ObsidianScout $program'
                                 : 'ObsidianScout',
-                            style: TextStyle(
-                              fontSize: 14.0,
-                              fontWeight: FontWeight.bold,
-                              color: headerTextColor,
-                              letterSpacing: 0.3,
+                            style: ObsidianTokens.serif(
+                              base: TextStyle(color: headerTextColor),
+                              size: 18.0,
+                              weight: FontWeight.w600,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -674,11 +671,9 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
           // User Profile Compact Card
           if (!_collapsed)
             Padding(
-              padding: const EdgeInsets.all(8.0),
+              padding: const EdgeInsets.fromLTRB(18.0, 0.0, 18.0, 12.0),
               child: Material(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.04)
-                    : Colors.black.withValues(alpha: 0.03),
+                color: tokens.surface2,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(itemRadius),
                   side: BorderSide(color: borderColor),
@@ -749,7 +744,7 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
 
           if (!_collapsed)
             Padding(
-              padding: const EdgeInsets.fromLTRB(8.0, 0.0, 8.0, 4.0),
+              padding: const EdgeInsets.fromLTRB(18.0, 0.0, 18.0, 4.0),
               child: ObsidianNavSearchField(
                 controller: _searchController,
                 focusNode: _searchFocus,
@@ -765,7 +760,7 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
           Expanded(
             child: ListView(
               padding:
-                  const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                  const EdgeInsets.symmetric(horizontal: 18.0, vertical: 4.0),
               children: [
                 if (_collapsed)
                   Tooltip(
@@ -797,7 +792,7 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
                     if (titleKey != null && !_collapsed)
                       Padding(
                         padding: const EdgeInsets.only(
-                            left: 10.0, top: 12.0, bottom: 4.0),
+                            left: 12.0, top: 18.0, bottom: 6.0),
                         child: Text(
                           context.tr(titleKey),
                           style: TextStyle(
@@ -820,11 +815,8 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
                           !isAction && idx == widget.currentIndex;
                       final label = context.tr(item['labelKey'] as String);
 
-                      final unselectedItemColor = isDark
-                          ? Colors.white.withValues(alpha: 0.8)
-                          : const Color(0xFF334155);
-                      final unselectedIconColor =
-                          isDark ? Colors.white60 : const Color(0xFF64748B);
+                      final unselectedItemColor = tokens.muted;
+                      final unselectedIconColor = tokens.muted;
 
                       if (_collapsed) {
                         return Tooltip(
@@ -878,12 +870,12 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
 
                       final isHighlighted = identical(item, highlighted);
                       return Container(
-                        margin: const EdgeInsets.symmetric(vertical: 1.5),
+                        margin: const EdgeInsets.symmetric(vertical: 2.0),
                         child: Material(
                           color: isSelected
-                              ? primaryAccent.withValues(alpha: 0.18)
+                              ? primaryAccent.withValues(alpha: isDark ? 0.15 : 0.10)
                               : (isHighlighted
-                                  ? primaryAccent.withValues(alpha: 0.10)
+                                  ? tokens.surface2
                                   : Colors.transparent),
                           borderRadius: BorderRadius.circular(itemRadius),
                           child: InkWell(
@@ -891,18 +883,7 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
                             borderRadius: BorderRadius.circular(itemRadius),
                             child: Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 10.0, vertical: 7.0),
-                              decoration: isSelected
-                                  ? BoxDecoration(
-                                      borderRadius:
-                                          BorderRadius.circular(itemRadius),
-                                      border: Border.all(
-                                        color: primaryAccent.withValues(
-                                            alpha: 0.4),
-                                        width: 1.0,
-                                      ),
-                                    )
-                                  : null,
+                                  horizontal: 12.0, vertical: 9.0),
                               child: Row(
                                 children: [
                                   Icon(
@@ -912,34 +893,21 @@ class _ObsidianDesktopSidebarState extends State<ObsidianDesktopSidebar> {
                                         ? primaryAccent
                                         : unselectedIconColor,
                                   ),
-                                  const SizedBox(width: 10.0),
+                                  const SizedBox(width: 12.0),
                                   Expanded(
                                     child: Text(
                                       label,
                                       style: TextStyle(
-                                        fontSize: 12.5,
-                                        fontWeight: isSelected
-                                            ? FontWeight.bold
-                                            : FontWeight.w500,
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w600,
                                         color: isSelected
-                                            ? (isDark
-                                                ? Colors.white
-                                                : primaryAccent)
+                                            ? primaryAccent
                                             : unselectedItemColor,
                                       ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
-                                  if (isSelected)
-                                    Container(
-                                      width: 5,
-                                      height: 5,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: primaryAccent,
-                                      ),
-                                    ),
                                 ],
                               ),
                             ),
