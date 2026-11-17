@@ -12,7 +12,7 @@ const Color _red = ObsidianUITheme.errorRed;
 const Color _amber = ObsidianUITheme.warningOrange;
 const Color _green = ObsidianUITheme.successGreen;
 const Color _sky = ObsidianUITheme.defaultSecondaryAccent;
-const Color _slate = Color(0xFF94A3B8);
+const Color _slate = Color(0xFF9B9BA6);
 
 /// Intrusion detection for superadmins, shown in the Security tab of Server Insights: mode switch, unblock requests,
 /// active blocks with unblocking, threat scores, allowlist, protected accounts and the security log.

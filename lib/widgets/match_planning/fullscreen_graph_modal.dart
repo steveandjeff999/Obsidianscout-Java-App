@@ -79,7 +79,7 @@ class _FullscreenGraphModalState extends State<FullscreenGraphModal> {
         width: screenSize.width < 960 ? screenSize.width * 0.95 : 900,
         height: screenSize.height < 640 ? screenSize.height * 0.88 : 540,
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFFFFFFF),
+          color: isDark ? const Color(0xFF16161A) : const Color(0xFFFFFFFF),
           borderRadius: BorderRadius.circular(ObsidianTokens.radius),
           border: Border.all(
             color: isDark ? Colors.white.withValues(alpha: 0.15) : Colors.black12,
@@ -233,7 +233,7 @@ class _FullscreenGraphModalState extends State<FullscreenGraphModal> {
           style: TextStyle(
             fontSize: 11.5,
             fontWeight: FontWeight.w700,
-            color: isActive ? Colors.white : const Color(0xFF94A3B8),
+            color: isActive ? Colors.white : const Color(0xFF9B9BA6),
           ),
         ),
       ),
@@ -326,14 +326,14 @@ class _FullscreenGraphModalState extends State<FullscreenGraphModal> {
         lineTouchData: LineTouchData(
           enabled: true,
           touchTooltipData: LineTouchTooltipData(
-            getTooltipColor: (_) => const Color(0xE60F172A),
+            getTooltipColor: (_) => const Color(0xE60E0E11),
             getTooltipItems: (touchedSpots) {
               return touchedSpots.map((spot) {
                 final idx = spot.x.toInt();
                 final matchLabel = idx >= 0 && idx < labels.length ? labels[idx] : 'Match ${idx + 1}';
                 return LineTooltipItem(
                   '$matchLabel\n',
-                  const TextStyle(color: Color(0xFF94A3B8), fontSize: 11, fontWeight: FontWeight.bold),
+                  const TextStyle(color: Color(0xFF9B9BA6), fontSize: 11, fontWeight: FontWeight.bold),
                   children: [
                     TextSpan(
                       text: '${spot.y.toStringAsFixed(1)} ${_currentSeries.unit}',
@@ -360,7 +360,7 @@ class _FullscreenGraphModalState extends State<FullscreenGraphModal> {
                   radius: 5.5,
                   color: _currentSeries.color,
                   strokeWidth: 2,
-                  strokeColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  strokeColor: isDark ? const Color(0xFF16161A) : Colors.white,
                 );
               },
             ),

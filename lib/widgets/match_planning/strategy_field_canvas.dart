@@ -349,19 +349,19 @@ class _StrategyFieldCanvasState extends State<StrategyFieldCanvas> {
                       child: Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: const Color(0xCC0F172A),
+                          color: const Color(0xCC0E0E11),
                           borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                           border: Border.all(color: Colors.white12),
                         ),
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.dashboard_customize_rounded, color: Color(0xFF94A3B8), size: 24),
+                            Icon(Icons.dashboard_customize_rounded, color: Color(0xFF9B9BA6), size: 24),
                             SizedBox(width: 10),
                             Text(
                               'Select a match above to load field and driver stations',
                               style: TextStyle(
-                                color: Color(0xFFCBD5E1),
+                                color: Color(0xFFE2DFD8),
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -470,7 +470,7 @@ class _FieldStrategyPainter extends CustomPainter {
         end: Alignment.centerRight,
         colors: const [
           Color(0xFF1E3A8A), // Blue side
-          Color(0xFF1E293B), // Center field
+          Color(0xFF16161A), // Center field
           Color(0xFF7F1D1D), // Red side
         ],
         stops: const [0.0, 0.5, 1.0],

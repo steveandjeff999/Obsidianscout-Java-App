@@ -168,7 +168,7 @@ class _ContactScreenState extends State<ContactScreen> {
     final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
     final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
     final borderColor = isDark ? Colors.white10 : Colors.black12;
-    final cardBg = isDark ? const Color(0x331E293B) : const Color(0x66FFFFFF);
+    final cardBg = isDark ? const Color(0x3316161A) : const Color(0x66FFFFFF);
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),

@@ -512,11 +512,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 16.0),
                         Text(
                           context.tr('app.title'),
-                          style: TextStyle(
-                            fontSize: 32.0,
-                            fontWeight: FontWeight.bold,
-                            color: primaryTextColor,
-                            letterSpacing: -0.5,
+                          style: ObsidianTokens.serif(
+                            base: TextStyle(color: primaryTextColor),
+                            size: 32.0,
+                            weight: FontWeight.w500,
                           ),
                         ),
                         const SizedBox(height: 8.0),
@@ -707,11 +706,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 12.0),
                     Text(
                       context.tr('app.title'),
-                      style: TextStyle(
-                        fontSize: 32.0,
-                        fontWeight: FontWeight.bold,
-                        color: primaryTextColor,
-                        letterSpacing: -0.5,
+                      style: ObsidianTokens.serif(
+                        base: TextStyle(color: primaryTextColor),
+                        size: 32.0,
+                        weight: FontWeight.w500,
                       ),
                     ),
                     Text(

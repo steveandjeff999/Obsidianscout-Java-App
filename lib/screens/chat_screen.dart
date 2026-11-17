@@ -514,7 +514,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                   selected: isSelected,
                                   selectedColor: ObsidianUITheme.primaryAccent,
                                   checkmarkColor: Colors.white,
-                                  backgroundColor: ObsidianUITheme.isDark(context) ? const Color(0x30121620) : const Color(0xFFE2E8F0),
+                                  backgroundColor: ObsidianUITheme.isDark(context) ? const Color(0x30121620) : const Color(0xFFE2DFD8),
                                   onSelected: (val) {
                                     setModalState(() {
                                       if (val) {
@@ -1055,7 +1055,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 const SizedBox(height: 20),
                 Text(
                   'Team Chat is Disabled',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: primaryTextColor),
+                  style: TextStyle(fontFamily: ObsidianTokens.fontSerif, fontSize: 22, fontWeight: FontWeight.w500, color: primaryTextColor),
                 ),
                 const SizedBox(height: 10),
                 Text(
@@ -1128,7 +1128,7 @@ class _ChatScreenState extends State<ChatScreen> {
           // Channel Selector Header Bar
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: ObsidianUITheme.isDark(context) ? const Color(0x30121620) : const Color(0xF0F1F5F9),
+            color: ObsidianUITheme.isDark(context) ? const Color(0x30121620) : const Color(0xF0F7F6F2),
             child: Row(
               children: [
                 Icon(Icons.tag_rounded, color: ObsidianUITheme.primaryAccent, size: 20),
@@ -1473,7 +1473,7 @@ class _ChatScreenState extends State<ChatScreen> {
             duration: const Duration(milliseconds: 250),
             curve: Curves.easeInOutCubic,
             padding: EdgeInsets.fromLTRB(16.0, 12.0, 16.0, widget.isBarsVisible ? 134.0 : 16.0),
-            color: ObsidianUITheme.isDark(context) ? const Color(0x30121620) : const Color(0xF0F1F5F9),
+            color: ObsidianUITheme.isDark(context) ? const Color(0x30121620) : const Color(0xF0F7F6F2),
             child: Row(
               children: [
                 Expanded(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/obsidian_page_header.dart';
 import '../theme/obsidian_tokens.dart';
 import '../models/config_models.dart';
 import '../models/team_match_models.dart';
@@ -443,31 +444,16 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
       child: ListView(
         padding: EdgeInsets.only(top: 4.0, bottom: widget.isBarsVisible ? 120.0 : 24.0),
         children: [
-          // Header Card
+          ObsidianPageHeader(
+            title: 'Pit Scouting Data',
+            description: 'Review robot specifications, pit inspection coverage, and find un-scouted teams.',
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          ),
+          // Metrics Card
           ObsidianGlassCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    const Icon(Icons.build_circle_rounded, color: ObsidianUITheme.defaultPrimaryAccent, size: 26),
-                    const SizedBox(width: 10),
-                    Text(
-                      'Pit Scouting Data',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: primaryTextColor,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Review robot specifications, pit inspection coverage, and find un-scouted teams.',
-                  style: TextStyle(color: secondaryTextColor, fontSize: 13),
-                ),
-                const SizedBox(height: 18),
                 // Metric cards
                 LayoutBuilder(
                   builder: (context, constraints) {
@@ -718,7 +704,7 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0x731E293B) : Colors.white.withValues(alpha: 0.85),
+                      color: isDark ? const Color(0x7316161A) : Colors.white.withValues(alpha: 0.85),
                       borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                       border: Border.all(
                         color: hasConflict
@@ -908,7 +894,7 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
           builder: (context, scrollController) {
             return Container(
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xF50F172A) : const Color(0xF8F8FAFC),
+                color: isDark ? const Color(0xF50E0E11) : const Color(0xF8F5F4F0),
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
                 border: Border.all(color: isDark ? Colors.white12 : Colors.black12),
               ),
@@ -1209,7 +1195,7 @@ class _PitDataScreenState extends State<PitDataScreen> with LiveRefresh<PitDataS
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0x521E293B) : Colors.white.withValues(alpha: 0.7),
+        color: isDark ? const Color(0x5216161A) : Colors.white.withValues(alpha: 0.7),
         borderRadius: BorderRadius.circular(ObsidianTokens.radius),
         border: Border.all(color: accent.withValues(alpha: 0.3)),
       ),

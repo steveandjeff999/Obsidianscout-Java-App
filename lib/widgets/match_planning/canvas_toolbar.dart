@@ -72,7 +72,7 @@ class CanvasToolbar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xE60F172A), // Dark translucent pill
+        color: const Color(0xE60E0E11), // Dark translucent pill
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
         boxShadow: const [
@@ -129,7 +129,7 @@ class CanvasToolbar extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 11.5,
                             fontWeight: FontWeight.w800,
-                            color: isSelected ? Colors.white : const Color(0xFFCBD5E1),
+                            color: isSelected ? Colors.white : const Color(0xFFE2DFD8),
                           ),
                         ),
                       ),
@@ -214,7 +214,7 @@ class CanvasToolbar extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF94A3B8),
+                    color: Color(0xFF9B9BA6),
                     letterSpacing: 0,
                   ),
                 ),
@@ -252,7 +252,7 @@ class CanvasToolbar extends StatelessWidget {
                     width: (strokeWidth * 0.45).clamp(3.0, 18.0),
                     height: (strokeWidth * 0.45).clamp(3.0, 18.0),
                     decoration: BoxDecoration(
-                      color: activeTool == 'eraser' ? const Color(0xFFCBD5E1) : _parseColor(currentColor),
+                      color: activeTool == 'eraser' ? const Color(0xFFE2DFD8) : _parseColor(currentColor),
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -336,14 +336,14 @@ class CanvasToolbar extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 14, color: isActive ? Colors.white : const Color(0xFFCBD5E1)),
+            Icon(icon, size: 14, color: isActive ? Colors.white : const Color(0xFFE2DFD8)),
             const SizedBox(width: 4),
             Text(
               label,
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: isActive ? Colors.white : const Color(0xFFCBD5E1),
+                color: isActive ? Colors.white : const Color(0xFFE2DFD8),
               ),
             ),
           ],
@@ -368,7 +368,7 @@ class CanvasToolbar extends StatelessWidget {
           child: Icon(
             icon,
             size: 16,
-            color: enabled ? const Color(0xFFCBD5E1) : Colors.white24,
+            color: enabled ? const Color(0xFFE2DFD8) : Colors.white24,
           ),
         ),
       ),
@@ -385,7 +385,7 @@ class CanvasToolbar extends StatelessWidget {
   }
 
   Widget _buildSaveBadge() {
-    Color badgeColor = const Color(0xFF94A3B8);
+    Color badgeColor = const Color(0xFF9B9BA6);
     Color badgeBg = Colors.white.withValues(alpha: 0.08);
     IconData badgeIcon = Icons.cloud_done_rounded;
     String badgeText = 'Saved';

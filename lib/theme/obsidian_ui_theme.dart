@@ -518,6 +518,76 @@ class ObsidianUITheme {
         ),
         textStyle: TextStyle(color: dark ? tokens.ink : Colors.white, fontSize: 12),
       ),
+      dataTableTheme: DataTableThemeData(
+        headingRowColor: WidgetStateProperty.all(tokens.surface2),
+        headingTextStyle: TextStyle(
+          fontFamily: ObsidianTokens.fontSans,
+          fontSize: 12.5,
+          fontWeight: FontWeight.w500,
+          color: muted,
+        ),
+        dataTextStyle: TextStyle(
+          fontFamily: ObsidianTokens.fontSans,
+          fontSize: 13.5,
+          fontWeight: FontWeight.w400,
+          color: ink,
+        ),
+        dividerThickness: 1,
+        horizontalMargin: 16,
+        columnSpacing: 20,
+      ),
+      listTileTheme: ListTileThemeData(
+        iconColor: muted,
+        textColor: ink,
+        titleTextStyle: TextStyle(
+          fontFamily: ObsidianTokens.fontSans,
+          fontSize: 14.5,
+          fontWeight: FontWeight.w500,
+          color: ink,
+        ),
+        subtitleTextStyle: TextStyle(
+          fontFamily: ObsidianTokens.fontSans,
+          fontSize: 13,
+          color: muted,
+        ),
+        shape: shape(smallR),
+      ),
+      expansionTileTheme: ExpansionTileThemeData(
+        backgroundColor: surfaceColor,
+        collapsedBackgroundColor: surfaceColor,
+        iconColor: muted,
+        collapsedIconColor: muted,
+        textColor: ink,
+        collapsedTextColor: ink,
+        shape: shape(cardR, side: containerSide),
+        collapsedShape: shape(cardR, side: containerSide),
+      ),
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: ButtonStyle(
+          backgroundColor: WidgetStateProperty.resolveWith(
+            (s) => s.contains(WidgetState.selected) ? accent : tokens.surface2,
+          ),
+          foregroundColor: WidgetStateProperty.resolveWith(
+            (s) => s.contains(WidgetState.selected) ? Colors.white : muted,
+          ),
+          side: WidgetStateProperty.all(BorderSide(color: borderColor)),
+          shape: WidgetStateProperty.all(shape(smallR)),
+          textStyle: WidgetStateProperty.all(
+            const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ),
+      scrollbarTheme: ScrollbarThemeData(
+        thumbColor: WidgetStateProperty.all(muted.withValues(alpha: 0.3)),
+        radius: const Radius.circular(3),
+        thickness: WidgetStateProperty.all(6),
+      ),
+      sliderTheme: SliderThemeData(
+        activeTrackColor: accent,
+        inactiveTrackColor: tokens.surface3,
+        thumbColor: accent,
+        overlayColor: accent.withValues(alpha: 0.14),
+      ),
     );
   }
 

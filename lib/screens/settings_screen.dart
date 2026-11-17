@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/obsidian_page_header.dart';
 import '../theme/obsidian_tokens.dart';
 import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
@@ -754,44 +755,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Card
-          ObsidianGlassCard(
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(ObsidianTokens.radius),
-                  ),
-                  child: Icon(Icons.settings_suggest_rounded,
-                      color: ObsidianUITheme.primaryAccent, size: 32),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        context.tr('nav.settings_cache'),
-                        style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: primaryTextColor),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        context.tr('subtitle.settings'),
-                        style:
-                            TextStyle(fontSize: 12, color: secondaryTextColor),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+          ObsidianPageHeader(
+            title: context.tr('nav.settings_cache'),
+            description: context.tr('subtitle.settings'),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
           ),
-          const SizedBox(height: 16),
 
           // Team Theme & Styling Card
           ObsidianGlassCard(

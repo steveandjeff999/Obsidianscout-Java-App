@@ -1267,7 +1267,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                       style: const TextStyle(
                         fontSize: 9.5,
                         fontWeight: FontWeight.w500,
-                        color: Color(0xFF94A3B8),
+                        color: Color(0xFF9B9BA6),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -1449,7 +1449,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: const Color(0xE60F172A),
+                      color: const Color(0xE60E0E11),
                       border: Border(
                         bottom: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
                       ),
@@ -1474,7 +1474,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                                    child: DropdownButtonHideUnderline(
                                      child: DropdownButton<String>(
                                        value: safeMatchValue,
-                                       dropdownColor: const Color(0xFF1E293B),
+                                       dropdownColor: const Color(0xFF16161A),
                                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: primaryTextColor),
                                        icon: const Icon(Icons.arrow_drop_down, color: Colors.white70, size: 20),
                                        isDense: true,
@@ -1565,7 +1565,7 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                                         ? DropdownButtonHideUnderline(
                                             child: DropdownButton<String>(
                                               value: safeMatchValue,
-                                              dropdownColor: const Color(0xFF1E293B),
+                                              dropdownColor: const Color(0xFF16161A),
                                               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: primaryTextColor),
                                               icon: const Icon(Icons.arrow_drop_down, color: Colors.white70, size: 18),
                                               isDense: true,

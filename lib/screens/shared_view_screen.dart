@@ -1166,7 +1166,7 @@ class _SharedViewScreenState extends State<SharedViewScreen> {
                         children: [
                           const Text('Red Alliance', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
                           const SizedBox(height: 8),
-                          Text('$redScore pts', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                          Text('$redScore pts', style: const TextStyle(fontFamily: ObsidianTokens.fontSerif, fontSize: 22, fontWeight: FontWeight.w500)),
                           Text('$redWinProb% Win Prob', style: const TextStyle(fontSize: 12, color: Colors.grey)),
                         ],
                       ),
@@ -1185,7 +1185,7 @@ class _SharedViewScreenState extends State<SharedViewScreen> {
                         children: [
                           const Text('Blue Alliance', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
                           const SizedBox(height: 8),
-                          Text('$blueScore pts', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                          Text('$blueScore pts', style: const TextStyle(fontFamily: ObsidianTokens.fontSerif, fontSize: 22, fontWeight: FontWeight.w500)),
                           Text('${100 - redWinProb}% Win Prob', style: const TextStyle(fontSize: 12, color: Colors.grey)),
                         ],
                       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/obsidian_tokens.dart';
 import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
 import '../theme/obsidian_ui_theme.dart';
@@ -69,8 +70,6 @@ class _ObsidianNavigationDrawerState extends State<ObsidianNavigationDrawer> {
     final headerTextColor = ObsidianUITheme.getPrimaryTextColor(context);
     final sectionLabelColor = ObsidianUITheme.getSecondaryTextColor(context);
     final primaryAccent = ObsidianUITheme.getPrimaryAccent(context);
-    final itemRadius = ObsidianUITheme.getButtonRadius(context)
-        .clamp(4.0, 18.0);
 
     final user = apiService.currentUser;
     final username = user?.username.isNotEmpty == true
@@ -565,11 +564,10 @@ class _ObsidianNavigationDrawerState extends State<ObsidianNavigationDrawer> {
                           program.isNotEmpty
                               ? 'ObsidianScout $program'
                               : 'ObsidianScout',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: headerTextColor,
-                            letterSpacing: 0.3,
+                          style: ObsidianTokens.serif(
+                            base: TextStyle(color: headerTextColor),
+                            size: 18,
+                            weight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(height: 3),
@@ -584,7 +582,7 @@ class _ObsidianNavigationDrawerState extends State<ObsidianNavigationDrawer> {
                                   fontSize: 13,
                                   color: isDark
                                       ? Colors.white70
-                                      : const Color(0xFF475569),
+                                      : const Color(0xFF6E6B64),
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -674,26 +672,18 @@ class _ObsidianNavigationDrawerState extends State<ObsidianNavigationDrawer> {
                       final isAction = item['isAction'] == true;
                       final idx = item['index'] as int?;
                       final isSelected = !isAction && idx == currentIndex;
-                      final unselectedItemColor = isDark
-                          ? Colors.white.withValues(alpha: 0.9)
-                          : const Color(0xFF334155);
-                      final unselectedIconColor =
-                          isDark ? Colors.white70 : const Color(0xFF64748B);
+                      final tokens = ObsidianTokens.of(context);
+                      final unselectedItemColor = tokens.muted;
+                      final unselectedIconColor = tokens.muted;
 
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 2.5),
                         child: Material(
                           color: isSelected
-                              ? primaryAccent.withValues(alpha: 0.2)
+                              ? primaryAccent.withValues(alpha: isDark ? 0.15 : 0.10)
                               : Colors.transparent,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(itemRadius),
-                            side: isSelected
-                                ? BorderSide(
-                                    color: primaryAccent.withValues(alpha: 0.5),
-                                    width: 1.2,
-                                  )
-                                : BorderSide.none,
+                            borderRadius: BorderRadius.circular(ObsidianTokens.radiusSm),
                           ),
                           clipBehavior: Clip.antiAlias,
                           child: ListTile(
@@ -709,10 +699,10 @@ class _ObsidianNavigationDrawerState extends State<ObsidianNavigationDrawer> {
                               context.tr(item['labelKey'] as String),
                               style: TextStyle(
                                 color: isSelected
-                                    ? (isDark ? Colors.white : primaryAccent)
+                                    ? primaryAccent
                                     : unselectedItemColor,
                                 fontWeight: isSelected
-                                    ? FontWeight.bold
+                                    ? FontWeight.w600
                                     : FontWeight.w500,
                                 fontSize: 13.5,
                               ),
@@ -774,7 +764,7 @@ class _ObsidianNavigationDrawerState extends State<ObsidianNavigationDrawer> {
                       style: TextStyle(
                         color: isDark
                             ? Colors.white.withValues(alpha: 0.9)
-                            : const Color(0xFF334155),
+                            : const Color(0xFF25252B),
                         fontSize: 13.5,
                       ),
                     ),

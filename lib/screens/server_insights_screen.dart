@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../theme/obsidian_tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
@@ -264,9 +265,7 @@ class _ServerInsightsScreenState extends State<ServerInsightsScreen>
             Text(
               _t('locked_title', 'Superadmin Access Required'),
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+              style: TextStyle(fontFamily: ObsidianTokens.fontSerif, fontSize: 20, fontWeight: FontWeight.w500,
                 color: primaryText,
               ),
             ),
@@ -1077,9 +1076,7 @@ class _ServerInsightsScreenState extends State<ServerInsightsScreen>
                 Text(
                   value,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                  style: TextStyle(fontFamily: ObsidianTokens.fontSerif, fontSize: 20, fontWeight: FontWeight.w500,
                       color: primaryText),
                 ),
                 const SizedBox(height: 2),
@@ -1183,7 +1180,7 @@ class _ServerInsightsScreenState extends State<ServerInsightsScreen>
       case 'linux':
         return _amber;
       default:
-        return const Color(0xFF94A3B8);
+        return const Color(0xFF9B9BA6);
     }
   }
 }

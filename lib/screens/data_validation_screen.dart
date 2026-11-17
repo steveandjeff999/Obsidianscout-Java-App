@@ -324,7 +324,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
                           return DropdownButton<String>(
                             value: effectiveEvent,
                             isExpanded: true,
-                            dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                            dropdownColor: isDark ? const Color(0xFF16161A) : Colors.white,
                             style: TextStyle(
                               color: primaryTextColor,
                               fontWeight: FontWeight.w600,
@@ -383,7 +383,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
                                 child: DropdownButton<double>(
                                   value: _threshold,
                                   isExpanded: true,
-                                  dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                  dropdownColor: isDark ? const Color(0xFF16161A) : Colors.white,
                                   style: TextStyle(color: primaryTextColor, fontSize: 13.0, fontWeight: FontWeight.w600),
                                   items: const [
                                     DropdownMenuItem(value: 5.0, child: Text('5+ pts delta')),
@@ -432,7 +432,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
                                 child: DropdownButton<String>(
                                   value: _filterStatus,
                                   isExpanded: true,
-                                  dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                  dropdownColor: isDark ? const Color(0xFF16161A) : Colors.white,
                                   style: TextStyle(color: primaryTextColor, fontSize: 13.0, fontWeight: FontWeight.w600),
                                   items: const [
                                     DropdownMenuItem(value: 'all', child: Text('All Records')),
@@ -712,7 +712,7 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
 
   Widget _buildTabSwitcher(BuildContext context) {
     final isDark = ObsidianUITheme.isDark(context);
-    final unselectedColor = isDark ? Colors.white70 : const Color(0xFF475569);
+    final unselectedColor = isDark ? Colors.white70 : const Color(0xFF6E6B64);
 
     return Container(
       padding: const EdgeInsets.all(4.0),
@@ -1424,7 +1424,7 @@ class _MatchInspectionBottomSheet extends StatelessWidget {
     return Container(
       constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+        color: isDark ? const Color(0xFF0E0E11) : const Color(0xFFF5F4F0),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
         border: Border.all(color: isDark ? Colors.white12 : Colors.black12, width: 1.2),
       ),

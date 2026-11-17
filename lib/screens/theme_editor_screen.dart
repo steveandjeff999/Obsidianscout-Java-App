@@ -541,8 +541,8 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
             ObsidianUITheme.errorRed,
             ObsidianUITheme.successGreen,
             const Color(0xFFF43F5E),
-            const Color(0xFF09090B),
-            const Color(0xFF18181B),
+            const Color(0xFF0E0E11),
+            const Color(0xFF1C1C21),
             const Color(0xFFFFFFFF),
             const Color(0xFFF4F4F5),
             const Color(0xFF71717A),
@@ -899,7 +899,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
     final secondaryText = ObsidianUITheme.getSecondaryTextColor(context);
 
     final title = isDarkModeConfig ? 'Dark Mode' : 'Light Mode';
-    final dotColor = isDarkModeConfig ? const Color(0xFF09090B) : const Color(0xFFFFFFFF);
+    final dotColor = isDarkModeConfig ? const Color(0xFF0E0E11) : const Color(0xFFFFFFFF);
 
     final accentCtrl = isDarkModeConfig ? _darkAccentCtrl : _lightAccentCtrl;
     final accent2Ctrl = isDarkModeConfig ? _darkAccent2Ctrl : _lightAccent2Ctrl;
@@ -1310,7 +1310,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
     final radius = ObsidianUITheme.parseRadius(_previewIsDark ? _darkRadius : _lightRadius, fallback: 999.0);
 
     final bgGrad = ObsidianUITheme.parseGradient(bgStr);
-    final bgSolid = ObsidianUITheme.parseHex(bgStr) ?? (_previewIsDark ? const Color(0xFF09090B) : const Color(0xFFFFFFFF));
+    final bgSolid = ObsidianUITheme.parseHex(bgStr) ?? (_previewIsDark ? const Color(0xFF0E0E11) : const Color(0xFFFFFFFF));
 
     final borderRadius = BorderRadius.circular(radius > 40 ? 40 : radius);
 

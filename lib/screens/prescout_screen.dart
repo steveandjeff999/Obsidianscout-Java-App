@@ -833,9 +833,7 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
                       children: [
                         Text(
                           context.tr('prescout.prescouting_dashboard'),
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
+                          style: TextStyle(fontFamily: ObsidianTokens.fontSerif, fontSize: 20, fontWeight: FontWeight.w500,
                             color: primaryTextColor,
                           ),
                         ),

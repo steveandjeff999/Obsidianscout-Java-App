@@ -254,9 +254,7 @@ class _LoadProfilerScreenState extends State<LoadProfilerScreen> {
                 const SizedBox(height: 16.0),
                 Text(
                   'Superadmin Access Required',
-                  style: TextStyle(
-                    fontSize: 20.0,
-                    fontWeight: FontWeight.bold,
+                  style: TextStyle(fontFamily: ObsidianTokens.fontSerif, fontSize: 20.0, fontWeight: FontWeight.w500,
                     color: textPrimary,
                   ),
                 ),
@@ -678,9 +676,7 @@ class _LoadProfilerScreenState extends State<LoadProfilerScreen> {
             const SizedBox(height: 6.0),
             Text(
               item.value,
-              style: TextStyle(
-                fontSize: 22.0,
-                fontWeight: FontWeight.bold,
+              style: TextStyle(fontFamily: ObsidianTokens.fontSerif, fontSize: 22.0, fontWeight: FontWeight.w500,
                 color: textPrimary,
                 fontFeatures: const [FontFeature.tabularFigures()],
               ),

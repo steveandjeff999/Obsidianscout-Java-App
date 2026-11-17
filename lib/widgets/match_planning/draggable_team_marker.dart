@@ -111,7 +111,7 @@ class _DraggableTeamMarkerWidgetState extends State<DraggableTeamMarkerWidget> {
               width: boxSize,
               height: boxSize,
               decoration: BoxDecoration(
-                color: const Color(0xE60F172A), // Dark slate
+                color: const Color(0xE60E0E11), // Dark slate
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(color: borderColor, width: _isDragging ? 3.0 : 2.5),
                 boxShadow: [

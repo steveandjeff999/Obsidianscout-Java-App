@@ -268,7 +268,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
       case 'error':
         return ObsidianUITheme.errorRed;
       default:
-        return const Color(0xFF94A3B8);
+        return const Color(0xFF9B9BA6);
     }
   }
 
@@ -279,7 +279,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: const Color(0xFF16161A),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
         title: Row(children: [
           const Icon(Icons.restart_alt_rounded, color: ObsidianUITheme.errorRed),
@@ -294,13 +294,13 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
           isAll
               ? 'Are you sure you want to reboot ALL $nodeCount servers in the CockroachDB cluster?\n\nThis will send reboot signals to every server node.'
               : 'Are you sure you want to reboot server node $nodeIp?\n\nThis will terminate the node process and initiate a server reboot.',
-          style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 13),
+          style: const TextStyle(color: Color(0xFFE2DFD8), fontSize: 13),
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
               child: const Text('Cancel',
-                  style: TextStyle(color: Color(0xFF94A3B8)))),
+                  style: TextStyle(color: Color(0xFF9B9BA6)))),
           ElevatedButton(
               style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFDC2626)),
@@ -326,7 +326,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: const Color(0xFF16161A),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
         title: Row(children: [
           const Icon(Icons.system_update_rounded, color: ObsidianUITheme.warningOrange),
@@ -342,13 +342,13 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
           isAll
               ? 'Force reinstall and update ALL $nodeCount servers in the cluster?\n\nThis will trigger CockroachDB binary re-verification and pull release updates on every node.'
               : 'Force reinstall/update server node $nodeIp?\n\nThis will trigger binary verification, re-download CockroachDB binaries if corrupted, and pull release updates.',
-          style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 13),
+          style: const TextStyle(color: Color(0xFFE2DFD8), fontSize: 13),
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
               child: const Text('Cancel',
-                  style: TextStyle(color: Color(0xFF94A3B8)))),
+                  style: TextStyle(color: Color(0xFF9B9BA6)))),
           ElevatedButton(
               style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFD97706)),
@@ -371,7 +371,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: const Color(0xFF16161A),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
         title: const Row(children: [
           Icon(Icons.key_rounded, color: Color(0xFFA855F7)),
@@ -384,13 +384,13 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
         ]),
         content: const Text(
           'This will rotate session and VAPID push notification keys cluster-wide. All active sessions across all nodes will be invalidated. Are you sure?',
-          style: TextStyle(color: Color(0xFFCBD5E1), fontSize: 13),
+          style: TextStyle(color: Color(0xFFE2DFD8), fontSize: 13),
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
               child: const Text('Cancel',
-                  style: TextStyle(color: Color(0xFF94A3B8)))),
+                  style: TextStyle(color: Color(0xFF9B9BA6)))),
           ElevatedButton(
               style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF7C3AED)),
@@ -425,7 +425,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlg) => Dialog(
-          backgroundColor: const Color(0xFF0F172A),
+          backgroundColor: const Color(0xFF0E0E11),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
           insetPadding:
@@ -442,7 +442,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                   padding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: const BoxDecoration(
-                    color: Color(0xFF1E293B),
+                    color: Color(0xFF16161A),
                     borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(ObsidianTokens.radius),
                         topRight: Radius.circular(ObsidianTokens.radius)),
@@ -473,7 +473,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                       IconButton(
                           onPressed: () => Navigator.pop(ctx),
                           icon: const Icon(Icons.close_rounded,
-                              color: Color(0xFF64748B))),
+                              color: Color(0xFF9B9BA6))),
                     ],
                   ),
                 ),
@@ -515,7 +515,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  color: const Color(0xFF1E293B),
+                  color: const Color(0xFF16161A),
                   child: Row(
                     children: [
                       Expanded(
@@ -531,7 +531,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                       TextButton(
                           onPressed: () => Navigator.pop(ctx),
                           child: const Text('Cancel',
-                              style: TextStyle(color: Color(0xFF94A3B8)))),
+                              style: TextStyle(color: Color(0xFF9B9BA6)))),
                       const SizedBox(width: 6),
                       ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
@@ -589,7 +589,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
     await showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: const Color(0xFF16161A),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
         title: const Row(children: [
           Icon(Icons.tune_rounded, color: ObsidianUITheme.successGreen),
@@ -610,7 +610,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
               children: [
                 const Text(
                   'Settings are stored in CockroachDB and shared by every server node across the cluster.',
-                  style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+                  style: TextStyle(color: Color(0xFF9B9BA6), fontSize: 12),
                 ),
                 const SizedBox(height: 14),
                 _buildTextField(
@@ -655,7 +655,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
           TextButton(
               onPressed: () => Navigator.pop(ctx),
               child: const Text('Cancel',
-                  style: TextStyle(color: Color(0xFF94A3B8)))),
+                  style: TextStyle(color: Color(0xFF9B9BA6)))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF059669)),
@@ -717,7 +717,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlg) => AlertDialog(
-          backgroundColor: const Color(0xFF1E293B),
+          backgroundColor: const Color(0xFF16161A),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
           title: Row(children: [
@@ -739,7 +739,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                 children: [
                   const Text(
                       'Select what datasets this specific node caches locally in SQLite for quorum loss fallback.',
-                      style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+                      style: TextStyle(color: Color(0xFF9B9BA6), fontSize: 12)),
                   const SizedBox(height: 12),
                   // Mode Selection
                   Container(
@@ -766,7 +766,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                                       : Icons.radio_button_off,
                                   color: mirrorAll
                                       ? ObsidianUITheme.successGreen
-                                      : const Color(0xFF64748B),
+                                      : const Color(0xFF9B9BA6),
                                   size: 18,
                                 ),
                                 const SizedBox(width: 10),
@@ -784,7 +784,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                                       Text(
                                           'Caches all historical data without date cutoffs.',
                                           style: TextStyle(
-                                              color: Color(0xFF64748B),
+                                              color: Color(0xFF9B9BA6),
                                               fontSize: 11)),
                                     ],
                                   ),
@@ -809,7 +809,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                                       : Icons.radio_button_off,
                                   color: !mirrorAll
                                       ? ObsidianUITheme.warningOrange
-                                      : const Color(0xFF64748B),
+                                      : const Color(0xFF9B9BA6),
                                   size: 18,
                                 ),
                                 const SizedBox(width: 10),
@@ -827,7 +827,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                                       Text(
                                           'Selective data categories & time retention window.',
                                           style: TextStyle(
-                                              color: Color(0xFF64748B),
+                                              color: Color(0xFF9B9BA6),
                                               fontSize: 11)),
                                     ],
                                   ),
@@ -843,7 +843,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                     const SizedBox(height: 12),
                     const Text('Included Categories',
                         style: TextStyle(
-                            color: Color(0xFFE2E8F0),
+                            color: Color(0xFFE2DFD8),
                             fontWeight: FontWeight.bold,
                             fontSize: 12)),
                     const SizedBox(height: 6),
@@ -871,7 +871,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                     DropdownButtonFormField<int>(
                       initialValue: retentionDays,
                       decoration: _inputDecoration('Competition Window'),
-                      dropdownColor: const Color(0xFF1E293B),
+                      dropdownColor: const Color(0xFF16161A),
                       style: const TextStyle(color: Colors.white, fontSize: 13),
                       items: const [
                         DropdownMenuItem(
@@ -911,7 +911,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
             TextButton(
                 onPressed: () => Navigator.pop(ctx),
                 child: const Text('Cancel',
-                    style: TextStyle(color: Color(0xFF94A3B8)))),
+                    style: TextStyle(color: Color(0xFF9B9BA6)))),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFD97706)),
@@ -971,7 +971,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
     await showDialog<void>(
       context: context,
       builder: (ctx) => Dialog(
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: const Color(0xFF0E0E11),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ObsidianTokens.radius)),
         insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         child: Container(
@@ -986,7 +986,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: const BoxDecoration(
-                  color: Color(0xFF1E293B),
+                  color: Color(0xFF16161A),
                   borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(ObsidianTokens.radius),
                       topRight: Radius.circular(ObsidianTokens.radius)),
@@ -1006,7 +1006,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                   IconButton(
                       onPressed: () => Navigator.pop(ctx),
                       icon: const Icon(Icons.close_rounded,
-                          color: Color(0xFF64748B))),
+                          color: Color(0xFF9B9BA6))),
                 ]),
               ),
               // Body
@@ -1045,7 +1045,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                       const Text(
                           'No active events within ±1 week stored in this snapshot.',
                           style: TextStyle(
-                              color: Color(0xFF64748B), fontSize: 11.5))
+                              color: Color(0xFF9B9BA6), fontSize: 11.5))
                     else
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
@@ -1073,35 +1073,35 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                                       padding: EdgeInsets.all(6),
                                       child: Text('Event',
                                           style: TextStyle(
-                                              color: Color(0xFF94A3B8),
+                                              color: Color(0xFF9B9BA6),
                                               fontSize: 11,
                                               fontWeight: FontWeight.bold))),
                                   Padding(
                                       padding: EdgeInsets.all(6),
                                       child: Text('Name',
                                           style: TextStyle(
-                                              color: Color(0xFF94A3B8),
+                                              color: Color(0xFF9B9BA6),
                                               fontSize: 11,
                                               fontWeight: FontWeight.bold))),
                                   Padding(
                                       padding: EdgeInsets.all(6),
                                       child: Text('Matches',
                                           style: TextStyle(
-                                              color: Color(0xFF94A3B8),
+                                              color: Color(0xFF9B9BA6),
                                               fontSize: 11,
                                               fontWeight: FontWeight.bold))),
                                   Padding(
                                       padding: EdgeInsets.all(6),
                                       child: Text('Teams',
                                           style: TextStyle(
-                                              color: Color(0xFF94A3B8),
+                                              color: Color(0xFF9B9BA6),
                                               fontSize: 11,
                                               fontWeight: FontWeight.bold))),
                                   Padding(
                                       padding: EdgeInsets.all(6),
                                       child: Text('Scout',
                                           style: TextStyle(
-                                              color: Color(0xFF94A3B8),
+                                              color: Color(0xFF9B9BA6),
                                               fontSize: 11,
                                               fontWeight: FontWeight.bold))),
                                 ],
@@ -1121,7 +1121,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                                           padding: const EdgeInsets.all(6),
                                           child: Text(ev.name,
                                               style: const TextStyle(
-                                                  color: Color(0xFFCBD5E1),
+                                                  color: Color(0xFFE2DFD8),
                                                   fontSize: 11),
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis)),
@@ -1178,7 +1178,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                                   children: [
                                     Text(e.key,
                                         style: const TextStyle(
-                                            color: Color(0xFFCBD5E1),
+                                            color: Color(0xFFE2DFD8),
                                             fontSize: 10.5,
                                             fontFamily: 'monospace')),
                                     const SizedBox(width: 6),
@@ -1186,7 +1186,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                                         style: TextStyle(
                                             color: e.value > 0
                                                 ? ObsidianUITheme.defaultSecondaryAccent
-                                                : const Color(0xFF64748B),
+                                                : const Color(0xFF9B9BA6),
                                             fontSize: 10.5,
                                             fontWeight: FontWeight.bold)),
                                   ],
@@ -1232,11 +1232,11 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
       FilterChip(
         label: Text(label,
             style: TextStyle(
-                color: isSelected ? Colors.white : const Color(0xFF94A3B8),
+                color: isSelected ? Colors.white : const Color(0xFF9B9BA6),
                 fontSize: 11)),
         selected: isSelected,
         selectedColor: const Color(0xFF7C3AED),
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: const Color(0xFF16161A),
         checkmarkColor: Colors.white,
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -1259,18 +1259,18 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
         hintText: hint,
         helperText: helper,
         helperMaxLines: 2,
-        labelStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
-        hintStyle: const TextStyle(color: Color(0xFF475569), fontSize: 12),
-        helperStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 10.5),
+        labelStyle: const TextStyle(color: Color(0xFF9B9BA6), fontSize: 12),
+        hintStyle: const TextStyle(color: Color(0xFF6E6B64), fontSize: 12),
+        helperStyle: const TextStyle(color: Color(0xFF9B9BA6), fontSize: 10.5),
         filled: true,
-        fillColor: const Color(0xFF0F172A),
+        fillColor: const Color(0xFF0E0E11),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
-          borderSide: const BorderSide(color: Color(0xFF334155)),
+          borderSide: const BorderSide(color: Color(0xFF25252B)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
-          borderSide: const BorderSide(color: Color(0xFF334155)),
+          borderSide: const BorderSide(color: Color(0xFF25252B)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
@@ -1286,7 +1286,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
     if (!widget.isVisible) return const SizedBox.shrink();
 
     final isDark = ObsidianUITheme.isDark(context);
-    final bgColor = isDark ? const Color(0xFF060B14) : const Color(0xFFF1F5F9);
+    final bgColor = isDark ? const Color(0xFF060B14) : const Color(0xFFF7F6F2);
 
     // Hard Access Guard: Superadmin Only
     if (widget.apiService.currentUser?.isSuperAdmin != true) {
@@ -1312,7 +1312,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                   const Text(
                     'Cluster Management is strictly restricted to Superadministrators only.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                    style: TextStyle(color: Color(0xFF9B9BA6), fontSize: 13),
                   ),
                 ],
               ),
@@ -1328,7 +1328,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
         children: [
           // Tab bar
           Container(
-            color: isDark ? const Color(0xFF0A0F1C) : const Color(0xFFE2E8F0),
+            color: isDark ? const Color(0xFF0A0F1C) : const Color(0xFFE2DFD8),
             child: TabBar(
               controller: _tabController,
               isScrollable: true,
@@ -1336,7 +1336,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
               indicatorColor: const Color(0xFF7C3AED),
               labelColor: const Color(0xFFC084FC),
               unselectedLabelColor:
-                  isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+                  isDark ? const Color(0xFF9B9BA6) : const Color(0xFF9B9BA6),
               tabs: const [
                 Tab(text: 'Servers', icon: Icon(Icons.dns_rounded, size: 18)),
                 Tab(text: 'Logs', icon: Icon(Icons.terminal_rounded, size: 18)),
@@ -1485,9 +1485,9 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                 ),
               ),
               PopupMenuButton<String>(
-                color: const Color(0xFF1E293B),
+                color: const Color(0xFF16161A),
                 icon: const Icon(Icons.more_vert_rounded,
-                    color: Color(0xFF64748B)),
+                    color: Color(0xFF9B9BA6)),
                 onSelected: (v) {
                   switch (v) {
                     case 'logs':
@@ -1511,7 +1511,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                       value: 'logs',
                       child: Row(children: [
                         Icon(Icons.terminal_rounded,
-                            color: Color(0xFF94A3B8), size: 16),
+                            color: Color(0xFF9B9BA6), size: 16),
                         SizedBox(width: 8),
                         Text('View Node Logs',
                             style: TextStyle(color: Colors.white)),
@@ -1520,7 +1520,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                       value: 'config',
                       child: Row(children: [
                         Icon(Icons.settings_rounded,
-                            color: Color(0xFF94A3B8), size: 16),
+                            color: Color(0xFF9B9BA6), size: 16),
                         SizedBox(width: 8),
                         Text('Edit app-config.json',
                             style: TextStyle(color: Colors.white)),
@@ -1573,10 +1573,10 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
         mainAxisSize: MainAxisSize.min,
         children: [
           Text('$label: ',
-              style: const TextStyle(color: Color(0xFF64748B), fontSize: 11.5)),
+              style: const TextStyle(color: Color(0xFF9B9BA6), fontSize: 11.5)),
           Text(value,
               style: const TextStyle(
-                  color: Color(0xFFCBD5E1),
+                  color: Color(0xFFE2DFD8),
                   fontSize: 11.5,
                   fontFamily: 'monospace')),
         ],
@@ -1636,7 +1636,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                           _loadLogs();
                         }
                       },
-                      dropdownColor: const Color(0xFF1E293B),
+                      dropdownColor: const Color(0xFF16161A),
                       style: const TextStyle(color: Colors.white, fontSize: 12),
                       decoration: _dropdownDeco('Node'),
                     ),
@@ -1658,7 +1658,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                           _loadLogs();
                         }
                       },
-                      dropdownColor: const Color(0xFF1E293B),
+                      dropdownColor: const Color(0xFF16161A),
                       style: const TextStyle(color: Colors.white, fontSize: 12),
                       decoration: _dropdownDeco('Limit'),
                     ),
@@ -1699,7 +1699,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                         Icons.sync_rounded,
                         color: _logAutoRefresh
                             ? ObsidianUITheme.successGreen
-                            : const Color(0xFF64748B),
+                            : const Color(0xFF9B9BA6),
                         size: 20,
                       ),
                     ),
@@ -1712,11 +1712,11 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                 style: const TextStyle(color: Colors.white, fontSize: 12.5),
                 decoration: InputDecoration(
                   hintText: 'Filter logs…',
-                  hintStyle: const TextStyle(color: Color(0xFF475569)),
+                  hintStyle: const TextStyle(color: Color(0xFF6E6B64)),
                   prefixIcon: const Icon(Icons.search_rounded,
-                      color: Color(0xFF64748B), size: 16),
+                      color: Color(0xFF9B9BA6), size: 16),
                   filled: true,
-                  fillColor: const Color(0xFF1E293B),
+                  fillColor: const Color(0xFF16161A),
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                       borderSide: BorderSide.none),
@@ -1736,7 +1736,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                   Text(
                     '${_logs.length} entries  •  Node: $_selectedLogNodeIp',
                     style: const TextStyle(
-                        color: Color(0xFF64748B), fontSize: 10.5),
+                        color: Color(0xFF9B9BA6), fontSize: 10.5),
                   ),
                 ],
               ),
@@ -1777,7 +1777,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
         break;
       case 'DEBUG':
       case 'TRACE':
-        levelColor = const Color(0xFF64748B);
+        levelColor = const Color(0xFF9B9BA6);
         break;
       default:
         levelColor = ObsidianUITheme.successGreen;
@@ -1790,7 +1790,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
         children: [
           Text(log.timestamp,
               style: const TextStyle(
-                  color: Color(0xFF64748B),
+                  color: Color(0xFF9B9BA6),
                   fontSize: 10,
                   fontFamily: 'monospace')),
           const SizedBox(width: 6),
@@ -1813,7 +1813,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
             child: Text(
               '${log.logger != null ? "[${log.logger}] " : ""}${log.message}',
               style: const TextStyle(
-                  color: Color(0xFFE2E8F0),
+                  color: Color(0xFFE2DFD8),
                   fontSize: 11.5,
                   fontFamily: 'monospace'),
               softWrap: true,
@@ -1827,7 +1827,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
   InputDecoration _dropdownDeco(String hint) => InputDecoration(
         hintText: hint,
         filled: true,
-        fillColor: const Color(0xFF1E293B),
+        fillColor: const Color(0xFF16161A),
         border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
             borderSide: BorderSide.none),
@@ -1875,7 +1875,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                 const SizedBox(height: 4),
                 const Text(
                   'Automatically routes incoming requests to the best available server node based on heap availability, CPU load, and network latency.',
-                  style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+                  style: TextStyle(color: Color(0xFF9B9BA6), fontSize: 12),
                 ),
                 const SizedBox(height: 10),
                 // Controls Row
@@ -1929,7 +1929,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                     _actionButton(
                       icon: Icons.refresh_rounded,
                       label: 'Refresh',
-                      color: const Color(0xFF64748B),
+                      color: const Color(0xFF9B9BA6),
                       onPressed: _loadLbStatus,
                     ),
                   ],
@@ -1944,7 +1944,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                               color: ObsidianUITheme.successGreen)))
                 else if (_lbStatus == null)
                   const Text('Load balancer status unavailable.',
-                      style: TextStyle(color: Color(0xFF64748B)))
+                      style: TextStyle(color: Color(0xFF9B9BA6)))
                 else ...[
                   // Metrics Grid
                   Wrap(
@@ -1989,7 +1989,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                       children: [
                         const Text('Network peer load & latency ranking',
                             style: TextStyle(
-                                color: Color(0xFF94A3B8),
+                                color: Color(0xFF9B9BA6),
                                 fontSize: 10.5,
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: 0)),
@@ -1998,7 +1998,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                           const Text(
                               'No active remote peer nodes discovered on the cluster.',
                               style: TextStyle(
-                                  color: Color(0xFF64748B), fontSize: 11.5))
+                                  color: Color(0xFF9B9BA6), fontSize: 11.5))
                         else
                           ..._lbStatus!.peerNodes
                               .map((p) => _buildPeerScoreRow(p)),
@@ -2051,7 +2051,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                       child: Text(
                           'No load balancing activity recorded yet in the last 30 minutes.',
                           style: TextStyle(
-                              color: Color(0xFF64748B), fontSize: 11.5)),
+                              color: Color(0xFF9B9BA6), fontSize: 11.5)),
                     ),
                   )
                 else
@@ -2080,7 +2080,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                                 children: [
                                   Text('[$timeStr]',
                                       style: const TextStyle(
-                                          color: Color(0xFF64748B),
+                                          color: Color(0xFF9B9BA6),
                                           fontSize: 10.5,
                                           fontFamily: 'monospace')),
                                   const SizedBox(width: 6),
@@ -2101,7 +2101,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                                     Expanded(
                                       child: Text(item.note,
                                           style: const TextStyle(
-                                              color: Color(0xFFCBD5E1),
+                                              color: Color(0xFFE2DFD8),
                                               fontSize: 11),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis),
@@ -2113,7 +2113,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                               Text(
                                 '+${item.requestsForwarded} fwd / +${item.requestsServedLocally} loc  •  Heap: ${item.localHeapFreeMb}MB  •  CPU: ${item.localCpuPercent}%',
                                 style: const TextStyle(
-                                    color: Color(0xFF94A3B8), fontSize: 10),
+                                    color: Color(0xFF9B9BA6), fontSize: 10),
                               ),
                             ],
                           ),
@@ -2148,20 +2148,20 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                     _stressStatus?.isRunning == true
                         ? _badge('Active (${_stressStatus!.remainingSeconds}s)',
                             ObsidianUITheme.errorRed, const Color(0x33EF4444))
-                        : _badge('Idle', const Color(0xFF94A3B8),
-                            const Color(0x2294A3B8)),
+                        : _badge('Idle', const Color(0xFF9B9BA6),
+                            const Color(0x229B9BA6)),
                   ],
                 ),
                 const SizedBox(height: 4),
                 const Text(
                   'Simulates high CPU & memory utilization to verify automatic traffic offloading. Stops after 60s max.',
-                  style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11.5),
+                  style: TextStyle(color: Color(0xFF9B9BA6), fontSize: 11.5),
                 ),
                 const SizedBox(height: 10),
                 _stressStatus?.isRunning == true
                     ? ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF475569)),
+                            backgroundColor: const Color(0xFF6E6B64)),
                         onPressed: () async {
                           final r = await widget.apiService.stopStressTest();
                           _showSnack(r.message, isError: !r.success);
@@ -2203,7 +2203,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
   Widget _buildLbStatusPill() {
     if (_lbStatus == null || !_lbStatus!.enabled) {
       return _badge(
-          'Disabled', const Color(0xFF94A3B8), const Color(0x2294A3B8));
+          'Disabled', const Color(0xFF9B9BA6), const Color(0x229B9BA6));
     }
     if (_lbStatus!.isForwardingActive) {
       return _badge('Forwarding Active -> ${_lbStatus!.bestNodeIp}',
@@ -2227,7 +2227,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
           children: [
             Text(title.toUpperCase(),
                 style: const TextStyle(
-                    color: Color(0xFF94A3B8),
+                    color: Color(0xFF9B9BA6),
                     fontSize: 9.5,
                     fontWeight: FontWeight.bold)),
             const SizedBox(height: 3),
@@ -2240,7 +2240,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
             const SizedBox(height: 2),
             Text(sub,
                 style:
-                    const TextStyle(color: Color(0xFF64748B), fontSize: 10.5)),
+                    const TextStyle(color: Color(0xFF9B9BA6), fontSize: 10.5)),
           ],
         ),
       );
@@ -2286,7 +2286,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
           const SizedBox(height: 2),
           Text(
               'Latency: ${peer.latencyMs}ms  •  Heap: ${peer.availableHeapMb}MB  •  CPU: ${(peer.cpuLoad * 100).round()}%',
-              style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 10.5)),
+              style: const TextStyle(color: Color(0xFF9B9BA6), fontSize: 10.5)),
         ],
       ),
     );
@@ -2320,7 +2320,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                 const SizedBox(height: 4),
                 const Text(
                     'Receive email and push notifications when any cluster node goes offline.',
-                    style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+                    style: TextStyle(color: Color(0xFF9B9BA6), fontSize: 12)),
                 if (_alertsLoading)
                   const Padding(
                       padding: EdgeInsets.all(16),
@@ -2335,11 +2335,11 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                             ? 'Enrolled — receiving alerts'
                             : 'Not enrolled',
                         style: const TextStyle(
-                            color: Color(0xFFE2E8F0), fontSize: 13.5)),
+                            color: Color(0xFFE2DFD8), fontSize: 13.5)),
                     subtitle: _nodeAlerts!.email != null
                         ? Text(_nodeAlerts!.email!,
                             style: const TextStyle(
-                                color: Color(0xFF64748B), fontSize: 11.5))
+                                color: Color(0xFF9B9BA6), fontSize: 11.5))
                         : null,
                     value: _nodeAlerts!.enrolled,
                     activeThumbColor: ObsidianUITheme.successGreen,
@@ -2384,7 +2384,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                 const SizedBox(height: 4),
                 const Text(
                     'Receive email notifications for unhandled 500 server errors across the cluster.',
-                    style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+                    style: TextStyle(color: Color(0xFF9B9BA6), fontSize: 12)),
                 if (_alertsLoading)
                   const Padding(
                       padding: EdgeInsets.all(16),
@@ -2396,7 +2396,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                     contentPadding: EdgeInsets.zero,
                     title: const Text('Enable Error Alerts',
                         style: TextStyle(
-                            color: Color(0xFFE2E8F0), fontSize: 13.5)),
+                            color: Color(0xFFE2DFD8), fontSize: 13.5)),
                     value: _errorAlerts!.enabled,
                     activeThumbColor: ObsidianUITheme.warningOrange,
                     onChanged: (v) async {
@@ -2416,7 +2416,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                       child: Text(
                           'Enrolled Admins: ${_errorAlerts!.enrolledSuperadmins.join(", ")}',
                           style: const TextStyle(
-                              color: Color(0xFF94A3B8), fontSize: 11.5)),
+                              color: Color(0xFF9B9BA6), fontSize: 11.5)),
                     ),
                   ],
                   const SizedBox(height: 8),
@@ -2454,7 +2454,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                 const SizedBox(height: 4),
                 const Text(
                   'Inspect and manage unhandled server exceptions and client-side bug reports recorded across all cluster nodes.',
-                  style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+                  style: TextStyle(color: Color(0xFF9B9BA6), fontSize: 12),
                 ),
                 const SizedBox(height: 12),
                 Wrap(
@@ -2549,13 +2549,13 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                 const SizedBox(height: 4),
                 const Text(
                   'Continually mirrors critical data into local SQLite storage. If CockroachDB cluster quorum is lost, servers automatically serve real-time reads from this snapshot.',
-                  style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+                  style: TextStyle(color: Color(0xFF9B9BA6), fontSize: 12),
                 ),
                 const SizedBox(height: 10),
                 _actionButton(
                   icon: Icons.refresh_rounded,
                   label: 'Refresh Status',
-                  color: const Color(0xFF64748B),
+                  color: const Color(0xFF9B9BA6),
                   onPressed: _loadQfStatus,
                 ),
                 const SizedBox(height: 14),
@@ -2567,7 +2567,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                               color: ObsidianUITheme.warningOrange)))
                 else if (_qfNodes.isEmpty)
                   const Text('No quorum fallback nodes found.',
-                      style: TextStyle(color: Color(0xFF64748B)))
+                      style: TextStyle(color: Color(0xFF9B9BA6)))
                 else
                   ..._qfNodes.map(_buildQfNodeCard),
               ],
@@ -2583,7 +2583,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
         ? ObsidianUITheme.warningOrange
         : node.enabled && node.isAvailable
             ? ObsidianUITheme.successGreen
-            : const Color(0xFF94A3B8);
+            : const Color(0xFF9B9BA6);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -2682,7 +2682,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                 final confirmed = await showDialog<bool>(
                   context: context,
                   builder: (ctx) => AlertDialog(
-                    backgroundColor: const Color(0xFF1E293B),
+                    backgroundColor: const Color(0xFF16161A),
                     title: const Text('Purge Quorum Storage',
                         style: TextStyle(color: Colors.white)),
                     content: Text(
@@ -2758,13 +2758,13 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                         ? _badge('Daily Active (02:54 UTC)',
                             ObsidianUITheme.successGreen, const Color(0x3310B981))
                         : _badge('Auto-Backup Disabled',
-                            const Color(0xFF94A3B8), const Color(0x2294A3B8)),
+                            const Color(0xFF9B9BA6), const Color(0x229B9BA6)),
                   ],
                 ),
                 const SizedBox(height: 4),
                 const Text(
                   'Creates an exact point-in-time snapshot stored locally as standalone SQLite files. Runs automatically at 02:54 UTC daily when enabled.',
-                  style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+                  style: TextStyle(color: Color(0xFF9B9BA6), fontSize: 12),
                 ),
                 const SizedBox(height: 10),
                 Wrap(
@@ -2785,7 +2785,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                     _actionButton(
                       icon: Icons.refresh_rounded,
                       label: 'Refresh',
-                      color: const Color(0xFF64748B),
+                      color: const Color(0xFF9B9BA6),
                       onPressed: _loadBackupStatus,
                     ),
                   ],
@@ -2813,13 +2813,13 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                         contentPadding: EdgeInsets.zero,
                         title: const Text('Enable Daily Auto-Backup',
                             style: TextStyle(
-                                color: Color(0xFFE2E8F0),
+                                color: Color(0xFFE2DFD8),
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600)),
                         subtitle: const Text(
                             'Trigger daily full snapshot at 02:54 UTC on this node.',
                             style: TextStyle(
-                                color: Color(0xFF64748B), fontSize: 11)),
+                                color: Color(0xFF9B9BA6), fontSize: 11)),
                         value: local.enabled,
                         activeThumbColor: ObsidianUITheme.successGreen,
                         onChanged: (v) async {
@@ -2840,7 +2840,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                                 ? 'Next Run: ${local.nextScheduledRunUtc} UTC'
                                 : 'Retention: ${local.retentionDays} days',
                             style: const TextStyle(
-                                color: Color(0xFF94A3B8), fontSize: 11.5),
+                                color: Color(0xFF9B9BA6), fontSize: 11.5),
                           ),
                           _smallButton(
                             icon: Icons.tune_rounded,
@@ -2852,7 +2852,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                               final days = await showDialog<int>(
                                 context: context,
                                 builder: (ctx) => AlertDialog(
-                                  backgroundColor: const Color(0xFF1E293B),
+                                  backgroundColor: const Color(0xFF16161A),
                                   title: const Text(
                                       'Auto-Deletion Retention (Days)',
                                       style: TextStyle(color: Colors.white)),
@@ -2927,7 +2927,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                     child: Center(
                       child: Text('No local SQLite snapshots created yet.',
                           style: TextStyle(
-                              color: Color(0xFF64748B), fontSize: 11.5)),
+                              color: Color(0xFF9B9BA6), fontSize: 11.5)),
                     ),
                   )
                 else
@@ -2958,7 +2958,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                 else if (clusterNodes.isEmpty)
                   const Text('No remote cluster backup nodes discovered.',
                       style:
-                          TextStyle(color: Color(0xFF64748B), fontSize: 11.5))
+                          TextStyle(color: Color(0xFF9B9BA6), fontSize: 11.5))
                 else
                   ...clusterNodes.map((cn) => _buildClusterNodeBackupCard(cn)),
               ],
@@ -3002,7 +3002,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                             ? s.createdAtUtc
                             : _shortTimestampFromMs(s.createdAtEpochMs),
                         style: const TextStyle(
-                            color: Color(0xFF94A3B8), fontSize: 10.5)),
+                            color: Color(0xFF9B9BA6), fontSize: 10.5)),
                     Text(_formatBytes(s.sizeBytes),
                         style: const TextStyle(
                             color: ObsidianUITheme.defaultSecondaryAccent,
@@ -3011,8 +3011,8 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                     s.isAutoBackup
                         ? _badge('Auto', ObsidianUITheme.defaultPrimaryAccent,
                             const Color(0x223B82F6))
-                        : _badge('Manual', const Color(0xFF94A3B8),
-                            const Color(0x2294A3B8)),
+                        : _badge('Manual', const Color(0xFF9B9BA6),
+                            const Color(0x229B9BA6)),
                   ],
                 ),
               ],
@@ -3029,7 +3029,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                   final confirmed = await showDialog<bool>(
                     context: context,
                     builder: (ctx) => AlertDialog(
-                      backgroundColor: const Color(0xFF1E293B),
+                      backgroundColor: const Color(0xFF16161A),
                       title: const Text('Restore Database from Snapshot',
                           style: TextStyle(color: ObsidianUITheme.errorRed)),
                       content: Text(
@@ -3064,7 +3064,7 @@ class _ClusterManagementScreenState extends State<ClusterManagementScreen>
                   final confirmed = await showDialog<bool>(
                     context: context,
                     builder: (ctx) => AlertDialog(
-                      backgroundColor: const Color(0xFF1E293B),
+                      backgroundColor: const Color(0xFF16161A),
                       title: const Text('Delete Snapshot',
                           style: TextStyle(color: Colors.white)),
                       content: Text('Delete snapshot "${s.fileName}"?'),

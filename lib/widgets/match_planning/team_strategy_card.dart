@@ -281,7 +281,7 @@ class _TeamStrategyCardState extends State<TeamStrategyCard> with SingleTickerPr
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.6) : Colors.white,
+        color: isDark ? const Color(0xFF16161A).withValues(alpha: 0.6) : Colors.white,
         borderRadius: BorderRadius.circular(ObsidianTokens.radius),
         border: Border.all(color: borderColor),
         boxShadow: [
@@ -433,7 +433,7 @@ class _TeamStrategyCardState extends State<TeamStrategyCard> with SingleTickerPr
         children: [
           Text(
             label.toUpperCase(),
-            style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: Color(0xFF94A3B8)),
+            style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: Color(0xFF9B9BA6)),
           ),
           const SizedBox(height: 2),
           Text(
@@ -551,7 +551,7 @@ class _TeamStrategyCardState extends State<TeamStrategyCard> with SingleTickerPr
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(s['label']!.toUpperCase(), style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8))),
+                    Text(s['label']!.toUpperCase(), style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.bold, color: Color(0xFF9B9BA6))),
                     if (isPhotoValue(s['val']))
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
@@ -811,7 +811,7 @@ class _TeamStrategyCardState extends State<TeamStrategyCard> with SingleTickerPr
                                 radius: 3.5,
                                 color: series.color,
                                 strokeWidth: 1.5,
-                                strokeColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                strokeColor: isDark ? const Color(0xFF16161A) : Colors.white,
                               );
                             },
                           ),
@@ -841,7 +841,7 @@ class _TeamStrategyCardState extends State<TeamStrategyCard> with SingleTickerPr
           style: TextStyle(
             fontSize: 10,
             fontWeight: FontWeight.w700,
-            color: isActive ? Colors.white : const Color(0xFF94A3B8),
+            color: isActive ? Colors.white : const Color(0xFF9B9BA6),
           ),
         ),
       ),

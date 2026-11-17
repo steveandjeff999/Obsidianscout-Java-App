@@ -197,7 +197,7 @@ class _ConflictResolutionModalState extends State<ConflictResolutionModal> {
                 Text('Conflict resolved successfully!'),
               ],
             ),
-            backgroundColor: Color(0xFF1E293B),
+            backgroundColor: Color(0xFF16161A),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -286,7 +286,7 @@ class _ConflictResolutionModalState extends State<ConflictResolutionModal> {
                 Text('Consensus merged entry saved!'),
               ],
             ),
-            backgroundColor: Color(0xFF1E293B),
+            backgroundColor: Color(0xFF16161A),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -340,7 +340,7 @@ class _ConflictResolutionModalState extends State<ConflictResolutionModal> {
         messenger.showSnackBar(
           const SnackBar(
             content: Text('Submission deleted'),
-            backgroundColor: Color(0xFF1E293B),
+            backgroundColor: Color(0xFF16161A),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -388,7 +388,7 @@ class _ConflictResolutionModalState extends State<ConflictResolutionModal> {
       builder: (context, scrollController) {
         return Container(
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xF80F172A) : const Color(0xF8F8FAFC),
+            color: isDark ? const Color(0xF80E0E11) : const Color(0xF8F5F4F0),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
             border: Border.all(color: isDark ? Colors.white12 : Colors.black12),
           ),

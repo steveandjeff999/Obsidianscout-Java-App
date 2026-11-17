@@ -139,10 +139,17 @@ class PortedSection extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: primary)),
+                    Text(
+                      title,
+                      style: ObsidianTokens.serif(
+                        base: TextStyle(color: primary),
+                        size: 20,
+                        weight: FontWeight.w500,
+                      ),
+                    ),
                     if (subtitle != null && subtitle!.isNotEmpty) ...[
                       const SizedBox(height: 4),
-                      Text(subtitle!, style: TextStyle(fontSize: 12.5, color: muted, height: 1.35)),
+                      Text(subtitle!, style: TextStyle(fontSize: 13.5, color: muted, height: 1.45)),
                     ],
                   ],
                 ),
@@ -192,14 +199,14 @@ class PortedStatGrid extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(s.label.toUpperCase(),
-                      style: TextStyle(fontSize: 10.5, letterSpacing: 0, fontWeight: FontWeight.w600, color: muted)),
+                  Text(s.label,
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: muted)),
                   const SizedBox(height: 2),
                   Text(s.value,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: primary)),
-                  if (s.sub != null && s.sub!.isNotEmpty) Text(s.sub!, maxLines: 2, style: TextStyle(fontSize: 11, color: muted)),
+                      style: ObsidianTokens.mono(base: TextStyle(color: primary), size: 24, weight: FontWeight.w300)),
+                  if (s.sub != null && s.sub!.isNotEmpty) Text(s.sub!, maxLines: 2, style: TextStyle(fontSize: 11.5, color: muted)),
                 ],
               ),
             ),
@@ -243,11 +250,12 @@ class PortedNotice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final muted = ObsidianUITheme.getSecondaryTextColor(context);
-    return ObsidianGlassCard(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
-          if (icon != null) ...[Icon(icon, color: muted), const SizedBox(width: 10)],
-          Expanded(child: Text(text, style: TextStyle(color: muted))),
+          if (icon != null) ...[Icon(icon, color: muted, size: 18), const SizedBox(width: 10)],
+          Expanded(child: Text(text, style: TextStyle(color: muted, fontSize: 14.5, height: 1.5))),
         ],
       ),
     );

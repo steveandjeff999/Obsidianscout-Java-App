@@ -1,6 +1,7 @@
 import 'dart:async';
 import '../theme/obsidian_tokens.dart';
 import 'package:flutter/material.dart';
+import '../widgets/obsidian_page_header.dart';
 import 'package:image_picker/image_picker.dart';
 import '../l10n/app_localizations.dart';
 import '../models/account_rules.dart';
@@ -727,41 +728,12 @@ class _UsersScreenState extends State<UsersScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Screen Title Header
-                ObsidianGlassCard(
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(ObsidianTokens.radius),
-                          border: Border.all(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.3)),
-                        ),
-                        child: Icon(Icons.manage_accounts_rounded, color: ObsidianUITheme.primaryAccent, size: 26),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              context.tr('users.title', 'User Management'),
-                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor),
-                            ),
-                            Text(
-                              _isSuperAdmin
-                                  ? 'Manage user accounts and role permissions across all teams'
-                                  : 'Manage user accounts and roles on your team',
-                              style: TextStyle(fontSize: 13, color: ObsidianUITheme.getSecondaryTextColor(context)),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                ObsidianPageHeader(
+                  title: context.tr('users.title', 'User Management'),
+                  description: _isSuperAdmin
+                      ? 'Manage user accounts and role permissions across all teams'
+                      : 'Manage user accounts and roles on your team',
                 ),
-                const SizedBox(height: 16),
 
                 // Create User Collapsible Section
                 _buildCreateUserCard(isDesktop),

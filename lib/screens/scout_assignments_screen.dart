@@ -375,9 +375,7 @@ class _ScoutAssignmentsScreenState extends State<ScoutAssignmentsScreen>
                   children: [
                     Text(
                       context.tr('nav.scout_assignments', 'Scout Assignments'),
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
+                      style: TextStyle(fontFamily: ObsidianTokens.fontSerif, fontSize: 22, fontWeight: FontWeight.w500,
                         color: ObsidianUITheme.getPrimaryTextColor(context),
                       ),
                     ),

@@ -128,7 +128,7 @@ class _CsvExportModalState extends State<CsvExportModal> {
     final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
     final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
     final backgroundColor = isDark ? const Color(0xFF131722) : Colors.white;
-    final cardColor = isDark ? const Color(0xFF1C2230) : const Color(0xFFF1F5F9);
+    final cardColor = isDark ? const Color(0xFF1C2230) : const Color(0xFFF7F6F2);
     final borderColor = isDark ? Colors.white12 : Colors.black12;
 
     return Container(

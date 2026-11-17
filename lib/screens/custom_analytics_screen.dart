@@ -447,7 +447,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> with Live
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+          color: isDark ? const Color(0xFF16161A) : const Color(0xFFF7F6F2),
           borderRadius: BorderRadius.circular(ObsidianTokens.radius),
           border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
         ),
@@ -557,7 +557,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> with Live
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                            color: isDark ? const Color(0xFF25252B) : const Color(0xFFE2DFD8),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -905,7 +905,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> with Live
         decoration: BoxDecoration(
           color: isSelected
               ? ObsidianUITheme.primaryAccent
-              : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+              : (isDark ? const Color(0xFF16161A) : const Color(0xFFF7F6F2)),
           borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
           border: Border.all(color: isSelected ? ObsidianUITheme.primaryAccent : ObsidianUITheme.getBorderColor(context)),
         ),
@@ -965,7 +965,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> with Live
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: ObsidianUITheme.isDark(context) ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                        color: ObsidianUITheme.isDark(context) ? const Color(0xFF16161A) : const Color(0xFFF5F4F0),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
                       ),
@@ -1100,7 +1100,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> with Live
                           margin: const EdgeInsets.only(bottom: 8),
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: ObsidianUITheme.isDark(context) ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                            color: ObsidianUITheme.isDark(context) ? const Color(0xFF16161A) : const Color(0xFFF7F6F2),
                             borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                             border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
                           ),
@@ -1249,7 +1249,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> with Live
                           margin: const EdgeInsets.only(bottom: 10),
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: ObsidianUITheme.isDark(context) ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                            color: ObsidianUITheme.isDark(context) ? const Color(0xFF16161A) : const Color(0xFFF7F6F2),
                             borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
                             border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
                           ),
@@ -2373,7 +2373,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> with Live
                             label: Text('$teamNum', style: TextStyle(fontSize: 11, color: isSelected ? Colors.white : ObsidianUITheme.getPrimaryTextColor(context))),
                             selected: isSelected,
                             selectedColor: ObsidianUITheme.primaryAccent,
-                            backgroundColor: ObsidianUITheme.isDark(context) ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                            backgroundColor: ObsidianUITheme.isDark(context) ? const Color(0xFF16161A) : const Color(0xFFF7F6F2),
                             onSelected: (val) {
                               setState(() {
                                 if (val) {
@@ -2457,7 +2457,7 @@ class _CustomAnalyticsScreenState extends State<CustomAnalyticsScreen> with Live
         decoration: BoxDecoration(
           color: isPrimary
               ? ObsidianUITheme.primaryAccent
-              : (ObsidianUITheme.isDark(context) ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+              : (ObsidianUITheme.isDark(context) ? const Color(0xFF16161A) : const Color(0xFFF7F6F2)),
           borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
           border: Border.all(color: isPrimary ? ObsidianUITheme.primaryAccent : ObsidianUITheme.getBorderColor(context)),
         ),

@@ -1214,7 +1214,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
                                       Icons.menu_rounded,
                                       color: Theme.of(context).brightness == Brightness.dark
                                           ? Colors.white
-                                          : const Color(0xFF0F172A),
+                                          : const Color(0xFF0E0E11),
                                     ),
                                     tooltip: 'Navigation Menu',
                                     onPressed: () => Scaffold.of(ctx).openDrawer(),

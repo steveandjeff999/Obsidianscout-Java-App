@@ -153,7 +153,7 @@ class _StorageManagerScreenState extends State<StorageManagerScreen> with Single
       ('userScoutingBytes', context.tr('storage.legend_scout', 'User Scouting Records'), ObsidianUITheme.successGreen),
       ('chatBytes', context.tr('storage.legend_chat', 'Team Chat Messages'), const Color(0xFFF59E0B)),
       ('accountsBytes', context.tr('storage.legend_accounts', 'Accounts & Sessions'), ObsidianUITheme.defaultPrimaryAccent),
-      ('systemConfigBytes', context.tr('storage.legend_config', 'Configurations & System'), const Color(0xFF64748B)),
+      ('systemConfigBytes', context.tr('storage.legend_config', 'Configurations & System'), const Color(0xFF9B9BA6)),
       ('errorReportsBytes', context.tr('storage.legend_errors', 'Error & Bug Reports'), ObsidianUITheme.errorRed),
     ];
     return PortedSection(

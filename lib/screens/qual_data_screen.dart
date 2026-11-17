@@ -1,6 +1,7 @@
 import 'dart:math';
 import '../theme/obsidian_tokens.dart';
 import 'package:flutter/material.dart';
+import '../widgets/obsidian_page_header.dart';
 import '../models/config_models.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
@@ -613,31 +614,16 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
       child: ListView(
         padding: EdgeInsets.only(top: 4.0, bottom: widget.isBarsVisible ? 120.0 : 24.0),
         children: [
-          // Header Card
+          ObsidianPageHeader(
+            title: 'Qualitative Data Center',
+            description: 'Analyze driver skill, defense impact, and team performance ratings across matches.',
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          ),
+          // Metrics Card
           ObsidianGlassCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    const Icon(Icons.rate_review_rounded, color: ObsidianUITheme.successGreen, size: 26),
-                    const SizedBox(width: 10),
-                    Text(
-                      'Qualitative Data Center',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: primaryTextColor,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Analyze driver skill, defense impact, and team performance ratings across matches.',
-                  style: TextStyle(color: secondaryTextColor, fontSize: 13),
-                ),
-                const SizedBox(height: 18),
                 // Metric cards
                 LayoutBuilder(
                   builder: (context, constraints) {
@@ -876,7 +862,7 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
           // Tabs: Team Rankings vs Entry List
           Container(
             decoration: BoxDecoration(
-              color: isDark ? const Color(0x601E293B) : Colors.black.withValues(alpha: 0.04),
+              color: isDark ? const Color(0x6016161A) : Colors.black.withValues(alpha: 0.04),
               borderRadius: BorderRadius.circular(12),
             ),
             child: TabBar(
@@ -930,7 +916,7 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                         child: Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0x731E293B) : Colors.white.withValues(alpha: 0.85),
+                            color: isDark ? const Color(0x7316161A) : Colors.white.withValues(alpha: 0.85),
                             borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                             border: Border.all(
                               color: isSelected
@@ -1047,7 +1033,7 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
                         child: Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0x731E293B) : Colors.white.withValues(alpha: 0.85),
+                            color: isDark ? const Color(0x7316161A) : Colors.white.withValues(alpha: 0.85),
                             borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                             border: Border.all(
                               color: hasConflict
@@ -1191,7 +1177,7 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
           builder: (context, scrollController) {
             return Container(
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xF50F172A) : const Color(0xF8F8FAFC),
+                color: isDark ? const Color(0xF50E0E11) : const Color(0xF8F5F4F0),
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
                 border: Border.all(color: isDark ? Colors.white12 : Colors.black12),
               ),
@@ -1377,7 +1363,7 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
           builder: (context, scrollController) {
             return Container(
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xF50F172A) : const Color(0xF8F8FAFC),
+                color: isDark ? const Color(0xF50E0E11) : const Color(0xF8F5F4F0),
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
                 border: Border.all(color: isDark ? Colors.white12 : Colors.black12),
               ),
@@ -1665,7 +1651,7 @@ class _QualDataScreenState extends State<QualDataScreen> with SingleTickerProvid
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0x521E293B) : Colors.white.withValues(alpha: 0.7),
+        color: isDark ? const Color(0x5216161A) : Colors.white.withValues(alpha: 0.7),
         borderRadius: BorderRadius.circular(ObsidianTokens.radius),
         border: Border.all(color: accent.withValues(alpha: 0.3)),
       ),

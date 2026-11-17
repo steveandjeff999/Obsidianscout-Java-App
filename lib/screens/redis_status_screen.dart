@@ -19,8 +19,8 @@ const Color _red = ObsidianUITheme.errorRed;
 const Color _orange = ObsidianUITheme.warningOrange;
 const Color _blue = Color(0xFF3B82F6);
 const Color _purple = ObsidianUITheme.defaultPrimaryAccent;
-const Color _muted = Color(0xFF94A3B8);
-const Color _borderSubtle = Color(0xFF334155);
+const Color _muted = Color(0xFF9B9BA6);
+const Color _borderSubtle = Color(0xFF25252B);
 
 class RedisStatusScreen extends StatefulWidget {
   final ApiService apiService;
@@ -569,7 +569,7 @@ class _RedisStatusScreenState extends State<RedisStatusScreen> {
             const SizedBox(height: 12),
             Text(
               context.tr('redis.locked_title', 'SuperAdmin Access Required'),
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontFamily: ObsidianTokens.fontSerif, fontSize: 20, fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 8),
             Text(

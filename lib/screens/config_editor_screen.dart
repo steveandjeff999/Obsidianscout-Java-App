@@ -1299,7 +1299,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                color: isDark ? const Color(0xFF0E0E11) : const Color(0xFFF7F6F2),
                 borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                 border: Border.all(color: ObsidianUITheme.getBorderColor(dCtx)),
               ),
@@ -1364,7 +1364,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       backgroundColor: Colors.transparent,
       builder: (ctx) {
         final isDark = ObsidianUITheme.isDark(ctx);
-        final bg = isDark ? const Color(0xFF0F172A) : Colors.white;
+        final bg = isDark ? const Color(0xFF0E0E11) : Colors.white;
         final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(ctx);
         final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(ctx);
 
@@ -1580,7 +1580,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       backgroundColor: Colors.transparent,
       builder: (ctx) {
         final isDark = ObsidianUITheme.isDark(ctx);
-        final bg = isDark ? const Color(0xFF0F172A) : Colors.white;
+        final bg = isDark ? const Color(0xFF0E0E11) : Colors.white;
         final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(ctx);
         final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(ctx);
         final borderColor = ObsidianUITheme.getBorderColor(ctx);
@@ -1887,7 +1887,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                                   Container(
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
-                                      color: isDark ? const Color(0xFF0A0F1D) : const Color(0xFF0F172A),
+                                      color: isDark ? const Color(0xFF0A0F1D) : const Color(0xFF0E0E11),
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.3)),
                                     ),
@@ -2399,7 +2399,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+        color: isDark ? const Color(0xFF16161A) : const Color(0xFFE2DFD8),
         borderRadius: BorderRadius.circular(ObsidianTokens.radius),
         border: Border.all(color: borderColor),
       ),
@@ -3533,7 +3533,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
         const SizedBox(height: 6),
         Container(
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+            color: isDark ? const Color(0xFF0E0E11) : const Color(0xFFF5F4F0),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: ObsidianUITheme.getBorderColor(context)),
           ),

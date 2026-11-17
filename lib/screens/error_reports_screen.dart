@@ -631,7 +631,7 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
                             decoration: BoxDecoration(
                               color: const Color(0xFF090D16),
                               borderRadius: BorderRadius.circular(8.0),
-                              border: Border.all(color: const Color(0xFF334155)),
+                              border: Border.all(color: const Color(0xFF25252B)),
                             ),
                             child: SingleChildScrollView(
                               child: SelectableText(
@@ -643,7 +643,7 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
                                   fontSize: 12.0,
                                   color: item.errorStack != null && item.errorStack!.isNotEmpty
                                       ? const Color(0xFFFCA5A5)
-                                      : const Color(0xFF64748B),
+                                      : const Color(0xFF9B9BA6),
                                   height: 1.35,
                                 ),
                               ),
@@ -839,9 +839,7 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
                 const SizedBox(height: 16.0),
                 Text(
                   'Superadmin Access Required',
-                  style: TextStyle(
-                    fontSize: 20.0,
-                    fontWeight: FontWeight.bold,
+                  style: TextStyle(fontFamily: ObsidianTokens.fontSerif, fontSize: 20.0, fontWeight: FontWeight.w500,
                     color: textPrimary,
                   ),
                 ),
@@ -903,9 +901,7 @@ class _ErrorReportsScreenState extends State<ErrorReportsScreen> {
                 children: [
                   Text(
                     'Error & Bug Reports',
-                    style: TextStyle(
-                      fontSize: 22.0,
-                      fontWeight: FontWeight.bold,
+                    style: TextStyle(fontFamily: ObsidianTokens.fontSerif, fontSize: 22.0, fontWeight: FontWeight.w500,
                       color: textPrimary,
                     ),
                   ),

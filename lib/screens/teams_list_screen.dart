@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/obsidian_page_header.dart';
 import '../theme/obsidian_tokens.dart';
 import '../l10n/app_localizations.dart';
 import '../models/team_match_models.dart';
@@ -149,51 +150,27 @@ class _TeamsListScreenState extends State<TeamsListScreen> with LiveRefresh<Team
           height: 4.0,
         ),
 
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 4.0),
+          child: ObsidianPageHeader(
+            title: context.tr('nav.teams'),
+            description: '${_filteredSorted.length} / ${_teams.length} ${context.tr("dashboard.teams")}',
+            actions: [
+              IconButton(
+                icon: Icon(Icons.refresh_rounded, color: ObsidianUITheme.getPrimaryAccent(context)),
+                tooltip: context.tr('dashboard.quick_sync'),
+                onPressed: _loadTeams,
+              ),
+            ],
+          ),
+        ),
+
         // Search & Sort Bar
         Padding(
           padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 8.0),
           child: ObsidianGlassCard(
             child: Column(
               children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.2),
-                      ),
-                      child: Icon(Icons.groups_rounded, color: ObsidianUITheme.primaryAccent, size: 22),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            context.tr('nav.teams'),
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: primaryTextColor,
-                              letterSpacing: 0,
-                            ),
-                          ),
-                          Text(
-                            '${_filteredSorted.length} / ${_teams.length} ${context.tr("dashboard.teams")}',
-                            style: TextStyle(fontSize: 12, color: secondaryTextColor),
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.refresh_rounded, color: ObsidianUITheme.primaryAccent),
-                      tooltip: context.tr('dashboard.quick_sync'),
-                      onPressed: _loadTeams,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
                 TextField(
                   style: TextStyle(color: primaryTextColor, fontSize: 14),
                   decoration: InputDecoration(

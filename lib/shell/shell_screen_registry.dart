@@ -641,6 +641,7 @@ class ShellScreenRegistry {
           onNavigateAlliance: () => onNavigateScreen(7),
           onNavigatePrescout: () => onNavigateScreen(11),
           onNavigateHistory: () => onNavigateScreen(17),
+          onNavigateScreen: onNavigateScreen,
           isVisible: isTabActive && currentIndex == 0,
           isBarsVisible: isBarsVisible,
         );
@@ -1042,6 +1043,7 @@ class ShellScreenRegistry {
           onNavigateAlliance: () => onNavigateScreen(7),
           onNavigatePrescout: () => onNavigateScreen(11),
           onNavigateHistory: () => onNavigateScreen(17),
+          onNavigateScreen: onNavigateScreen,
           isVisible: isTabActive && currentIndex == 0,
           isBarsVisible: isBarsVisible,
         );

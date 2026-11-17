@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/obsidian_page_header.dart';
 import '../theme/obsidian_tokens.dart';
 import '../l10n/app_localizations.dart';
 import '../models/api_response.dart';
@@ -507,49 +508,17 @@ class _EventsScreenState extends State<EventsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Action & Header Card
+                  ObsidianPageHeader(
+                    title: context.tr('events.title', 'Events'),
+                    description: context.tr('events.notice', 'Sync events for the selected season and pick an event for scouting.'),
+                  ),
+                  // Action & Controls Card
                   ObsidianGlassCard(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(ObsidianTokens.radius),
-                                ),
-                                child: Icon(Icons.event_rounded, color: ObsidianUITheme.primaryAccent, size: 24),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      context.tr('events.title', 'Events'),
-                                      style: TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                        color: primaryTextColor,
-                                        letterSpacing: -0.3,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      context.tr('events.notice', 'Sync events for the selected season and pick an event for scouting.'),
-                                      style: TextStyle(fontSize: 13, color: secondaryTextColor),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
                           Wrap(
                             spacing: 10,
                             runSpacing: 10,

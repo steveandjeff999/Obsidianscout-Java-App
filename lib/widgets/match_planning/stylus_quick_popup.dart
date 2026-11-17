@@ -65,7 +65,7 @@ class StylusQuickPopup extends StatelessWidget {
           width: popupWidth,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: const Color(0xF20F172A), // Dark slate translucent
+            color: const Color(0xF20E0E11), // Dark slate translucent
             borderRadius: BorderRadius.circular(ObsidianTokens.radius),
             border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
             boxShadow: const [
@@ -87,14 +87,14 @@ class StylusQuickPopup extends StatelessWidget {
                 children: [
                   const Row(
                     children: [
-                      Icon(Icons.edit_road_rounded, size: 14, color: Color(0xFF94A3B8)),
+                      Icon(Icons.edit_road_rounded, size: 14, color: Color(0xFF9B9BA6)),
                       SizedBox(width: 6),
                       Text(
                         'Quick tools',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF94A3B8),
+                          color: Color(0xFF9B9BA6),
                           letterSpacing: 0,
                         ),
                       ),
@@ -105,7 +105,7 @@ class StylusQuickPopup extends StatelessWidget {
                     borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                     child: const Padding(
                       padding: EdgeInsets.all(2),
-                      child: Icon(Icons.close_rounded, size: 14, color: Color(0xFF94A3B8)),
+                      child: Icon(Icons.close_rounded, size: 14, color: Color(0xFF9B9BA6)),
                     ),
                   ),
                 ],
@@ -187,7 +187,7 @@ class StylusQuickPopup extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF94A3B8),
+                      color: Color(0xFF9B9BA6),
                     ),
                   ),
                   const SizedBox(width: 4),
@@ -226,7 +226,7 @@ class StylusQuickPopup extends StatelessWidget {
                       width: (strokeWidth * 0.55).clamp(3.0, 14.0),
                       height: (strokeWidth * 0.55).clamp(3.0, 14.0),
                       decoration: BoxDecoration(
-                        color: activeTool == 'eraser' ? const Color(0xFFCBD5E1) : _parseColor(currentColor),
+                        color: activeTool == 'eraser' ? const Color(0xFFE2DFD8) : _parseColor(currentColor),
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -264,14 +264,14 @@ class StylusQuickPopup extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 13, color: isActive ? Colors.white : const Color(0xFFCBD5E1)),
+            Icon(icon, size: 13, color: isActive ? Colors.white : const Color(0xFFE2DFD8)),
             const SizedBox(width: 4),
             Text(
               label,
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
-                color: isActive ? Colors.white : const Color(0xFFCBD5E1),
+                color: isActive ? Colors.white : const Color(0xFFE2DFD8),
               ),
             ),
           ],

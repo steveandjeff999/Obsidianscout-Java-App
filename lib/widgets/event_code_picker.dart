@@ -125,7 +125,7 @@ class _EventCodePickerSheetState extends State<_EventCodePickerSheet> {
   @override
   Widget build(BuildContext context) {
     final isDark = ObsidianUITheme.isDark(context);
-    final bg = isDark ? const Color(0xFF0F172A) : Colors.white;
+    final bg = isDark ? const Color(0xFF0E0E11) : Colors.white;
     final primary = ObsidianUITheme.getPrimaryTextColor(context);
     final secondary = ObsidianUITheme.getSecondaryTextColor(context);
     final border = ObsidianUITheme.getBorderColor(context);

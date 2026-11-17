@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/obsidian_page_header.dart';
 import '../theme/obsidian_tokens.dart';
 import '../models/config_models.dart';
 import '../models/team_match_models.dart';
@@ -546,78 +547,62 @@ class _AllDataScreenState extends State<AllDataScreen> with LiveRefresh<AllDataS
       child: ListView(
         padding: EdgeInsets.only(top: 4.0, bottom: widget.isBarsVisible ? 120.0 : 24.0),
         children: [
-          // Header Card
+          ObsidianPageHeader(
+            title: 'All Scouting Data',
+            description: 'Browse, search, and inspect pit, match, and qualitative scouting entries in one unified place.',
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            actions: [
+              IconButton(
+                tooltip: 'Share Filtered Data',
+                icon: const Icon(Icons.share_rounded, size: 20),
+                style: IconButton.styleFrom(
+                  backgroundColor: ObsidianUITheme.getPrimaryAccent(context).withValues(alpha: 0.12),
+                  foregroundColor: ObsidianUITheme.getPrimaryAccent(context),
+                ),
+                onPressed: () {
+                  ObsidianShareModal.show(
+                    context,
+                    apiService: widget.apiService,
+                    resourceType: 'all_data',
+                    defaultTitle: 'Scouting Data (${_selectedEventKey != 'all' ? _selectedEventKey : 'All Events'})',
+                    queryConfig: {
+                      'eventKey': _selectedEventKey,
+                      'teamQuery': _teamQuery,
+                      'type': _selectedType,
+                      'matchNumber': _matchNumberQuery,
+                      'sortBy': _sortBy,
+                      'conflictsOnly': _conflictsOnly,
+                    },
+                    snapshotData: {
+                      'entries': _filteredEntries.take(100).map((e) => {
+                        'id': e.id,
+                        'type': e.type,
+                        'targetTeamNumber': e.targetTeamNumber,
+                        'matchNumber': e.matchNumber,
+                        'eventKey': e.eventKey,
+                        'scoutUsername': e.scoutUsername,
+                        'data': e.data,
+                      }).toList(),
+                    },
+                  );
+                },
+              ),
+              IconButton(
+                tooltip: 'Export CSV',
+                icon: const Icon(Icons.download_rounded, size: 20),
+                style: IconButton.styleFrom(
+                  backgroundColor: ObsidianUITheme.getPrimaryAccent(context).withValues(alpha: 0.12),
+                  foregroundColor: ObsidianUITheme.getPrimaryAccent(context),
+                ),
+                onPressed: _exportCsv,
+              ),
+            ],
+          ),
+          // Metrics Card
           ObsidianGlassCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Icon(Icons.dataset_rounded, color: ObsidianUITheme.primaryAccent, size: 26),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'All Scouting Data',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: primaryTextColor,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: 'Share Filtered Data',
-                      icon: const Icon(Icons.share_rounded, size: 20),
-                      style: IconButton.styleFrom(
-                        backgroundColor: ObsidianUITheme.getPrimaryAccent(context).withValues(alpha: 0.15),
-                        foregroundColor: ObsidianUITheme.getPrimaryAccent(context),
-                      ),
-                      onPressed: () {
-                        ObsidianShareModal.show(
-                          context,
-                          apiService: widget.apiService,
-                          resourceType: 'all_data',
-                          defaultTitle: 'Scouting Data (${_selectedEventKey != 'all' ? _selectedEventKey : 'All Events'})',
-                          queryConfig: {
-                            'eventKey': _selectedEventKey,
-                            'teamQuery': _teamQuery,
-                            'type': _selectedType,
-                            'matchNumber': _matchNumberQuery,
-                            'sortBy': _sortBy,
-                            'conflictsOnly': _conflictsOnly,
-                          },
-                          snapshotData: {
-                            'entries': _filteredEntries.take(100).map((e) => {
-                              'id': e.id,
-                              'type': e.type,
-                              'targetTeamNumber': e.targetTeamNumber,
-                              'matchNumber': e.matchNumber,
-                              'eventKey': e.eventKey,
-                              'scoutUsername': e.scoutUsername,
-                              'data': e.data,
-                            }).toList(),
-                          },
-                        );
-                      },
-                    ),
-                    const SizedBox(width: 6),
-                    IconButton(
-                      tooltip: 'Export CSV',
-                      icon: const Icon(Icons.download_rounded, size: 20),
-                      style: IconButton.styleFrom(
-                        backgroundColor: ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.15),
-                        foregroundColor: ObsidianUITheme.defaultPrimaryAccent,
-                      ),
-                      onPressed: _exportCsv,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Browse, search, and inspect pit, match, and qualitative scouting entries in one unified place.',
-                  style: TextStyle(color: secondaryTextColor, fontSize: 13),
-                ),
-                const SizedBox(height: 18),
                 // Metrics grid
                 LayoutBuilder(
                   builder: (context, constraints) {
@@ -909,7 +894,7 @@ class _AllDataScreenState extends State<AllDataScreen> with LiveRefresh<AllDataS
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0x731E293B) : Colors.white.withValues(alpha: 0.85),
+                      color: isDark ? const Color(0x7316161A) : Colors.white.withValues(alpha: 0.85),
                       borderRadius: BorderRadius.circular(ObsidianTokens.radius),
                       border: Border.all(
                         color: hasConflict
@@ -1127,7 +1112,7 @@ class _AllDataScreenState extends State<AllDataScreen> with LiveRefresh<AllDataS
           builder: (context, scrollController) {
             return Container(
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xF50F172A) : const Color(0xF8F8FAFC),
+                color: isDark ? const Color(0xF50E0E11) : const Color(0xF8F5F4F0),
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
                 border: Border.all(color: isDark ? Colors.white12 : Colors.black12),
               ),
@@ -1424,7 +1409,7 @@ class _AllDataScreenState extends State<AllDataScreen> with LiveRefresh<AllDataS
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0x521E293B) : Colors.white.withValues(alpha: 0.7),
+        color: isDark ? const Color(0x5216161A) : Colors.white.withValues(alpha: 0.7),
         borderRadius: BorderRadius.circular(ObsidianTokens.radius),
         border: Border.all(color: accent.withValues(alpha: 0.3)),
       ),

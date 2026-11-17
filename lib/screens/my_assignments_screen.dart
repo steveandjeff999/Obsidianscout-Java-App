@@ -494,9 +494,7 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
             children: [
               Text(
                 context.tr('my_assignments.title', 'My Assignments'),
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+                style: TextStyle(fontFamily: ObsidianTokens.fontSerif, fontSize: 24, fontWeight: FontWeight.w500,
                   color: ObsidianUITheme.getPrimaryTextColor(context),
                 ),
               ),
@@ -626,9 +624,7 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen>
           const SizedBox(height: 12),
           Text(
             targetTitle,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+            style: TextStyle(fontFamily: ObsidianTokens.fontSerif, fontSize: 20, fontWeight: FontWeight.w500,
               color: ObsidianUITheme.getPrimaryTextColor(context),
             ),
           ),

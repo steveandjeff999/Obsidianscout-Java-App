@@ -174,7 +174,7 @@ class _EditScoutingEntryModalState extends State<EditScoutingEntryModal> {
       builder: (context, scrollController) {
         // A Material, not a coloured Container: toggle fields paint their ink on the nearest Material.
         return Material(
-          color: isDark ? const Color(0xF80F172A) : const Color(0xF8F8FAFC),
+          color: isDark ? const Color(0xF80E0E11) : const Color(0xF8F5F4F0),
           shape: RoundedRectangleBorder(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(ObsidianTokens.radius)),
             side: BorderSide(color: isDark ? Colors.white12 : Colors.black12),

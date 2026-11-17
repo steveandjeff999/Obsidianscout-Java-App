@@ -156,7 +156,7 @@ class _IpBlockedScreenState extends State<IpBlockedScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(_t('blocked_title', 'Your network is temporarily blocked'),
-                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: primary)),
+                              style: TextStyle(fontFamily: ObsidianTokens.fontSerif, fontSize: 20, fontWeight: FontWeight.w500, color: primary)),
                         ),
                       ]),
                       const SizedBox(height: 8),

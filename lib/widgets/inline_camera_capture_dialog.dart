@@ -198,7 +198,7 @@ class _InlineCameraCaptureDialogState extends State<InlineCameraCaptureDialog> {
   Widget build(BuildContext context) {
     final isDark = ObsidianUITheme.isDark(context);
     final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
-    final surfaceColor = isDark ? const Color(0xFF0F172A) : Colors.white;
+    final surfaceColor = isDark ? const Color(0xFF0E0E11) : Colors.white;
     final borderColor = ObsidianUITheme.getBorderColor(context);
 
     return Dialog(

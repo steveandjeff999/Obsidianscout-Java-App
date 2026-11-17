@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/obsidian_tokens.dart';
+import '../widgets/obsidian_page_header.dart';
 import '../l10n/app_localizations.dart';
 import '../models/team_match_models.dart';
 import '../services/api_service.dart';
@@ -238,6 +238,10 @@ class _RankingsScreenState extends State<RankingsScreen> with LiveRefresh<Rankin
             child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  ObsidianPageHeader(
+                    title: context.tr('rankings.title', 'Team Rankings'),
+                    description: context.tr('rankings.notice', 'Rank teams based on selected metrics.'),
+                  ),
                   // Filter & Metric Selector Card
                   ObsidianGlassCard(
                     child: Padding(
@@ -245,41 +249,6 @@ class _RankingsScreenState extends State<RankingsScreen> with LiveRefresh<Rankin
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(ObsidianTokens.radius),
-                                ),
-                                child: Icon(Icons.leaderboard_rounded, color: ObsidianUITheme.primaryAccent, size: 24),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      context.tr('rankings.title', 'Team Rankings'),
-                                      style: TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                        color: primaryTextColor,
-                                        letterSpacing: -0.3,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      context.tr('rankings.notice', 'Rank teams based on selected metrics.'),
-                                      style: TextStyle(fontSize: 13, color: secondaryTextColor),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
                           Wrap(
                             spacing: 12,
                             runSpacing: 12,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/obsidian_page_header.dart';
 import '../theme/obsidian_tokens.dart';
 import '../l10n/app_localizations.dart';
 import '../models/team_match_models.dart';
@@ -196,51 +197,27 @@ class _MatchListScreenState extends State<MatchListScreen> with LiveRefresh<Matc
           height: 4.0,
         ),
 
-        // Header + Search + Filter
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 4.0),
+          child: ObsidianPageHeader(
+            title: context.tr('nav.matches'),
+            description: '${filtered.length} / ${_matches.length} ${context.tr("dashboard.matches")}',
+            actions: [
+              IconButton(
+                icon: Icon(Icons.refresh_rounded, color: ObsidianUITheme.getPrimaryAccent(context)),
+                tooltip: context.tr('dashboard.quick_sync'),
+                onPressed: _loadMatches,
+              ),
+            ],
+          ),
+        ),
+
+        // Search + Filter
         Padding(
           padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 8.0),
           child: ObsidianGlassCard(
             child: Column(
               children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: ObsidianUITheme.secondaryAccent.withValues(alpha: 0.2),
-                      ),
-                      child: Icon(Icons.sports_esports_rounded, color: ObsidianUITheme.secondaryAccent, size: 22),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            context.tr('nav.matches'),
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: primaryTextColor,
-                              letterSpacing: 0,
-                            ),
-                          ),
-                          Text(
-                            '${filtered.length} / ${_matches.length} ${context.tr("dashboard.matches")}',
-                            style: TextStyle(fontSize: 12, color: secondaryTextColor),
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.refresh_rounded, color: ObsidianUITheme.secondaryAccent),
-                      tooltip: context.tr('dashboard.quick_sync'),
-                      onPressed: _loadMatches,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
                 if (_focusKey != null) ...[
                   // Opened from a Match Schedule widget row: just that match.
                   Align(
