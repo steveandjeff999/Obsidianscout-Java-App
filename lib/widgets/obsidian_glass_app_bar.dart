@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/obsidian_tokens.dart';
 import '../theme/obsidian_ui_theme.dart';
 
 class ObsidianGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -58,15 +59,14 @@ class ObsidianGlassAppBar extends StatelessWidget implements PreferredSizeWidget
                     if (subtitle.isNotEmpty)
                       Flexible(
                         child: Text(
-                          subtitle.toUpperCase(),
+                          subtitle,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 10.5,
+                            fontSize: 11.5,
                             height: 1.2,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w500,
                             color: ObsidianUITheme.getSecondaryTextColor(context),
-                            letterSpacing: 0,
                           ),
                         ),
                       ),
@@ -110,12 +110,10 @@ class ObsidianGlassAppBar extends StatelessWidget implements PreferredSizeWidget
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 20.0,
-                    height: 1.15,
-                    fontWeight: FontWeight.w700,
-                    color: titleColor,
-                    letterSpacing: -0.3,
+                  style: ObsidianTokens.serif(
+                    base: TextStyle(color: titleColor, height: 1.15),
+                    size: 20.0,
+                    weight: FontWeight.w600,
                   ),
                 ),
               ],

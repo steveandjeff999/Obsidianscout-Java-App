@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/obsidian_page_header.dart';
 import '../theme/obsidian_tokens.dart';
 import '../l10n/app_localizations.dart';
 import '../models/predictor_models.dart';
@@ -219,87 +220,56 @@ class _PredictorScreenState extends State<PredictorScreen> with LiveRefresh<Pred
         ),
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
-          // Header Controls Card
+          ObsidianPageHeader(
+            title: context.tr('predictor.title'),
+            description: isFtc ? context.tr('predictor.notice_ftc') : context.tr('predictor.notice'),
+            actions: [
+              if (_selectedMatchKey != null)
+                IconButton(
+                  tooltip: 'Share Match Prediction',
+                  icon: const Icon(Icons.share_rounded, size: 20),
+                  style: IconButton.styleFrom(
+                    backgroundColor: primaryAccent.withValues(alpha: 0.12),
+                    foregroundColor: primaryAccent,
+                  ),
+                  onPressed: () {
+                    final match = _matches.firstWhere(
+                      (m) => m.matchKey == _selectedMatchKey,
+                      orElse: () => MatchModel(
+                        matchKey: _selectedMatchKey ?? '',
+                        eventKey: '',
+                        compLevel: 'qm',
+                        label: '',
+                        redTeams: [],
+                        blueTeams: [],
+                      ),
+                    );
+                    final label = match.label.isNotEmpty
+                        ? match.label
+                        : (_selectedMatchKey ?? 'Match');
+                    ObsidianShareModal.show(
+                      context,
+                      apiService: widget.apiService,
+                      resourceType: 'predictor',
+                      defaultTitle: 'Prediction - $label',
+                      queryConfig: {
+                        'matchKey': _selectedMatchKey,
+                        'dataSource': _dataSource,
+                        'usePrescout': _usePrescout,
+                      },
+                      snapshotData: _prediction?.toJson(),
+                    );
+                  },
+                ),
+            ],
+          ),
+          // Controls Card
           ObsidianGlassCard(
-            borderRadius: 16.0,
             margin: const EdgeInsets.only(bottom: 16.0),
             padding: const EdgeInsets.all(20.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8.0),
-                      decoration: BoxDecoration(
-                        color: ObsidianUITheme.warningOrange.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
-                      ),
-                      child: const Icon(Icons.auto_awesome_rounded, color: ObsidianUITheme.warningOrange, size: 22.0),
-                    ),
-                    const SizedBox(width: 12.0),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            context.tr('predictor.title'),
-                            style: TextStyle(
-                              fontSize: isDesktop ? 20.0 : 17.0,
-                              fontWeight: FontWeight.bold,
-                              color: primaryTextColor,
-                            ),
-                          ),
-                          const SizedBox(height: 2.0),
-                          Text(
-                            isFtc
-                                ? context.tr('predictor.notice_ftc')
-                                : context.tr('predictor.notice'),
-                            style: TextStyle(fontSize: 12.0, color: secondaryTextColor),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (_selectedMatchKey != null)
-                      IconButton(
-                        tooltip: 'Share Match Prediction',
-                        icon: const Icon(Icons.share_rounded, size: 20),
-                        style: IconButton.styleFrom(
-                          backgroundColor: primaryAccent.withValues(alpha: 0.15),
-                          foregroundColor: primaryAccent,
-                        ),
-                        onPressed: () {
-                          final match = _matches.firstWhere(
-                            (m) => m.matchKey == _selectedMatchKey,
-                            orElse: () => MatchModel(
-                              matchKey: _selectedMatchKey ?? '',
-                              eventKey: '',
-                              compLevel: 'qm',
-                              label: '',
-                              redTeams: [],
-                              blueTeams: [],
-                            ),
-                          );
-                          final label = match.label.isNotEmpty
-                              ? match.label
-                              : (_selectedMatchKey ?? 'Match');
-                          ObsidianShareModal.show(
-                            context,
-                            apiService: widget.apiService,
-                            resourceType: 'predictor',
-                            defaultTitle: 'Prediction - $label',
-                            queryConfig: {
-                              'matchKey': _selectedMatchKey,
-                              'dataSource': _dataSource,
-                              'usePrescout': _usePrescout,
-                            },
-                            snapshotData: _prediction?.toJson(),
-                          );
-                        },
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 18.0),
 
                 // Match Selector Dropdown
                 Text(

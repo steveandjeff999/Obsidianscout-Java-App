@@ -2,6 +2,7 @@ import 'dart:async';
 import '../theme/obsidian_tokens.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../widgets/obsidian_page_header.dart';
 import '../l10n/app_localizations.dart';
 import '../models/api_response.dart';
 import '../models/pick_list_models.dart';
@@ -392,47 +393,42 @@ class _PickListScreenState extends State<PickListScreen>
     final eventList = uniqueEvents.values.toList();
     final effectiveEvent = eventList.any((e) => e.eventKey == _selectedEventKey) ? _selectedEventKey : null;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: ObsidianGlassCard(
-        margin: const EdgeInsets.symmetric(vertical: 8.0),
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        context.tr('nav.pick_list', 'Pick List'),
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        context.tr('subtitle.pick_list', 'Ranked Picks & Do Not Pick'),
-                        style: const TextStyle(fontSize: 11, color: Colors.white54),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ObsidianPageHeader(
+          title: context.tr('nav.pick_list', 'Pick List'),
+          description: context.tr('subtitle.pick_list', 'Ranked Picks & Do Not Pick'),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+          actions: [
+            if (_pendingSaves > 0)
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: ObsidianUITheme.getPrimaryAccent(context),
                   ),
                 ),
-                if (_pendingSaves > 0)
-                  const Padding(
-                    padding: EdgeInsets.all(12),
-                    child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianUITheme.defaultPrimaryAccent)),
-                  )
-                else
-                  IconButton(
-                    icon: const Icon(Icons.sync_rounded, color: ObsidianUITheme.defaultPrimaryAccent, size: 20),
-                    tooltip: _t('pick_list.sync', 'Sync'),
-                    onPressed: () => _refresh(force: true),
-                  ),
-              ],
-            ),
+              )
+            else
+              IconButton(
+                icon: Icon(Icons.sync_rounded, color: ObsidianUITheme.getPrimaryAccent(context), size: 20),
+                tooltip: _t('pick_list.sync', 'Sync'),
+                onPressed: () => _refresh(force: true),
+              ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: ObsidianGlassCard(
+            margin: const EdgeInsets.symmetric(vertical: 8.0),
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
             const SizedBox(height: 12),
             Row(
               children: [
@@ -484,6 +480,8 @@ class _PickListScreenState extends State<PickListScreen>
           ],
         ),
       ),
+      ),
+      ],
     );
   }
 

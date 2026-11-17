@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/obsidian_page_header.dart';
 import '../theme/obsidian_tokens.dart';
 import '../l10n/app_localizations.dart';
 import '../models/predictor_models.dart';
@@ -290,49 +291,17 @@ class _EventPredictorScreenState extends State<EventPredictorScreen> with LiveRe
         ),
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
-          // Header Controls Card
+          ObsidianPageHeader(
+            title: context.tr('event_predictor.title'),
+            description: isFtc ? context.tr('event_predictor.notice_ftc') : context.tr('event_predictor.notice'),
+          ),
+          // Controls Card
           ObsidianGlassCard(
-            borderRadius: 16.0,
             margin: const EdgeInsets.only(bottom: 16.0),
             padding: const EdgeInsets.all(20.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8.0),
-                      decoration: BoxDecoration(
-                        color: ObsidianUITheme.defaultPrimaryAccent.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
-                      ),
-                      child: const Icon(Icons.leaderboard_rounded, color: ObsidianUITheme.defaultPrimaryAccent, size: 22.0),
-                    ),
-                    const SizedBox(width: 12.0),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            context.tr('event_predictor.title'),
-                            style: TextStyle(
-                              fontSize: isDesktop ? 20.0 : 17.0,
-                              fontWeight: FontWeight.bold,
-                              color: primaryTextColor,
-                            ),
-                          ),
-                          const SizedBox(height: 2.0),
-                          Text(
-                            isFtc
-                                ? context.tr('event_predictor.notice_ftc')
-                                : context.tr('event_predictor.notice'),
-                            style: TextStyle(fontSize: 12.0, color: secondaryTextColor),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
                 const SizedBox(height: 18.0),
 
                 // Event Selector Dropdown

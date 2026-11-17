@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/obsidian_page_header.dart';
 import '../theme/obsidian_tokens.dart';
 import '../l10n/app_localizations.dart';
 import '../models/team_match_models.dart';
@@ -229,7 +230,6 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
   Widget build(BuildContext context) {
     final isDark = ObsidianUITheme.isDark(context);
     final primaryTextColor = ObsidianUITheme.getPrimaryTextColor(context);
-    final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
     final tertiaryTextColor = ObsidianUITheme.getTertiaryTextColor(context);
 
     return RefreshIndicator(
@@ -246,49 +246,15 @@ class _DataValidationScreenState extends State<DataValidationScreen> with LiveRe
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            ObsidianPageHeader(
+              title: context.tr('nav.data-validation', 'Data Validation & Anomaly Detection'),
+              description: context.tr('subtitle.data-validation', 'Compare scouting entries vs official match scores & EPA/OPR'),
+            ),
             // Controls Card
             ObsidianGlassCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10.0),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.2),
-                        ),
-                        child: Icon(
-                          Icons.fact_check_rounded,
-                          color: ObsidianUITheme.primaryAccent,
-                          size: 24.0,
-                        ),
-                      ),
-                      const SizedBox(width: 12.0),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              context.tr('nav.data-validation', 'Data Validation & Anomaly Detection'),
-                              style: TextStyle(
-                                fontSize: 18.0,
-                                fontWeight: FontWeight.bold,
-                                color: primaryTextColor,
-                              ),
-                            ),
-                            Text(
-                              context.tr('subtitle.data-validation', 'Compare scouting entries vs official match scores & EPA/OPR'),
-                              style: TextStyle(fontSize: 12.0, color: secondaryTextColor),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16.0),
-
                   // Event Selector Dropdown
                   Text(
                     'Event',

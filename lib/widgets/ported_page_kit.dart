@@ -8,6 +8,7 @@ import 'obsidian_action_bar.dart';
 export 'obsidian_action_bar.dart';
 import 'obsidian_feedback.dart';
 import 'obsidian_glass_card.dart';
+import 'obsidian_page_header.dart';
 
 /// Shared building blocks for the screens ported from website pages (Analytics, Compare Teams, Banners,
 /// Storage Manager, ...). Those screens read the server's JSON as-is, so this also has small readers for it.
@@ -87,13 +88,30 @@ class PortedPageList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final items = <Widget>[];
+    if (children.isNotEmpty && children.first is PortedSection) {
+      final first = children.first as PortedSection;
+      items.add(ObsidianPageHeader(
+        title: first.title,
+        description: first.subtitle,
+        actions: first.actions,
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      ));
+      if (first.child != null) {
+        items.add(ObsidianGlassCard(padding: first.padding, child: first.child!));
+      }
+      items.addAll(children.skip(1));
+    } else {
+      items.addAll(children);
+    }
+
     final list = RefreshIndicator(
-      color: ObsidianUITheme.primaryAccent,
+      color: ObsidianUITheme.getPrimaryAccent(context),
       onRefresh: onRefresh,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.only(top: 4, bottom: actionBar != null ? 12 : (isBarsVisible ? 120 : 20)),
-        children: children,
+        children: items,
       ),
     );
     return ObsidianActionBarLayout(body: list, bar: actionBar);
