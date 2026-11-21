@@ -12,7 +12,7 @@ import '../services/scout_history_service.dart';
 import '../theme/obsidian_responsive.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/dynamic_field_widget.dart';
-import '../widgets/obsidian_barcode_modal.dart';
+import '../widgets/entry_share.dart';
 import '../widgets/obsidian_feedback.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/sync_status_banner.dart';
@@ -452,15 +452,27 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
       autoAdvance: _autoAdvance,
       onToggleAutoAdvance: _setAutoAdvance,
       // Change: clear the pre-filled selection so the scout picks manually.
-      onChange: () => setState(() {
-        _selectedMatch = null;
-        _selectedTeam = null;
-        _advanced = false;
-      }),
-      onGoTo: (a) => setState(() {
-        _applyAssignment(a);
-        _advanced = false;
-      }),
+      onChange: () {
+        final oldTeam = _selectedTeam;
+        final oldMatch = _selectedMatch;
+        setState(() {
+          _selectedMatch = null;
+          _selectedTeam = null;
+          _advanced = false;
+          _clearAnswersIfSelectionChanged(oldTeam, oldMatch);
+        });
+        _scheduleDraftSave();
+      },
+      onGoTo: (a) {
+        final oldTeam = _selectedTeam;
+        final oldMatch = _selectedMatch;
+        setState(() {
+          _applyAssignment(a);
+          _advanced = false;
+          _clearAnswersIfSelectionChanged(oldTeam, oldMatch);
+        });
+        _scheduleDraftSave();
+      },
       margin: margin ?? const EdgeInsets.fromLTRB(16, 4, 16, 4),
     );
   }
@@ -517,36 +529,56 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
     return filtered;
   }
 
+  /// Clears the answers when a team or match that was already picked is swapped or removed, so
+  /// one team's answers don't carry over to another. Filling in a missing pick keeps them. Call inside setState.
+  void _clearAnswersIfSelectionChanged(TeamModel? oldTeam, MatchModel? oldMatch) {
+    final teamChanged = oldTeam != null && oldTeam.teamNumber != _selectedTeam?.teamNumber;
+    final matchChanged = oldMatch != null && oldMatch.matchKey != _selectedMatch?.matchKey;
+    if ((teamChanged || matchChanged) && _config != null) {
+      _formData.clear();
+      _resetFormData(_config!);
+      _activeTab = 'auto';
+    }
+  }
+
   void _onTeamSelected(TeamModel? team) {
+    final oldTeam = _selectedTeam;
+    final oldMatch = _selectedMatch;
     setState(() {
       final wasBothSelected = _selectedTeam != null && _selectedMatch != null;
       _selectedTeam = team;
-      if (team == null) return;
-      if (wasBothSelected) {
-        _selectedMatch = null;
-      } else if (_selectedMatch != null) {
-        final matchHasRoster = _selectedMatch!.redTeams.isNotEmpty || _selectedMatch!.blueTeams.isNotEmpty;
-        if (matchHasRoster && !_selectedMatch!.hasTeam(team.teamNumber)) {
+      if (team != null) {
+        if (wasBothSelected) {
           _selectedMatch = null;
+        } else if (_selectedMatch != null) {
+          final matchHasRoster = _selectedMatch!.redTeams.isNotEmpty || _selectedMatch!.blueTeams.isNotEmpty;
+          if (matchHasRoster && !_selectedMatch!.hasTeam(team.teamNumber)) {
+            _selectedMatch = null;
+          }
         }
       }
+      _clearAnswersIfSelectionChanged(oldTeam, oldMatch);
     });
     _scheduleDraftSave();
   }
 
   void _onMatchSelected(MatchModel? match) {
+    final oldTeam = _selectedTeam;
+    final oldMatch = _selectedMatch;
     setState(() {
       final wasBothSelected = _selectedTeam != null && _selectedMatch != null;
       _selectedMatch = match;
-      if (match == null) return;
-      if (wasBothSelected) {
-        _selectedTeam = null;
-      } else if (_selectedTeam != null) {
-        final matchHasRoster = match.redTeams.isNotEmpty || match.blueTeams.isNotEmpty;
-        if (matchHasRoster && !match.hasTeam(_selectedTeam!.teamNumber)) {
+      if (match != null) {
+        if (wasBothSelected) {
           _selectedTeam = null;
+        } else if (_selectedTeam != null) {
+          final matchHasRoster = match.redTeams.isNotEmpty || match.blueTeams.isNotEmpty;
+          if (matchHasRoster && !match.hasTeam(_selectedTeam!.teamNumber)) {
+            _selectedTeam = null;
+          }
         }
       }
+      _clearAnswersIfSelectionChanged(oldTeam, oldMatch);
     });
     _scheduleDraftSave();
   }
@@ -929,12 +961,14 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
     }
   }
 
-  Future<void> _generateBarcode() async {
+  Future<void> _generateBarcode({bool bluetooth = false}) async {
     if (!_validateSelection()) return;
 
     _formKey.currentState?.save();
 
-    if (!await _confirmReview(submitLabel: context.tr('review.show_qr', 'Show QR Code')) || !mounted) return;
+    if (!await _confirmReview(submitLabel: bluetooth
+            ? context.tr('bluetooth.send_title', 'Send over Bluetooth')
+            : context.tr('review.show_qr', 'Show QR Code')) || !mounted) return;
 
     final payload = {
       'eventKey': _eventKey ?? '',
@@ -962,8 +996,10 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
       },
     ));
 
-    ObsidianBarcodeModal.show(
+    showEntryShare(
       context,
+      bluetooth: bluetooth,
+      username: widget.apiService.currentAccountUsername,
       payload: payload,
       typeLabel: context.tr('nav.match_scout'),
       targetTeamNumber: _selectedTeam!.teamNumber,
@@ -1783,6 +1819,14 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
                             },
                           ),
                           const SizedBox(height: 10.0),
+                          BluetoothSendCard(
+                            compact: true,
+                            onTap: () {
+                              HapticFeedback.mediumImpact();
+                              _generateBarcode(bluetooth: true);
+                            },
+                          ),
+                          const SizedBox(height: 10.0),
                           Builder(
                             builder: (context) {
                               final isOnline = widget.apiService.isOnline;
@@ -2046,6 +2090,12 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
                 },
               ),
 
+              BluetoothSendCard(
+                onTap: () {
+                  HapticFeedback.mediumImpact();
+                  _generateBarcode(bluetooth: true);
+                },
+              ),
               // Submit Button
               Builder(
                 builder: (context) {

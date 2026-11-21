@@ -8,7 +8,7 @@ import '../services/api_service.dart';
 import '../services/scout_history_service.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/dynamic_field_widget.dart';
-import '../widgets/obsidian_barcode_modal.dart';
+import '../widgets/entry_share.dart';
 import '../widgets/obsidian_feedback.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/sync_status_banner.dart';
@@ -49,6 +49,8 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
   ScoutingConfigModel? _matchConfig;
   ScoutingConfigModel? _pitConfig;
   ScoutingConfigModel? _qualConfig;
+  /// Mode, event, team and match the form was last loaded for.
+  String? _loadedSelectionKey;
 
   // Cache entries
   List<dynamic> _matchEntries = [];
@@ -255,6 +257,21 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
             break;
           }
         }
+      }
+    }
+
+    // A different team or match than the one the form holds: start from a blank form, so the last
+    // team's answers don't carry over (and a saved entry isn't mixed with them).
+    final selectionKey = '${_currentMode.name}|$eventKey|$teamNum|${matchNum ?? ''}';
+    if (selectionKey != _loadedSelectionKey) {
+      _loadedSelectionKey = selectionKey;
+      ScoutingConfigModel? activeConfig;
+      if (_currentMode == PrescoutMode.match) activeConfig = _matchConfig;
+      if (_currentMode == PrescoutMode.pit) activeConfig = _pitConfig;
+      if (_currentMode == PrescoutMode.qual) activeConfig = _qualConfig;
+      if (activeConfig != null) {
+        _formData.clear();
+        _resetFormData(activeConfig);
       }
     }
 
@@ -685,10 +702,12 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
     );
   }
 
-  Future<void> _handleGenerateQr() async {
+  Future<void> _handleGenerateQr({bool bluetooth = false}) async {
     final payload = _buildPayload();
     if (payload == null) return;
-    if (!await _confirmReview(payload, submitLabel: context.tr('review.show_qr', 'Show QR Code')) || !mounted) return;
+    if (!await _confirmReview(payload, submitLabel: bluetooth
+            ? context.tr('bluetooth.send_title', 'Send over Bluetooth')
+            : context.tr('review.show_qr', 'Show QR Code')) || !mounted) return;
 
     final prescoutType = _currentMode == PrescoutMode.pit ? 'prescout-pit' : (_currentMode == PrescoutMode.qual ? 'prescout-qual' : 'prescout-match');
     String typeLabel = 'Match Prescouting';
@@ -707,8 +726,10 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
       payload: payload,
     ));
 
-    ObsidianBarcodeModal.show(
+    showEntryShare(
       context,
+      bluetooth: bluetooth,
+      username: widget.apiService.currentAccountUsername,
       payload: payload,
       typeLabel: typeLabel,
       targetTeamNumber: payload['targetTeamNumber'] is int ? payload['targetTeamNumber'] as int : int.tryParse(payload['targetTeamNumber'].toString()) ?? 0,
@@ -1587,6 +1608,26 @@ class _PrescoutScreenState extends State<PrescoutScreen> {
             ),
           ],
         ),
+        if (BluetoothSendCard.visible) ...[
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              key: const Key('bluetooth_send_button'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                side: BorderSide(color: ObsidianUITheme.getBorderColor(context)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () => _handleGenerateQr(bluetooth: true),
+              icon: const Icon(Icons.bluetooth_rounded, size: 18, color: ObsidianUITheme.defaultPrimaryAccent),
+              label: Text(
+                context.tr('bluetooth.send_title', 'Send over Bluetooth'),
+                style: const TextStyle(fontSize: 12, color: ObsidianUITheme.defaultPrimaryAccent),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }

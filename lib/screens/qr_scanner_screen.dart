@@ -18,7 +18,10 @@ import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/obsidian_barcode_modal.dart';
 import '../widgets/obsidian_feedback.dart';
+import '../widgets/bluetooth_receive_sheet.dart';
 import '../services/api_service.dart';
+import '../services/bluetooth/ble_receive_client.dart';
+import '../services/bluetooth/ble_transfer_protocol.dart';
 import '../services/scout_history_service.dart';
 import '../data/local_store.dart';
 
@@ -585,17 +588,24 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
   String? _lastScannedText;
   DateTime? _lastScanTime;
 
-  void _handleRawScan(String rawText) async {
-    if (rawText.isEmpty || _isProcessingScan) return;
+  /// Decodes a scanned (or Bluetooth-received) payload into the queue. Returns true if the entry is now in the
+  /// queue, including when it was already there. Bluetooth payloads skip the camera's repeat-scan cooldown.
+  Future<bool> _handleRawScan(String rawText, {bool fromBluetooth = false}) async {
+    if (rawText.isEmpty || (_isProcessingScan && !fromBluetooth)) return false;
 
     final now = DateTime.now();
-    if (_lastScannedText == rawText && _lastScanTime != null && now.difference(_lastScanTime!).inMilliseconds < 1200) {
-      return;
+    if (!fromBluetooth &&
+        _lastScannedText == rawText &&
+        _lastScanTime != null &&
+        now.difference(_lastScanTime!).inMilliseconds < 1200) {
+      return false;
     }
 
-    _isProcessingScan = true;
-    _lastScannedText = rawText;
-    _lastScanTime = now;
+    if (!fromBluetooth) {
+      _isProcessingScan = true;
+      _lastScannedText = rawText;
+      _lastScanTime = now;
+    }
     int coolDownMs = 1000;
 
     try {
@@ -616,7 +626,7 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
               total > 64 ||
               index > total ||
               chunk.length > 8192) {
-            return;
+            return false;
           }
 
           if (_activeMultiTotal != total) {
@@ -635,7 +645,7 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
                 ),
               );
             }
-            return;
+            return false;
           }
 
           _activeMultiParts[index] = chunk;
@@ -652,7 +662,7 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
                 ),
               );
             }
-            return;
+            return false;
           }
 
           // All parts received! Assemble base64 payload
@@ -743,7 +753,7 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
             );
           }
         }
-        return;
+        return true;
       }
 
       final Map<String, dynamic> parsed = decoded is Map<String, dynamic> ? decoded : {};
@@ -808,7 +818,7 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
             ),
           );
         }
-        return;
+        return true;
       }
 
       final newItem = ScannedQueueItem(
@@ -839,6 +849,7 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
           ),
         );
       }
+      return true;
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -850,13 +861,38 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
         );
       }
     } finally {
-      await Future.delayed(Duration(milliseconds: coolDownMs));
-      if (mounted) {
-        setState(() {
-          _isProcessingScan = false;
-        });
+      if (!fromBluetooth) {
+        await Future.delayed(Duration(milliseconds: coolDownMs));
+        if (mounted) {
+          setState(() {
+            _isProcessingScan = false;
+          });
+        }
       }
     }
+    return false;
+  }
+
+  /// Hands a Bluetooth-received entry to the same import path a scanned QR code takes.
+  Future<BleTransferResult> _importBluetoothPayload(BleTransferPayload payload) async {
+    final accepted = await _handleRawScan(payload.toQrText(), fromBluetooth: true);
+    return BleTransferResult(
+      ok: accepted,
+      message: accepted ? '' : 'The receiver could not read this entry.',
+      receiverName: _bluetoothReceiverName(),
+    );
+  }
+
+  String _bluetoothReceiverName() {
+    try {
+      final host = Platform.localHostname.trim();
+      if (host.isNotEmpty && host.toLowerCase() != 'localhost') return host;
+    } catch (_) {}
+    return '';
+  }
+
+  void _openBluetoothReceive() {
+    BluetoothReceiveSheet.show(context, onPayload: _importBluetoothPayload, username: widget.apiService.currentAccountUsername);
   }
 
   Future<void> _uploadQueue() async {
@@ -1245,6 +1281,13 @@ class QrScannerScreenState extends State<QrScannerScreen> with WidgetsBindingObs
         backgroundColor: scaffoldBg,
         elevation: 0,
         actions: [
+          if (BleReceiveClient.platformSupported)
+            IconButton(
+              key: const Key('scanner_bluetooth_receive'),
+              icon: Icon(Icons.bluetooth_searching_rounded, color: ObsidianUITheme.primaryAccent),
+              tooltip: context.tr('bluetooth.receive_title', 'Receive over Bluetooth'),
+              onPressed: _openBluetoothReceive,
+            ),
           IconButton(
             icon: Icon(Icons.assignment_returned_rounded, color: ObsidianUITheme.primaryAccent),
             tooltip: 'Paste from Clipboard (PC)',

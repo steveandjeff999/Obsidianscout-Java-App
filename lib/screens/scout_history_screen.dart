@@ -1,6 +1,8 @@
 import 'dart:async';
 import '../theme/obsidian_tokens.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import '../l10n/app_localizations.dart';
 import '../models/api_response.dart';
 import '../models/scout_history_models.dart';
 import '../services/api_service.dart';
@@ -8,7 +10,7 @@ import '../services/history_server_match.dart';
 import '../services/scout_history_service.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../theme/obsidian_responsive.dart';
-import '../widgets/obsidian_barcode_modal.dart';
+import '../widgets/entry_share.dart';
 import '../widgets/obsidian_feedback.dart';
 import '../widgets/obsidian_glass_card.dart';
 
@@ -235,11 +237,13 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
     }
   }
 
-  void _regenerateQr(ScoutHistoryEntry entry) {
+  void _regenerateQr(ScoutHistoryEntry entry, {bool bluetooth = false}) {
     final typeLabel = _typeLabel(entry.type);
 
-    ObsidianBarcodeModal.show(
+    showEntryShare(
       context,
+      bluetooth: bluetooth,
+      username: widget.apiService.currentAccountUsername,
       payload: Map<String, dynamic>.from(entry.payload),
       typeLabel: typeLabel,
       targetTeamNumber: entry.teamNumber,
@@ -262,7 +266,7 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
 
   /// Shows every record not yet on the server as one multi-part QR bundle; scanning it queues each entry
   /// under its own form type, so they all upload together.
-  void _showQrStack() {
+  void _showQrStack({bool bluetooth = false}) {
     final unsynced = _entries.where((e) => e.status != 'synced').toList()
       ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
     final seen = <String>{};
@@ -283,8 +287,10 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
     }
     if (bundled.isEmpty) return;
 
-    ObsidianBarcodeModal.show(
+    showEntryShare(
       context,
+      bluetooth: bluetooth,
+      username: widget.apiService.currentAccountUsername,
       payload: {'type': 'bundle', 'scope': 'QR Stack', 'entries': bundled},
       typeLabel: 'QR Stack (${bundled.length} ${bundled.length == 1 ? 'entry' : 'entries'})',
       targetTeamNumber: teams.first,
@@ -749,6 +755,21 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
                     ),
                   ),
+                  // All unsynced records over Bluetooth
+                  if (BluetoothSendCard.visible)
+                    OutlinedButton.icon(
+                      onPressed: pendingCount > 0
+                          ? () => kIsWeb ? showBluetoothUnsupported(context) : _showQrStack(bluetooth: true)
+                          : null,
+                      icon: const Icon(Icons.bluetooth_rounded, size: 15),
+                      label: Text('Bluetooth Stack ($pendingCount)', style: const TextStyle(fontSize: 12)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: ObsidianUITheme.primaryAccent,
+                        side: BorderSide(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.5)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                      ),
+                    ),
                   // Check Server Sync Button
                   OutlinedButton.icon(
                     onPressed: _isSyncingServer ? null : () => _syncWithServer(showFeedback: true, forceRefresh: true),
@@ -927,6 +948,26 @@ class _ScoutHistoryScreenState extends State<ScoutHistoryScreen> {
                     ),
                   ),
                 ),
+                if (BluetoothSendCard.visible) ...[
+                  const SizedBox(width: 8),
+                  // Bluetooth
+                  SizedBox(
+                    width: 40,
+                    child: Tooltip(
+                      message: context.tr('bluetooth.send_title', 'Send over Bluetooth'),
+                      child: OutlinedButton(
+                        onPressed: () => kIsWeb ? showBluetoothUnsupported(context) : _regenerateQr(entry, bluetooth: true),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: ObsidianUITheme.primaryAccent,
+                          side: BorderSide(color: ObsidianUITheme.primaryAccent.withValues(alpha: 0.4)),
+                          padding: EdgeInsets.zero,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        child: const Icon(Icons.bluetooth_rounded, size: 16),
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(width: 8),
                 // Delete
                 SizedBox(

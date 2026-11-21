@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme/obsidian_tokens.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/obsidian_glass_card.dart';
@@ -8,7 +9,7 @@ import '../models/team_match_models.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../services/api_service.dart';
 import '../services/scout_history_service.dart';
-import '../widgets/obsidian_barcode_modal.dart';
+import '../widgets/entry_share.dart';
 import '../widgets/submit_review_sheet.dart';
 import '../widgets/obsidian_feedback.dart';
 import '../widgets/sync_status_banner.dart';
@@ -315,15 +316,25 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
       autoAdvance: _autoAdvance,
       onToggleAutoAdvance: _setAutoAdvance,
       // Change: clear the pre-filled selection so the scout picks manually.
-      onChange: () => setState(() {
-        _selectedMatch = null;
-        _selectedTeam = null;
-        _advanced = false;
-      }),
-      onGoTo: (a) => setState(() {
-        _applyAssignment(a);
-        _advanced = false;
-      }),
+      onChange: () {
+        final oldTeam = _selectedTeam;
+        final oldMatch = _selectedMatch;
+        setState(() {
+          _selectedMatch = null;
+          _selectedTeam = null;
+          _advanced = false;
+          _clearAnswersIfSelectionChanged(oldTeam, oldMatch);
+        });
+      },
+      onGoTo: (a) {
+        final oldTeam = _selectedTeam;
+        final oldMatch = _selectedMatch;
+        setState(() {
+          _applyAssignment(a);
+          _advanced = false;
+          _clearAnswersIfSelectionChanged(oldTeam, oldMatch);
+        });
+      },
       margin: margin ?? const EdgeInsets.fromLTRB(16, 4, 16, 4),
     );
   }
@@ -393,35 +404,55 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
     return filtered;
   }
 
+  /// Clears the answers when a team or match that was already picked is swapped or removed, so
+  /// one team's answers don't carry over to another. Filling in a missing pick keeps them. Call inside setState.
+  void _clearAnswersIfSelectionChanged(TeamModel? oldTeam, MatchModel? oldMatch) {
+    final teamChanged = oldTeam != null && oldTeam.teamNumber != _selectedTeam?.teamNumber;
+    final matchChanged = oldMatch != null && oldMatch.matchKey != _selectedMatch?.matchKey;
+    if ((teamChanged || matchChanged) && _config != null) {
+      _formData.clear();
+      _resetFormData(_config!);
+      _teamFormData.clear();
+    }
+  }
+
   void _onTeamSelected(TeamModel? team) {
+    final oldTeam = _selectedTeam;
+    final oldMatch = _selectedMatch;
     setState(() {
       final wasBothSelected = _selectedTeam != null && _selectedMatch != null;
       _selectedTeam = team;
-      if (team == null) return;
-      if (wasBothSelected) {
-        _selectedMatch = null;
-      } else if (_selectedMatch != null) {
-        final matchHasRoster = _selectedMatch!.redTeams.isNotEmpty || _selectedMatch!.blueTeams.isNotEmpty;
-        if (matchHasRoster && !_selectedMatch!.hasTeam(team.teamNumber)) {
+      if (team != null) {
+        if (wasBothSelected) {
           _selectedMatch = null;
+        } else if (_selectedMatch != null) {
+          final matchHasRoster = _selectedMatch!.redTeams.isNotEmpty || _selectedMatch!.blueTeams.isNotEmpty;
+          if (matchHasRoster && !_selectedMatch!.hasTeam(team.teamNumber)) {
+            _selectedMatch = null;
+          }
         }
       }
+      _clearAnswersIfSelectionChanged(oldTeam, oldMatch);
     });
   }
 
   void _onMatchSelected(MatchModel? match) {
+    final oldTeam = _selectedTeam;
+    final oldMatch = _selectedMatch;
     setState(() {
       final wasBothSelected = _scope == QualScoutScope.singleTeam && _selectedTeam != null && _selectedMatch != null;
       _selectedMatch = match;
-      if (match == null) return;
-      if (wasBothSelected) {
-        _selectedTeam = null;
-      } else if (_scope == QualScoutScope.singleTeam && _selectedTeam != null) {
-        final matchHasRoster = match.redTeams.isNotEmpty || match.blueTeams.isNotEmpty;
-        if (matchHasRoster && !match.hasTeam(_selectedTeam!.teamNumber)) {
+      if (match != null) {
+        if (wasBothSelected) {
           _selectedTeam = null;
+        } else if (_scope == QualScoutScope.singleTeam && _selectedTeam != null) {
+          final matchHasRoster = match.redTeams.isNotEmpty || match.blueTeams.isNotEmpty;
+          if (matchHasRoster && !match.hasTeam(_selectedTeam!.teamNumber)) {
+            _selectedTeam = null;
+          }
         }
       }
+      _clearAnswersIfSelectionChanged(oldTeam, oldMatch);
     });
   }
 
@@ -978,10 +1009,12 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
     }
   }
 
-  Future<void> _generateBarcode() async {
+  Future<void> _generateBarcode({bool bluetooth = false}) async {
     if (!_validateSelection()) return;
     _formKey.currentState?.save();
-    if (!await _confirmQualReview(submitLabel: context.tr('review.show_qr', 'Show QR Code')) || !mounted) return;
+    if (!await _confirmQualReview(submitLabel: bluetooth
+            ? context.tr('bluetooth.send_title', 'Send over Bluetooth')
+            : context.tr('review.show_qr', 'Show QR Code')) || !mounted) return;
 
     if (_scope == QualScoutScope.singleTeam) {
       final payload = {
@@ -1003,8 +1036,10 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
         scoutedById: widget.apiService.currentAccountId,
       ));
 
-      ObsidianBarcodeModal.show(
+      showEntryShare(
         context,
+        bluetooth: bluetooth,
+        username: widget.apiService.currentAccountUsername,
         payload: payload,
         typeLabel: context.tr('nav.qual_scout'),
         targetTeamNumber: _selectedTeam!.teamNumber,
@@ -1046,8 +1081,10 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
 
       final allTeamNumbers = allianceTeams.map((t) => t.teamNumber).join(', ');
 
-      ObsidianBarcodeModal.show(
+      showEntryShare(
         context,
+        bluetooth: bluetooth,
+        username: widget.apiService.currentAccountUsername,
         payload: allianceBundle,
         typeLabel: 'Qual Alliance (${_getScopeLabel(_scope)})',
         targetTeamNumber: allianceTeams.isNotEmpty ? allianceTeams.first.teamNumber : 0,
@@ -1348,6 +1385,12 @@ class _QualScoutScreenState extends State<QualScoutScreen> {
                     ],
                   ),
                 ),
+              ),
+              BluetoothSendCard(
+                onTap: () {
+                  HapticFeedback.mediumImpact();
+                  _generateBarcode(bluetooth: true);
+                },
               ),
               Builder(
                 builder: (context) {

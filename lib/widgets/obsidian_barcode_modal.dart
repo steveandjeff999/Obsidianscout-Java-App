@@ -116,44 +116,25 @@ class ObsidianBarcodeModal extends StatefulWidget {
     );
   }
 
-  @override
-  State<ObsidianBarcodeModal> createState() => _ObsidianBarcodeModalState();
-}
-
-class _ObsidianBarcodeModalState extends State<ObsidianBarcodeModal> {
-  late List<String> _qrChunks;
-  late String _qrPayloadJson;
-  int _maxChunkSize = 550;
-
-  String get _displayTeamValue {
-    if (widget.teamLabel != null && widget.teamLabel!.trim().isNotEmpty) {
-      return widget.teamLabel!.trim();
-    }
-    // Auto-extract from alliance bundle payload if entries exist
-    final entries = widget.payload['entries'];
+  /// Teams shown for an entry: the explicit label, the teams in a bundle, or the single target team.
+  static String teamDisplay(Map<String, dynamic> payload, int targetTeamNumber, String? teamLabel) {
+    if (teamLabel != null && teamLabel.trim().isNotEmpty) return teamLabel.trim();
+    final entries = payload['entries'];
     if (entries is List && entries.isNotEmpty) {
       final teams = <int>[];
       for (final e in entries) {
         if (e is Map) {
           final t = e['targetTeamNumber'] ?? e['teamNumber'];
-          if (t is num && !teams.contains(t.toInt())) {
-            teams.add(t.toInt());
-          }
+          if (t is num && !teams.contains(t.toInt())) teams.add(t.toInt());
         }
       }
-      if (teams.isNotEmpty) {
-        return teams.join(', ');
-      }
+      if (teams.isNotEmpty) return teams.join(', ');
     }
-    return '${widget.targetTeamNumber}';
+    return '$targetTeamNumber';
   }
 
-  String get _displayTeamHeader {
-    final val = _displayTeamValue;
-    return (val.contains(',') || val.contains('Teams')) ? 'TEAMS' : 'TEAM';
-  }
-
-  Map<String, dynamic> _preparePayloadForQr(Map<String, dynamic> raw) {
+  /// Copy of [raw] with embedded photos shrunk for transport (QR or Bluetooth).
+  static Map<String, dynamic> preparePayloadForTransport(Map<String, dynamic> raw) {
     final copy = jsonDecode(jsonEncode(raw)) as Map<String, dynamic>;
     void traverse(dynamic obj) {
       if (obj is Map) {
@@ -161,9 +142,7 @@ class _ObsidianBarcodeModalState extends State<ObsidianBarcodeModal> {
           final val = obj[key];
           if (val is String && val.startsWith('data:image/')) {
             final compressed = ImageProcessingUtils.compressDataUrlForTransportation(val, maxDimension: 320, quality: 45);
-            if (compressed != null) {
-              obj[key] = compressed;
-            }
+            if (compressed != null) obj[key] = compressed;
           } else if (val is Map || val is List) {
             traverse(val);
           }
@@ -173,28 +152,48 @@ class _ObsidianBarcodeModalState extends State<ObsidianBarcodeModal> {
           final val = obj[i];
           if (val is String && val.startsWith('data:image/')) {
             final compressed = ImageProcessingUtils.compressDataUrlForTransportation(val, maxDimension: 320, quality: 45);
-            if (compressed != null) {
-              obj[i] = compressed;
-            }
+            if (compressed != null) obj[i] = compressed;
           } else if (val is Map || val is List) {
             traverse(val);
           }
         }
       }
     }
+
     traverse(copy);
     return copy;
+  }
+
+  /// The `{type, data}` JSON a QR code (or a Bluetooth transfer) carries for this entry.
+  static String envelopeJson(Map<String, dynamic> payload, String typeLabel) {
+    final optimized = preparePayloadForTransport(payload);
+    return jsonEncode({
+      'type': optimized['type'] ?? typeLabel.toLowerCase().replaceAll(' ', '-'),
+      'data': optimized,
+    });
+  }
+
+  @override
+  State<ObsidianBarcodeModal> createState() => _ObsidianBarcodeModalState();
+}
+
+class _ObsidianBarcodeModalState extends State<ObsidianBarcodeModal> {
+  late List<String> _qrChunks;
+  late String _qrPayloadJson;
+  int _maxChunkSize = 550;
+
+  String get _displayTeamValue =>
+      ObsidianBarcodeModal.teamDisplay(widget.payload, widget.targetTeamNumber, widget.teamLabel);
+
+  String get _displayTeamHeader {
+    final val = _displayTeamValue;
+    return (val.contains(',') || val.contains('Teams')) ? 'TEAMS' : 'TEAM';
   }
 
   @override
   void initState() {
     super.initState();
-    final optimizedPayload = _preparePayloadForQr(widget.payload);
-    final qrPayload = {
-      'type': optimizedPayload['type'] ?? widget.typeLabel.toLowerCase().replaceAll(' ', '-'),
-      'data': optimizedPayload,
-    };
-    _qrPayloadJson = jsonEncode(qrPayload);
+    _qrPayloadJson = ObsidianBarcodeModal.envelopeJson(widget.payload, widget.typeLabel);
     _qrChunks = BarcodeCompressor.compressAndChunkData(_qrPayloadJson, chunkSize: _maxChunkSize);
     _loadSavedChunkSize();
   }

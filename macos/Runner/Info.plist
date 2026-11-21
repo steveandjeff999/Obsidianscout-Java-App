@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>ObsidianScout uses Bluetooth to send scouting entries between nearby devices.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>ObsidianScout uses Bluetooth to send scouting entries between nearby devices.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>ObsidianScout needs camera access to scan scouting QR codes.</string>
 	<key>CFBundleDevelopmentRegion</key>
