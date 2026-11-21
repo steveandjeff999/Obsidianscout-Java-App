@@ -7,7 +7,8 @@
 library;
 
 /// API level this build of the app speaks.
-const int kAppApiLevel = 1;
+/// 2: knows the `timer` field type and keeps a match config's canvas `layout` when saving (server API level 4).
+const int kAppApiLevel = 2;
 
 /// Oldest server API level this app is built to work with. Servers from before the check report no level and
 /// count as 0.

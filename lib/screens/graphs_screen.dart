@@ -451,7 +451,7 @@ class _GraphsScreenState extends State<GraphsScreen> with LiveRefresh<GraphsScre
       final type = field.type.toLowerCase();
       final label = field.label.isNotEmpty ? field.label : field.id;
 
-      if (type == 'number' || type == 'counter' || type == 'rating' || type == 'slider') {
+      if (type == 'number' || type == 'counter' || type == 'rating' || type == 'slider' || type == 'timer') {
         metrics.add(GraphMetric(
           id: 'field:${field.id}',
           label: label,

@@ -7,6 +7,7 @@ import '../services/api_service.dart';
 import '../services/live_refresh.dart';
 import '../services/csv_export_service.dart';
 import '../theme/obsidian_ui_theme.dart';
+import '../widgets/match_video_buttons.dart';
 import '../widgets/csv_export_modal.dart';
 import '../widgets/obsidian_feedback.dart';
 import '../widgets/obsidian_glass_card.dart';
@@ -1297,6 +1298,12 @@ class _AllDataScreenState extends State<AllDataScreen> with LiveRefresh<AllDataS
                             ],
                           ),
                         ),
+                        if (!entry.isPrescout && (entry.matchKey ?? '').isNotEmpty)
+                          EntryMatchVideoButtons(
+                            apiService: widget.apiService,
+                            eventKey: entry.rawEventKey,
+                            matchKey: entry.matchKey,
+                          ),
                         const SizedBox(height: 16),
                         Text(
                           'Recorded Answers',

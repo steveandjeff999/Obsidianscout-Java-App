@@ -168,7 +168,9 @@ List<Map<String, dynamic>> generateDefaultWidgets(Map<String, dynamic> config) {
     if (const ['section', 'header', 'label', 'spacer'].contains(type)) continue;
     final id = field['id'];
     final title = _ifBlank(labelText(field['label']), id.toString());
-    if (const ['counter', 'number', 'rating'].contains(type)) {
+    if (type == 'timer') {
+      widgets.add({'id': 'avg_$id', 'title': 'Avg $title (s)', 'type': 'avg', 'fieldId': id});
+    } else if (const ['counter', 'number', 'rating'].contains(type)) {
       widgets.add({'id': 'avg_$id', 'title': 'Avg $title', 'type': 'avg', 'fieldId': id});
       if (type == 'counter' || field['pointsPer'] != null) {
         widgets.add({'id': 'sum_$id', 'title': 'Total $title', 'type': 'sum', 'fieldId': id});

@@ -11,6 +11,7 @@ import '../theme/obsidian_ui_theme.dart';
 import '../theme/obsidian_responsive.dart';
 import 'inline_camera_capture_dialog.dart';
 import 'obsidian_image_preview_card.dart' show photoWidget;
+import 'timer_field_widget.dart';
 
 class DynamicFieldWidget extends StatelessWidget {
   final ScoutingFieldModel field;
@@ -436,6 +437,17 @@ class DynamicFieldWidget extends StatelessWidget {
               ),
             ),
           ],
+        );
+
+      // TIMER / STOPWATCH
+      case 'timer':
+      case 'stopwatch':
+        return TimerFieldWidget(
+          key: ValueKey('timer-${field.id}'),
+          field: field,
+          value: currentValue,
+          onChanged: onChanged,
+          isDesktop: isDesktop,
         );
 
       // 4. RATING / STARS

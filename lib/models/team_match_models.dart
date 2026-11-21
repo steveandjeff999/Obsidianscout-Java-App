@@ -147,6 +147,20 @@ class EventModel {
   int get hashCode => eventKey.hashCode;
 }
 
+final RegExp _youtubeWatchUrl = RegExp(r'^https://www\.youtube\.com/watch\?v=[A-Za-z0-9_-]{6,32}(&t=\d+s)?$');
+
+/// Playable YouTube URLs from a server `videos` array (TBA match videos). Anything that
+/// isn't a plain https://www.youtube.com/watch link is dropped.
+List<String> parseMatchVideoUrls(dynamic videos) {
+  if (videos is! List) return const [];
+  final out = <String>[];
+  for (final v in videos) {
+    final url = v is Map ? v['url']?.toString() : (v is String ? v : null);
+    if (url != null && _youtubeWatchUrl.hasMatch(url) && !out.contains(url)) out.add(url);
+  }
+  return out;
+}
+
 class MatchModel {
   final String matchKey;
   final String eventKey;
@@ -171,6 +185,9 @@ class MatchModel {
   /// qualifications are underway (practice results often never reach the APIs).
   final bool assumedPlayed;
 
+  /// Match videos published by The Blue Alliance (YouTube watch URLs).
+  final List<String> videoUrls;
+
   MatchModel({
     required this.matchKey,
     required this.eventKey,
@@ -187,6 +204,7 @@ class MatchModel {
     this.blueScore,
     this.eventTimezone,
     this.assumedPlayed = false,
+    this.videoUrls = const [],
   });
 
   static int? _intOf(dynamic v) => v is num ? v.toInt() : int.tryParse(v?.toString() ?? '');
@@ -258,6 +276,7 @@ class MatchModel {
       blueScore: _intOf(json['blueScore']),
       eventTimezone: json['eventTimezone']?.toString(),
       assumedPlayed: json['assumedPlayed'] == true,
+      videoUrls: parseMatchVideoUrls(json['videos']),
     );
   }
 

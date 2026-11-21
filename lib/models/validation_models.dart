@@ -1,3 +1,5 @@
+import 'team_match_models.dart' show parseMatchVideoUrls;
+
 class TeamMatchEntryBreakdownModel {
   final int teamNumber;
   final String teamKey;
@@ -115,6 +117,7 @@ class MatchValidationModel {
   final bool isFullyScouted;
   final bool hasAnomaly;
   final String? matchWarning;
+  final List<String> videoUrls;
 
   MatchValidationModel({
     required this.matchKey,
@@ -130,6 +133,7 @@ class MatchValidationModel {
     required this.isFullyScouted,
     required this.hasAnomaly,
     this.matchWarning,
+    this.videoUrls = const [],
   });
 
   factory MatchValidationModel.fromJson(Map<String, dynamic> json) {
@@ -147,6 +151,7 @@ class MatchValidationModel {
       isFullyScouted: json['isFullyScouted'] == true,
       hasAnomaly: json['hasAnomaly'] == true,
       matchWarning: json['matchWarning']?.toString(),
+      videoUrls: parseMatchVideoUrls(json['videos']),
     );
   }
 
@@ -165,6 +170,7 @@ class MatchValidationModel {
       'isFullyScouted': isFullyScouted,
       'hasAnomaly': hasAnomaly,
       'matchWarning': matchWarning,
+      'videos': [for (final u in videoUrls) {'type': 'youtube', 'url': u}],
     };
   }
 }

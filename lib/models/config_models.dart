@@ -16,6 +16,8 @@ class ScoutingFieldModel {
   final int? step;
   final int? doubleStep;
   final double? pointsPer;
+  /// Timer fields only: "stopwatch" (total seconds) or "cycle" (average seconds per lap).
+  final String? mode;
 
   ScoutingFieldModel({
     required this.id,
@@ -32,6 +34,7 @@ class ScoutingFieldModel {
     this.step,
     this.doubleStep,
     this.pointsPer,
+    this.mode,
   });
 
   ScoutingFieldModel copyWith({
@@ -49,6 +52,7 @@ class ScoutingFieldModel {
     int? step,
     int? doubleStep,
     double? pointsPer,
+    String? mode,
     bool clearMin = false,
     bool clearMax = false,
     bool clearStep = false,
@@ -71,6 +75,7 @@ class ScoutingFieldModel {
       step: clearStep ? null : (step ?? this.step),
       doubleStep: clearDoubleStep ? null : (doubleStep ?? this.doubleStep),
       pointsPer: clearPointsPer ? null : (pointsPer ?? this.pointsPer),
+      mode: mode ?? this.mode,
     );
   }
 
@@ -130,6 +135,7 @@ class ScoutingFieldModel {
           (json['double_step'] as num?)?.toInt(),
       pointsPer: (json['pointsPer'] as num?)?.toDouble() ??
           (json['points_per'] as num?)?.toDouble(),
+      mode: json['mode']?.toString(),
     );
   }
 
@@ -173,6 +179,9 @@ class ScoutingFieldModel {
       }
       if (pointsPer != null) {
         data['pointsPer'] = pointsPer;
+      }
+      if (type == 'timer' && mode != null && mode!.isNotEmpty) {
+        data['mode'] = mode;
       }
     }
 
@@ -241,6 +250,10 @@ class ScoutingConfigModel {
   final String? firstKey;
   final String? eventCode;
 
+  /// Canvas layout for the match form, designed on the website. The app shows the classic form but must keep this
+  /// as-is so saving the config from the app doesn't wipe the team's canvas (or its choice of the classic list).
+  final Map<String, dynamic>? layout;
+
   ScoutingConfigModel({
     this.version = 1,
     this.title = 'ObsidianScout',
@@ -251,6 +264,7 @@ class ScoutingConfigModel {
     this.firstUsername,
     this.firstKey,
     this.eventCode,
+    this.layout,
   });
 
   ScoutingConfigModel copyWith({
@@ -263,6 +277,9 @@ class ScoutingConfigModel {
     String? firstUsername,
     String? firstKey,
     String? eventCode,
+    Map<String, dynamic>? layout,
+    /// Removes the layout (so the season's default canvas applies again).
+    bool clearLayout = false,
   }) {
     return ScoutingConfigModel(
       version: version ?? this.version,
@@ -275,6 +292,7 @@ class ScoutingConfigModel {
       firstUsername: firstUsername ?? this.firstUsername,
       firstKey: firstKey ?? this.firstKey,
       eventCode: eventCode ?? this.eventCode,
+      layout: clearLayout ? null : (layout ?? this.layout),
     );
   }
 
@@ -304,6 +322,7 @@ class ScoutingConfigModel {
       firstUsername: json['first_username']?.toString(),
       firstKey: json['first_key']?.toString(),
       eventCode: json['event_code']?.toString(),
+      layout: json['layout'] is Map ? Map<String, dynamic>.from(json['layout'] as Map) : null,
     );
   }
 
@@ -333,6 +352,7 @@ class ScoutingConfigModel {
     if (firstUsername != null) data['first_username'] = firstUsername;
     if (firstKey != null) data['first_key'] = firstKey;
     if (eventCode != null) data['event_code'] = eventCode;
+    if (layout != null) data['layout'] = layout;
 
     return data;
   }
@@ -602,6 +622,9 @@ const List<String> bypassPages = [
   'reset-password',
   'config-migration',
   'schema-history',
+  'tutorials',
+  'assistant',
+  'public-data',
 ];
 
 class UserModel {

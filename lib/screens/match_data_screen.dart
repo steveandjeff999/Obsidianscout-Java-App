@@ -14,6 +14,7 @@ import '../widgets/conflict_resolution_modal.dart';
 import '../widgets/obsidian_image_preview_card.dart';
 import '../widgets/edit_scouting_entry_modal.dart';
 import '../services/photo_values.dart';
+import '../widgets/match_video_buttons.dart';
 
 class MatchScoutingRecord {
   final String id;
@@ -1028,6 +1029,12 @@ class _MatchDataScreenState extends State<MatchDataScreen> with LiveRefresh<Matc
                             ],
                           ),
                         ),
+                        if (!record.isPrescout && (record.matchKey ?? '').isNotEmpty)
+                          EntryMatchVideoButtons(
+                            apiService: widget.apiService,
+                            eventKey: record.rawEventKey,
+                            matchKey: record.matchKey,
+                          ),
                         const SizedBox(height: 16),
 
                         // Phase Breakdown

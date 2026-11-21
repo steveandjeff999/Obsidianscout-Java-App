@@ -3,6 +3,7 @@ import '../theme/obsidian_tokens.dart';
 import '../l10n/app_localizations.dart';
 import '../models/config_models.dart';
 import '../theme/obsidian_ui_theme.dart';
+import 'timer_field_widget.dart' show formatTimerSeconds;
 
 /// One line in the review: a field label and its formatted value.
 /// [isBlank] rows (zero, unset, empty) are dimmed so filled-in values stand out.
@@ -59,6 +60,12 @@ SubmitReviewRow reviewRowForField(ScoutingFieldModel field, dynamic value) {
       final n = value is num ? value : num.tryParse(value?.toString() ?? '');
       final text = n == null ? '-' : (n == n.roundToDouble() ? n.toInt().toString() : n.toString());
       return SubmitReviewRow(field.label, text, isBlank: n == null || n == 0);
+    case 'timer':
+    case 'stopwatch':
+      final n = value is num ? value : num.tryParse(value?.toString() ?? '');
+      if (n == null || n == 0) return SubmitReviewRow(field.label, '-', isBlank: true);
+      final cycle = (field.mode ?? '').toLowerCase() == 'cycle';
+      return SubmitReviewRow(field.label, '${formatTimerSeconds(n)}${cycle ? ' avg' : ''}');
     case 'rating':
     case 'stars':
       final n = value is num ? value : num.tryParse(value?.toString() ?? '');

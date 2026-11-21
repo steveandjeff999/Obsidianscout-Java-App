@@ -395,7 +395,7 @@ void main() {
     });
 
     test('ShellScreenRegistry registers load-profiler at index 52', () {
-      expect(ShellScreenRegistry.screenCount, 55);
+      expect(ShellScreenRegistry.screenCount, 59);
       expect(ShellScreenRegistry.getPageIdForIndex(52), 'load-profiler');
       expect(ShellScreenRegistry.titleKeys, contains('nav.load_profiler'));
       expect(

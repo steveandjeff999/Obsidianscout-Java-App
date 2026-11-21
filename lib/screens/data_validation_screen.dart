@@ -9,6 +9,7 @@ import '../services/live_refresh.dart';
 import '../theme/obsidian_ui_theme.dart';
 import '../widgets/obsidian_glass_card.dart';
 import 'team_details_screen.dart';
+import '../widgets/match_video_buttons.dart';
 
 class DataValidationScreen extends StatefulWidget {
   final ApiService apiService;
@@ -1448,6 +1449,10 @@ class _MatchInspectionBottomSheet extends StatelessWidget {
                 physics: const BouncingScrollPhysics(),
                 padding: const EdgeInsets.all(16.0),
                 children: [
+                  if (match.videoUrls.isNotEmpty) ...[
+                    MatchVideoButtons(videoUrls: match.videoUrls),
+                    const SizedBox(height: 12.0),
+                  ],
                   _buildAllianceBreakdownSection(context, match.redAlliance, isRed: true),
                   const SizedBox(height: 16.0),
                   _buildAllianceBreakdownSection(context, match.blueAlliance, isRed: false),

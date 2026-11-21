@@ -54,7 +54,7 @@ class _ScouterReportScreenState extends State<ScouterReportScreen> with LiveRefr
 
   static const _sortKeys = [
     'totalEntries', 'username', 'role', 'matchesScouted', 'pitEntries', 'qualEntries', 'eventsScouted', 'teamsScouted',
-    'avgCompletenessPct', 'discrepancyEntries', 'assignmentCompletionPct', 'lastSubmission',
+    'avgCompletenessPct', 'discrepancyEntries', 'accuracyPct', 'assignmentCompletionPct', 'lastSubmission',
   ];
 
   @override
@@ -141,7 +141,7 @@ class _ScouterReportScreenState extends State<ScouterReportScreen> with LiveRefr
     const cols = {
       'username': 'col_scout', 'role': 'col_role', 'matchesScouted': 'col_matches', 'pitEntries': 'col_pit',
       'qualEntries': 'col_qual', 'totalEntries': 'col_total', 'eventsScouted': 'col_events', 'teamsScouted': 'col_teams',
-      'avgCompletenessPct': 'col_completeness', 'discrepancyEntries': 'col_discrepancies',
+      'avgCompletenessPct': 'col_completeness', 'discrepancyEntries': 'col_discrepancies', 'accuracyPct': 'col_accuracy',
       'assignmentCompletionPct': 'col_assignments', 'lastSubmission': 'col_last',
     };
     return context.tr('scouter-report.${cols[key]}', key);
@@ -356,6 +356,9 @@ class _ScouterReportScreenState extends State<ScouterReportScreen> with LiveRefr
     final open = canExpand && _expanded.contains(id);
     final inactive = (jsonInt(s['totalEntries']) ?? 0) == 0;
     final pct = jsonDouble(s['assignmentCompletionPct']);
+    final accuracy = jsonDouble(s['accuracyPct']);
+    final accuracyN = jsonInt(s['accuracyAlliances']) ?? 0;
+    final bias = jsonDouble(s['accuracyBias']) ?? 0;
     String col(String key, String fallback) => context.tr('scouter-report.$key', fallback);
     return Opacity(
       opacity: inactive ? 0.6 : 1,
@@ -408,6 +411,36 @@ class _ScouterReportScreenState extends State<ScouterReportScreen> with LiveRefr
                 Text('${fmtNum(pct, digits: 1)}% (${s['assignmentsCompleted']}/${s['assignmentsTotal']})',
                     style: TextStyle(fontSize: 11.5, color: primary)),
               ]),
+            ],
+            if (accuracy != null && accuracyN > 0) ...[
+              const SizedBox(height: 6),
+              Row(children: [
+                Text(col('col_accuracy', 'Accuracy'), style: TextStyle(fontSize: 11.5, color: muted)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(3),
+                    child: LinearProgressIndicator(
+                      value: (accuracy / 100).clamp(0, 1).toDouble(),
+                      minHeight: 5,
+                      backgroundColor: ObsidianUITheme.getBorderColor(context),
+                      color: ObsidianUITheme.primaryAccent,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text('${fmtNum(accuracy, digits: 1)}% (±${s['accuracyAvgError']}, n=$accuracyN)',
+                    style: TextStyle(fontSize: 11.5, color: primary)),
+              ]),
+              const SizedBox(height: 2),
+              Text(
+                bias > 0
+                    ? col('accuracy_over', 'over-counts by {n} pts on average').replaceAll('{n}', fmtNum(bias, digits: 1))
+                    : bias < 0
+                        ? col('accuracy_under', 'under-counts by {n} pts on average').replaceAll('{n}', fmtNum(-bias, digits: 1))
+                        : col('accuracy_even', 'no lean either way'),
+                style: TextStyle(fontSize: 11, color: muted),
+              ),
             ],
             if (jsonStr(s['lastSubmission']).isNotEmpty) ...[
               const SizedBox(height: 4),

@@ -173,7 +173,7 @@ void main() {
     });
 
     test('ShellScreenRegistry registers case 54 as RedisStatusScreen', () {
-      expect(ShellScreenRegistry.screenCount, 55);
+      expect(ShellScreenRegistry.screenCount, 59);
       expect(ShellScreenRegistry.getPageIdForIndex(54), 'redis-status');
       expect(ShellScreenRegistry.titleKeys, contains('nav.redis_status'));
       expect(ShellScreenRegistry.subtitleKeys, contains('subtitle.redis_status'));

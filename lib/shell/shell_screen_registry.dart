@@ -55,6 +55,10 @@ import '../screens/backup_screen.dart';
 import '../screens/load_profiler_screen.dart';
 import '../screens/server_insights_screen.dart';
 import '../screens/redis_status_screen.dart';
+import '../screens/docs_screen.dart';
+import '../screens/tutorials_screen.dart';
+import '../screens/public_data_screen.dart';
+import '../screens/assistant_screen.dart';
 
 class MatchScoutParams {
   final String? matchKey;
@@ -101,7 +105,7 @@ class ShellScreenRegistry {
   ShellScreenRegistry._();
 
   /// Total number of shell screens (indices 0 to [screenCount] - 1).
-  static const int screenCount = 55;
+  static const int screenCount = 59;
 
   static const List<String> titleKeys = [
     'nav.dashboard',
@@ -159,6 +163,10 @@ class ShellScreenRegistry {
     'nav.load_profiler',
     'nav.server_insights',
     'nav.redis_status',
+    'nav.docs',
+    'nav.tutorials',
+    'nav.public_data',
+    'nav.assistant',
   ];
 
   static const List<String> subtitleKeys = [
@@ -217,6 +225,10 @@ class ShellScreenRegistry {
     'subtitle.load_profiler',
     'subtitle.server_insights',
     'subtitle.redis_status',
+    'subtitle.docs',
+    'subtitle.tutorials',
+    'subtitle.public_data',
+    'subtitle.assistant',
   ];
 
   static String getTitleKey(int index) {
@@ -345,6 +357,14 @@ class ShellScreenRegistry {
         return 'server-insights';
       case 54:
         return 'redis-status';
+      case 55:
+        return 'docs';
+      case 56:
+        return 'tutorials';
+      case 57:
+        return 'public-data';
+      case 58:
+        return 'assistant';
       default:
         return 'dashboard';
     }
@@ -462,6 +482,14 @@ class ShellScreenRegistry {
         return Icons.insights_rounded;
       case 54:
         return Icons.memory_rounded;
+      case 55:
+        return Icons.menu_book_rounded;
+      case 56:
+        return Icons.school_rounded;
+      case 57:
+        return Icons.public_rounded;
+      case 58:
+        return Icons.auto_awesome_rounded;
       default:
         return Icons.dashboard_rounded;
     }
@@ -595,6 +623,14 @@ class ShellScreenRegistry {
         return context.tr('nav.server_insights', 'Server Insights');
       case 54:
         return context.tr('nav.redis-status', context.tr('nav.redis_status', 'Redis Cache'));
+      case 55:
+        return context.tr('nav.docs', 'Docs');
+      case 56:
+        return context.tr('nav.tutorials', 'Tutorials');
+      case 57:
+        return context.tr('nav.public_data', 'Public Data');
+      case 58:
+        return context.tr('nav.assistant', 'Assistant');
       default:
         return 'Dashboard';
     }
@@ -1032,6 +1068,32 @@ class ShellScreenRegistry {
           isBarsVisible: isBarsVisible,
           onNavigateCluster: () => onNavigateScreen(23),
           onNavigateSettings: () => onNavigateScreen(10),
+        );
+      case 55:
+        return DocsScreen(
+          apiService: apiService,
+          isVisible: isTabActive && currentIndex == 55,
+          isBarsVisible: isBarsVisible,
+        );
+      case 56:
+        return TutorialsScreen(
+          apiService: apiService,
+          isVisible: isTabActive && currentIndex == 56,
+          isBarsVisible: isBarsVisible,
+          onNavigateScreen: onNavigateScreen,
+          onOpenQrScanner: onOpenQrScanner,
+        );
+      case 57:
+        return PublicDataScreen(
+          apiService: apiService,
+          isVisible: isTabActive && currentIndex == 57,
+          isBarsVisible: isBarsVisible,
+        );
+      case 58:
+        return AssistantScreen(
+          apiService: apiService,
+          isVisible: isTabActive && currentIndex == 58,
+          isBarsVisible: isBarsVisible,
         );
       default:
         return DashboardScreen(

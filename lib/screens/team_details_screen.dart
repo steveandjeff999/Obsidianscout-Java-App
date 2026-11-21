@@ -229,7 +229,7 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
         double pts = 0.0;
         double numVal = 0.0;
 
-        if (f.type == 'counter' || f.type == 'number' || f.type == 'slider' || f.type == 'rating') {
+        if (f.type == 'counter' || f.type == 'number' || f.type == 'slider' || f.type == 'rating' || f.type == 'timer') {
           numVal = (val is num) ? val.toDouble() : (double.tryParse(val.toString()) ?? 0.0);
           pts = numVal * (f.pointsPer ?? 0.0);
           fieldSums[f.id] = (fieldSums[f.id] ?? 0) + numVal;
@@ -297,7 +297,7 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> with SingleTicker
       final c = fieldCounts[f.id] ?? 0;
       if (c == 0) continue;
 
-      if (f.type == 'counter' || f.type == 'number' || f.type == 'slider' || f.type == 'rating') {
+      if (f.type == 'counter' || f.type == 'number' || f.type == 'slider' || f.type == 'rating' || f.type == 'timer') {
         final sum = fieldSums[f.id] ?? 0.0;
         final avg = sum / c;
         final mx = fieldMaxs[f.id] ?? 0.0;

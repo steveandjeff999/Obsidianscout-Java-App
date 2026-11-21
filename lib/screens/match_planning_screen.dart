@@ -22,6 +22,7 @@ import '../widgets/match_planning/strategy_field_canvas.dart';
 import '../widgets/match_planning/team_strategy_card.dart';
 import '../widgets/obsidian_feedback.dart';
 import '../widgets/obsidian_glass_card.dart';
+import '../widgets/match_video_buttons.dart';
 import '../services/net/adaptive_timer.dart';
 
 class MatchPlanningScreen extends StatefulWidget {
@@ -1151,6 +1152,11 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                 ),
                 const SizedBox(height: 14),
 
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: _buildMatchVideosSection(),
+                ),
+
                 // Blue Alliance Cards
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -1276,6 +1282,74 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
             );
           }),
         ],
+      ),
+    );
+  }
+
+  /// Videos for the selected match, or (for an upcoming match) each team's most recent
+  /// match at this event that has a TBA video.
+  Widget _buildMatchVideosSection() {
+    final match = _selectedMatch;
+    if (match == null) return const SizedBox.shrink();
+    final primary = ObsidianUITheme.getPrimaryTextColor(context);
+    final muted = ObsidianUITheme.getSecondaryTextColor(context);
+    final rows = <Widget>[];
+    String note;
+    if (match.videoUrls.isNotEmpty) {
+      note = 'Video of this match from The Blue Alliance.';
+      rows.add(MatchVideoButtons(videoUrls: match.videoUrls));
+    } else {
+      note = "Each team's most recent match at this event with a video.";
+      int timeOf(MatchModel m) => m.actualTime ?? m.scheduledTime ?? 0;
+      final withVideo = _matches.where((m) => m.matchKey != match.matchKey && m.videoUrls.isNotEmpty).toList()
+        ..sort((a, b) => timeOf(b).compareTo(timeOf(a)));
+      void addTeams(List<String> keys, String color) {
+        for (final key in keys) {
+          final num = _parseTeamNumber(key);
+          if (num <= 0) continue;
+          MatchModel? last;
+          for (final m in withVideo) {
+            if (m.hasTeam(num)) {
+              last = m;
+              break;
+            }
+          }
+          if (last == null) continue;
+          rows.add(Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text('$color $num · ${last.shortLabel}',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: primary)),
+                ),
+                MatchVideoButtons(videoUrls: last.videoUrls, compact: true),
+              ],
+            ),
+          ));
+        }
+      }
+      addTeams(match.redTeams, 'Red');
+      addTeams(match.blueTeams, 'Blue');
+    }
+    if (rows.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: ObsidianGlassCard(
+        margin: EdgeInsets.zero,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Match Videos', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: primary)),
+              const SizedBox(height: 2),
+              Text(note, style: TextStyle(fontSize: 12, color: muted)),
+              const SizedBox(height: 8),
+              ...rows,
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1791,6 +1865,8 @@ class _MatchPlanningScreenState extends State<MatchPlanningScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 14),
+
+                                _buildMatchVideosSection(),
 
                                 // Blue Alliance Cards
                                 _buildAllianceTeamCardsSection('Blue Alliance', 'blue', _selectedMatch!.blueTeams),

@@ -3895,6 +3895,94 @@ class ApiService {
     return cachedList;
   }
 
+  /// The season's default canvas scouting form, if the site admins switched one on: `(year, layout)`.
+  /// Teams whose match config has no `layout` of their own use it. Cached, so it works offline.
+  Future<({int? year, Map<String, dynamic>? layout})> fetchSeasonCanvas() async {
+    final data = await _getJsonCached('/api/config/season-canvas', 'cache_season_canvas');
+    if (data is! Map) return (year: null, layout: null);
+    final layout = data['layout'];
+    return (
+      year: (data['year'] as num?)?.toInt(),
+      layout: layout is Map ? Map<String, dynamic>.from(layout) : null,
+    );
+  }
+
+  /// Uploads an image for a canvas scouting form and returns its `/api/blobs/` URL.
+  /// Returns null when the server has no file storage running (the caller then embeds the image);
+  /// throws with the server's message on any other failure.
+  Future<String?> uploadCanvasImage(Uint8List bytes, {String mime = 'image/webp'}) async {
+    if (!_isOnline) throw Exception('Connect to the server to add an image.');
+    final request = http.MultipartRequest('POST', Uri.parse('$_currentServerUrl/api/config/canvas-image'))
+      ..headers.addAll(Map<String, String>.of(_headers)..remove('Content-Type'))
+      // The server works the format out from the bytes, so no content type is needed on the part.
+      ..files.add(http.MultipartFile.fromBytes('file', bytes, filename: 'canvas-image.${mime.split('/').last}'));
+    final streamed = await request.send().timeout(const Duration(seconds: 60));
+    final response = await http.Response.fromStream(streamed);
+    if (response.statusCode == 503) return null;
+    if (response.statusCode != 200) {
+      String message = 'Upload failed (${response.statusCode})';
+      try {
+        final body = jsonDecode(response.body);
+        if (body is Map && body['error'] != null) message = body['error'].toString();
+        if (body is Map && body['message'] != null) message = body['message'].toString();
+      } catch (_) {}
+      throw Exception(message);
+    }
+    final body = jsonDecode(response.body);
+    final url = body is Map ? body['url']?.toString() : null;
+    if (url == null || url.isEmpty) throw Exception('The server did not return the image address.');
+    return url;
+  }
+
+  /// Fetches a JSON GET from the server, caching the body under [cacheKey] so it is
+  /// there offline. Falls back to the cached copy when offline or on any error.
+  Future<dynamic> _getJsonCached(String path, String cacheKey, {bool authed = true}) async {
+    if (_isOnline) {
+      try {
+        final response = await http.get(Uri.parse('$_currentServerUrl$path'), headers: authed ? _headers : const {'Accept': 'application/json'})
+            .timeout(const Duration(seconds: 10));
+        if (response.statusCode == 200) {
+          await _setCache(cacheKey, response.body);
+          return jsonDecode(response.body);
+        }
+      } catch (_) {}
+    }
+    final cached = await _getCache(cacheKey);
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        return await _decodeCached(cached);
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  /// Docs library (`/api/docs`): `[{filename, title}]`, pinned guides first.
+  Future<List<Map<String, String>>> fetchDocsList({String lang = 'en'}) async {
+    final data = await _getJsonCached('/api/docs?lang=${Uri.encodeQueryComponent(lang)}', 'cache_docs_list_$lang');
+    if (data is! List) return const [];
+    return [
+      for (final d in data)
+        if (d is Map && d['filename'] != null)
+          {'filename': d['filename'].toString(), 'title': (d['title'] ?? d['filename']).toString()},
+    ];
+  }
+
+  /// One doc's Markdown, or null when it can't be loaded.
+  Future<String?> fetchDoc(String filename, {String lang = 'en'}) async {
+    if (filename.contains('/') || filename.contains(r'\') || filename.contains('..')) return null;
+    final data = await _getJsonCached(
+      '/api/docs/${Uri.encodeComponent(filename)}?lang=${Uri.encodeQueryComponent(lang)}',
+      'cache_doc_${filename}_$lang',
+    );
+    return data is Map ? data['content']?.toString() : null;
+  }
+
+  /// Public Data directory (`/api/public/directory`): teams that shared their data, with events and counts.
+  Future<Map<String, dynamic>?> fetchPublicDirectory() async {
+    final data = await _getJsonCached('/api/public/directory', 'cache_public_directory', authed: false);
+    return data is Map<String, dynamic> ? data : (data is Map ? Map<String, dynamic>.from(data) : null);
+  }
+
   Future<List<MatchModel>> fetchMatches(String? eventKey) async {
     final effectiveKey = (eventKey != null && eventKey.isNotEmpty)
         ? eventKey

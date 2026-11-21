@@ -23,6 +23,9 @@ import '../widgets/match_prediction_card.dart';
 import '../services/scouting_draft_service.dart';
 import '../widgets/draft_restore_banner.dart';
 import '../widgets/submit_review_sheet.dart';
+import '../models/canvas_layout.dart';
+import '../widgets/canvas_form_view.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MatchScoutScreen extends StatefulWidget {
   final ApiService apiService;
@@ -78,10 +81,52 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
   Timer? _draftSaveTimer;
   ScoutingDraft? _availableDraft;
 
+  // Canvas form (designed by an admin): the team's own layout, else the season's default.
+  static const String _formStylePrefKey = 'scout_form_style';
+  final GlobalKey<CanvasScoutFormState> _canvasKey = GlobalKey<CanvasScoutFormState>();
+  Map<String, dynamic>? _seasonLayout;
+  bool _prefersClassic = false;
+  Set<String> _invalidFieldIds = const {};
+
+  /// The team's own layout wins, even one that only says "classic"; with none, the season default applies.
+  Map<String, dynamic>? get _effectiveLayout => _config?.layout ?? _seasonLayout;
+
+  bool get _canvasAvailable => canvasIsActive(_effectiveLayout);
+
+  bool get _canToggleStyle => _canvasAvailable && _effectiveLayout!['allowClassicToggle'] != false;
+
+  bool get _useCanvas => _canvasAvailable && !(_canToggleStyle && _prefersClassic);
+
+  Future<void> _loadFormStyle() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final classic = prefs.getString(_formStylePrefKey) == 'classic';
+      if (mounted && classic != _prefersClassic) setState(() => _prefersClassic = classic);
+    } catch (_) {}
+  }
+
+  Future<void> _toggleFormStyle() async {
+    final goClassic = _useCanvas;
+    setState(() => _prefersClassic = goClassic);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_formStylePrefKey, goClassic ? 'classic' : 'canvas');
+    } catch (_) {}
+  }
+
+  Future<void> _loadSeasonCanvas() async {
+    try {
+      final season = await widget.apiService.fetchSeasonCanvas();
+      if (mounted) setState(() => _seasonLayout = season.layout);
+    } catch (_) {}
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _loadFormStyle();
+    _loadSeasonCanvas();
     _loadPageData();
     _gamepadSubscription = GamepadService.instance.actionStream.listen(_handleGamepadAction);
   }
@@ -109,7 +154,10 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
   }
 
   void _onFieldChanged(String fieldId, dynamic val) {
-    setState(() => _formData[fieldId] = val);
+    setState(() {
+      _formData[fieldId] = val;
+      if (_invalidFieldIds.contains(fieldId)) _invalidFieldIds = {..._invalidFieldIds}..remove(fieldId);
+    });
     _scheduleDraftSave();
   }
 
@@ -238,6 +286,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
     }
 
     if (widget.isVisible && !oldWidget.isVisible) {
+      _loadSeasonCanvas();
       _loadPageData();
     }
   }
@@ -790,7 +839,12 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
         final val = _formData[field.id];
         if (val == null || val == '' || (val is List && val.isEmpty)) {
           final phase = _getFieldPhase(field);
-          setState(() => _activeTab = phase);
+          setState(() {
+            _activeTab = phase;
+            _invalidFieldIds = {field.id};
+          });
+          // On a canvas, jump to the page holding the field (if it isn't there, it's in the list below).
+          if (_useCanvas) _canvasKey.currentState?.revealField(field.id);
           ObsidianFeedback.showWarning(
             context,
             title: 'Missing Required Field',
@@ -957,7 +1011,9 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
         _resetFormData(_config!);
         _activeTab = 'auto';
         _availableDraft = null;
+        _invalidFieldIds = const {};
       });
+      _canvasKey.currentState?.showPage(0);
     }
   }
 
@@ -1082,6 +1138,18 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
         break;
 
       case GamepadActionType.switchTab:
+        final canvas = _useCanvas ? _canvasKey.currentState : null;
+        if (canvas != null) {
+          // Canvas pages replace the phase tabs.
+          if (binding.targetValue == 'next') {
+            canvas.nextPage();
+          } else if (binding.targetValue == 'prev') {
+            canvas.previousPage();
+          } else if (binding.targetValue != null) {
+            canvas.showPhase(binding.targetValue!);
+          }
+          break;
+        }
         final tabs = ['auto', 'teleop', 'endgame', 'postmatch'];
         if (binding.targetValue == 'next') {
           final idx = tabs.indexOf(_activeTab);
@@ -1552,6 +1620,66 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
     );
   }
 
+  /// The form itself: the admin's canvas when there is one (unless this scout chose the classic list), else the
+  /// phase tabs and the active tab's fields. A "Classic list" / "Canvas view" switch shows when allowed.
+  List<Widget> _buildFormArea(List<ScoutingFieldModel> fields, {bool isDesktop = false}) {
+    final toggle = _canToggleStyle
+        ? Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () {
+                HapticFeedback.selectionClick();
+                _toggleFormStyle();
+              },
+              icon: Icon(_useCanvas ? Icons.view_list_rounded : Icons.dashboard_rounded, size: 18),
+              label: Text(_useCanvas ? 'Classic list' : 'Canvas view'),
+              style: TextButton.styleFrom(foregroundColor: ObsidianUITheme.primaryAccent),
+            ),
+          )
+        : null;
+
+    if (!_useCanvas) {
+      return [
+        if (toggle != null) toggle,
+        _buildTabRow(),
+        _buildActiveTabFields(fields, isDesktop: isDesktop),
+      ];
+    }
+
+    return [
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                'SCOUTING FORM',
+                style: TextStyle(fontSize: 12.0, fontWeight: FontWeight.bold, color: ObsidianUITheme.primaryAccent),
+              ),
+            ),
+            _buildGamepadCheatSheetButton(),
+            if (toggle != null) toggle,
+          ],
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: CanvasScoutForm(
+          key: _canvasKey,
+          layout: _effectiveLayout!,
+          fields: fields,
+          values: _formData,
+          invalidFieldIds: _invalidFieldIds,
+          onChanged: _onFieldChanged,
+          onPageChanged: (phase) {
+            // Controller bindings follow the page's phase; pages without one keep the last phase.
+            if (phase.isNotEmpty && phase != _activeTab && mounted) setState(() => _activeTab = phase);
+          },
+        ),
+      ),
+    ];
+  }
+
   Widget _buildActiveTabFields(List<ScoutingFieldModel> allFields, {bool isDesktop = false}) {
     final activeFields = allFields.where((f) {
       final t = f.type.toLowerCase();
@@ -1922,10 +2050,7 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildTabRow(),
-                          _buildActiveTabFields(fields, isDesktop: true),
-                        ],
+                        children: _buildFormArea(fields, isDesktop: true),
                       ),
                     ),
                   ],
@@ -2046,11 +2171,8 @@ class _MatchScoutScreenState extends State<MatchScoutScreen> with WidgetsBinding
                 ),
               )
             else ...[
-              // Tab Row (Auto, Teleop, Endgame, Post Match)
-              _buildTabRow(),
-
-              // Active Tab Fields Card
-              _buildActiveTabFields(fields),
+              // Canvas form, or the tab row (Auto, Teleop, Endgame, Post Match) with the active tab's fields
+              ..._buildFormArea(fields),
 
               // Points Preview Card
               _buildPointsPreview(points),

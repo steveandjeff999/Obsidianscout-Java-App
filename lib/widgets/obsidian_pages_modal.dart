@@ -510,6 +510,42 @@ class ObsidianPagesModal extends StatelessWidget {
         'tag': 'Support',
         'color': Colors.blueGrey,
       },
+      {
+        'pageId': 'docs',
+        'index': 55,
+        'icon': Icons.menu_book_rounded,
+        'name': context.tr('nav.docs', 'Docs'),
+        'desc': 'Guides for every page, including the feature tour',
+        'tag': 'Support',
+        'color': Colors.blueGrey,
+      },
+      {
+        'pageId': 'tutorials',
+        'index': 56,
+        'icon': Icons.school_rounded,
+        'name': context.tr('nav.tutorials', 'Tutorials'),
+        'desc': 'Step-by-step guides to each part of the app',
+        'tag': 'Support',
+        'color': Colors.blueGrey,
+      },
+      {
+        'pageId': 'public-data',
+        'index': 57,
+        'icon': Icons.public_rounded,
+        'name': context.tr('nav.public_data', 'Public Data'),
+        'desc': 'Scouting data other teams chose to share',
+        'tag': 'Data',
+        'color': Colors.blueGrey,
+      },
+      {
+        'pageId': 'assistant',
+        'index': 58,
+        'icon': Icons.auto_awesome_rounded,
+        'name': context.tr('nav.assistant', 'Assistant'),
+        'desc': 'Ask questions about your data (opens in the browser)',
+        'tag': 'Support',
+        'color': Colors.blueGrey,
+      },
     ];
 
     final allPages = rawPages.where((p) {

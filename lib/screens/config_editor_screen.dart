@@ -18,6 +18,9 @@ import '../widgets/obsidian_feedback.dart';
 import '../widgets/event_code_picker.dart';
 import '../widgets/obsidian_glass_card.dart';
 import '../widgets/slack_integration_editor.dart';
+import '../widgets/canvas_layout_editor.dart';
+import '../services/image_utils.dart';
+import 'package:image_picker/image_picker.dart';
 
 /// Dropdown options in a config with no value, as "Field: Option". Picking one would store an
 /// empty answer that reads the same as "never answered".
@@ -69,6 +72,10 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
   late String _activeMainTab; // "config", "api", "permissions"
   late String _activeKind; // "game", "pit", "qual"
   bool _isRawMode = false;
+  // Canvas Layout tab (match form only), and the season's default canvas it offers.
+  bool _isCanvasMode = false;
+  int? _seasonCanvasYear;
+  Map<String, dynamic>? _seasonCanvasLayout;
   bool _isLoading = true;
   bool _isSaving = false;
   String? _rawJsonError;
@@ -354,12 +361,64 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     }
   }
 
+  Future<void> _loadSeasonCanvas() async {
+    try {
+      final season = await widget.apiService.fetchSeasonCanvas();
+      if (!mounted) return;
+      setState(() {
+        _seasonCanvasYear = season.year;
+        _seasonCanvasLayout = season.layout;
+      });
+    } catch (_) {}
+  }
+
+  /// Lets the admin pick a picture for the canvas: uploaded to the server's file storage, or kept inside the
+  /// config (compressed) when the server has none running.
+  Future<String?> _pickCanvasImage() async {
+    final processed = await ImageProcessingUtils.pickAndProcessImage(source: ImageSource.gallery, maxDimension: 1920, quality: 85);
+    if (processed == null) return null;
+    final dataUrl = processed.dataUrl;
+    final comma = dataUrl.indexOf(',');
+    final mime = RegExp(r'^data:([^;]+)').firstMatch(dataUrl)?.group(1) ?? 'image/webp';
+    final bytes = base64Decode(dataUrl.substring(comma + 1));
+    final url = await widget.apiService.uploadCanvasImage(bytes, mime: mime);
+    if (url != null) return url;
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text("File storage isn't running, so the image is stored inside the form config. Keep it small."),
+      ));
+    }
+    return dataUrl;
+  }
+
+  void _onCanvasLayoutChanged(Map<String, dynamic>? layout) {
+    setState(() {
+      _currentConfig = layout == null ? _currentConfig.copyWith(clearLayout: true) : _currentConfig.copyWith(layout: layout);
+    });
+    _syncVisualToRaw();
+  }
+
+  Widget _buildCanvasEditor() {
+    return CanvasLayoutEditor(
+      layout: _currentConfig.layout,
+      fields: _currentConfig.fields,
+      seasonLayout: _seasonCanvasLayout,
+      seasonYear: _seasonCanvasYear,
+      readOnly: _collabStatus == CollabStatus.readonly,
+      onChanged: _onCanvasLayoutChanged,
+      pickImage: _pickCanvasImage,
+    );
+  }
+
   Future<void> _loadConfigForKind(String kind) async {
     _stopLiveEditing();
     setState(() {
       _isLoading = true;
       _rawJsonError = null;
+      // Canvas layouts are for the match form only.
+      if (kind != 'game') _isCanvasMode = false;
     });
+    if (kind == 'game') _loadSeasonCanvas();
 
     ScoutingConfigModel? config;
     if (kind == 'pit') {
@@ -1142,6 +1201,7 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     if (rawType == null || rawType.isEmpty) return 'text';
     final t = rawType.toLowerCase().trim();
     if (t == 'counter') return 'counter';
+    if (t == 'timer' || t == 'stopwatch' || t == 'cycle_timer') return 'timer';
     if (t == 'number' || t == 'int' || t == 'integer' || t == 'float') return 'number';
     if (t == 'rating' || t == 'stars' || t == 'star') return 'rating';
     if (t == 'checkbox' || t == 'toggle' || t == 'bool' || t == 'boolean') return 'checkbox';
@@ -2230,6 +2290,8 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
             SlackIntegrationEditor(apiService: widget.apiService)
           else if (_isRawMode)
             _buildRawEditor()
+          else if (_isCanvasMode && _activeKind == 'game')
+            _buildCanvasEditor()
           else
             _buildVisualEditor(),
 
@@ -2391,10 +2453,54 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
     );
   }
 
+  /// Leaves the raw JSON editor, if open; false (with a message) when its JSON doesn't parse.
+  bool _leaveRawMode() {
+    if (!_isRawMode) return true;
+    if (_syncRawToVisual()) {
+      _isRawMode = false;
+      return true;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Fix syntax error before switching: $_rawJsonError'), backgroundColor: ObsidianUITheme.errorRed),
+    );
+    return false;
+  }
+
   Widget _buildEditorModeSwitcher() {
     final isDark = ObsidianUITheme.isDark(context);
     final secondaryTextColor = ObsidianUITheme.getSecondaryTextColor(context);
     final borderColor = ObsidianUITheme.getBorderColor(context);
+    final canvasAllowed = _activeKind == 'game';
+    final mode = _isRawMode ? 'raw' : (_isCanvasMode && canvasAllowed ? 'canvas' : 'visual');
+
+    Widget segment(String id, IconData icon, String label, VoidCallback onTap) {
+      final active = mode == id;
+      return Expanded(
+        child: GestureDetector(
+          onTap: active ? null : onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(
+              color: active ? ObsidianUITheme.primaryAccent : Colors.transparent,
+              borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
+            ),
+            alignment: Alignment.center,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 16, color: active ? Colors.white : secondaryTextColor),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(label,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: active ? Colors.white : secondaryTextColor, fontWeight: FontWeight.bold, fontSize: 13)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return Container(
       padding: const EdgeInsets.all(4),
@@ -2405,63 +2511,20 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
       ),
       child: Row(
         children: [
-          Expanded(
-            child: GestureDetector(
-              onTap: () {
-                if (_isRawMode) {
-                  if (_syncRawToVisual()) {
-                    setState(() => _isRawMode = false);
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Fix syntax error before switching: $_rawJsonError'), backgroundColor: ObsidianUITheme.errorRed),
-                    );
-                  }
-                }
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                decoration: BoxDecoration(
-                  color: !_isRawMode ? ObsidianUITheme.primaryAccent : Colors.transparent,
-                  borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
-                ),
-                alignment: Alignment.center,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.widgets_rounded, size: 16, color: !_isRawMode ? Colors.white : secondaryTextColor),
-                    const SizedBox(width: 6),
-                    Text('Visual Editor', style: TextStyle(color: !_isRawMode ? Colors.white : secondaryTextColor, fontWeight: FontWeight.bold, fontSize: 13)),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            child: GestureDetector(
-              onTap: () {
-                if (!_isRawMode) {
-                  _syncVisualToRaw();
-                  setState(() => _isRawMode = true);
-                }
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                decoration: BoxDecoration(
-                  color: _isRawMode ? ObsidianUITheme.primaryAccent : Colors.transparent,
-                  borderRadius: BorderRadius.circular(ObsidianTokens.radiusPill),
-                ),
-                alignment: Alignment.center,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.code_rounded, size: 16, color: _isRawMode ? Colors.white : secondaryTextColor),
-                    const SizedBox(width: 6),
-                    Text('Raw JSON', style: TextStyle(color: _isRawMode ? Colors.white : secondaryTextColor, fontWeight: FontWeight.bold, fontSize: 13)),
-                  ],
-                ),
-              ),
-            ),
-          ),
+          segment('visual', Icons.widgets_rounded, 'Visual Editor', () {
+            if (_leaveRawMode()) setState(() => _isCanvasMode = false);
+          }),
+          segment('raw', Icons.code_rounded, 'Raw JSON', () {
+            _syncVisualToRaw();
+            setState(() {
+              _isRawMode = true;
+              _isCanvasMode = false;
+            });
+          }),
+          if (canvasAllowed)
+            segment('canvas', Icons.dashboard_customize_rounded, 'Canvas', () {
+              if (_leaveRawMode()) setState(() => _isCanvasMode = true);
+            }),
         ],
       ),
     );
@@ -2948,16 +3011,20 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                     isDense: true,
                     enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
                   ),
-                  items: const [
-                    DropdownMenuItem(value: 'counter', child: Text('COUNTER (+ / -)')),
-                    DropdownMenuItem(value: 'number', child: Text('Number')),
-                    DropdownMenuItem(value: 'rating', child: Text('RATING (1-5)')),
-                    DropdownMenuItem(value: 'checkbox', child: Text('Checkbox / toggle')),
-                    DropdownMenuItem(value: 'select', child: Text('DROPDOWN (SELECT)')),
-                    DropdownMenuItem(value: 'section', child: Text('Section header')),
-                    DropdownMenuItem(value: 'text', child: Text('TEXT (STATIC DISPLAY)')),
-                    DropdownMenuItem(value: 'textarea', child: Text('TEXTAREA (INPUT)')),
-                    DropdownMenuItem(value: 'image', child: Text('IMAGE (PHOTO UPLOAD)')),
+                  items: [
+                    const DropdownMenuItem(value: 'counter', child: Text('COUNTER (+ / -)')),
+                    const DropdownMenuItem(value: 'number', child: Text('Number')),
+                    const DropdownMenuItem(value: 'rating', child: Text('RATING (1-5)')),
+                    // Timers are for match scouting only. A timer already in a pit or qualitative form stays
+                    // listed so the dropdown keeps a valid value and the admin can change it.
+                    if (_activeKind == 'game' || canonicalType == 'timer')
+                      const DropdownMenuItem(value: 'timer', child: Text('TIMER (STOPWATCH / CYCLES)')),
+                    const DropdownMenuItem(value: 'checkbox', child: Text('Checkbox / toggle')),
+                    const DropdownMenuItem(value: 'select', child: Text('DROPDOWN (SELECT)')),
+                    const DropdownMenuItem(value: 'section', child: Text('Section header')),
+                    const DropdownMenuItem(value: 'text', child: Text('TEXT (STATIC DISPLAY)')),
+                    const DropdownMenuItem(value: 'textarea', child: Text('TEXTAREA (INPUT)')),
+                    const DropdownMenuItem(value: 'image', child: Text('IMAGE (PHOTO UPLOAD)')),
                   ],
                   onChanged: (val) {
                     if (val != null) {
@@ -2975,6 +3042,12 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                       }
                       if (val != 'counter') {
                         updated = updated.copyWith(clearDoubleStep: true);
+                      }
+                      if (val == 'timer') {
+                        updated = ScoutingFieldModel.fromJson({
+                          ...updated.copyWith(clearMin: true, clearMax: true, clearStep: true, clearDoubleStep: true, clearPointsPer: true).toJson(),
+                          'mode': updated.mode ?? 'stopwatch',
+                        });
                       }
                       if (val == 'section' || val == 'text' || val == 'image') {
                         updated = updated.copyWith(
@@ -3060,6 +3133,37 @@ class _ConfigEditorScreenState extends State<ConfigEditorScreen> with SingleTick
                 ),
                 Text('Is Required', style: TextStyle(color: primaryTextColor, fontSize: 12.5)),
               ],
+            ),
+          ],
+
+          // Timer mode
+          if (canonicalType == 'timer') ...[
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              key: ValueKey('timer-mode-${field.id}-${field.mode}'),
+              isExpanded: true,
+              initialValue: (field.mode ?? 'stopwatch').toLowerCase() == 'cycle' ? 'cycle' : 'stopwatch',
+              dropdownColor: ObsidianUITheme.getSurfaceColor(context),
+              style: TextStyle(color: primaryTextColor, fontSize: 12),
+              decoration: InputDecoration(
+                labelText: 'Timer mode',
+                labelStyle: TextStyle(color: secondaryTextColor, fontSize: 11),
+                isDense: true,
+                enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: borderColor)),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'stopwatch', child: Text('Stopwatch: total seconds (start / stop)')),
+                DropdownMenuItem(value: 'cycle', child: Text('Cycle timer: average seconds per lap')),
+              ],
+              onChanged: (val) {
+                if (val == null) return;
+                final fields = List<ScoutingFieldModel>.from(_currentConfig.fields);
+                fields[index] = field.copyWith(mode: val);
+                setState(() {
+                  _currentConfig = _currentConfig.copyWith(fields: fields);
+                });
+                _syncVisualToRaw();
+              },
             ),
           ],
 
